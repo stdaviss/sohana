@@ -14,9 +14,9 @@
     <div class="stat-label">Wallet balance</div>
     <div class="stat-value" id="wallet-balance">€{{ '{:,.2f}'.format(balance/100).replace(',', ' ') }}</div>
     <div class="wallet-actions">
-      <button class="wallet-btn primary-w" onclick="location.href='/wallet';openModal('withdraw-modal')">Withdraw</button>
-      <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
-      <button class="wallet-btn" onclick="location.href='/wallet'" style="background:rgba(234,88,12,.7);">Pay</button>
+      <button class="wallet-btn primary-w" onclick="location.href='/wallet?action=withdraw'">Withdraw</button>
+      <button class="wallet-btn" onclick="location.href='/wallet?action=deposit'">Deposit</button>
+      <button class="wallet-btn" onclick="location.href='/wallet?action=pay'" style="background:rgba(234,88,12,.7);">Pay</button>
     </div>
   </div>
   <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">

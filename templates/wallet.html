@@ -333,5 +333,15 @@ function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=
 async function doPay(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('potp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-payc');setLoading(btn,true);const d=await API.post('/api/wallet/pay',{hanatag:'@'+document.getElementById('pay-tag').value.replace('@',''),amount:parseFloat(document.getElementById('pay-amt').value),currency:document.getElementById('pay-cur').value,note:document.getElementById('pay-note').value,otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('pay-modal');toast('Sent to '+d.recipient_name+'!','success');setTimeout(()=>location.reload(),1500);}
 
 function oN(i,el,prefix='otp'){const v=el.value;if(v&&i<5)document.getElementById(prefix+(i+1)).focus();}
+
+// Auto-open modal if arriving from dashboard buttons (?action=deposit/withdraw/pay)
+document.addEventListener('DOMContentLoaded', () => {
+  const action = new URLSearchParams(window.location.search).get('action');
+  if (action === 'deposit')  openModal('deposit-modal');
+  if (action === 'withdraw') openModal('withdraw-modal');
+  if (action === 'pay')      openModal('pay-modal');
+  // Clean the URL so refreshing doesn't re-open the modal
+  if (action) history.replaceState({}, '', '/wallet');
+});
 </script>
 {% endblock %}
