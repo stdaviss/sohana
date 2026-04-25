@@ -1,0 +1,12 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+
+[environments.production.variables]
+SECRET_KEY = "change-this-to-a-random-64-char-string-before-deploying"
+DATABASE_PATH = "/data/sohana.db"

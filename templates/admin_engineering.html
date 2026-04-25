@@ -1,0 +1,242 @@
+{% extends "admin_base.html" %}
+{% block title %}Engineering / CTO Dashboard — SOHANA{% endblock %}
+{% block sidebar_role %}CTO{% endblock %}
+{% block topbar_title %}Engineering / CTO Dashboard{% endblock %}
+{% block topbar_sub %}Real-time overview of system health, performance and infrastructure{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <span class="admin-section-label">Overview</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/engineering" class="active">🖥 System Overview</a></li>
+    <li><a href="/admin/engineering">❤ Service Health</a></li>
+    <li><a href="/admin/engineering">🏗 Infrastructure</a></li>
+    <li><a href="/admin/engineering">⚡ Performance</a></li>
+    <li><a href="/admin/engineering">🚀 Deployments</a></li>
+    <li><a href="/admin/engineering">🐛 Errors & Logs</a></li>
+    <li><a href="/admin/engineering">🔌 APIs</a></li>
+    <li><a href="/admin/engineering">🔐 Security</a></li>
+    <li><a href="/admin/engineering">🗄 Databases</a></li>
+    <li><a href="/admin/engineering">📬 Queues & Jobs</a></li>
+    <li><a href="/admin/engineering">🔔 Alerts</a></li>
+    <li><a href="/admin/engineering">📊 Reports</a></li>
+    <li><a href="/admin/engineering">⚙ Settings</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-6">
+  {% for label,val,delta,up,color in [
+    ('System Uptime','99.95%','+0.02% vs last 7 days',True,'#34d399'),
+    ('API Availability','99.91%','+0.01%',True,'#34d399'),
+    ('Avg Response Time','128 ms','-12 ms vs last 7 days',True,'#60a5fa'),
+    ('Error Rate','0.18%','-0.06%',True,'#34d399'),
+    ('Failed Requests (24h)','2,518','-8.3% vs yesterday',True,'#fbbf24'),
+    ('Active Users (Real-time)','18,732','+11.2% vs yesterday',True,'#a78bfa'),
+  ] %}
+  <div class="astat">
+    <div class="astat-label" style="margin-bottom:.4rem;">{{ label }}</div>
+    <div class="astat-value" style="font-size:1.3rem;color:{{ color }};">{{ val }}</div>
+    <div class="astat-delta up" style="font-size:.68rem;">↑ {{ delta }}</div>
+    <canvas id="spark-{{ loop.index }}" height="30" style="width:100%;margin-top:.4rem;"></canvas>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- System Health donut -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">System Health</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="position:relative;">
+        <canvas id="health-donut" width="110" height="110"></canvas>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+          <div style="font-size:1.3rem;font-weight:800;color:#fff;">24</div>
+          <div style="font-size:.65rem;color:var(--admin-muted);">Services</div>
+        </div>
+      </div>
+      <div>
+        {% for label,val,color in [('Healthy','20 (83.3%)','#34d399'),('Degraded','3 (12.5%)','#fbbf24'),('Down','1 (4.2%)','#f87171')] %}
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.5rem;">
+          <div style="width:8px;height:8px;border-radius:50%;background:{{ color }};"></div>
+          <span style="color:var(--admin-muted);font-size:.78rem;">{{ label }}</span>
+          <span style="font-size:.78rem;font-weight:600;color:#fff;margin-left:.25rem;">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Infrastructure Overview -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Infrastructure Overview</div>
+    {% for label,val,avg in [('CPU Usage','42%','Avg. across all servers'),('Memory Usage','68%','Avg. across all servers'),('Disk Usage','56%','Avg. across all servers')] %}
+    <div style="margin-bottom:.75rem;">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
+        <span style="color:var(--admin-text);">{{ label }}</span>
+        <span style="font-weight:700;color:#fff;">{{ val }}</span>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:3px;height:6px;">
+        <div style="background:{% if val[:-1]|int>70 %}#f87171{% elif val[:-1]|int>50 %}#fbbf24{% else %}#34d399{% endif %};height:6px;border-radius:3px;width:{{ val }};"></div>
+      </div>
+      <div style="font-size:.68rem;color:var(--admin-muted);margin-top:.15rem;">{{ avg }}</div>
+    </div>
+    {% endfor %}
+    <table class="atable" style="margin-top:.5rem;">
+      <thead><tr><th>Server Group</th><th>Status</th><th>CPU</th><th>Memory</th></tr></thead>
+      <tbody>
+        {% for sg,status,cpu,mem in [('Production','Healthy','42%','67%'),('Staging','Healthy','31%','54%'),('Database Cluster','Healthy','48%','72%'),('Cache Cluster','Healthy','25%','41%')] %}
+        <tr>
+          <td style="font-size:.78rem;">{{ sg }}</td>
+          <td><span style="color:#34d399;font-size:.72rem;font-weight:600;">{{ status }}</span></td>
+          <td style="font-size:.78rem;">{{ cpu }}</td>
+          <td style="font-size:.78rem;">{{ mem }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Deployments -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Deployments <a class="view-all-link" style="float:right;">View all</a></div>
+    <div style="display:flex;gap:.75rem;margin-bottom:.875rem;">
+      {% for label,val,delta,up in [('Deployments (30d)','28','+16.7%',True),('Success Rate','96.4%','+2.1%',True),('Failed','1','-75%',True)] %}
+      <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.62rem;color:var(--admin-muted);">{{ label }}</div>
+        <div style="font-size:.62rem;color:#34d399;">{{ delta }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="font-size:.72rem;font-weight:600;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.5rem;">Recent Deployments</div>
+    {% for svc,ver,env,status in [('User Service','v2.14.3','Production','Success'),('Payment Service','v1.9.7','Production','Success'),('Wallet Service','v2.8.1','Production','Success'),('Notification Service','v1.3.9','Staging','Success'),('KYC Service','v2.2.0','Production','Failed')] %}
+    <div style="display:flex;align-items:center;gap:.4rem;padding:.35rem 0;border-bottom:1px solid var(--admin-border);font-size:.75rem;">
+      <span style="flex:1;color:#fff;font-weight:500;">{{ svc }}</span>
+      <span style="color:var(--admin-muted);">{{ ver }}</span>
+      <span class="apill {% if status=='Success' %}apill-green{% else %}apill-red{% endif %}" style="font-size:.62rem;">{{ status }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- API Performance -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">API Performance (Top 5 Endpoints)</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>Endpoint</th><th>Avg RT</th><th>Requests</th><th>Error %</th></tr></thead>
+      <tbody>
+        {% for ep,rt,req,err,good in [('POST /api/v1/transactions','142 ms','125,742','0.12%',True),('GET /api/v1/balance','98 ms','98,215','0.08%',True),('POST /api/v1/auth/login','156 ms','76,532','0.15%',True),('POST /api/v1/payments','174 ms','65,421','0.21%',False),('GET /api/v1/users/profile','81 ms','54,298','0.07%',True)] %}
+        <tr>
+          <td style="font-family:monospace;font-size:.72rem;color:#a78bfa;">{{ ep }}</td>
+          <td style="font-size:.78rem;color:#fff;">{{ rt }}</td>
+          <td style="font-size:.78rem;color:var(--admin-muted);">{{ req }}</td>
+          <td><span style="color:{% if good %}#34d399{% else %}#fbbf24{% endif %};font-size:.78rem;font-weight:600;">{{ err }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Errors -->
+  <div class="acard acard-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">
+      <span class="acard-title">Errors (Last 24 Hours)</span><a class="view-all-link">View logs</a>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;">
+      {% for label,val,color in [('Total Errors','1,256','#fff'),('Critical','142','#f87171'),('Warning','418','#fbbf24'),('Info','696','#60a5fa')] %}
+      <div style="flex:1;text-align:center;">
+        <div style="font-size:1rem;font-weight:700;color:{{ color }};">{{ val }}</div>
+        <div style="font-size:.65rem;color:var(--admin-muted);">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <canvas id="errors-chart" height="100" style="width:100%;"></canvas>
+  </div>
+
+  <!-- Top Error Types -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Top Error Types</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>Error Type</th><th>Count</th><th>% Total</th></tr></thead>
+      <tbody>
+        {% for err,cnt,pct in [('Validation Exception','342','27.2%'),('Database Timeout','278','22.1%'),('Null Reference Exception','186','14.8%'),('External API Error','162','12.9%'),('Authentication Failed','142','11.3%')] %}
+        <tr>
+          <td style="font-size:.8rem;color:#fff;">{{ err }}</td>
+          <td style="font-size:.8rem;font-weight:600;">{{ cnt }}</td>
+          <td style="font-size:.78rem;color:var(--admin-muted);">{{ pct }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3">
+  <!-- Database Overview -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Database Overview</div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;">
+      {% for label,val in [('Connections','128/500'),('Query Time (Avg.)','45 ms'),('Slow Queries','12'),('Replication Lag','0.3s')] %}
+      <div style="flex:1;min-width:80px;background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem;text-align:center;">
+        <div style="font-size:1rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.62rem;color:var(--admin-muted);margin-top:.1rem;">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Queues & Jobs -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Queues & Jobs <a class="view-all-link" style="float:right;">View all</a></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      {% for label,val,color in [('Active Jobs','1,543','#34d399'),('Failed Jobs','23','#f87171'),('Throughput','8,732/min','#60a5fa'),('Queue Backlog','325','#fbbf24')] %}
+      <div style="flex:1;min-width:80px;background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem;text-align:center;">
+        <div style="font-size:1rem;font-weight:700;color:{{ color }};">{{ val }}</div>
+        <div style="font-size:.62rem;color:var(--admin-muted);margin-top:.1rem;">{{ label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- System Alerts -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">System Alerts <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for level,msg,time,color in [('High','High memory usage on Production Server 03','6 min ago','#f87171'),('Warning','Disk usage on Database Cluster above 80%','15 min ago','#fbbf24'),('Info','New deployment completed: User Service v2.14.3','26 min ago','#60a5fa'),('Resolved','Incident #INC-4821 has been resolved','1 hour ago','#34d399')] %}
+    <div style="display:flex;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--admin-border);">
+      <span style="color:{{ color }};font-size:.75rem;font-weight:700;min-width:55px;">{{ level }}</span>
+      <span style="flex:1;font-size:.75rem;color:var(--admin-text);">{{ msg }}</span>
+      <span style="font-size:.7rem;color:var(--admin-muted);white-space:nowrap;">{{ time }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+setTimeout(()=>{
+  // Mini sparklines for stat cards
+  [['#34d399','up'],['#34d399','up'],['#60a5fa','down'],['#34d399','up'],['#fbbf24','down'],['#a78bfa','up']].forEach(([col,dir],i)=>{
+    const c=document.getElementById('spark-'+(i+1));if(!c)return;
+    const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=60;
+    const pts=Array.from({length:12},(_,j)=>dir==='up'?30+j*4+Math.random()*8:70-j*4+Math.random()*8);
+    const mn=Math.min(...pts),mx=Math.max(...pts);
+    const tx=j=>(j/(pts.length-1))*(W-4)+2;const ty=v=>H-2-((v-mn)/(mx-mn||1))*(H-4);
+    ctx.beginPath();pts.forEach((p,j)=>j===0?ctx.moveTo(tx(j),ty(p)):ctx.lineTo(tx(j),ty(p)));
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+  });
+  // Health donut
+  const hc=document.getElementById('health-donut');
+  if(hc){const ctx=hc.getContext('2d');const cx=55,cy=55,r=46,t=14;let a=-Math.PI/2;
+    [[83.3,'#34d399'],[12.5,'#fbbf24'],[4.2,'#f87171']].forEach(([v,col])=>{
+      const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});
+    ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
+  // Errors bar chart
+  const ec=document.getElementById('errors-chart');
+  if(ec){const ctx=ec.getContext('2d');const W=ec.width=ec.offsetWidth*2;const H=ec.height=200;
+    const pts=[25,40,30,55,45,70,50,65,40,75,55,85,70,90,75,65,80,55,45,60,70,85,75];
+    const mx=Math.max(...pts)+5;const bw=(W-20)/(pts.length*1.5);
+    pts.forEach((v,i)=>{const x=10+i*(bw+bw*.5);const h=(v/mx)*(H-10);ctx.fillStyle='rgba(248,113,113,.8)';ctx.fillRect(x,H-h,bw,h);});}
+},100);
+</script>
+{% endblock %}

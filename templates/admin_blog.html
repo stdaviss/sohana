@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Blog Admin — SOHANA Hub{% endblock %}
+{% block topbar_title %}Blog Management{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">Blog Posts</h1><button class="btn btn-orange" onclick="openModal('new-post-modal')">+ New Post</button></div>
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Title</th><th>Category</th><th>Published</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for p in posts %}
+      <tr><td><div class="td-bold">{{ p.title }}</div><div class="td-sub">{{ p.slug }}</div></td>
+      <td><span class="pill pill-blue pill-no-dot" style="font-size:.7rem;">{{ p.category }}</span></td>
+      <td class="text-muted text-xs">{{ p.published_at[:10] }}</td>
+      <td><span class="pill {% if p.is_published %}pill-green{% else %}pill-gray{% endif %} pill-no-dot">{{ 'Published' if p.is_published else 'Draft' }}</span></td></tr>
+      {% else %}<tr><td colspan="4" class="empty-state" style="padding:2rem;text-align:center;">No posts yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}
+{% block modals %}
+<div class="modal-backdrop" id="new-post-modal">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="closeModal('new-post-modal')">✕</button>
+    <h3 class="modal-title">New Blog Post</h3>
+    <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="bp-title" placeholder="Post title"></div>
+    <div class="form-group"><label class="form-label">Category</label>
+      <select class="form-input form-select" id="bp-cat"><option value="news">News</option><option value="tips">Tips</option><option value="education">Education</option></select></div>
+    <div class="form-group"><label class="form-label">Excerpt</label><input class="form-input" id="bp-excerpt" placeholder="Short summary..."></div>
+    <div class="form-group"><label class="form-label">Body</label><textarea class="form-input" id="bp-body" rows="6" style="resize:vertical;" placeholder="Full post content..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('new-post-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" onclick="createPost()">Publish</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function createPost(){const d=await API.post('/api/admin/blog',{title:document.getElementById('bp-title').value,excerpt:document.getElementById('bp-excerpt').value,body:document.getElementById('bp-body').value,category:document.getElementById('bp-cat').value});if(d.ok){closeModal('new-post-modal');toast('Post published!','success');setTimeout(()=>location.reload(),1000);}else toast(d.error,'error');}
+</script>
+{% endblock %}

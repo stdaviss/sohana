@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — SOHANA Hub{% endblock %}
+{% block topbar_title %}Super Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title" style="font-size:1.1rem;font-weight:700;text-align:center;color:var(--gray-600);letter-spacing:.05em;text-transform:uppercase;">Super Admin Dashboard</h1>
+  </div>
+  <div style="display:flex;gap:.75rem;">
+    <button class="btn btn-outline" onclick="location.href='/admin/roscas'">View as User</button>
+    <button class="btn btn-orange" onclick="openModal('create-rosca-modal')">+ Create ROSCA</button>
+    <button class="btn btn-ghost btn-icon">⚙</button>
+  </div>
+</div>
+
+<!-- Top 5 stat cards — matches Image 1 -->
+<div class="stats-grid stats-grid-5">
+  <div class="stat-card">
+    <div class="stat-icon blue">◎</div>
+    <div class="stat-body">
+      <div class="stat-label">Total ROSCAs</div>
+      <div class="stat-value">{{ stats.total_roscas }}</div>
+      <div class="stat-sub">Total</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon teal">👥</div>
+    <div class="stat-body">
+      <div class="stat-label">Active Members</div>
+      <div class="stat-value">{{ stats.active_members }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">💵</div>
+    <div class="stat-body">
+      <div class="stat-label">Escrow</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.escrow / 100) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">💰</div>
+    <div class="stat-body">
+      <div class="stat-label">Total Earnings</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.total_earnings / 100) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">🚀</div>
+    <div class="stat-body">
+      <div class="stat-label">Platform Earnings</div>
+      <div class="stat-value">{{ stats.platform_earnings }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Second row stats -->
+<div class="stats-grid stats-grid-4" style="margin-top:0;">
+  <div class="stat-card">
+    <div class="stat-icon green">💵</div>
+    <div class="stat-body">
+      <div class="stat-label">Contributed this Week</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.contributed_week / 100) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">👤</div>
+    <div class="stat-body">
+      <div class="stat-label">New Users</div>
+      <div class="stat-value">{{ stats.new_users_week }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">💬</div>
+    <div class="stat-body">
+      <div class="stat-label">Members with Late Payments</div>
+      <div class="stat-value">{{ stats.late_members }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">⚠</div>
+    <div class="stat-body">
+      <div class="stat-label">Organisers with Audits</div>
+      <div class="stat-value">{{ organiser_alerts | length }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main content grid -->
+<div class="content-grid content-grid-sidebar">
+
+  <!-- Left: ROSCA Table + Charts -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- All ROSCAs table — matches Image 1 -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All ROSCAs</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <select class="filter-select"><option>Sort by ▾</option><option>Age</option><option>Members</option><option>Amount</option></select>
+          <select class="filter-select"><option>F1 Age</option><option>F2 Type</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ROSCA Name</th>
+            <th>Organiser</th>
+            <th>Type</th>
+            <th>Members</th>
+            <th>Contributions</th>
+            <th>Cycle Progress</th>
+          </tr></thead>
+          <tbody>
+            {% for r in all_roscas %}
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ r.name[0] }}</div>
+                  <div>
+                    <div class="td-bold">{{ r.name }}</div>
+                    <div class="td-sub">{{ r.rosca_type.replace('_',' ').title() }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div style="font-size:.83rem;font-weight:500;">{{ r.organiser_name }}</div>
+              </td>
+              <td>
+                <span class="pill {% if r.is_public %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot">
+                  {{ 'Public' if r.is_public else 'Private' }}
+                </span>
+              </td>
+              <td>
+                <span style="font-weight:600;">{{ r.member_count }}</span>
+                <span class="text-muted text-xs">/{{ r.max_members }}</span>
+              </td>
+              <td>
+                <div style="font-size:.83rem;font-weight:600;">&euro;{{ '%.0f' % (r.contribution_cents / 100) }}/cycle</div>
+              </td>
+              <td>
+                <div style="min-width:120px;">
+                  <div class="progress-track" style="height:6px;margin-bottom:.3rem;">
+                    <div class="progress-fill fill-green" style="width:{{ [((r.current_cycle / [r.total_cycles,1]|max) * 100)|round|int, 100]|min }}%"></div>
+                  </div>
+                  <div class="text-xs text-muted">Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="empty-state" style="padding:2rem;">No ROSCAs created yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="content-grid-2">
+      <div class="card card-pad">
+        <div class="flex items-center justify-between mb-3">
+          <span class="card-title">Platform Earnings</span>
+        </div>
+        <canvas id="earnings-chart" height="160" style="width:100%;"></canvas>
+        <div class="text-xs text-muted mt-2" style="text-align:center;">Jan — Apr 2026</div>
+      </div>
+      <div class="card card-pad">
+        <div class="flex items-center justify-between mb-3">
+          <span class="card-title">Platform Activity</span>
+          <a class="view-all">View All ›</a>
+        </div>
+        <canvas id="activity-chart" height="160" style="width:100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Risk + Alerts panels — matches Image 1 right column -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Members at Risk -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Members at Risk</span>
+        <span style="font-size:.8rem;cursor:pointer;color:var(--text-muted);">⌃</span>
+      </div>
+      {% if at_risk %}
+        {% for r in at_risk %}
+        <div class="risk-item">
+          <div class="risk-avatar red">{{ r.full_name[0] }}</div>
+          <div class="risk-body">
+            <div class="risk-name">{{ r.full_name }}</div>
+            <div class="risk-desc">{{ r.missed }} Missed Payment{{ 's' if r.missed != 1 }}</div>
+            <div class="risk-sub">{{ r.rosca_name }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state" style="padding:1.5rem;"><p>No at-risk members.</p></div>
+      {% endif %}
+      <div class="card-footer"><a class="view-all">View All ›</a></div>
+    </div>
+
+    <!-- Organiser Alerts -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Organiser Alerts</span>
+        <span style="font-size:.8rem;cursor:pointer;color:var(--text-muted);">⌃</span>
+      </div>
+      {% if organiser_alerts %}
+        {% for a in organiser_alerts %}
+        <div class="risk-item">
+          <div class="risk-avatar amber">⚠</div>
+          <div class="risk-body">
+            <div class="risk-name">{{ a.full_name }}</div>
+            <div class="risk-desc">{{ a.issue_count }} issue{{ 's' if a.issue_count != 1 }} flagged</div>
+            <div class="risk-sub">{{ a.rosca_name }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="risk-item">
+          <div class="risk-avatar amber">⚠</div>
+          <div class="risk-body">
+            <div class="risk-name">No alerts</div>
+            <div class="risk-desc">All organisers in good standing</div>
+          </div>
+        </div>
+      {% endif %}
+      <div class="card-footer"><a class="view-all" onclick="location.href='/admin/payments'">View All ›</a></div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <a href="/admin/payments" class="btn btn-outline btn-sm" style="justify-content:flex-start;">💳 View All Payments</a>
+        <a href="/admin/users"    class="btn btn-outline btn-sm" style="justify-content:flex-start;">👥 Manage Users</a>
+        <a href="/admin/admins"   class="btn btn-outline btn-sm" style="justify-content:flex-start;">🔑 Manage Admins</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="create-rosca-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('create-rosca-modal')">✕</button>
+    <h3 class="modal-title">Create ROSCA</h3>
+    <p class="modal-sub">Set up a new savings circle on the platform.</p>
+    <div class="form-group"><label class="form-label">Circle name</label><input class="form-input" id="cr-name" placeholder="e.g. Community Fund 2026"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Contribution (€)</label><input class="form-input" id="cr-amt" type="number" value="50"></div>
+      <div class="form-group"><label class="form-label">Max members</label><input class="form-input" id="cr-members" type="number" value="8"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('create-rosca-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" onclick="adminCreateRosca()">Create ROSCA</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Simple sparkline charts for admin dashboard
+function drawLineChart(id, points, color) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.offsetWidth * 2; const H = c.height = 320;
+  const min = Math.min(...points), max = Math.max(...points) + 1;
+  const tx = (i) => (i / (points.length-1)) * (W - 40) + 20;
+  const ty = (v) => H - 30 - ((v - min) / (max - min)) * (H - 50);
+  ctx.clearRect(0,0,W,H);
+  ctx.beginPath(); ctx.moveTo(tx(0), H-30);
+  points.forEach((p,i) => ctx.lineTo(tx(i), ty(p)));
+  ctx.lineTo(tx(points.length-1), H-30); ctx.closePath();
+  ctx.fillStyle = color + '22'; ctx.fill();
+  ctx.beginPath();
+  points.forEach((p,i) => i===0 ? ctx.moveTo(tx(i),ty(p)) : ctx.lineTo(tx(i),ty(p)));
+  ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin='round'; ctx.stroke();
+}
+function drawBarChart(id, points, color1, color2) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width = c.offsetWidth * 2; const H = c.height = 320;
+  const max = Math.max(...points.flat()) + 1;
+  const pairs = Math.floor(points.length/2);
+  const bw = (W - 40) / (pairs * 3); const gap = bw * 0.5;
+  for (let i=0; i<pairs; i++) {
+    const x = 20 + i * (bw*2 + gap*2);
+    const h1 = (points[i*2] / max) * (H-30);
+    ctx.fillStyle = color1; ctx.fillRect(x, H-30-h1, bw, h1);
+    if (points[i*2+1] !== undefined) {
+      const h2 = (points[i*2+1] / max) * (H-30);
+      ctx.fillStyle = color2; ctx.fillRect(x+bw+2, H-30-h2, bw, h2);
+    }
+  }
+}
+drawLineChart('earnings-chart', [2,5,4,8,12,9,15,18,22,28,25,32], '#2563eb');
+drawBarChart('activity-chart',  [16,24,50,80,100,90,35,21,28,35,20], '#2563eb', '#34d399');
+
+async function adminCreateRosca() {
+  const name = document.getElementById('cr-name').value.trim();
+  if (!name) { toast('Name required','error'); return; }
+  const d = await API.post('/api/rosca/create', {
+    name, contribution: parseFloat(document.getElementById('cr-amt').value),
+    max_members: parseInt(document.getElementById('cr-members').value),
+    frequency_days: 30, ncs_min: 300, is_public: true
+  });
+  if (d.error) { toast(d.error,'error'); return; }
+  closeModal('create-rosca-modal');
+  toast('ROSCA created!','success');
+  setTimeout(()=>location.reload(),1000);
+}
+</script>
+{% endblock %}

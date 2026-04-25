@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Users — SOHANA Hub{% endblock %}
+{% block topbar_title %}All Users{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">Home / <a href="/admin">Admin</a> / Users</div>
+<div class="page-header">
+  <h1 class="page-title">All Users</h1>
+  <div style="display:flex;gap:.75rem;">
+    <button class="btn btn-outline btn-sm">Export CSV</button>
+    <button class="btn btn-primary" onclick="openModal('add-user-modal')">+ Add User</button>
+  </div>
+</div>
+
+<div class="stats-grid stats-grid-4">
+  <div class="stat-card">
+    <div class="stat-icon blue">👥</div>
+    <div class="stat-body">
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value">{{ users | length }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-body">
+      <div class="stat-label">Active</div>
+      <div class="stat-value">{{ users | length }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">⭐</div>
+    <div class="stat-body">
+      <div class="stat-label">Avg NCS Score</div>
+      <div class="stat-value">{{ (users | map(attribute='ncs_score') | list | sum / [users | length, 1] | max) | round | int }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">🏆</div>
+    <div class="stat-body">
+      <div class="stat-label">Exemplary Tier</div>
+      <div class="stat-value">{{ users | selectattr('ncs_tier','equalto','exemplary') | list | length }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-filters">
+    <select class="filter-select"><option>All Tiers</option><option>Probation</option><option>Developing</option><option>Reliable</option><option>Exemplary</option></select>
+    <select class="filter-select"><option>All Countries</option><option>France</option><option>Rwanda</option><option>Cameroon</option><option>UK</option></select>
+    <div class="table-search" style="margin-left:auto;"><span>🔍</span><input type="text" placeholder="Search users..." onkeyup="filterUsers(this.value)"></div>
+  </div>
+  <div class="table-wrap">
+    <table id="users-table">
+      <thead><tr>
+        <th>User</th>
+        <th>Phone</th>
+        <th>Country</th>
+        <th>NCS Score</th>
+        <th>Tier</th>
+        <th>KYC</th>
+        <th>Joined</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr class="user-row" data-name="{{ u.full_name | lower }}">
+          <td>
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <div class="admin-avatar">{{ u.full_name[0] }}</div>
+              <div>
+                <div class="td-bold">{{ u.full_name }}</div>
+                {% if u.email %}<div class="td-sub">{{ u.email }}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="text-sm text-muted">{{ u.phone }}</td>
+          <td>
+            <span class="text-sm">{{ u.country }}</span>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-weight:700;color:var(--navy);">{{ u.ncs_score }}</span>
+              <div class="progress-track" style="width:50px;height:5px;">
+                <div class="progress-fill fill-blue" style="width:{{ ((u.ncs_score - 300) / 550 * 100) | round | int }}%"></div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="pill
+              {% if u.ncs_tier == 'exemplary' %}pill-purple
+              {% elif u.ncs_tier == 'reliable' %}pill-green
+              {% elif u.ncs_tier == 'developing' %}pill-amber
+              {% else %}pill-orange{% endif %} pill-no-dot">
+              {{ u.ncs_tier | capitalize }}
+            </span>
+          </td>
+          <td>
+            <span class="pill pill-blue pill-no-dot">{{ u.kyc_level | capitalize }}</span>
+          </td>
+          <td class="text-muted text-xs">{{ u.created_at[:10] }}</td>
+          <td>
+            <div style="display:flex;gap:.35rem;">
+              <button class="btn btn-outline btn-sm" title="View profile">👁</button>
+              {% if u.is_admin %}
+              <span class="pill pill-purple pill-no-dot" style="font-size:.65rem;">Admin</span>
+              {% else %}
+              <button class="btn btn-outline btn-sm" title="Make admin" onclick="makeAdmin('{{ u.id }}')">🔑</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8"><div class="empty-state" style="padding:2rem;"><p>No users found.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="add-user-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-user-modal')">✕</button>
+    <h3 class="modal-title">Add User</h3>
+    <p class="modal-sub">Manually create a user account.</p>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="au-name" placeholder="Full name"></div>
+      <div class="form-group"><label class="form-label">Country</label><select class="form-input form-select"><option>FR</option><option>RW</option><option>CM</option><option>GB</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="au-phone" placeholder="+33611000000"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="au-pass" type="password" placeholder="Temporary password"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('add-user-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterUsers(q) {
+  document.querySelectorAll('.user-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+async function addUser() {
+  const d = await API.post('/api/auth/register', {
+    full_name: document.getElementById('au-name').value,
+    phone:     document.getElementById('au-phone').value,
+    password:  document.getElementById('au-pass').value,
+  });
+  if (d.error) { toast(d.error, 'error'); return; }
+  closeModal('add-user-modal');
+  toast('User created!', 'success');
+  setTimeout(() => location.reload(), 1000);
+}
+async function makeAdmin(userId) {
+  toast('Admin privileges require database access in production.', 'warning');
+}
+</script>
+{% endblock %}

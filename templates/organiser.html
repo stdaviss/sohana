@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Manage — {{ rosca.name }}{% endblock %}
+{% block topbar_title %}Organiser Dashboard{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/circles">Circles</a> / <a href="/circles/{{ rosca.id }}">{{ rosca.name }}</a> / Manage</div>
+
+<div class="page-header" style="margin-top:.5rem;">
+  <div>
+    <h1 class="page-title">{{ rosca.name }}</h1>
+    <span class="pill {% if rosca.status == 'active' %}pill-green{% else %}pill-blue{% endif %} pill-no-dot">{{ rosca.status }}</span>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a href="/circles/{{ rosca.id }}" class="btn btn-outline btn-sm">View circle</a>
+    {% if rosca.status == 'forming' %}
+    <button class="btn btn-green btn-sm" id="btn-activate" onclick="activateCircle()">▶ Activate circle</button>
+    {% endif %}
+    {% if rosca.status == 'active' %}
+    <button class="btn btn-primary btn-sm" id="btn-cycle" onclick="startCycle()">
+      {{ 'Start next cycle' if cycle_info else 'Start first cycle' }}
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid stats-grid-4">
+  <div class="stat-card">
+    <div class="stat-icon blue">👥</div>
+    <div class="stat-body">
+      <div class="stat-label">Members</div>
+      <div class="stat-value">{{ members|length }}/{{ rosca.max_members }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">💰</div>
+    <div class="stat-body">
+      <div class="stat-label">Current Pot</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (rosca.contribution_cents * members|length / 100) }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">◎</div>
+    <div class="stat-body">
+      <div class="stat-label">Cycle</div>
+      <div class="stat-value">{{ rosca.current_cycle }}/{{ rosca.total_cycles }}</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon teal">💵</div>
+    <div class="stat-body">
+      <div class="stat-label">Contribution</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (rosca.contribution_cents / 100) }}</div>
+      <div class="stat-sub">per member/cycle</div>
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+
+  <!-- Left: contribution status -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">
+          {% if cycle_info %}Cycle {{ cycle_info.cycle.cycle_number }} Contributions{% else %}No Active Cycle{% endif %}
+        </span>
+        {% if cycle_info %}
+        <span class="pill {% if cycle_info.cycle.status == 'completed' %}pill-green{% else %}pill-amber{% endif %} pill-no-dot">
+          {{ cycle_info.cycle.status }}
+        </span>
+        {% endif %}
+      </div>
+
+      {% if cycle_info %}
+        {% set paid = cycle_info.contributions | selectattr('status','in',['paid','late']) | list | length %}
+        {% set total = cycle_info.contributions | length %}
+        <div class="card-body">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
+            <span class="text-sm text-muted">Collected</span>
+            <span class="text-sm font-semibold">{{ paid }}/{{ total }} members</span>
+          </div>
+          <div class="progress-track" style="margin-bottom:1rem;">
+            <div class="progress-fill fill-green" style="width:{{ (paid / [total,1]|max * 100)|round|int }}%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);">
+            <span>Pot: &euro;{{ '%.0f' % (cycle_info.cycle.pot_cents / 100) }}</span>
+            <span>Target: &euro;{{ '%.0f' % (rosca.contribution_cents * total / 100) }}</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Member</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for c in cycle_info.contributions %}
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:.5rem;">
+                    <div class="admin-avatar" style="width:28px;height:28px;font-size:.7rem;">{{ c.user_name[0] }}</div>
+                    <span style="font-size:.85rem;font-weight:500;">{{ c.user_name }}</span>
+                  </div>
+                </td>
+                <td class="text-xs text-muted">{{ c.due_at[:10] }}</td>
+                <td class="text-xs text-muted">{{ c.paid_at[:10] if c.paid_at else '—' }}</td>
+                <td>
+                  <span class="pill {% if c.status == 'paid' %}pill-green{% elif c.status == 'late' %}pill-orange{% elif c.status == 'missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot">
+                    {{ c.status }}
+                  </span>
+                  {% if c.late_days > 0 %}<span class="text-xs text-muted"> {{ c.late_days }}d late</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:2rem;">
+          <p class="text-sm text-muted" style="margin-bottom:.75rem;">No cycle running yet.</p>
+          {% if rosca.status == 'active' %}
+          <button class="btn btn-primary btn-sm" onclick="startCycle()">Start first cycle</button>
+          {% else %}
+          <p class="text-xs text-muted">Activate the circle first.</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: members + settings + invite -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Members</span>
+      </div>
+      {% for m in members %}
+      <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
+        <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ m.full_name[0] }}</div>
+        <div style="flex:1;">
+          <div style="font-size:.85rem;font-weight:500;">{{ m.full_name }}</div>
+          <div class="text-xs text-muted">NCS {{ m.ncs_score }} · <span class="pill pill-no-dot {% if m.ncs_tier == 'reliable' or m.ncs_tier == 'exemplary' %}pill-green{% elif m.ncs_tier == 'developing' %}pill-amber{% else %}pill-orange{% endif %}" style="font-size:.62rem;">{{ m.ncs_tier }}</span></div>
+        </div>
+        <div style="font-size:.75rem;color:var(--text-muted);">Slot {{ m.slot or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Invite card -->
+    <div class="card card-pad">
+      <div class="card-title mb-2">Invite Members</div>
+      <p class="text-sm text-muted mb-3">Share your circle's invite link.</p>
+      <div class="input-group">
+        <input class="form-input" id="invite-link" value="{{ request.host_url }}circles/{{ rosca.id }}" readonly style="font-size:.75rem;flex:1;">
+        <button class="btn btn-primary" onclick="copyLink()">Copy</button>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:.75rem;font-size:.8rem;">
+        <span class="text-muted">Spots remaining</span>
+        <span style="font-weight:600;">{{ rosca.max_members - members|length }}</span>
+      </div>
+    </div>
+
+    <!-- Circle settings -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">Settings</div>
+      <table style="width:100%;font-size:.85rem;">
+        {% for label, value in [
+          ('Type', rosca.rosca_type.replace('_',' ').title()),
+          ('Frequency', 'Every ' ~ rosca.frequency_days ~ ' days'),
+          ('Visibility', 'Public' if rosca.is_public else 'Private'),
+          ('Min NCS', rosca.ncs_min_score),
+        ] %}
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:.4rem 0;color:var(--text-muted);">{{ label }}</td>
+          <td style="text-align:right;font-weight:500;">{{ value }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function activateCircle() {
+  const btn = document.getElementById('btn-activate');
+  setLoading(btn, true);
+  const d = await API.post('/api/rosca/{{ rosca.id }}/activate', {});
+  setLoading(btn, false);
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Circle activated!', 'success'); setTimeout(() => location.reload(), 800);
+}
+async function startCycle() {
+  const btn = document.getElementById('btn-cycle');
+  setLoading(btn, true);
+  const d = await API.post('/api/rosca/{{ rosca.id }}/start-cycle', {});
+  setLoading(btn, false);
+  if (d.error) { toast(d.error, 'error'); return; }
+  toast('Cycle started!', 'success'); setTimeout(() => location.reload(), 800);
+}
+function copyLink() {
+  const el = document.getElementById('invite-link');
+  el.select(); document.execCommand('copy');
+  toast('Invite link copied!', 'success');
+}
+</script>
+{% endblock %}

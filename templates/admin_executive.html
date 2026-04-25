@@ -1,0 +1,174 @@
+{% extends "admin_base.html" %}
+{% block title %}Executive Dashboard — SOHANA{% endblock %}
+{% block sidebar_role %}CEO · Super Admin{% endblock %}
+{% block topbar_title %}Executive Dashboard{% endblock %}
+{% block topbar_sub %}Real-time overview of SOHANA's performance{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin/executive" class="active">📊 Executive Dashboard</a></li>
+    <li><a href="/admin/dashboard">🏠 Platform Overview</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">All Dashboards</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/operations">⚙️ Operations</a></li>
+    <li><a href="/admin/compliance">🛡️ Compliance</a></li>
+    <li><a href="/admin/fraud">🔍 Fraud & Security</a></li>
+    <li><a href="/admin/credit">💳 Credit & NCS</a></li>
+    <li><a href="/admin/engineering">🖥️ Engineering</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <ul class="admin-nav">
+    <li><a href="/admin/users">👥 Users</a></li>
+    <li><a href="/admin/admins">🔑 Admins</a></li>
+    <li><a href="/admin/blog">📝 Blog</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="admin-page-header">
+  <div class="admin-page-title">Executive Dashboard</div>
+  <div class="admin-page-sub">Real-time overview of Sohana's performance</div>
+</div>
+
+<div class="astats-grid astats-5">
+  {% for label,val,delta,col in [
+    ('Total Users', stats.total_users, '+12.5%', '#60a5fa'),
+    ('Active Members', stats.active_members, '+9.3%', '#34d399'),
+    ('Total Tx Volume', '€'+('%.2fK'%(stats.total_volume/10000000)), '+15.7%', '#a78bfa'),
+    ('Total Revenue', '€'+('%.0f'%(stats.total_revenue/100)), '+18.2%', '#fbbf24'),
+    ('Active ROSCAs', stats.active_roscas, '+8.6%', '#f87171'),
+  ] %}
+  <div class="astat">
+    <div class="astat-label">{{ label }}</div>
+    <div class="astat-value" style="color:{{ col }};">{{ val }}</div>
+    <div class="astat-delta up">↑ {{ delta }} vs prev 7 days</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-sb">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="acard">
+      <div class="acard-header"><span class="acard-title">Transaction Volume Overview</span></div>
+      <div class="acard-body">
+        <div style="font-size:1.6rem;font-weight:800;color:#a78bfa;margin-bottom:.25rem;">€{{ '%.2fK'%(stats.total_volume/10000000) }}</div>
+        <canvas id="vol-chart" height="120" style="width:100%;"></canvas>
+      </div>
+    </div>
+    <div class="acontent-grid acontent-2">
+      <div class="acard">
+        <div class="acard-header"><span class="acard-title">ROSCAs Overview</span></div>
+        <div class="acard-body">
+          {% for label,val in [('Active ROSCAs',stats.active_roscas),('Total Members',stats.active_members),('Completion Rate','92.5%'),('Default Rate','2.3%')] %}
+          <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--admin-border);font-size:.82rem;">
+            <span style="color:var(--admin-muted);">{{ label }}</span>
+            <span style="font-weight:600;color:#fff;">{{ val }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="acard">
+        <div class="acard-header"><span class="acard-title">Credit Overview</span></div>
+        <div class="acard-body">
+          {% for label,val in [('Avg NCS Score','%.0f'|format(stats.avg_ncs)),('Loans Disbursed',stats.loans_disbursed),('Default Rate','2.31%'),('Portfolio at Risk','3.1%')] %}
+          <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--admin-border);font-size:.82rem;">
+            <span style="color:var(--admin-muted);">{{ label }}</span>
+            <span style="font-weight:600;color:#fff;">{{ val }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="acard">
+      <div class="acard-header"><span class="acard-title">Key Alerts</span><span class="view-all-link">View all</span></div>
+      {% for icon,title,desc,col in [
+        ('🔴','High failed payments','103 failed payments in 24h','rgba(248,113,113,.15)'),
+        ('⚠️','ROSCAs at risk','12 ROSCAs with high default','rgba(251,191,36,.15)'),
+        ('📊','Large withdrawal','€25,000 requested','rgba(96,165,250,.15)'),
+        ('✅','System status','All systems operational','rgba(52,211,153,.15)'),
+      ] %}
+      <div class="afeed-item">
+        <div class="afeed-dot" style="background:{{ col }};">{{ icon }}</div>
+        <div class="afeed-body">
+          <div class="afeed-title">{{ title }}</div>
+          <div class="afeed-sub">{{ desc }}</div>
+        </div>
+        <span class="afeed-time">now</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="acard">
+      <div class="acard-header"><span class="acard-title">User Growth</span></div>
+      <div class="acard-body">
+        <div style="font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.2rem;">{{ stats.total_users }}</div>
+        <div class="astat-delta up" style="font-size:.78rem;margin-bottom:.875rem;">↑ 12.5% Total Users</div>
+        <canvas id="growth-chart" height="100" style="width:100%;"></canvas>
+      </div>
+    </div>
+    <div class="acard acard-pad">
+      <div class="acard-title" style="margin-bottom:.875rem;">Platform Totals</div>
+      {% for label,val in [('Total Deposits','€8.62M'),('Total Withdrawals','€6.31M'),('Total Transactions',stats.total_tx),('Avg Transaction Value','€71.42'),('Dispute Rate','0.42%')] %}
+      <div style="display:flex;justify-content:space-between;padding:.35rem 0;border-bottom:1px solid var(--admin-border);font-size:.82rem;">
+        <span style="color:var(--admin-muted);">{{ label }}</span><span style="font-weight:600;color:#fff;">{{ val }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="acontent-grid acontent-2" style="margin-top:1.25rem;">
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Recent Users</span><a href="/admin/users" class="view-all-link">View all</a></div>
+    <div style="overflow-x:auto;"><table class="atable">
+      <thead><tr><th>Name</th><th>NCS</th><th>Tier</th><th>Joined</th></tr></thead>
+      <tbody>
+        {% for u in recent_users %}
+        <tr><td><div style="font-weight:500;">{{ u.full_name }}</div><div style="font-size:.7rem;color:var(--admin-muted);">{{ u.phone }}</div></td>
+        <td style="font-weight:600;">{{ u.ncs_score }}</td>
+        <td><span class="apill apill-blue">{{ u.ncs_tier }}</span></td>
+        <td style="color:var(--admin-muted);font-size:.75rem;">{{ u.created_at[:10] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Recent Transactions</span></div>
+    <div style="overflow-x:auto;"><table class="atable">
+      <thead><tr><th>User</th><th>Amount</th><th>Type</th><th>Time</th></tr></thead>
+      <tbody>
+        {% for tx in recent_tx %}
+        <tr><td style="font-weight:500;">{{ tx.full_name }}</td>
+        <td style="font-weight:600;color:{{ '#34d399' if tx.amount_cents>0 else '#f87171' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
+        <td><span class="apill apill-purple" style="font-size:.65rem;">{{ tx.tx_type }}</span></td>
+        <td style="color:var(--admin-muted);font-size:.72rem;">{{ tx.created_at[11:16] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function drawAdminChart(id, data, color, h=120) {
+  const c = document.getElementById(id); if(!c) return;
+  c.width = c.offsetWidth*2; c.height = h*2;
+  const ctx = c.getContext('2d'), W=c.width, H=c.height;
+  const min=Math.min(...data), max=Math.max(...data);
+  const tx=(i)=>(i/(data.length-1))*(W-20)+10;
+  const ty=(v)=>H-10-((v-min)/(max-min||1))*(H-20);
+  ctx.beginPath(); ctx.moveTo(tx(0),H);
+  data.forEach((v,i)=>ctx.lineTo(tx(i),ty(v)));
+  ctx.lineTo(tx(data.length-1),H); ctx.closePath();
+  ctx.fillStyle=color+'30'; ctx.fill();
+  ctx.beginPath(); data.forEach((v,i)=>i===0?ctx.moveTo(tx(i),ty(v)):ctx.lineTo(tx(i),ty(v)));
+  ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineJoin='round'; ctx.stroke();
+}
+drawAdminChart('vol-chart',[200,350,280,450,380,520,410,600,480],'#a78bfa');
+drawAdminChart('growth-chart',[10000,12000,14500,16000,18000,20000,22000,25000,28560],'#34d399',100);
+</script>
+{% endblock %}

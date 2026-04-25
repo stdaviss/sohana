@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} — SOHANA Hub{% endblock %}
+{% block topbar_title %}Blog{% endblock %}
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+  <div style="margin-bottom:1rem;"><a href="/blog" class="text-sm text-muted">← Back to Blog</a></div>
+  <div class="card" style="overflow:hidden;margin-bottom:1.25rem;">
+    <div style="height:200px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);display:flex;align-items:center;justify-content:center;font-size:4rem;">
+      {{ '💡' if post.category=='tips' else '📰' if post.category=='news' else '📚' }}
+    </div>
+    <div style="padding:2rem;">
+      <span class="pill {% if post.category=='tips' %}pill-amber{% elif post.category=='news' %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot" style="margin-bottom:.875rem;display:inline-block;">{{ post.category|capitalize }}</span>
+      <h1 style="font-size:1.6rem;font-weight:800;color:var(--navy);margin-bottom:.75rem;line-height:1.3;">{{ post.title }}</h1>
+      <div class="text-sm text-muted" style="margin-bottom:1.5rem;">Published {{ post.published_at[:10] }}</div>
+      <div style="font-size:.95rem;line-height:1.8;color:var(--text);">{{ post.body }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "admin_base.html" %}
+{% block title %}Operations Dashboard — SOHANA{% endblock %}
+{% block sidebar_role %}Operations Officer{% endblock %}
+{% block topbar_title %}Operations Dashboard{% endblock %}
+{% block topbar_sub %}Real-time overview of platform operations and key metrics{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin/operations" class="active">📊 Overview</a></li>
+    <li><a href="/admin/payments">💳 Transactions</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Operations</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/payments">⬇ Deposits</a></li>
+    <li><a href="/admin/payments">⬆ Withdrawals</a></li>
+    <li><a href="/admin/dashboard">◎ ROSCAs</a></li>
+    <li><a href="/admin/users">👥 Users</a></li>
+    <li><a href="/admin/admins">🔔 Notifications</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <ul class="admin-nav">
+    <li><a href="/admin/reports">📋 Reports</a></li>
+    <li><a href="/admin/dashboard">⚙ Settings</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-5">
+  {% for label,val,delta,up,icon in [
+    ('Pending Deposits', stats.pending_deposits, '+12% vs yesterday', True, '⬇'),
+    ('Pending Withdrawals', stats.pending_withdrawals, '-8% vs yesterday', False, '⬆'),
+    ('Active ROSCAs', stats.total_roscas, '+7% vs yesterday', True, '◎'),
+    ('Late Contributions', stats.late_members, '+15% vs yesterday', False, '⏰'),
+    ('Support Tickets', '22', '-10% vs yesterday', True, '💬'),
+  ] %}
+  <div class="astat">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+      <div class="astat-label">{{ label }}</div>
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1rem;">{{ icon }}</div>
+    </div>
+    <div class="astat-value">{{ val }}</div>
+    <div class="astat-delta {{ 'up' if up else 'down' }}">{{ '↑' if up else '↓' }} {{ delta }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  {% for label,val,icon,color in [
+    ('Contributed this Week','€'+('%.0f'%(stats.contributed_week/100)),'💵','#34d399'),
+    ('New Users', stats.new_users_week,'👤','#60a5fa'),
+    ('Members w/ Late Payments', stats.late_members,'⚠','#f87171'),
+    ('Organisers with Audits', organiser_alerts|length,'🔍','#fbbf24'),
+  ] %}
+  <div class="astat">
+    <div class="astat-label">{{ label }}</div>
+    <div class="astat-value" style="color:{{ color }};">{{ val }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-sb">
+  <div>
+    <!-- All ROSCAs table -->
+    <div class="acard" style="margin-bottom:1.25rem;">
+      <div class="acard-header">
+        <span class="acard-title">All ROSCAs</span>
+        <div style="display:flex;gap:.5rem;">
+          <select style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:6px;color:var(--admin-text);padding:.3rem .6rem;font-size:.75rem;">
+            <option>Sort by ▾</option><option>Age</option><option>Members</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="atable">
+          <thead><tr>
+            <th>ROSCA Name</th><th>Organiser</th><th>Type</th><th>Members</th><th>Contribution</th><th>Progress</th>
+          </tr></thead>
+          <tbody>
+            {% for r in all_roscas %}
+            <tr>
+              <td><div style="font-weight:600;color:#fff;">{{ r.name }}</div><div style="font-size:.7rem;color:var(--admin-muted);">{{ r.rosca_type.replace('_',' ').title() }}</div></td>
+              <td style="font-size:.8rem;">{{ r.organiser_name }}</td>
+              <td><span class="apill {% if r.is_public %}apill-blue{% else %}apill-purple{% endif %}">{{ 'Public' if r.is_public else 'Private' }}</span></td>
+              <td><strong>{{ r.member_count }}</strong>/{{ r.max_members }}</td>
+              <td style="font-weight:600;">€{{ '%.0f'%(r.contribution_cents/100) }}</td>
+              <td style="min-width:120px;">
+                <div style="background:rgba(255,255,255,.1);border-radius:3px;height:5px;margin-bottom:.25rem;">
+                  <div style="background:#7c3aed;height:5px;border-radius:3px;width:{{ [((r.current_cycle/[r.total_cycles,1]|max)*100)|round|int,100]|min }}%;"></div>
+                </div>
+                <div style="font-size:.68rem;color:var(--admin-muted);">{{ r.current_cycle }}/{{ r.total_cycles }}</div>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:2rem;">No ROSCAs yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="acontent-grid acontent-2">
+      <div class="acard acard-pad">
+        <div class="acard-title" style="margin-bottom:.75rem;">Platform Earnings</div>
+        <canvas id="earn-chart" height="140" style="width:100%;"></canvas>
+      </div>
+      <div class="acard acard-pad">
+        <div class="acard-title" style="margin-bottom:.75rem;">Platform Activity</div>
+        <canvas id="act-chart" height="140" style="width:100%;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Members at Risk -->
+    <div class="acard">
+      <div class="acard-header"><span class="acard-title">Members at Risk</span></div>
+      {% if at_risk %}{% for r in at_risk %}
+      <div class="afeed-item">
+        <div class="afeed-dot" style="background:rgba(248,113,113,.2);">⚠</div>
+        <div class="afeed-body">
+          <div class="afeed-title">{{ r.full_name }}</div>
+          <div class="afeed-sub">{{ r.missed }} missed payment{{ 's' if r.missed!=1 }} · {{ r.rosca_name }}</div>
+        </div>
+        <span class="apill apill-red">High</span>
+      </div>
+      {% endfor %}{% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--admin-muted);font-size:.82rem;">No at-risk members</div>
+      {% endif %}
+      <div style="padding:.6rem 1.25rem;border-top:1px solid var(--admin-border);"><a class="view-all-link">View All →</a></div>
+    </div>
+
+    <!-- Organiser Alerts -->
+    <div class="acard">
+      <div class="acard-header"><span class="acard-title">Organiser Alerts</span></div>
+      {% if organiser_alerts %}{% for a in organiser_alerts %}
+      <div class="afeed-item">
+        <div class="afeed-dot" style="background:rgba(251,191,36,.15);">⚠</div>
+        <div class="afeed-body">
+          <div class="afeed-title">{{ a.full_name }}</div>
+          <div class="afeed-sub">{{ a.issue_count }} issue{{ 's' if a.issue_count!=1 }} · {{ a.rosca_name }}</div>
+        </div>
+        <span class="apill apill-amber">Alert</span>
+      </div>
+      {% endfor %}{% else %}
+      <div class="afeed-item"><div class="afeed-body"><div class="afeed-sub" style="padding:.5rem 0;">All organisers in good standing</div></div></div>
+      {% endif %}
+      <div style="padding:.6rem 1.25rem;border-top:1px solid var(--admin-border);"><a class="view-all-link" onclick="location.href='/admin/payments'">View All →</a></div>
+    </div>
+
+    <!-- Pending approvals -->
+    <div class="acard acard-pad">
+      <div class="acard-title" style="margin-bottom:.875rem;">Pending Approvals</div>
+      {% for label,val,color in [
+        ('Deposits', stats.pending_deposits, '#34d399'),
+        ('Withdrawals', stats.pending_withdrawals, '#fbbf24'),
+        ('New Users', stats.new_users_week, '#60a5fa'),
+        ('ROSCA Join Requests', '7', '#a78bfa'),
+      ] %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
+        <span style="font-size:.83rem;color:var(--admin-text);">{{ label }}</span>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <span style="background:{{ color }}22;color:{{ color }};padding:.2rem .65rem;border-radius:20px;font-size:.75rem;font-weight:700;">{{ val }}</span>
+          <span style="color:var(--admin-muted);font-size:.85rem;">›</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- System Status -->
+    <div class="acard acard-pad">
+      <div class="acard-title" style="margin-bottom:.875rem;">System Status</div>
+      {% for svc in ['Payment Gateway','Database','App Services','Notifications'] %}
+      <div class="sys-status-row">
+        <div class="sys-dot ok"></div>
+        <div style="flex:1;"><div style="font-size:.83rem;color:#fff;">{{ svc }}</div><div style="font-size:.7rem;color:var(--admin-muted);">Operational</div></div>
+        <span class="apill apill-green" style="font-size:.65rem;">OK</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function drawLine(id,pts,color){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=280;const mn=Math.min(...pts),mx=Math.max(...pts)+1;const tx=i=>(i/(pts.length-1))*(W-40)+20;const ty=v=>H-20-((v-mn)/(mx-mn))*(H-40);ctx.clearRect(0,0,W,H);ctx.beginPath();ctx.moveTo(tx(0),H-20);pts.forEach((p,i)=>ctx.lineTo(tx(i),ty(p)));ctx.lineTo(tx(pts.length-1),H-20);ctx.closePath();ctx.fillStyle=color+'22';ctx.fill();ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();}
+function drawBar(id,pts,c1,c2){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=280;const max=Math.max(...pts)+1;const pairs=Math.floor(pts.length/2);const bw=(W-40)/(pairs*3);for(let i=0;i<pairs;i++){const x=20+i*(bw*2+bw*.5);const h1=(pts[i*2]/max)*(H-30);ctx.fillStyle=c1;ctx.fillRect(x,H-20-h1,bw,h1);if(pts[i*2+1]!==undefined){const h2=(pts[i*2+1]/max)*(H-30);ctx.fillStyle=c2;ctx.fillRect(x+bw+2,H-20-h2,bw,h2);}}}
+setTimeout(()=>{
+  drawLine('earn-chart',[2,5,4,8,12,9,15,18,22,28],'#7c3aed');
+  drawBar('act-chart',[16,24,50,80,100,90,35,21,28,35],'#7c3aed','#34d399');
+},100);
+</script>
+{% endblock %}

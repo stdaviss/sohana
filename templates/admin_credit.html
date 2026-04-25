@@ -1,0 +1,214 @@
+{% extends "admin_base.html" %}
+{% block title %}Credit & NCS Dashboard — SOHANA{% endblock %}
+{% block sidebar_role %}Credit Officer{% endblock %}
+{% block topbar_title %}Credit & NCS Dashboard{% endblock %}
+{% block topbar_sub %}Real-time overview of credit health and NCS performance{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin/credit" class="active">📊 Overview</a></li>
+    <li><a href="/admin/credit">⭐ NCS Overview</a></li>
+    <li><a href="/admin/credit">📈 Score Analytics</a></li>
+    <li><a href="/admin/credit">👥 User Segments</a></li>
+    <li><a href="/admin/credit">📋 Credit Applications</a></li>
+    <li><a href="/admin/credit">💰 Loans & Disbursements</a></li>
+    <li><a href="/admin/credit">💳 Repayments</a></li>
+    <li><a href="/admin/credit">⚠ Risk & Defaults</a></li>
+    <li><a href="/admin/credit">🔬 Behavior Events</a></li>
+    <li><a href="/admin/credit">🔮 Score Simulator</a></li>
+    <li><a href="/admin/credit">📊 Reports</a></li>
+    <li><a href="/admin/credit">⚙ Settings</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-6">
+  {% for label,val,delta,up in [
+    ('Average NCS Score', stats.avg_ncs, '+18 pts vs last 30 days', True),
+    ('Users Scored', stats.total_users, '+12.6%', True),
+    ('Good Standing Users', '18,107 (72.8%)', '+9.3%', True),
+    ('Credit Applications', '1,248', '+15.4%', True),
+    ('Loans Disbursed', '716', '+10.7%', True),
+    ('Default Rate (30d)', '2.31%', '-0.45%', True),
+  ] %}
+  <div class="astat">
+    <div class="astat-label">{{ label }}</div>
+    <div class="astat-value" style="font-size:1.3rem;">{{ val }}</div>
+    <div class="astat-delta up" style="font-size:.68rem;">{{ '↑' if up else '↓' }} {{ delta }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- NCS Score Distribution -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">NCS Score Distribution</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <canvas id="ncs-dist-donut" width="110" height="110"></canvas>
+      <div>
+        <div style="font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.5rem;">{{ stats.total_users }}<br><span style="font-size:.7rem;font-weight:400;color:var(--admin-muted);">Total Users</span></div>
+        {% for label,val,color in [('Excellent (750-900)','15.5%','#34d399'),('Good (650-749)','31.4%','#a3e635'),('Fair (550-649)','32.6%','#fbbf24'),('Poor (350-549)','18.4%','#fb923c'),('Very Poor (0-349)','2.0%','#f87171')] %}
+        <div style="display:flex;align-items:center;gap:.35rem;margin-bottom:.25rem;">
+          <div style="width:7px;height:7px;border-radius:50%;background:{{ color }};"></div>
+          <span style="font-size:.72rem;color:var(--admin-muted);">{{ label }}</span>
+          <span style="font-size:.72rem;font-weight:600;color:#fff;margin-left:auto;">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- NCS Score Trend -->
+  <div class="acard acard-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+      <span class="acard-title">NCS Score Trend</span>
+      <select style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);color:var(--admin-text);border-radius:6px;padding:.25rem .5rem;font-size:.72rem;"><option>Last 30 days</option></select>
+    </div>
+    <canvas id="ncs-trend-chart" height="140" style="width:100%;"></canvas>
+    <div style="display:flex;justify-content:space-between;font-size:.68rem;color:var(--admin-muted);margin-top:.35rem;">
+      <span>Apr 21</span><span>Apr 28</span><span>May 5</span><span>May 12</span><span>May 19</span>
+    </div>
+  </div>
+
+  <!-- Score Change Breakdown -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Score Change Breakdown</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div>
+        <canvas id="score-change-donut" width="90" height="90"></canvas>
+      </div>
+      <div>
+        <div style="font-size:1.8rem;font-weight:800;color:#fff;">+18</div>
+        <div style="font-size:.7rem;color:var(--admin-muted);">Avg Change</div>
+        <div style="margin-top:.5rem;">
+          {% for label,val,color in [('Improved','12,842 (51.7%)','#34d399'),('No Change','8,102 (32.6%)','#fbbf24'),('Declined','3,898 (15.7%)','#f87171')] %}
+          <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem;">
+            <div style="width:7px;height:7px;border-radius:50%;background:{{ color }};"></div>
+            <span style="font-size:.72rem;color:var(--admin-muted);">{{ label }}</span>
+            <span style="font-size:.7rem;font-weight:600;color:#fff;margin-left:.25rem;">{{ val }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- Credit Applications Overview -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Credit Applications Overview <a class="view-all-link" style="float:right;">View all</a></div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;">
+      {% for label,val,sub in [('Total','1,248','+15.4%'),('Approved','716 (57.4%)','+8.7%'),('Rejected','432 (34.6%)','+5.3%'),('Pending','100 (8.0%)','-2.1%')] %}
+      <div style="flex:1;min-width:70px;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem;text-align:center;">
+        <div style="font-size:1rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.65rem;color:var(--admin-muted);">{{ label }}</div>
+        <div style="font-size:.65rem;color:#34d399;">{{ sub }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <canvas id="credit-apps-chart" height="120" style="width:100%;"></canvas>
+  </div>
+
+  <!-- Loans & Repayments -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Loans & Repayments Overview <a class="view-all-link" style="float:right;">View all</a></div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.75rem;flex-wrap:wrap;">
+      {% for label,val,sub in [('Total Disbursed','716','+10.7%'),('€ Disbursed','€1.12M','+16.8%'),('Total Repaid','€842K','+13.6%'),('Outstanding','€278K','+6.2%')] %}
+      <div style="flex:1;min-width:70px;background:rgba(255,255,255,.04);border-radius:8px;padding:.5rem;text-align:center;">
+        <div style="font-size:.95rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.65rem;color:var(--admin-muted);">{{ label }}</div>
+        <div style="font-size:.65rem;color:#34d399;">{{ sub }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <canvas id="loans-chart" height="120" style="width:100%;"></canvas>
+  </div>
+
+  <!-- Default Analysis -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Default Analysis <a class="view-all-link" style="float:right;">View all</a></div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.875rem;">
+      {% for label,val,delta,good in [('Default Rate (30d)','2.31%','-0.45%',True),('Defaulted Loans','83','-8.8%',True),('Amount at Risk','€27,450','-6.3%',True)] %}
+      <div style="flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:.6rem;text-align:center;">
+        <div style="font-size:.95rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.65rem;color:var(--admin-muted);margin:.1rem 0;">{{ label }}</div>
+        <div style="font-size:.65rem;color:#34d399;">{{ delta }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="font-size:.75rem;font-weight:600;color:var(--admin-muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.04em;">Defaults by NCS Band</div>
+    {% for band,rate,color,w in [('0-349 (Very Poor)','8.21%','#f87171','82%'),('350-549 (Poor)','4.32%','#fb923c','43%'),('550-649 (Fair)','1.98%','#fbbf24','20%'),('650-749 (Good)','0.98%','#a3e635','10%'),('750-900 (Excellent)','0.32%','#34d399','3%')] %}
+    <div style="margin-bottom:.4rem;">
+      <div style="display:flex;justify-content:space-between;font-size:.72rem;margin-bottom:.2rem;">
+        <span style="color:var(--admin-text);">{{ band }}</span><span style="color:{{ color }};font-weight:600;">{{ rate }}</span>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:3px;height:5px;">
+        <div style="background:{{ color }};height:5px;border-radius:3px;width:{{ w }};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3">
+  <!-- Top Positive Factors -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Top Positive Score Factors</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>Factor</th><th>Impact</th></tr></thead>
+      <tbody>
+        {% for factor,pts in [('On-time ROSCA Contributions','+28 pts'),('Low Wallet Utilization','+16 pts'),('Successful Loan Repayments','+15 pts'),('Account Age (≥ 6 months)','+12 pts'),('Active Transactions','+9 pts')] %}
+        <tr><td style="font-size:.8rem;">{{ factor }}</td><td><span style="color:#34d399;font-weight:600;font-size:.8rem;">↑ {{ pts }}</span></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Negative Factors -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Top Negative Score Factors</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>Factor</th><th>Impact</th></tr></thead>
+      <tbody>
+        {% for factor,pts in [('Missed Payments','-35 pts'),('Loan Default','-28 pts'),('High Wallet Utilization','-16 pts'),('Late ROSCA Contributions','-12 pts'),('Frequent Withdrawals','-8 pts')] %}
+        <tr><td style="font-size:.8rem;">{{ factor }}</td><td><span style="color:#f87171;font-weight:600;font-size:.8rem;">↓ {{ pts }}</span></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Recent High-Risk Users -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Recent High-Risk Users</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>User</th><th>NCS</th><th>Risk</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for u in high_risk_users %}
+        <tr>
+          <td style="font-size:.8rem;font-weight:500;color:#fff;">{{ u.full_name }}</td>
+          <td style="font-weight:700;color:#f87171;">{{ u.ncs_score }}</td>
+          <td><span class="apill apill-red" style="font-size:.62rem;">High</span></td>
+          <td style="font-size:.72rem;color:var(--admin-muted);">Low NCS</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;color:var(--admin-muted);font-size:.8rem;padding:1rem;">No high-risk users</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+setTimeout(()=>{
+  function donut(id,segs,sz=55){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=sz,cy=sz,r=sz-6,t=12;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
+  donut('ncs-dist-donut',[[15.5,'#34d399'],[31.4,'#a3e635'],[32.6,'#fbbf24'],[18.4,'#fb923c'],[2.0,'#f87171']]);
+  donut('score-change-donut',[[51.7,'#34d399'],[32.6,'#fbbf24'],[15.7,'#f87171']],45);
+  function line(id,pts,color,H=240){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;c.height=H;const mn=Math.min(...pts)-5,mx=Math.max(...pts)+5;const tx=i=>(i/(pts.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();ctx.beginPath();ctx.moveTo(tx(0),H-10);pts.forEach((p,i)=>ctx.lineTo(tx(i),ty(p)));ctx.lineTo(tx(pts.length-1),H-10);ctx.closePath();ctx.fillStyle=color+'22';ctx.fill();}
+  line('ncs-trend-chart',[610,620,635,628,645,640,650,642,655,648,660,652,665],'#a78bfa');
+  line('credit-apps-chart',[60,70,65,80,75,85,70,80,75,85,80,90,85],'#60a5fa',240);
+  line('loans-chart',[40,55,50,65,60,70,65,75,70,80,75,85,80],'#34d399',240);
+},100);
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}News & Blog — SOHANA Hub{% endblock %}
+{% block topbar_title %}News & Blog{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">News & Blog</h1><p class="page-subtitle">Industry insights, platform updates, and community stories.</p></div>
+</div>
+{% if posts %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;">
+  {% for post in posts %}
+  <a href="/blog/{{ post.slug }}" style="text-decoration:none;">
+    <div class="card" style="height:100%;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow=''">
+      <div style="height:140px;background:linear-gradient(135deg,var(--navy) 0%,{{ '#1D9E75' if post.category=='tips' else '#7c3aed' if post.category=='news' else '#2563eb' }} 100%);border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">
+        {{ '💡' if post.category=='tips' else '📰' if post.category=='news' else '📚' }}
+      </div>
+      <div class="card-pad">
+        <span class="pill {% if post.category=='tips' %}pill-amber{% elif post.category=='news' %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot" style="font-size:.65rem;margin-bottom:.6rem;display:inline-block;">{{ post.category|capitalize }}</span>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-bottom:.4rem;line-height:1.35;">{{ post.title }}</div>
+        <p style="font-size:.82rem;color:var(--text-muted);line-height:1.5;margin-bottom:.75rem;">{{ post.excerpt[:120] }}{% if post.excerpt|length>120 %}…{% endif %}</p>
+        <div class="text-xs text-muted">{{ post.published_at[:10] }}</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card card-pad" style="padding:4rem;"><div style="font-size:2rem;margin-bottom:.5rem;">📰</div><p>No posts yet. Check back soon!</p></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}History — SOHANA Hub{% endblock %}
+{% block topbar_title %}History{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Contribution History</h1>
+    <p class="page-subtitle">All your past ROSCA contributions and payouts.</p>
+  </div>
+</div>
+<div class="card">
+  <div class="table-filters">
+    <select class="filter-select"><option>All Status</option><option>Paid</option><option>Late</option><option>Missed</option><option>Pending</option></select>
+    <div class="table-search"><span>🔍</span><input type="text" placeholder="Search circle..."></div>
+  </div>
+  {% if contribs %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Circle</th><th>Cycle</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th>
+      </tr></thead>
+      <tbody>
+        {% for c in contribs %}
+        <tr>
+          <td><div class="td-bold">{{ c.rosca_name }}</div></td>
+          <td class="text-muted">{{ c.cycle_number }}</td>
+          <td style="font-weight:600;">&euro;{{ '%.2f' % (c.amount_cents / 100) }}</td>
+          <td class="text-muted text-xs">{{ c.due_at[:10] }}</td>
+          <td class="text-muted text-xs">{{ c.paid_at[:10] if c.paid_at else '—' }}</td>
+          <td>
+            <span class="pill {% if c.status == 'paid' %}pill-green{% elif c.status == 'late' %}pill-amber{% elif c.status == 'missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot">
+              {{ c.status | capitalize }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:3rem;">
+    <div style="font-size:2rem;margin-bottom:.5rem;">📋</div>
+    <p>No contribution history yet. Join a circle to start.</p>
+    <a href="/circles" class="btn btn-primary btn-sm mt-3">Find a circle</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

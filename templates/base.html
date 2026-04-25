@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}SOHANA Hub{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+{% if session.user_id %}
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div>
+    </div>
+    <span class="sidebar-logo-text">SOHANA <span>Hub</span></span>
+  </div>
+  {% set p = request.path %}
+  <div class="sidebar-section">
+    <ul class="sidebar-nav">
+      <li><a href="/dashboard" class="{{ 'active' if p=='/dashboard' }}"><span class="nav-icon">⊞</span>Dashboard</a></li>
+      <li><a href="/wallet"    class="{{ 'active' if p=='/wallet' }}"><span class="nav-icon">◈</span>Wallet</a></li>
+      <li><a href="/circles"   class="{{ 'active' if '/circles' in p }}"><span class="nav-icon">◎</span>My ROSCAs</a></li>
+      <li><a href="/history"   class="{{ 'active' if p=='/history' }}"><span class="nav-icon">⊟</span>History</a></li>
+      <li><a href="/ncs"       class="{{ 'active' if p=='/ncs' }}"><span class="nav-icon">★</span>NCS Score</a></li>
+      <li><a href="/blog"      class="{{ 'active' if '/blog' in p }}"><span class="nav-icon">📰</span>News &amp; Blog</a></li>
+    </ul>
+  </div>
+  {% if session.is_admin %}
+  <hr class="sidebar-divider">
+  <div class="sidebar-section">
+    <span class="sidebar-label">Admin</span>
+    <ul class="sidebar-nav">
+      <li><a href="/admin"         class="{{ 'active' if p=='/admin' }}"><span class="nav-icon">◈</span>Dashboard</a></li>
+      <li><a href="/admin/roscas"  class="{{ 'active' if '/admin/rosca' in p }}"><span class="nav-icon">◎</span>All ROSCAs</a></li>
+      <li><a href="/admin/users"   class="{{ 'active' if '/admin/user' in p }}"><span class="nav-icon">◎</span>All Users</a></li>
+      <li><a href="/admin/payments"class="{{ 'active' if '/admin/payment' in p }}"><span class="nav-icon">◈</span>Payments</a></li>
+      <li><a href="/admin/admins"  class="{{ 'active' if '/admin/admin' in p }}"><span class="nav-icon">◎</span>Admins</a></li>
+      <li><a href="/admin/blog"    class="{{ 'active' if '/admin/blog' in p }}"><span class="nav-icon">📝</span>Blog</a></li>
+    </ul>
+  </div>
+  {% endif %}
+  <div class="sidebar-bottom">
+    <a href="/profile"><span class="nav-icon">👤</span>My Profile</a>
+    <a href="#" onclick="doLogout()"><span class="nav-icon">←</span>Sign out</a>
+  </div>
+</aside>
+
+<div class="main-area">
+  <header class="topbar">
+    <div class="topbar-title">{% block topbar_title %}{% endblock %}</div>
+    <div class="topbar-search">
+      <span style="color:rgba(255,255,255,.45);font-size:.85rem;">🔍</span>
+      <input type="text" placeholder="Search...">
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-icon-btn" id="notif-btn" onclick="toggleNotifPanel()">
+        🔔
+        <span class="notif-dot" id="notif-badge" style="display:none">0</span>
+      </button>
+      <div class="topbar-user" onclick="location.href='/profile'">
+        <div class="topbar-avatar" id="topbar-avatar">{{ (session.get('user_name','?')[0]|upper) }}</div>
+        <span class="topbar-username">{{ session.get('user_name','').split()[0] }}</span>
+        <span class="topbar-chevron">▾</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification popup panel -->
+  <div id="notif-panel" style="display:none;position:fixed;top:65px;right:16px;width:340px;z-index:300;background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);overflow:hidden;">
+    <div style="padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-weight:600;font-size:.9rem;">Notifications</span>
+      <button onclick="markAllRead()" style="font-size:.75rem;color:var(--blue);background:none;border:none;cursor:pointer;">Mark all read</button>
+    </div>
+    <div id="notif-list" style="max-height:380px;overflow-y:auto;"></div>
+    <div style="padding:.6rem 1rem;border-top:1px solid var(--border);text-align:center;">
+      <a href="/notifications" style="font-size:.775rem;color:var(--blue);">View all notifications</a>
+    </div>
+  </div>
+
+  <main class="page">{% block content %}{% endblock %}</main>
+</div>
+{% else %}{% block unauth_content %}{% endblock %}{% endif %}
+</div>
+
+<div class="toast" id="_toast"></div>
+{% block modals %}{% endblock %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

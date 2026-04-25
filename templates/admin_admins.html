@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Admins — SOHANA Hub{% endblock %}
+{% block topbar_title %}Admin Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">Home / <a href="/admin">Admin</a> / Admins</div>
+
+<div class="page-header">
+  <h1 class="page-title">All Admins</h1>
+  <div style="display:flex;gap:.75rem;">
+    <button class="btn btn-orange" onclick="openModal('invite-modal')">+ Invite Admin</button>
+    <button class="btn btn-ghost btn-icon">⚙</button>
+  </div>
+</div>
+
+<!-- Stat cards — matches Image 5 -->
+<div class="stats-grid stats-grid-5">
+  <div class="stat-card">
+    <div class="stat-icon blue">👤</div>
+    <div class="stat-body">
+      <div class="stat-label">Total Admins</div>
+      <div class="stat-value">{{ stats.total_admins }}</div>
+      <div class="stat-sub">Total</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon green">✓</div>
+    <div class="stat-body">
+      <div class="stat-label">Active Admins</div>
+      <div class="stat-value">{{ stats.total_admins }}</div>
+      <div class="stat-delta up">↑ 38%</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon teal">👥</div>
+    <div class="stat-body">
+      <div class="stat-label">Active Members</div>
+      <div class="stat-value">{{ stats.active_members }}</div>
+      <div class="stat-delta up">↑ 4.3%</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">◎</div>
+    <div class="stat-body">
+      <div class="stat-label">Managed ROSCAs</div>
+      <div class="stat-value">{{ stats.managed_roscas }}</div>
+      <div class="stat-delta up">↑ 2.2%</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon purple">◎</div>
+    <div class="stat-body">
+      <div class="stat-label">Total ROSCAs</div>
+      <div class="stat-value">{{ stats.total_roscas }}</div>
+      <div class="stat-sub">Total</div>
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+
+  <!-- Left: Admins table -->
+  <div>
+    <div class="card">
+      <div class="table-filters">
+        <select class="filter-select"><option>All Status</option><option>Active</option><option>Pending</option></select>
+        <select class="filter-select"><option>All Roles</option><option>Super Admin</option><option>Admin</option></select>
+        <select class="filter-select"><option>Sort by: Latest Activity</option><option>Name</option><option>Joined</option></select>
+        <div style="margin-left:auto;display:flex;gap:.5rem;">
+          <button class="btn btn-outline btn-sm">Filter Sort ▾</button>
+          <button class="btn btn-outline btn-sm">CSV ▾</button>
+          <button class="btn btn-outline btn-sm">Filter ▾</button>
+        </div>
+      </div>
+
+      <div style="padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+        <span class="card-title">Admins</span>
+        <button class="btn btn-outline btn-sm">Export CSV ↓</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Admin</th>
+            <th>Role</th>
+            <th>Managed ROSCAs</th>
+            <th>Activity (Last 7 Days)</th>
+            <th>Joined</th>
+          </tr></thead>
+          <tbody>
+            {% for a in admins %}
+            <tr>
+              <td>
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                  <div class="admin-avatar">{{ a.full_name[0] }}</div>
+                  <div>
+                    <div class="td-bold">{{ a.full_name }}</div>
+                    <div class="td-sub">{{ 'Super Admin' if loop.first else 'Admin' }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="pill {% if loop.first %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot">
+                  {{ 'Super Admin' if loop.first else 'Admin' }}
+                </span>
+              </td>
+              <td style="font-weight:600;">{{ a.managed_roscas }}</td>
+              <td>
+                <a class="text-sm" style="color:var(--blue);font-weight:500;">{{ loop.index * 7 + 3 }} Actions ›</a>
+              </td>
+              <td class="text-muted text-xs">{{ a.created_at[:10] }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state" style="padding:2rem;">
+                  <p>No admins yet. Invite your first admin.</p>
+                  <button class="btn btn-orange btn-sm mt-3" onclick="openModal('invite-modal')">Invite Admin</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if admins %}
+      <div class="card-footer">
+        <div style="display:flex;gap:.5rem;font-size:.775rem;align-items:center;">
+          <span class="text-muted">‹ Last ›</span>
+          <button class="btn btn-outline btn-sm" style="padding:.25rem .6rem;min-width:28px;">1</button>
+          <button class="btn btn-outline btn-sm" style="padding:.25rem .6rem;min-width:28px;">2</button>
+          <button class="btn btn-primary btn-sm" style="padding:.25rem .6rem;min-width:28px;">3</button>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: Invite panel — matches Image 5 -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <div class="card card-pad">
+      <div class="card-title mb-2">Recent Activities</div>
+      <div class="form-group">
+        <input class="form-input" id="invite-email-quick" type="email" placeholder="Admin Email">
+      </div>
+      <button class="btn btn-orange btn-full" onclick="sendInviteQuick()">Send Invite</button>
+      <p class="form-hint mt-2">Invite a new admin by entering their email address. They will receive an email with instructions to join and manage ROSCAs.</p>
+    </div>
+
+    <div class="card card-pad">
+      <div class="card-title mb-3">Invite New Admin</div>
+      <div class="form-group">
+        <label class="form-label">Admin Email</label>
+        <input class="form-input" id="invite-email-2" type="email" placeholder="admin@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role</label>
+        <select class="form-input form-select">
+          <option>Admin</option>
+          <option>Super Admin</option>
+        </select>
+      </div>
+      <button class="btn btn-orange btn-full" onclick="sendInvite2()">Send Invite</button>
+      <p class="form-hint mt-2">They will receive an email with instructions to join and manage ROSCAs.</p>
+    </div>
+
+    <div class="card card-pad" style="background:var(--navy);color:#fff;border:none;">
+      <div style="font-size:.9rem;font-weight:600;margin-bottom:.5rem;">Platform Stats</div>
+      <div style="font-size:.8rem;opacity:.75;margin-bottom:1rem;">Quick overview of platform health.</div>
+      <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+          <span style="opacity:.75;">Total users</span>
+          <span style="font-weight:600;">{{ stats.active_members }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+          <span style="opacity:.75;">Active ROSCAs</span>
+          <span style="font-weight:600;">{{ stats.total_roscas }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;">
+          <span style="opacity:.75;">Admin count</span>
+          <span style="font-weight:600;">{{ stats.total_admins }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="invite-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('invite-modal')">✕</button>
+    <h3 class="modal-title">Invite New Admin</h3>
+    <p class="modal-sub">They will receive an email with instructions to join the admin panel and manage ROSCAs.</p>
+    <div class="form-group">
+      <label class="form-label">Email address</label>
+      <input class="form-input" id="modal-invite-email" type="email" placeholder="admin@organization.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Role</label>
+      <select class="form-input form-select"><option>Admin</option><option>Super Admin</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message (optional)</label>
+      <input class="form-input" placeholder="Welcome message...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('invite-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" onclick="sendModalInvite()">Send Invite</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function sendInviteQuick() {
+  const email = document.getElementById('invite-email-quick').value.trim();
+  if (!email) { toast('Enter an email address','error'); return; }
+  const d = await API.post('/api/admin/invite', { email });
+  if (d.ok) { toast('Invite sent to ' + email,'success'); document.getElementById('invite-email-quick').value=''; }
+  else toast(d.error,'error');
+}
+async function sendInvite2() {
+  const email = document.getElementById('invite-email-2').value.trim();
+  if (!email) { toast('Enter an email address','error'); return; }
+  const d = await API.post('/api/admin/invite', { email });
+  if (d.ok) { toast('Invite sent to ' + email,'success'); document.getElementById('invite-email-2').value=''; }
+  else toast(d.error,'error');
+}
+async function sendModalInvite() {
+  const email = document.getElementById('modal-invite-email').value.trim();
+  if (!email) { toast('Enter an email address','error'); return; }
+  const d = await API.post('/api/admin/invite', { email });
+  if (d.ok) { closeModal('invite-modal'); toast('Invite sent!','success'); }
+  else toast(d.error,'error');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}Payments — SOHANA Hub{% endblock %}
+{% block topbar_title %}Payments{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">Home / <a href="/admin">Admin</a> / Payments</div>
+
+<div class="page-header">
+  <h1 class="page-title">Payments</h1>
+  <button class="btn btn-outline">⚙ Admin Settings</button>
+</div>
+
+<!-- Stats row — matches Image 4 -->
+<div class="stats-grid stats-grid-5">
+  <div class="stat-card">
+    <div class="stat-icon blue">💵</div>
+    <div class="stat-body">
+      <div class="stat-label">Total Payments</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.total / 100) }}</div>
+      <div class="stat-delta up">↑ 8.6%</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon amber">⏳</div>
+    <div class="stat-body">
+      <div class="stat-label">Pending Payments</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.pending_amt / 100) }}</div>
+      <div class="stat-sub">{{ stats.pending_cnt }} payments</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon teal">🔓</div>
+    <div class="stat-body">
+      <div class="stat-label">Escrow Released</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.escrow / 100) }}</div>
+      <div class="stat-delta up">↑ 5.5%</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">⚠</div>
+    <div class="stat-body">
+      <div class="stat-label">Overdue Payments</div>
+      <div class="stat-value">&euro;{{ '%.0f' % (stats.overdue_amt / 100) }}</div>
+      <div class="stat-sub">{{ stats.overdue_cnt }} payments</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon red">⚠</div>
+    <div class="stat-body">
+      <div class="stat-label">Failed Payments</div>
+      <div class="stat-value">{{ stats.overdue_cnt }}</div>
+      <div class="stat-sub">Total</div>
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+
+  <!-- Left: payments table -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="card">
+      <!-- Table filters — matches Image 4 -->
+      <div class="table-filters">
+        <select class="filter-select"><option>All Payments</option><option>Pending</option><option>Paid</option><option>Overdue</option><option>Failed</option></select>
+        <select class="filter-select"><option>Status ▾</option></select>
+        <select class="filter-select"><option>Payment Method</option><option>Bank Transfer</option><option>Mobile Money</option><option>Credit Card</option></select>
+        <select class="filter-select"><option>Region</option><option>Africa</option><option>Europe</option><option>US & Canada</option></select>
+        <select class="filter-select"><option>Sort By: Newest</option><option>Oldest</option><option>Amount ↑</option><option>Amount ↓</option></select>
+        <div style="margin-left:auto;display:flex;gap:.5rem;">
+          <div class="table-search"><span>🔍</span><input type="text" placeholder="Search..."></div>
+          <button class="btn btn-outline btn-sm">Filter</button>
+          <button class="btn btn-outline btn-sm">CSV ↓</button>
+          <button class="btn btn-outline btn-sm btn-icon">📊</button>
+        </div>
+      </div>
+
+      <!-- Payments overview table — matches Image 4 layout -->
+      <div style="padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+        <span class="card-title">Payments Overview</span>
+        <button class="btn btn-outline btn-sm">Export CSV ↓</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Status</th>
+            <th>ROSCA</th>
+            <th>Member</th>
+            <th>Amount</th>
+            <th>Due Date</th>
+            <th>Paid Date</th>
+            <th>Method</th>
+          </tr></thead>
+          <tbody>
+            {% for p in payments %}
+            <tr>
+              <td>
+                <span class="pill
+                  {% if p.status == 'paid' %}pill-green
+                  {% elif p.status == 'pending' %}pill-amber
+                  {% elif p.status == 'missed' %}pill-red
+                  {% elif p.status == 'late' %}pill-orange
+                  {% else %}pill-gray{% endif %}
+                  pill-no-dot">
+                  {% if p.status == 'missed' %}Overdue
+                  {% elif p.status == 'late' %}Late
+                  {% else %}{{ p.status | capitalize }}{% endif %}
+                </span>
+              </td>
+              <td>
+                <div class="td-bold">{{ p.rosca_name }}</div>
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:.5rem;">
+                  <div class="admin-avatar" style="width:26px;height:26px;font-size:.65rem;">{{ p.member_name[0] }}</div>
+                  <div class="td-bold">{{ p.member_name }}</div>
+                </div>
+              </td>
+              <td style="font-weight:600;">&euro;{{ '%.2f' % (p.amount_cents / 100) }}</td>
+              <td class="text-muted text-xs">{{ p.due_at[:10] }}</td>
+              <td class="text-muted text-xs">{{ p.paid_at[:10] if p.paid_at else '—' }}</td>
+              <td>
+                <span class="text-xs" style="display:flex;align-items:center;gap:.3rem;">
+                  📱 Mobile Money
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-state" style="padding:2rem;text-align:center;">No payment records yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Pending panel + pie chart + recent activity — matches Image 4 -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Pending payments panel -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Pending Payments</span>
+        <span style="font-size:.8rem;cursor:pointer;">⌃</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--amber-lt);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">⚠</div>
+          <div>
+            <div style="font-size:1.4rem;font-weight:700;">{{ stats.pending_cnt }} Payments</div>
+            <div class="text-xs text-muted">&euro;{{ '%.0f' % (stats.pending_amt / 100) }}</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full btn-sm" onclick="location.href='/admin/payments'">View Details</button>
+      </div>
+    </div>
+
+    <!-- Payment Method pie chart -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">Payment Method</div>
+      <div style="display:flex;gap:1rem;align-items:center;">
+        <canvas id="pie-chart" width="90" height="90"></canvas>
+        <div class="pie-legend">
+          <div class="pie-legend-row"><div class="pie-dot" style="background:#2563eb;"></div><span class="pie-label">Bank Transfer</span><span class="pie-pct">46%</span></div>
+          <div class="pie-legend-row"><div class="pie-dot" style="background:#34d399;"></div><span class="pie-label">Mobile Money</span><span class="pie-pct">26%</span></div>
+          <div class="pie-legend-row"><div class="pie-dot" style="background:#f59e0b;"></div><span class="pie-label">Credit Card</span><span class="pie-pct">23%</span></div>
+          <div class="pie-legend-row"><div class="pie-dot" style="background:#94a3b8;"></div><span class="pie-label">Capital</span><span class="pie-pct">5%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent activity feed -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Activity</span></div>
+      <div class="notif-list">
+        {% for p in payments[:4] %}
+        <div class="notif-item">
+          <div class="notif-dot-icon {{ 'green' if p.status == 'paid' else 'orange' if p.status == 'late' else 'red' }}">
+            {{ '✓' if p.status == 'paid' else '!' }}
+          </div>
+          <div class="notif-body">
+            <div class="notif-text">
+              <strong>{{ p.member_name }}</strong>
+              {{ 'paid' if p.status == 'paid' else 'missed payment for' }}
+              {{ p.rosca_name }}
+            </div>
+            <div class="notif-time">{{ p.created_at[:10] }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div class="notif-item">
+          <div class="notif-dot-icon blue">ℹ</div>
+          <div class="notif-body"><div class="notif-text">No recent activity.</div></div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-footer">
+        <div style="display:flex;justify-content:space-between;font-size:.775rem;color:var(--text-muted);">
+          <span>🌍 Africa 59</span>
+          <span>🌍 Europe 37</span>
+          <span>🌍 US 20</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Draw pie chart
+(function() {
+  const c = document.getElementById('pie-chart');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const segments = [{v:46,col:'#2563eb'},{v:26,col:'#34d399'},{v:23,col:'#f59e0b'},{v:5,col:'#94a3b8'}];
+  let start = -Math.PI/2;
+  const cx=45,cy=45,r=38;
+  segments.forEach(s => {
+    const angle = (s.v/100) * Math.PI * 2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+angle);
+    ctx.closePath(); ctx.fillStyle=s.col; ctx.fill();
+    start += angle;
+  });
+  // White hole
+  ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+})();
+</script>
+{% endblock %}

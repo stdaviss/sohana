@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.full_name }} — SOHANA Hub{% endblock %}
+{% block topbar_title %}Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">{{ 'My Profile' if viewing_self else profile_user.full_name }}</h1>
+  {% if viewing_self %}
+  <button class="btn btn-outline btn-sm" onclick="openModal('edit-profile-modal')">Edit profile</button>
+  {% endif %}
+</div>
+
+<!-- Profile hero card -->
+<div class="card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,var(--navy-dark),var(--navy));border:none;color:#fff;">
+  <div style="padding:1.5rem;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
+    <div style="position:relative;">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#2563eb);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;border:3px solid rgba(255,255,255,.2);">
+        {{ profile_user.full_name[0]|upper }}
+      </div>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:1.4rem;font-weight:800;margin-bottom:.2rem;">{{ profile_user.full_name }}</div>
+      {% if profile_user.hanatag %}
+      <div style="font-size:.9rem;color:var(--gold);font-weight:600;margin-bottom:.4rem;">{{ profile_user.hanatag }}</div>
+      {% elif viewing_self %}
+      <button onclick="openModal('hanatag-modal')" style="font-size:.8rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:.2rem .7rem;border-radius:20px;cursor:pointer;margin-bottom:.4rem;">+ Set your @hanatag</button>
+      {% endif %}
+      {% if profile_user.bio %}<div style="font-size:.85rem;opacity:.75;margin-bottom:.5rem;">{{ profile_user.bio }}</div>{% endif %}
+      <div style="display:flex;gap:1.5rem;font-size:.8rem;opacity:.7;">
+        <span>{{ profile_user.country }}</span>
+        <span>Member since {{ profile_user.created_at[:10] }}</span>
+        <span>{{ roscas_done }} cycles completed</span>
+        <span>{{ endorsements }} endorsements</span>
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:2.5rem;font-weight:800;color:var(--gold);">{{ profile_user.ncs_score }}</div>
+      <span class="pill {% if tier.name=='exemplary' %}pill-purple{% elif tier.name=='reliable' %}pill-green{% elif tier.name=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.75rem;">{{ tier.label }}</span>
+    </div>
+  </div>
+</div>
+
+{% if viewing_self %}
+<!-- SETTINGS TABS -->
+<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
+  {% for tab_id, tab_label in [('badges','Badges'),('settings','Settings'),('notif','Notifications'),('methods','Payment Methods'),('limits','Limits'),('hanatag','Hanatag & QR')] %}
+  <button id="ptab-{{ tab_id }}" onclick="switchProfileTab('{{ tab_id }}')"
+    style="padding:.6rem 1.1rem;background:none;border:none;font-size:.85rem;white-space:nowrap;cursor:pointer;
+           {% if loop.first %}font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue){% else %}font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted){% endif %}">
+    {{ tab_label }}
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- TAB: BADGES -->
+<div id="pane-badges" class="{{ '' if viewing_self else 'hidden' if not viewing_self }}">
+  {% if badges %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.875rem;margin-bottom:1.5rem;">
+    {% for badge in badges %}
+    {% set bdef = all_badges.get(badge.badge_type, {}) %}
+    <div class="card card-pad" style="display:flex;align-items:center;gap:.75rem;">
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--amber-lt);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+        {{ bdef.get('icon','★') }}
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:.9rem;">{{ badge.label }}</div>
+        <div class="text-xs text-muted">{{ bdef.get('desc','Achievement') }}</div>
+        <div class="text-xs text-muted">{{ badge.earned_at[:10] }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <!-- Locked badges -->
+  <h3 style="font-size:.9rem;font-weight:600;color:var(--text-muted);margin-bottom:.875rem;">Badges to unlock</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.875rem;">
+    {% set earned_types = badges | map(attribute='badge_type') | list %}
+    {% for bt, bdef in all_badges.items() %}
+    {% if bt not in earned_types %}
+    <div class="card card-pad" style="display:flex;align-items:center;gap:.75rem;opacity:.5;">
+      <div style="width:44px;height:44px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;filter:grayscale(1);">
+        {{ bdef.icon }}
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:.9rem;">{{ bdef.label }}</div>
+        <div class="text-xs text-muted">{{ bdef.desc }}</div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+{% else %}
+<div class="empty-state"><p>No badges yet. Start contributing to earn your first badge!</p></div>
+{% endif %}
+</div>
+
+{% if viewing_self %}
+<!-- TAB: SETTINGS -->
+<div id="pane-settings" class="hidden">
+  <div class="card" style="max-width:560px;">
+    <div class="card-header"><span class="card-title">Personal details</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Full name</label>
+        <input class="form-input" id="s-name" value="{{ user.full_name }}"></div>
+      <div class="form-group"><label class="form-label">Email</label>
+        <input class="form-input" id="s-email" type="email" value="{{ user.email or '' }}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Language</label>
+          <select class="form-input form-select" id="s-lang">
+            {% for code,label in [('en','English'),('fr','Français'),('sw','Kiswahili'),('yo','Yoruba')] %}
+            <option value="{{ code }}" {{ 'selected' if user.get('language','en')==code }}>{{ label }}</option>
+            {% endfor %}
+          </select></div>
+        <div class="form-group"><label class="form-label">Currency</label>
+          <select class="form-input form-select" id="s-currency">
+            {% for code in ['EUR','GBP','USD','RWF','XAF','KES','NGN'] %}
+            <option value="{{ code }}" {{ 'selected' if user.get('currency','EUR')==code }}>{{ code }}</option>
+            {% endfor %}
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Bio</label>
+        <input class="form-input" id="s-bio" placeholder="A short bio..." value="{{ user.get('bio') or '' }}"></div>
+      <button class="btn btn-primary" onclick="saveSettings()">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: NOTIFICATIONS -->
+<div id="pane-notif" class="hidden">
+  <div class="card" style="max-width:480px;">
+    <div class="card-header"><span class="card-title">Notification preferences</span></div>
+    <div class="card-body">
+      {% for field, label, desc in [
+        ('notif_email','Email notifications','Receive updates by email'),
+        ('notif_push', 'Push notifications','In-app alerts for contributions and payouts'),
+        ('notif_sms',  'SMS notifications', 'Text messages for critical alerts'),
+      ] %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">{{ label }}</div>
+          <div class="text-xs text-muted">{{ desc }}</div>
+        </div>
+        <label style="position:relative;width:40px;height:22px;cursor:pointer;">
+          <input type="checkbox" id="n-{{ field }}" {{ 'checked' if user.get(field,1) }}
+            onchange="saveNotifPref('{{ field }}',this.checked)"
+            style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0;">
+          <span class="toggle-track-notif" style="position:absolute;inset:0;border-radius:11px;transition:background .2s;"></span>
+          <span class="toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;"></span>
+        </label>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- TAB: PAYMENT METHODS -->
+<div id="pane-methods" class="hidden">
+  <div style="max-width:600px;">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title" style="margin:0;">Saved payment methods</h2>
+      <button class="btn btn-primary btn-sm" onclick="openModal('add-method-modal')">+ Add method</button>
+    </div>
+    {% if pay_methods %}
+    <div style="display:flex;flex-direction:column;gap:.75rem;">
+      {% for m in pay_methods %}
+      <div class="card card-pad" style="display:flex;align-items:center;gap:.75rem;">
+        <div style="width:40px;height:40px;border-radius:var(--radius);background:var(--navy-lt);display:flex;align-items:center;justify-content:center;font-size:1.1rem;">
+          {{ '🏦' if 'bank' in m.method_type else '📱' if 'mobile' in m.method_type else '💳' }}
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:.875rem;">{{ m.label }}</div>
+          <div class="text-xs text-muted">{{ m.method_type.replace('_',' ').title() }}</div>
+        </div>
+        {% if m.is_default %}<span class="pill pill-green pill-no-dot" style="font-size:.65rem;">Default</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state card card-pad"><p>No payment methods saved yet.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- TAB: LIMITS -->
+<div id="pane-limits" class="hidden">
+  <div class="card" style="max-width:560px;">
+    <div class="card-header"><span class="card-title">Account limits</span></div>
+    <div class="card-body">
+      {% set limits = [
+        ('Daily withdrawal','€2,000','KYC phone verified'),
+        ('Monthly withdrawal','€10,000','KYC phone verified'),
+        ('Single ROSCA contribution','€5,000','NCS: ' ~ user.ncs_score),
+        ('Max active circles','3' if user.ncs_tier=='probation' else '10','Based on NCS tier'),
+        ('Pay per transaction','€1,000','Internal transfer'),
+      ] %}
+      {% for label, limit, note in limits %}
+      <div style="display:flex;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:.875rem;font-weight:500;">{{ label }}</div>
+          <div class="text-xs text-muted">{{ note }}</div>
+        </div>
+        <span style="font-weight:700;font-size:.95rem;color:var(--navy);">{{ limit }}</span>
+      </div>
+      {% endfor %}
+      <p class="text-xs text-muted mt-3">Upgrade limits by completing ID verification (KYC Tier 2).</p>
+      <button class="btn btn-primary btn-sm mt-3">Verify identity</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: HANATAG & QR -->
+<div id="pane-hanatag" class="hidden">
+  <div class="content-grid-2" style="max-width:700px;">
+    <div class="card card-pad">
+      <div class="card-title mb-3">Your Hanatag</div>
+      <p class="text-sm text-muted mb-3">Your unique @hanatag lets others send you money instantly within SOHANA — no phone number needed.</p>
+      {% if user.get('hanatag') %}
+      <div style="background:var(--navy);color:#fff;border-radius:var(--radius);padding:1rem 1.25rem;font-size:1.3rem;font-weight:800;text-align:center;margin-bottom:.875rem;letter-spacing:.02em;">
+        {{ user.hanatag }}
+      </div>
+      <button class="btn btn-outline btn-full btn-sm" onclick="openModal('hanatag-modal')">Change hanatag</button>
+      {% else %}
+      <div class="empty-state" style="padding:1rem;">
+        <p class="text-sm mb-3">You haven't set a hanatag yet.</p>
+        <button class="btn btn-primary" onclick="openModal('hanatag-modal')">Set hanatag</button>
+      </div>
+      {% endif %}
+    </div>
+    <div class="card card-pad" style="text-align:center;">
+      <div class="card-title mb-3">Your Hana QR Code</div>
+      <canvas id="qr-canvas" width="180" height="180" style="margin:0 auto .875rem;border-radius:var(--radius);border:1px solid var(--border);"></canvas>
+      <p class="text-xs text-muted mb-3">Others can scan this to pay you instantly.</p>
+      <button class="btn btn-outline btn-sm" onclick="downloadQR()">Download QR</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+<!-- Edit profile modal -->
+<div class="modal-backdrop" id="edit-profile-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('edit-profile-modal')">✕</button>
+    <h3 class="modal-title">Edit profile</h3>
+    <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="ep-name" value="{{ user.full_name }}"></div>
+    <div class="form-group"><label class="form-label">Bio</label><input class="form-input" id="ep-bio" value="{{ user.get('bio') or '' }}" placeholder="Short bio..."></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('edit-profile-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hanatag modal -->
+<div class="modal-backdrop" id="hanatag-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('hanatag-modal')">✕</button>
+    <h3 class="modal-title">Set your @hanatag</h3>
+    <p class="modal-sub">Choose a unique tag for receiving payments. Letters and numbers only, min 3 characters.</p>
+    <div class="form-group">
+      <label class="form-label">Hanatag</label>
+      <div class="input-group">
+        <span style="padding:.5rem .75rem;background:var(--gray-100);border:1.5px solid var(--border);border-right:none;border-radius:var(--radius-sm) 0 0 var(--radius-sm);font-size:.875rem;color:var(--text-muted);">@</span>
+        <input class="form-input" id="hanatag-input" placeholder="yourname" style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;" oninput="checkHanatag()">
+      </div>
+      <p class="form-hint" id="hanatag-hint">Available to use</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('hanatag-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-set-tag" onclick="setHanatag()">Set hanatag</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add payment method modal -->
+<div class="modal-backdrop" id="add-method-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-method-modal')">✕</button>
+    <h3 class="modal-title">Add payment method</h3>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select class="form-input form-select" id="pm-type" onchange="updateMethodFields()">
+        <option value="bank_eu">EU Bank (SEPA)</option>
+        <option value="bank_uk">UK Bank</option>
+        <option value="bank_us">US Bank (ACH)</option>
+        <option value="bank_swift">International (SWIFT)</option>
+        <option value="mobile_money">Mobile Money</option>
+      </select></div>
+    <div id="method-fields"></div>
+    <label style="display:flex;align-items:center;gap:.5rem;font-size:.85rem;margin-bottom:1rem;">
+      <input type="checkbox" id="pm-default"> Set as default
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('add-method-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-add-method" onclick="addPaymentMethod()">Add method</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Draw QR code (simple canvas-based grid representing hanatag)
+function drawQR() {
+  const canvas = document.getElementById('qr-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const tag = '{{ user.get("hanatag","@sohana") }}';
+  const size = 180; const cells = 21; const cell = size/cells;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+  ctx.fillStyle = '#1a2b4a';
+  // Simple deterministic grid from tag string
+  for (let r=0; r<cells; r++) for (let c=0; c<cells; c++) {
+    const idx = (r*cells+c) % tag.length;
+    const filled = (tag.charCodeAt(idx) + r*7 + c*11) % 3 === 0;
+    if (filled) ctx.fillRect(c*cell,r*cell,cell-1,cell-1);
+  }
+  // Corner squares
+  [[0,0],[0,cells-7],[cells-7,0]].forEach(([cr,cc]) => {
+    ctx.strokeStyle='#1a2b4a'; ctx.lineWidth=2;
+    ctx.strokeRect(cc*cell+1,cr*cell+1,(7*cell)-2,(7*cell)-2);
+    ctx.fillRect(cc*cell+2*cell,cr*cell+2*cell,3*cell,3*cell);
+  });
+}
+drawQR();
+
+function downloadQR() {
+  const canvas = document.getElementById('qr-canvas');
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'sohana-qr.png';
+  a.click();
+}
+
+function switchProfileTab(tab) {
+  ['badges','settings','notif','methods','limits','hanatag'].forEach(t => {
+    document.getElementById('pane-'+t)?.classList.toggle('hidden', t!==tab);
+    const btn = document.getElementById('ptab-'+t);
+    if (btn) {
+      const active = t===tab;
+      btn.style.fontWeight = active?'600':'500';
+      btn.style.borderBottom = active?'3px solid var(--blue)':'3px solid transparent';
+      btn.style.color = active?'var(--blue)':'var(--text-muted)';
+    }
+  });
+}
+
+async function saveSettings() {
+  const d = await API.post('/api/profile/update', {
+    full_name: document.getElementById('s-name').value,
+    email:     document.getElementById('s-email').value,
+    bio:       document.getElementById('s-bio').value,
+    language:  document.getElementById('s-lang').value,
+    currency:  document.getElementById('s-currency').value,
+  });
+  if (d.ok) toast('Settings saved!','success'); else toast(d.error,'error');
+}
+async function saveNotifPref(field, val) {
+  await API.post('/api/profile/update', {[field]: val?1:0});
+  toast('Preference updated','success');
+}
+// Toggle styling
+document.querySelectorAll('.toggle-track-notif').forEach(track => {
+  const cb = track.previousElementSibling;
+  const thumb = track.nextElementSibling;
+  const update = () => {
+    track.style.background = cb.checked ? 'var(--blue)' : 'var(--gray-200)';
+    thumb.style.transform = cb.checked ? 'translateX(18px)' : 'none';
+  };
+  cb.addEventListener('change', update); update();
+});
+
+async function checkHanatag() {
+  const val = document.getElementById('hanatag-input').value.trim();
+  const hint = document.getElementById('hanatag-hint');
+  if (val.length < 3) { hint.textContent='Min 3 characters'; hint.style.color='var(--red)'; return; }
+  const d = await API.get('/api/profile/lookup-hanatag?tag=@'+val);
+  if (d.error) { hint.textContent='✓ Available'; hint.style.color='var(--green)'; }
+  else { hint.textContent='✗ Already taken'; hint.style.color='var(--red)'; }
+}
+async function setHanatag() {
+  const btn = document.getElementById('btn-set-tag');
+  setLoading(btn,true);
+  const d = await API.post('/api/profile/hanatag', {hanatag: document.getElementById('hanatag-input').value});
+  setLoading(btn,false);
+  if (d.ok) { closeModal('hanatag-modal'); toast('Hanatag set: '+d.hanatag,'success'); setTimeout(()=>location.reload(),1000); }
+  else toast(d.error,'error');
+}
+async function saveProfile() {
+  const d = await API.post('/api/profile/update',{full_name:document.getElementById('ep-name').value,bio:document.getElementById('ep-bio').value});
+  if(d.ok){closeModal('edit-profile-modal');toast('Profile updated','success');setTimeout(()=>location.reload(),1000);}
+  else toast(d.error,'error');
+}
+
+const METHOD_FIELDS = {
+  bank_eu:      [['holder','Account holder name'],['iban','IBAN'],['bic','BIC/SWIFT code']],
+  bank_uk:      [['holder','Account holder name'],['account','Account number'],['sort','Sort code']],
+  bank_us:      [['holder','Account holder name'],['account','Account number'],['routing','Routing number']],
+  bank_swift:   [['holder','Account holder name'],['iban','IBAN'],['bic','BIC/SWIFT code'],['bank_addr','Bank address']],
+  mobile_money: [['holder','Account holder name'],['number','Mobile money number']],
+};
+function updateMethodFields() {
+  const type   = document.getElementById('pm-type').value;
+  const fields = METHOD_FIELDS[type] || [];
+  document.getElementById('method-fields').innerHTML = fields.map(([id,label]) =>
+    `<div class="form-group"><label class="form-label">${label}</label><input class="form-input" id="pm-${id}" placeholder="${label}"></div>`
+  ).join('');
+}
+updateMethodFields();
+async function addPaymentMethod() {
+  const type   = document.getElementById('pm-type').value;
+  const fields = METHOD_FIELDS[type] || [];
+  const details= {};
+  fields.forEach(([id]) => { details[id] = document.getElementById('pm-'+id)?.value||''; });
+  const label  = details.holder || type.replace('_',' ');
+  const d = await API.post('/api/profile/payment-method',{method_type:type,label,details,is_default:document.getElementById('pm-default').checked});
+  if(d.ok){closeModal('add-method-modal');toast('Method added!','success');setTimeout(()=>location.reload(),1000);}
+  else toast(d.error,'error');
+}
+</script>
+{% endblock %}

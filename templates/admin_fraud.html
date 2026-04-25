@@ -1,0 +1,226 @@
+{% extends "admin_base.html" %}
+{% block title %}Fraud & Security — SOHANA{% endblock %}
+{% block sidebar_role %}Fraud Analyst{% endblock %}
+{% block topbar_title %}Fraud & Security Dashboard{% endblock %}
+{% block topbar_sub %}Real-time monitoring of fraud risks, security threats and platform integrity{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <span class="admin-section-label">Monitoring</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/fraud" class="active">🛡 Overview</a></li>
+    <li><a href="/admin/fraud">⚡ Real-time Alerts</a></li>
+    <li><a href="/admin/fraud">📡 Transactions Monitor</a></li>
+    <li><a href="/admin/users">👤 User Monitoring</a></li>
+    <li><a href="/admin/fraud">📱 Device Intelligence</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Risk Management</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/fraud">⚖ Risk Scoring</a></li>
+    <li><a href="/admin/fraud">📜 Fraud Rules</a></li>
+    <li><a href="/admin/fraud">📁 Case Management</a></li>
+    <li><a href="/admin/fraud">🚫 Blacklist</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Analytics</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/fraud">📊 Fraud Analytics</a></li>
+    <li><a href="/admin/fraud">🔬 Behavior Analytics</a></li>
+    <li><a href="/admin/fraud">🌐 Network Analysis</a></li>
+    <li><a href="/admin/fraud">📍 Geolocation Insights</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Configuration</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/fraud">⚙ Security Settings</a></li>
+    <li><a href="/admin/fraud">🔐 Access Control</a></li>
+    <li><a href="/admin/fraud">📋 Audit Logs</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-6">
+  {% for label,val,delta,up,icon in [
+    ('Total Alerts (24H)', stats.fraud_alerts, '+12.5%', False, '⚠'),
+    ('High Risk Alerts', stats.high_risk_alerts, '+27.3%', False, '🛡'),
+    ('Transactions Flagged', stats.flagged_tx, '+18.6%', False, '👁'),
+    ('Accounts Flagged', stats.flagged_accounts, '+15.5%', False, '👤'),
+    ('Blocked Transactions', stats.blocked_tx, '+22.4%', False, '🚫'),
+    ('Fraud Loss Prevented', '€'+('%.0f'%(stats.fraud_prevented/100)), '+31.8%', True, '💰'),
+  ] %}
+  <div class="astat">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+      <div class="astat-label">{{ label }}</div>
+      <span style="font-size:1.1rem;">{{ icon }}</span>
+    </div>
+    <div class="astat-value" style="font-size:1.4rem;">{{ val }}</div>
+    <div class="astat-delta {{ 'up' if up else 'down' }}">{{ '↑' if up else '↓' }} {{ delta }} vs yesterday</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- Alerts over time -->
+  <div class="acard acard-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+      <span class="acard-title">Alerts Over Time</span>
+      <select style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);color:var(--admin-text);border-radius:6px;padding:.25rem .5rem;font-size:.72rem;"><option>Last 24 hours</option></select>
+    </div>
+    <canvas id="alert-time-chart" height="120" style="width:100%;"></canvas>
+  </div>
+
+  <!-- Alerts by risk level (donut) -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.75rem;">Alerts by Risk Level</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <canvas id="risk-donut" width="110" height="110"></canvas>
+      <div style="font-size:.78rem;">
+        {% for label,val,color in [('High Risk','28 (17.9%)','#f87171'),('Medium Risk','68 (43.6%)','#fbbf24'),('Low Risk','60 (38.5%)','#34d399')] %}
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;">
+          <div style="width:9px;height:9px;border-radius:50%;background:{{ color }};"></div>
+          <span style="color:var(--admin-muted);">{{ label }}</span>
+        </div>
+        {% endfor %}
+        <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-top:.5rem;">{{ stats.fraud_alerts }}<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts by type -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.75rem;">Alerts by Type <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for label,val,pct,color in [
+      ('Suspicious Transactions',65,'41.7%','#f87171'),
+      ('Account Takeover',32,'20.5%','#fb923c'),
+      ('Identity Verification',26,'16.7%','#fbbf24'),
+      ('Multiple Accounts',18,'11.5%','#60a5fa'),
+      ('Policy Violations',15,'9.6%','#a78bfa'),
+    ] %}
+    <div style="margin-bottom:.5rem;">
+      <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.2rem;">
+        <span style="color:var(--admin-text);">{{ label }}</span>
+        <span style="color:var(--admin-muted);">{{ val }} ({{ pct }})</span>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:3px;height:5px;">
+        <div style="background:{{ color }};height:5px;border-radius:3px;width:{{ pct }};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- Recent High Risk Alerts -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Recent High Risk Alerts</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>ID</th><th>Type</th><th>User</th><th>Amount</th><th>Score</th><th>Time</th></tr></thead>
+      <tbody>
+        {% for a in fraud_alerts %}
+        <tr>
+          <td style="font-family:monospace;font-size:.72rem;color:var(--admin-muted);">#ALRT-{{ loop.index+9820 }}</td>
+          <td><span class="apill {% if a.risk_level=='high' %}apill-red{% elif a.risk_level=='medium' %}apill-amber{% else %}apill-blue{% endif %}" style="font-size:.65rem;">{{ a.alert_type.replace('_',' ').title() }}</span></td>
+          <td style="font-size:.8rem;">{{ a.full_name or 'Unknown' }}</td>
+          <td style="font-size:.8rem;">{% if a.amount_cents %}€{{ '%.0f'%(a.amount_cents/100) }}{% else %}—{% endif %}</td>
+          <td><span style="background:rgba(248,113,113,.2);color:#f87171;padding:.15rem .5rem;border-radius:20px;font-size:.7rem;font-weight:700;">{{ a.risk_score }}</span></td>
+          <td style="font-size:.72rem;color:var(--admin-muted);white-space:nowrap;">{{ a.created_at[11:16] }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;color:var(--admin-muted);padding:1.5rem;">No high risk alerts</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Risky Countries -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Top Risky Countries</div>
+    {% for country,tx,level in [('Nigeria','2,456','high'),('Ghana','1,782','high'),("Côte d'Ivoire",'934','medium'),('Togo','512','medium'),('Benin','298','low')] %}
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
+      <div style="flex:1;font-size:.83rem;font-weight:500;color:#fff;">{{ country }}</div>
+      <div style="font-size:.8rem;color:var(--admin-muted);">{{ tx }} txns</div>
+      <span class="apill {% if level=='high' %}apill-red{% elif level=='medium' %}apill-amber{% else %}apill-green{% endif %}" style="font-size:.65rem;">{{ level.title() }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- System Security Status -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+    <div class="acard acard-pad">
+      <div class="acard-title" style="margin-bottom:.875rem;">System Security Status</div>
+      {% for svc in ['Login Security','Data Encryption','API Security','Firewall Protection','Intrusion Detection'] %}
+      <div class="sys-status-row">
+        <div class="sys-dot ok"></div>
+        <span style="font-size:.83rem;flex:1;color:#fff;">{{ svc }}</span>
+        <span style="font-size:.75rem;color:#34d399;font-weight:600;">✓ Secure</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="acard acard-pad">
+      <div class="acard-title" style="margin-bottom:.75rem;">Active Sessions</div>
+      <canvas id="sessions-donut" width="100" height="100" style="display:block;margin:0 auto .5rem;"></canvas>
+      <div style="text-align:center;font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.5rem;">1,248<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total Sessions</span></div>
+      <div style="display:flex;justify-content:center;gap:1rem;font-size:.72rem;">
+        <span style="color:#34d399;">● Trusted 874</span>
+        <span style="color:#fbbf24;">● Unsecured 256</span>
+        <span style="color:#a78bfa;">● Unknown 118</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row -->
+<div class="acontent-grid acontent-3">
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Transaction Monitoring <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for label,note,level in [
+      ('Large amount transaction','€5,000.00 by Nana Y.','High'),
+      ('Rapid multiple transactions','5 txns in 2 min by Kwame A.','Medium'),
+      ('Unusual location','Login from new location by Akosua B.','Medium'),
+      ('Velocity limit exceeded','20 transactions in 10 min by Kofi J.','Low'),
+    ] %}
+    <div style="display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
+      <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;background:{% if level=='High' %}rgba(248,113,113,.2){% elif level=='Medium' %}rgba(251,191,36,.15){% else %}rgba(96,165,250,.15){% endif %};">{% if level=='High' %}🔴{% elif level=='Medium' %}🟡{% else %}🔵{% endif %}</div>
+      <div style="flex:1;"><div style="font-size:.8rem;font-weight:500;color:#fff;">{{ label }}</div><div style="font-size:.7rem;color:var(--admin-muted);">{{ note }}</div></div>
+      <span class="apill {% if level=='High' %}apill-red{% elif level=='Medium' %}apill-amber{% else %}apill-blue{% endif %}" style="font-size:.65rem;align-self:center;">{{ level }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Fraud Rule Alerts <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for rule,cnt,delta in [('Velocity Rule Triggered',45,'+12.5%'),('Amount Threshold Rule',32,'+18.2%'),('Location Anomaly Rule',28,'+8.6%'),('Device Risk Rule',21,'-5.3%'),('Multiple Account Rule',15,'+23.1%')] %}
+    <div style="display:flex;align-items:center;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--admin-border);">
+      <span style="font-size:.9rem;">⚡</span>
+      <span style="flex:1;font-size:.8rem;color:var(--admin-text);">{{ rule }}</span>
+      <span style="font-weight:700;font-size:.82rem;color:#fff;">{{ cnt }}</span>
+      <span style="font-size:.7rem;color:#34d399;">{{ delta }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Top Risky Devices</div>
+    {% for device,users,alerts,level in [('Android 10 / Chrome','312','25','High'),('Windows / Chrome','275','18','Medium'),('Android 9 / WebView','189','15','Medium'),('iOS 16 / Safari','143','9','Low'),('Windows / Firefox','98','6','Low')] %}
+    <div style="display:flex;align-items:center;gap:.4rem;padding:.45rem 0;border-bottom:1px solid var(--admin-border);font-size:.78rem;">
+      <span style="flex:1;color:var(--admin-text);">{{ device }}</span>
+      <span style="color:var(--admin-muted);">{{ users }} users</span>
+      <span class="apill {% if level=='High' %}apill-red{% elif level=='Medium' %}apill-amber{% else %}apill-blue{% endif %}" style="font-size:.62rem;">{{ level }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+setTimeout(()=>{
+  // Alert time line chart
+  const c1=document.getElementById('alert-time-chart');
+  if(c1){const ctx=c1.getContext('2d');const W=c1.width=c1.offsetWidth*2;const H=c1.height=240;const pts=[20,35,25,60,45,80,55,70,40,65,50,85,70,90,75,65,80,55,45,60,70,85,75,90,80];const mn=0,mx=100;const tx=i=>(i/(pts.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle='#f87171';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();ctx.beginPath();ctx.moveTo(tx(0),H-10);pts.forEach((p,i)=>ctx.lineTo(tx(i),ty(p)));ctx.lineTo(tx(pts.length-1),H-10);ctx.closePath();ctx.fillStyle='rgba(248,113,113,.15)';ctx.fill();}
+  // Risk donut
+  function donut(id,segs){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=55,cy=55,r=42,t=12;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
+  donut('risk-donut',[[17.9,'#f87171'],[43.6,'#fbbf24'],[38.5,'#34d399']]);
+  donut('sessions-donut',[[70,'#34d399'],[20.5,'#fbbf24'],[9.5,'#a78bfa']]);
+},100);
+</script>
+{% endblock %}

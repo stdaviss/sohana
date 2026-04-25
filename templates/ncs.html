@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}NCS Score — SOHANA Hub{% endblock %}
+{% block topbar_title %}NCS Score{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Njangi Credit Score</h1>
+    <p class="page-subtitle">Your behavioral credit profile built from ROSCA participation.</p>
+  </div>
+  <button class="btn btn-outline btn-sm" id="btn-recalc" onclick="recalculate()">↻ Recalculate</button>
+</div>
+
+<!-- Score hero card — dark navy matching the UI style -->
+<div class="card" style="background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,#1e3a5f 100%);border:none;margin-bottom:1.25rem;">
+  <div style="padding:1.5rem;display:grid;grid-template-columns:auto 1fr auto;gap:1.5rem;align-items:center;">
+    <div style="text-align:center;">
+      <div style="font-size:4.5rem;font-weight:800;line-height:1;color:var(--gold);" id="score-num">{{ user.ncs_score }}</div>
+      <div style="font-size:.75rem;opacity:.55;color:#fff;margin-top:.2rem;">out of 850</div>
+    </div>
+    <div>
+      <div style="margin-bottom:.75rem;">
+        <span class="pill {% if tier.name == 'exemplary' %}pill-purple{% elif tier.name == 'reliable' %}pill-green{% elif tier.name == 'developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.85rem;">
+          {{ tier.label }}
+        </span>
+      </div>
+      <!-- Score range bar with tier markers -->
+      <div style="position:relative;margin-bottom:.5rem;">
+        <div class="progress-track" style="height:10px;background:rgba(255,255,255,.15);">
+          <div style="height:10px;border-radius:4px;background:linear-gradient(90deg,#dc2626,#d97706,#16a34a,#7c3aed);width:100%;opacity:.6;"></div>
+          <div style="position:absolute;top:0;height:10px;border-radius:4px;background:var(--gold);width:{{ ((user.ncs_score - 300) / 550 * 100)|round|int }}%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:.35rem;">
+          {% for marker in ['300','550','650','750','850'] %}
+          <span style="font-size:.65rem;color:rgba(255,255,255,.45);">{{ marker }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="rep-stars" style="margin-top:.4rem;">
+        {% for i in range(5) %}
+        <span class="rep-star">{{ '★' if (user.ncs_score - 300) / 110 > i else '☆' }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:.72rem;color:rgba(255,255,255,.45);margin-bottom:.2rem;">Next tier</div>
+      {% if user.ncs_score < 550 %}
+        <div style="font-size:1.3rem;font-weight:700;color:#fff;">{{ 550 - user.ncs_score }}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);">pts to Developing</div>
+      {% elif user.ncs_score < 650 %}
+        <div style="font-size:1.3rem;font-weight:700;color:#fff;">{{ 650 - user.ncs_score }}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);">pts to Reliable</div>
+      {% elif user.ncs_score < 750 %}
+        <div style="font-size:1.3rem;font-weight:700;color:#fff;">{{ 750 - user.ncs_score }}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);">pts to Exemplary</div>
+      {% else %}
+        <div style="font-size:1.3rem;font-weight:700;color:var(--gold);">Max</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);">tier reached</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-2" style="margin-bottom:1.25rem;">
+
+  <!-- Component breakdown -->
+  <div class="card card-pad">
+    <div class="card-title mb-3">Score Breakdown</div>
+    {% set labels = {
+      'reliability': ('Contribution Reliability', '#2563eb', '35%'),
+      'completion':  ('Completion Rate',          '#16a34a', '25%'),
+      'default_rec': ('Default & Recovery',       '#7c3aed', '20%'),
+      'social':      ('Social Trust',             '#f59e0b', '10%'),
+      'wallet':      ('Wallet Behaviour',         '#ea580c', '10%'),
+    } %}
+    {% for key, data in components.items() %}
+    {% set lbl = labels.get(key, (key, '#888', '?')) %}
+    <div style="margin-bottom:.875rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
+        <span style="font-size:.875rem;font-weight:500;">{{ lbl[0] }}</span>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <span class="text-xs text-muted">weight {{ lbl[2] }}</span>
+          <span style="font-size:.875rem;font-weight:700;color:{{ lbl[1] }};">{{ data.pct|round(0)|int }}%</span>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="background:{{ lbl[1] }};width:{{ data.pct|round(0)|int }}%"></div>
+      </div>
+      <div class="text-xs text-muted mt-1">{{ data.pts }} pts contributed</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- History sparkline -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="card card-pad">
+      <div class="card-title mb-3">Score History</div>
+      {% if history %}
+      <canvas id="score-chart" height="120" style="width:100%;"></canvas>
+      <div style="display:flex;justify-content:space-between;margin-top:.5rem;">
+        <span class="text-xs text-muted">{{ history[0].day }}</span>
+        <span class="text-xs text-muted">Today</span>
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:1.5rem;">
+        <p class="text-sm">Complete your first ROSCA contribution to start tracking.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Loan eligibility -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">Loan Eligibility</div>
+      {% set loan_info = [
+        ('emergency',   'Emergency Loan',    '50% of next payout', 550),
+        ('early_payout','Early Payout Loan', 'Full pot in advance', 650),
+        ('rosca_backed','ROSCA-Backed Loan', 'Collateralised loan', 700),
+      ] %}
+      {% for lt, label, desc, min_score in loan_info %}
+      {% set eli = loan_eligibility.get(lt, {}) %}
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+        <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0;background:{{ 'var(--green-lt)' if eli.eligible else 'var(--red-lt)' }};">
+          {{ '✓' if eli.eligible else '✗' }}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:.85rem;font-weight:500;">{{ label }}</div>
+          <div class="text-xs text-muted">{{ desc }} · Min NCS {{ min_score }}</div>
+        </div>
+        {% if eli.eligible %}
+        <span class="pill pill-green pill-no-dot" style="font-size:.65rem;">Unlocked</span>
+        {% else %}
+        <span class="text-xs" style="color:var(--red);white-space:nowrap;">+{{ eli.gap }} pts</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-2">
+
+  <!-- How to improve -->
+  <div class="card card-pad">
+    <div class="card-title mb-3">How to improve</div>
+    {% set tips = [
+      ('Pay contributions on time', 'Each on-time payment adds +8 pts. Seven payments moves you up a full tier.'),
+      ('Complete full ROSCA cycles', 'Finishing a complete circle adds +12 pts and unlocks the Full Circle badge.'),
+      ('Collect peer endorsements', 'Ask circle members to endorse you. Each endorsement adds +3 pts.'),
+      ('Deposit regularly', 'Consistent wallet deposits improve your wallet behaviour component.'),
+      ('Recover from misses quickly', 'Recovering from a late payment earns a +5 recovery bonus.'),
+    ] %}
+    {% for title, desc in tips %}
+    <div style="display:flex;gap:.75rem;margin-bottom:.875rem;">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:.45rem;"></div>
+      <div>
+        <div style="font-size:.875rem;font-weight:600;margin-bottom:.15rem;">{{ title }}</div>
+        <div class="text-xs text-muted">{{ desc }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Score events + badges -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="card card-pad">
+      <div class="card-title mb-3">Recent Score Events</div>
+      {% if events %}
+      <div style="display:flex;flex-direction:column;gap:0;">
+        {% for ev in events[:10] %}
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.55rem 0;border-bottom:1px solid var(--border);">
+          <div style="width:7px;height:7px;border-radius:50%;background:{{ 'var(--green)' if ev.delta > 0 else 'var(--red)' }};flex-shrink:0;"></div>
+          <div style="flex:1;font-size:.82rem;">{{ ev.event_type.replace('_',' ').title() }}</div>
+          <div style="font-size:.82rem;font-weight:600;color:{{ 'var(--green)' if ev.delta > 0 else 'var(--red)' }};">
+            {{ '+' if ev.delta > 0 else '' }}{{ ev.delta }} pts
+          </div>
+          <div class="text-xs text-muted">{{ ev.recorded_at[:10] }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:1rem;"><p class="text-sm">No events yet.</p></div>
+      {% endif %}
+    </div>
+
+    {% if badges %}
+    <div class="card card-pad">
+      <div class="card-title mb-3">Badges ({{ badges|length }})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+        {% for b in badges %}
+        <div style="display:flex;align-items:center;gap:.4rem;background:var(--amber-lt);border:1px solid #fde68a;border-radius:20px;padding:.25rem .7rem;">
+          <span style="color:var(--gold);">★</span>
+          <span style="font-size:.775rem;font-weight:600;color:#92400e;">{{ b.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Benefits -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">Your tier benefits</div>
+      {% for b in tier.benefits %}
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;font-size:.85rem;">
+        <span style="color:var(--green);">✓</span> {{ b }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const histData = {{ history | tojson }};
+if (histData.length >= 2) sparkline('score-chart', histData, '#f59e0b');
+
+async function recalculate() {
+  const btn = document.getElementById('btn-recalc');
+  setLoading(btn, true);
+  const d = await API.post('/api/ncs/recalculate', {});
+  setLoading(btn, false);
+  if (d.error) { toast(d.error, 'error'); return; }
+  document.getElementById('score-num').textContent = d.score;
+  toast('Score updated to ' + d.score, 'success');
+  setTimeout(() => location.reload(), 1200);
+}
+</script>
+{% endblock %}

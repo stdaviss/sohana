@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Notifications — SOHANA Hub{% endblock %}
+{% block topbar_title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header"><h1 class="page-title">Notifications</h1></div>
+<div class="card" style="max-width:680px;">
+  {% if notifications %}
+  <div class="notif-list">
+    {% for n in notifications %}
+    <div class="notif-item" onclick="{{ 'location.href=\''+n.link+'\'' if n.link else '' }}" style="{{ 'background:var(--blue-lt);' if not n.is_read else '' }}cursor:{{ 'pointer' if n.link else 'default' }};">
+      <div class="notif-dot-icon {{ 'green' if n.notif_type=='success' else 'red' if n.notif_type=='danger' else 'orange' if n.notif_type=='warning' else 'blue' }}">
+        {{ '✓' if n.notif_type=='success' else '⚠' if n.notif_type=='warning' else 'ℹ' }}
+      </div>
+      <div class="notif-body">
+        <div class="notif-text"><strong>{{ n.title }}</strong><br>{{ n.body }}</div>
+        {% if n.link %}<div style="font-size:.75rem;color:var(--blue);margin-top:.2rem;">{{ n.link }}</div>{% endif %}
+        <div class="notif-time">{{ n.created_at[:16].replace('T',' ') }}</div>
+      </div>
+      {% if not n.is_read %}<div style="width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0;"></div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:3rem;"><p>No notifications yet.</p></div>
+  {% endif %}
+</div>
+{% endblock %}

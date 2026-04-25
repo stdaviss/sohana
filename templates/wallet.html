@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}Wallet — SOHANA Hub{% endblock %}
+{% block topbar_title %}Wallet{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">My Wallet</h1><p class="page-subtitle">Multi-currency wallet — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR</p></div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">⬇ Statement</a>
+    <button class="btn btn-outline" onclick="openModal('withdraw-modal')">⬆ Withdraw</button>
+    <button class="btn btn-primary" onclick="openModal('deposit-modal')">⬇ Deposit</button>
+    <button class="btn btn-orange" onclick="openModal('pay-modal')">⚡ Pay</button>
+  </div>
+</div>
+
+<!-- Currency tabs (Wise-style) -->
+<div style="margin-bottom:1.25rem;">
+  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;">
+    {% for w in wallets %}
+    {% set cur = currencies.get(w.currency, {}) %}
+    <a href="/wallet?currency={{ w.currency }}"
+      style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px solid {{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--border)' }};background:{{ 'var(--blue-lt)' if w.currency==active_wallet.currency else 'var(--white)' }};text-decoration:none;transition:all .15s;">
+      <span style="font-size:1rem;">{{ cur.get('flag','') }}</span>
+      <div>
+        <div style="font-size:.78rem;font-weight:600;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--gray-700)' }};">{{ w.currency }}</div>
+        <div style="font-size:.82rem;font-weight:700;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--navy)' }};">{{ cur.get('symbol','') }}{{ '%.2f'%(w.balance/100) }}</div>
+      </div>
+    </a>
+    {% endfor %}
+    {% if available_to_open %}
+    <button onclick="openModal('open-currency-modal')" style="display:flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px dashed var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:.82rem;font-weight:500;">
+      + Open balance
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- Active balance card -->
+  {% if active_wallet %}
+  {% set cur = currencies.get(active_wallet.currency, {}) %}
+  <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;max-width:380px;">
+    <div style="display:flex;align-items:center;gap:.5rem;width:100%;">
+      <span style="font-size:1.4rem;">{{ cur.get('flag','') }}</span>
+      <div style="flex:1;">
+        <div style="font-size:.72rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;">{{ cur.get('name',active_wallet.currency) }}</div>
+        <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;">{{ cur.get('symbol','') }}{{ '%.2f'%(active_wallet.balance/100) }}</div>
+      </div>
+    </div>
+    <div class="wallet-actions">
+      <button class="wallet-btn primary-w" onclick="openModal('withdraw-modal')">Withdraw</button>
+      <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
+      <button class="wallet-btn" onclick="openModal('pay-modal')" style="background:rgba(234,88,12,.8);">Pay</button>
+      {% if wallets|length > 1 %}
+      <button class="wallet-btn" onclick="openModal('convert-modal')" style="background:rgba(124,58,237,.7);">Convert</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Fee notice -->
+<div class="card card-pad" style="background:var(--blue-lt);border-color:#bfdbfe;margin-bottom:1.25rem;font-size:.82rem;">
+  <strong>Fees:</strong>&nbsp; Conversion: <strong>0.7%</strong> &nbsp;·&nbsp; SEPA: <strong>1%</strong> &nbsp;·&nbsp; UK: <strong>1.5%</strong> &nbsp;·&nbsp; US: <strong>2%</strong> &nbsp;·&nbsp; SWIFT: <strong>3.5%</strong> &nbsp;·&nbsp; Mobile Money: <strong>1.5%</strong> &nbsp;·&nbsp; Pay (internal): <strong>Free</strong>
+</div>
+
+<!-- Transaction history -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">{{ currencies.get(active_wallet.currency,{}).get('flag','') }} {{ active_wallet.currency if active_wallet else 'EUR' }} Transactions</span>
+    <div style="display:flex;gap:.5rem;">
+      <select class="filter-select" id="tx-filter" onchange="filterTx()">
+        <option value="all">All</option><option value="credit">Credits</option><option value="debit">Debits</option>
+      </select>
+      <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">CSV ↓</a>
+    </div>
+  </div>
+  {% if transactions %}
+  <div class="table-wrap">
+    <table><thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Balance</th><th>Date</th></tr></thead>
+    <tbody id="tx-table">
+      {% for tx in transactions %}
+      <tr class="tx-row {{ 'credit' if tx.amount_cents>0 else 'debit' }}">
+        <td><div class="td-bold">{{ tx.description }}</div></td>
+        <td><span class="pill {{ 'pill-green' if tx.amount_cents>0 else 'pill-red' }} pill-no-dot" style="font-size:.7rem;">{{ (tx.tx_type or '').replace('_',' ').title() }}</span></td>
+        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
+        <td class="text-muted">{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(tx.balance_after/100) }}</td>
+        <td class="text-muted text-xs">{{ tx.created_at[:16].replace('T',' ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody></table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:3rem;"><p>No {{ active_wallet.currency if active_wallet else '' }} transactions yet.</p></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- OPEN NEW CURRENCY BALANCE -->
+<div class="modal-backdrop" id="open-currency-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('open-currency-modal')">✕</button>
+    <h3 class="modal-title">Open new currency balance</h3>
+    <p class="modal-sub">Add a new currency wallet to hold and convert money.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1.25rem;">
+      {% for code, info in available_to_open.items() %}
+      <button onclick="openCurrency('{{ code }}')" style="display:flex;align-items:center;gap:.6rem;padding:.65rem .875rem;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--white);cursor:pointer;transition:border-color .15s;text-align:left;"
+        onmouseover="this.style.borderColor='var(--blue)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span style="font-size:1.2rem;">{{ info.flag }}</span>
+        <div><div style="font-size:.82rem;font-weight:600;color:var(--navy);">{{ code }}</div><div style="font-size:.72rem;color:var(--text-muted);">{{ info.name }}</div></div>
+      </button>
+      {% endfor %}
+    </div>
+    <button class="btn btn-outline btn-full" onclick="closeModal('open-currency-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- CONVERT -->
+<div class="modal-backdrop" id="convert-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('convert-modal')">✕</button>
+    <h3 class="modal-title">Convert currency</h3>
+    <p class="modal-sub">0.7% conversion fee. Rates updated daily.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">From</label>
+        <select class="form-input form-select" id="cv-from" onchange="previewConvert()">
+          {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }} ({{ currencies.get(w.currency,{}).get('symbol','') }}{{ '%.2f'%(w.balance/100) }})</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">To</label>
+        <select class="form-input form-select" id="cv-to" onchange="previewConvert()">
+          {% for w in wallets %}<option value="{{ w.currency }}">{{ w.currency }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Amount ({{ active_wallet.currency if active_wallet else 'EUR' }})</label>
+      <input class="form-input" id="cv-amt" type="number" min="1" step="0.01" placeholder="100.00" oninput="previewConvert()">
+    </div>
+    <div class="modal-confirm-box" id="cv-preview" style="display:none;">
+      <div class="confirm-row"><span class="confirm-label">You send</span><span id="cv-send" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">Conversion fee (0.7%)</span><span id="cv-fee" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">Exchange rate</span><span id="cv-rate" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">You receive</span><span id="cv-receive" class="confirm-value">—</span></div>
+    </div>
+    <p style="font-size:.8rem;font-weight:500;margin:.75rem 0 .3rem;">Verify with 6-digit code</p>
+    <div class="otp-inputs">{% for i in range(6) %}<input class="otp-input form-input" maxlength="1" id="cvotp{{i}}" oninput="oN({{i}},this,'cvotp')">{% endfor %}</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('convert-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-cv" onclick="doConvert()">Convert</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOSIT -->
+<div class="modal-backdrop" id="deposit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('deposit-modal')">✕</button>
+    <h3 class="modal-title">Deposit Funds</h3><p class="modal-sub">No fees on deposits.</p>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Currency</label>
+        <select class="form-input form-select" id="dep-cur">
+          {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }}</option>{% endfor %}
+        </select></div>
+      <div class="form-group"><label class="form-label">Amount</label>
+        <input class="form-input" id="dep-amt" type="number" min="1" step="0.01" placeholder="100.00"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('deposit-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-dep" onclick="doDeposit()">Deposit</button>
+    </div>
+  </div>
+</div>
+
+<!-- WITHDRAW -->
+<div class="modal-backdrop" id="withdraw-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('withdraw-modal')">✕</button>
+    <h3 class="modal-title">Withdraw Funds</h3>
+    <div style="background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--radius);padding:.6rem 1rem;margin-bottom:1rem;font-size:.85rem;">
+      Available: {% if active_wallet %}<strong>{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(active_wallet.balance/100) }} {{ active_wallet.currency }}</strong>{% endif %}
+    </div>
+    <div id="wd-s1">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Currency</label>
+          <select class="form-input form-select" id="wd-cur">
+            {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }}</option>{% endfor %}
+          </select></div>
+        <div class="form-group"><label class="form-label">Amount</label>
+          <input class="form-input" id="wd-amt" type="number" min="1" step="0.01" placeholder="50.00" oninput="calcFee()"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Method</label>
+        <select class="form-input form-select" id="wd-meth" onchange="updWdF();calcFee()">
+          <option value="bank_eu">EU Bank (SEPA) — 1.0%</option>
+          <option value="bank_uk">UK Bank — 1.5%</option>
+          <option value="bank_us">US ACH — 2.0%</option>
+          <option value="bank_swift">SWIFT International — 3.5%</option>
+          <option value="mobile_money">Mobile Money — 1.5%</option>
+        </select></div>
+      <div id="wd-fields"></div>
+      <div class="modal-confirm-box" id="wd-prev" style="display:none;">
+        <div class="confirm-row"><span class="confirm-label">Withdrawal</span><span id="w-amt" class="confirm-value">—</span></div>
+        <div class="confirm-row"><span class="confirm-label">Fee</span><span id="w-fee" class="confirm-value">—</span></div>
+        <div class="confirm-row"><span class="confirm-label">Total deducted</span><span id="w-tot" class="confirm-value">—</span></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-full" onclick="closeModal('withdraw-modal')">Cancel</button>
+        <button class="btn btn-primary btn-full" onclick="goWd2()">Continue</button>
+      </div>
+    </div>
+    <div id="wd-s2" style="display:none;">
+      <p style="font-size:.875rem;font-weight:500;margin-bottom:.3rem;">Verify with 6-digit code</p>
+      <p class="text-xs text-muted mb-3">Demo: any 6 digits (e.g. 123456)</p>
+      <div class="otp-inputs">{% for i in range(6) %}<input class="otp-input form-input" maxlength="1" id="otp{{i}}" oninput="oN({{i}},this)">{% endfor %}</div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-full" onclick="document.getElementById('wd-s1').style.display='';document.getElementById('wd-s2').style.display='none'">Back</button>
+        <button class="btn btn-green btn-full" id="btn-wdc" onclick="doWd()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAY -->
+<div class="modal-backdrop" id="pay-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('pay-modal')">✕</button>
+    <h3 class="modal-title">Pay via Hanatag</h3><p class="modal-sub">Send money instantly within SOHANA. Free.</p>
+    <div id="pay-s1">
+      <div class="form-group"><label class="form-label">@hanatag</label>
+        <div style="display:flex;">
+          <span style="padding:.5rem .7rem;background:var(--gray-100);border:1.5px solid var(--border);border-right:none;border-radius:var(--radius-sm) 0 0 var(--radius-sm);color:var(--text-muted);">@</span>
+          <input class="form-input" id="pay-tag" placeholder="hanatag" oninput="lookupTag()" style="border-radius:0 var(--radius-sm) var(--radius-sm) 0;">
+        </div>
+        <div id="pay-res" style="margin-top:.4rem;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Currency</label>
+          <select class="form-input form-select" id="pay-cur">
+            {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }}</option>{% endfor %}
+          </select></div>
+        <div class="form-group"><label class="form-label">Amount</label>
+          <input class="form-input" id="pay-amt" type="number" min="1" step="0.01" placeholder="20.00"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Note (optional)</label>
+        <input class="form-input" id="pay-note" placeholder="Dinner, contribution..."></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-full" onclick="closeModal('pay-modal')">Cancel</button>
+        <button class="btn btn-orange btn-full" id="btn-pay2" onclick="payS2()" disabled>Continue</button>
+      </div>
+    </div>
+    <div id="pay-s2" style="display:none;">
+      <div class="modal-confirm-box">
+        <div class="confirm-row"><span class="confirm-label">To</span><span id="p-name" class="confirm-value">—</span></div>
+        <div class="confirm-row"><span class="confirm-label">Hanatag</span><span id="p-tag" class="confirm-value">—</span></div>
+        <div class="confirm-row"><span class="confirm-label">Amount</span><span id="p-amt" class="confirm-value">—</span></div>
+        <div class="confirm-row"><span class="confirm-label">Fee</span><span class="confirm-value" style="color:var(--green);">Free ✓</span></div>
+      </div>
+      <p style="font-size:.85rem;font-weight:500;margin:.75rem 0 .3rem;">Verify with 6-digit code</p>
+      <div class="otp-inputs">{% for i in range(6) %}<input class="otp-input form-input" maxlength="1" id="potp{{i}}" oninput="oN({{i}},this,'potp')">{% endfor %}</div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-full" onclick="document.getElementById('pay-s1').style.display='';document.getElementById('pay-s2').style.display='none'">Back</button>
+        <button class="btn btn-orange btn-full" id="btn-payc" onclick="doPay()">Send Payment</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const RATES={{ exchange_rates|tojson }};
+const SYMS={{ dict(currencies.items())|tojson }};
+const FEES={bank_eu:.01,bank_uk:.015,bank_us:.02,bank_swift:.035,mobile_money:.015};
+const BFIELDS={bank_eu:[['iban','IBAN'],['bic','BIC']],bank_uk:[['holder','Account holder'],['account','Account number'],['sort','Sort code']],bank_us:[['holder','Account holder'],['account','Account number'],['routing','Routing number']],bank_swift:[['holder','Account holder'],['iban','IBAN'],['bic','BIC/SWIFT'],['bank_addr','Bank address']],mobile_money:[['holder','Account holder name'],['number','Mobile number']]};
+
+function filterTx(){const f=document.getElementById('tx-filter').value;document.querySelectorAll('.tx-row').forEach(r=>{r.style.display=(f==='all'||(f==='credit'&&r.classList.contains('credit'))||(f==='debit'&&r.classList.contains('debit')))?'':'none'});}
+
+async function openCurrency(code){const d=await API.post('/api/wallet/open-currency',{currency:code});if(d.ok){closeModal('open-currency-modal');toast(code+' balance opened!','success');setTimeout(()=>location.reload(),1000);}else toast(d.error,'error');}
+
+let cvTimer=null;
+async function previewConvert(){
+  clearTimeout(cvTimer); cvTimer=setTimeout(async()=>{
+    const from=document.getElementById('cv-from').value, to=document.getElementById('cv-to').value;
+    const amt=parseFloat(document.getElementById('cv-amt').value)||0;
+    if(amt<=0||from===to){document.getElementById('cv-preview').style.display='none';return;}
+    const d=await API.get(`/api/currency/preview-conversion?from=${from}&to=${to}&amount=${amt}`);
+    document.getElementById('cv-preview').style.display='block';
+    const fs=SYMS[from]?.symbol||''; const ts=SYMS[to]?.symbol||'';
+    document.getElementById('cv-send').textContent=fs+amt.toFixed(2)+' '+from;
+    document.getElementById('cv-fee').textContent=fs+(d.fee_cents/100).toFixed(2)+' ('+d.fee_pct.toFixed(1)+'%)';
+    document.getElementById('cv-rate').textContent='1 '+from+' = '+d.rate.toFixed(4)+' '+to;
+    document.getElementById('cv-receive').textContent=ts+(d.to_amount/100).toFixed(2)+' '+to;
+  },400);
+}
+async function doConvert(){const btn=document.getElementById('btn-cv');const code=[0,1,2,3,4,5].map(i=>document.getElementById('cvotp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/convert',{from_currency:document.getElementById('cv-from').value,to_currency:document.getElementById('cv-to').value,amount:parseFloat(document.getElementById('cv-amt').value),otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('convert-modal');toast('Converted successfully!','success');setTimeout(()=>location.reload(),1200);}
+
+async function doDeposit(){const btn=document.getElementById('btn-dep');const a=parseFloat(document.getElementById('dep-amt').value);const cur=document.getElementById('dep-cur').value;if(!a||a<1){toast('Enter amount','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/deposit',{amount:a,currency:cur});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('deposit-modal');toast('Deposited!','success');setTimeout(()=>location.reload(),1200);}
+
+function updWdF(){const m=document.getElementById('wd-meth').value;document.getElementById('wd-fields').innerHTML=(BFIELDS[m]||[]).map(([id,l])=>`<div class="form-group"><label class="form-label">${l}</label><input class="form-input" id="wdf-${id}" placeholder="${l}"></div>`).join('');}
+updWdF();
+function calcFee(){const a=parseFloat(document.getElementById('wd-amt').value)||0;if(a<=0){document.getElementById('wd-prev').style.display='none';return;}const m=document.getElementById('wd-meth').value,rate=FEES[m]||.02,fee=Math.max(.5,a*rate);document.getElementById('wd-prev').style.display='block';document.getElementById('w-amt').textContent='€'+a.toFixed(2);document.getElementById('w-fee').textContent='€'+fee.toFixed(2)+' ('+(rate*100).toFixed(1)+'%)';document.getElementById('w-tot').textContent='€'+(a+fee).toFixed(2);}
+function goWd2(){const a=parseFloat(document.getElementById('wd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}document.getElementById('wd-s1').style.display='none';document.getElementById('wd-s2').style.display='';document.getElementById('otp0').focus();}
+async function doWd(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-wdc');setLoading(btn,true);const a=parseFloat(document.getElementById('wd-amt').value);const cur=document.getElementById('wd-cur').value;const m=document.getElementById('wd-meth').value;const holder=document.getElementById('wdf-holder')?.value||document.getElementById('wdf-iban')?.value||'account';const d=await API.post('/api/wallet/withdraw',{amount:a,method:m,currency:cur,otp:code,destination_name:holder});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('withdraw-modal');toast('Withdrawal submitted!','success');setTimeout(()=>location.reload(),1500);}
+
+let payRec=null,payTimer=null;
+function lookupTag(){clearTimeout(payTimer);payTimer=setTimeout(async()=>{const tag=document.getElementById('pay-tag').value.trim();if(tag.length<3)return;const d=await API.get('/api/profile/lookup-hanatag?tag=@'+tag.replace('@',''));const res=document.getElementById('pay-res');if(d.ok){payRec=d.user;res.innerHTML=`<div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;"><strong>✓ ${d.user.full_name}</strong></div>`;document.getElementById('btn-pay2').disabled=false;}else{payRec=null;res.innerHTML=`<div style="background:var(--red-lt);border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;color:var(--red);">Not found</div>`;document.getElementById('btn-pay2').disabled=true;}},500);}
+function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=parseFloat(document.getElementById('pay-amt').value)||0;if(a<1){toast('Enter amount','error');return;}const cur=document.getElementById('pay-cur').value;const sym=SYMS[cur]?.symbol||'';document.getElementById('p-name').textContent=payRec.full_name;document.getElementById('p-tag').textContent='@'+document.getElementById('pay-tag').value;document.getElementById('p-amt').textContent=sym+a.toFixed(2)+' '+cur;document.getElementById('pay-s1').style.display='none';document.getElementById('pay-s2').style.display='';document.getElementById('potp0').focus();}
+async function doPay(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('potp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-payc');setLoading(btn,true);const d=await API.post('/api/wallet/pay',{hanatag:'@'+document.getElementById('pay-tag').value.replace('@',''),amount:parseFloat(document.getElementById('pay-amt').value),currency:document.getElementById('pay-cur').value,note:document.getElementById('pay-note').value,otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('pay-modal');toast('Sent to '+d.recipient_name+'!','success');setTimeout(()=>location.reload(),1500);}
+
+function oN(i,el,prefix='otp'){const v=el.value;if(v&&i<5)document.getElementById(prefix+(i+1)).focus();}
+</script>
+{% endblock %}

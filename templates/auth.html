@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in — SOHANA Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
+</head>
+<body style="display:block;background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,#1e3a5f 100%);min-height:100vh;display:flex;flex-direction:column;">
+
+<nav style="padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;">
+  <a href="/" style="display:flex;align-items:center;gap:.6rem;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;">
+    <div style="display:flex;gap:3px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
+    SOHANA Hub
+  </a>
+  <span style="font-size:.8rem;color:rgba(255,255,255,.5);">Secure platform</span>
+</nav>
+
+<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;">
+  <div style="width:100%;max-width:420px;">
+    <div style="text-align:center;margin-bottom:1.75rem;">
+      <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:.4rem;">Welcome to SOHANA</h1>
+      <p style="color:rgba(255,255,255,.55);font-size:.875rem;">Your community savings platform</p>
+    </div>
+
+    <div class="card" style="border:none;border-radius:var(--radius-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);">
+
+      <!-- Tabs -->
+      <div style="display:flex;border-bottom:1px solid var(--border);">
+        <button id="tab-login" onclick="switchTab('login')"
+          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue);cursor:pointer;border-radius:var(--radius-xl) 0 0 0;">
+          Sign in
+        </button>
+        <button id="tab-register" onclick="switchTab('register')"
+          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted);cursor:pointer;border-radius:0 var(--radius-xl) 0 0;">
+          Create account
+        </button>
+      </div>
+
+      <div style="padding:1.5rem;">
+        <div id="alert-box" class="hidden" style="margin-bottom:1rem;"></div>
+
+        <!-- Login form -->
+        <div id="form-login">
+          <div class="form-group">
+            <label class="form-label">Phone number</label>
+            <input class="form-input" id="l-phone" type="tel" placeholder="+33611000001" autocomplete="tel">
+            <p class="form-hint">Demo: +33611000001 / demo123</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button class="btn btn-primary btn-full btn-lg mt-2" id="btn-login" onclick="doLogin()">Sign in</button>
+          <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:.875rem;">
+            Don't have an account? <a onclick="switchTab('register')" style="color:var(--blue);cursor:pointer;font-weight:500;">Create one free</a>
+          </p>
+        </div>
+
+        <!-- Register form -->
+        <div id="form-register" class="hidden">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Full name</label>
+              <input class="form-input" id="r-name" type="text" placeholder="Maria Ngono">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Country</label>
+              <select class="form-input form-select" id="r-country">
+                <option value="FR">France</option>
+                <option value="RW">Rwanda</option>
+                <option value="CM">Cameroon</option>
+                <option value="KE">Kenya</option>
+                <option value="NG">Nigeria</option>
+                <option value="GB">United Kingdom</option>
+                <option value="US">United States</option>
+                <option value="BE">Belgium</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone number</label>
+            <input class="form-input" id="r-phone" type="tel" placeholder="+336XXXXXXXX">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email (optional)</label>
+            <input class="form-input" id="r-email" type="email" placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input class="form-input" id="r-pass" type="password" placeholder="At least 8 characters">
+          </div>
+          <button class="btn btn-orange btn-full btn-lg mt-2" id="btn-register" onclick="doRegister()">Create account</button>
+          <p style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-top:.875rem;">
+            By creating an account you agree to our terms of service.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="_toast"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+function switchTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('form-login').classList.toggle('hidden', !isLogin);
+  document.getElementById('form-register').classList.toggle('hidden', isLogin);
+  document.getElementById('tab-login').style.cssText = `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:${isLogin?'600':'500'};border-bottom:3px solid ${isLogin?'var(--blue)':'transparent'};color:${isLogin?'var(--blue)':'var(--text-muted)'};cursor:pointer;`;
+  document.getElementById('tab-register').style.cssText = `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:${!isLogin?'600':'500'};border-bottom:3px solid ${!isLogin?'var(--blue)':'transparent'};color:${!isLogin?'var(--blue)':'var(--text-muted)'};cursor:pointer;`;
+  document.getElementById('alert-box').classList.add('hidden');
+}
+function showAlert(msg, type='error') {
+  const el = document.getElementById('alert-box');
+  el.className = 'alert alert-' + type;
+  el.textContent = msg;
+}
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  setLoading(btn, true);
+  const d = await API.post('/api/auth/login', { phone: document.getElementById('l-phone').value, password: document.getElementById('l-pass').value });
+  setLoading(btn, false);
+  if (d.error) { showAlert(d.error); return; }
+  window.location.href = '/dashboard';
+}
+async function doRegister() {
+  const btn = document.getElementById('btn-register');
+  setLoading(btn, true);
+  const d = await API.post('/api/auth/register', {
+    phone: document.getElementById('r-phone').value,
+    full_name: document.getElementById('r-name').value,
+    password: document.getElementById('r-pass').value,
+    email: document.getElementById('r-email').value,
+    country: document.getElementById('r-country').value,
+  });
+  setLoading(btn, false);
+  if (d.error) { showAlert(d.error); return; }
+  window.location.href = '/dashboard';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (!document.getElementById('form-login').classList.contains('hidden')) doLogin();
+    else doRegister();
+  }
+});
+</script>
+</body>
+</html>

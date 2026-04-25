@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}SOHANA Admin{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
+<style>
+:root{--admin-bg:#0d1117;--admin-sidebar:#161b22;--admin-border:rgba(255,255,255,.08);--admin-text:#e6edf3;--admin-muted:rgba(255,255,255,.45);--admin-hover:rgba(255,255,255,.06);--admin-active:#7c3aed;}
+body{background:var(--admin-bg);color:var(--admin-text);}
+.admin-shell{display:flex;min-height:100vh;}
+.admin-sidebar{width:220px;background:var(--admin-sidebar);border-right:1px solid var(--admin-border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;}
+.admin-logo{padding:1.1rem 1.25rem;border-bottom:1px solid var(--admin-border);display:flex;align-items:center;gap:.6rem;}
+.admin-logo-text{color:#fff;font-weight:800;font-size:.95rem;}
+.admin-logo-role{font-size:.7rem;color:rgba(255,255,255,.4);font-weight:400;margin-top:.1rem;}
+.admin-section-label{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);padding:.75rem 1.25rem .35rem;display:block;}
+.admin-nav{list-style:none;padding:0 .75rem;}
+.admin-nav li{margin-bottom:2px;}
+.admin-nav a{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;border-radius:6px;color:rgba(255,255,255,.65);font-size:.83rem;transition:all .15s;text-decoration:none;}
+.admin-nav a:hover{background:var(--admin-hover);color:#fff;}
+.admin-nav a.active{background:var(--admin-active);color:#fff;font-weight:500;}
+.admin-divider{border:none;border-top:1px solid var(--admin-border);margin:.5rem .75rem;}
+.admin-user-row{padding:.875rem 1.25rem;border-top:1px solid var(--admin-border);margin-top:auto;display:flex;align-items:center;gap:.6rem;}
+.admin-user-avatar{width:32px;height:32px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff;flex-shrink:0;}
+.admin-user-name{font-size:.82rem;font-weight:600;color:#fff;}
+.admin-user-role{font-size:.7rem;color:rgba(255,255,255,.4);}
+.admin-main{margin-left:220px;flex:1;display:flex;flex-direction:column;}
+.admin-topbar{background:var(--admin-sidebar);border-bottom:1px solid var(--admin-border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:90;}
+.admin-topbar-title{font-size:1rem;font-weight:600;color:#fff;flex:1;}
+.admin-topbar-subtitle{font-size:.78rem;color:var(--admin-muted);}
+.admin-page{padding:1.5rem;}
+.admin-page-header{margin-bottom:1.25rem;}
+.admin-page-title{font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:.2rem;}
+.admin-page-sub{font-size:.82rem;color:var(--admin-muted);}
+.acard{background:#161b22;border:1px solid var(--admin-border);border-radius:12px;}
+.acard-pad{padding:1.1rem 1.25rem;}
+.acard-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--admin-border);display:flex;align-items:center;justify-content:space-between;}
+.acard-title{font-size:.88rem;font-weight:600;color:#fff;}
+.acard-body{padding:1rem 1.25rem;}
+.astat{background:#161b22;border:1px solid var(--admin-border);border-radius:12px;padding:.875rem 1.1rem;}
+.astat-label{font-size:.7rem;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;}
+.astat-value{font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1;}
+.astat-sub{font-size:.72rem;color:var(--admin-muted);margin-top:.2rem;}
+.astat-delta{font-size:.72rem;font-weight:600;margin-top:.2rem;}
+.astat-delta.up{color:#34d399;} .astat-delta.down{color:#f87171;}
+.astats-grid{display:grid;gap:.875rem;margin-bottom:1.25rem;}
+.astats-6{grid-template-columns:repeat(6,1fr);}
+.astats-5{grid-template-columns:repeat(5,1fr);}
+.astats-4{grid-template-columns:repeat(4,1fr);}
+.astats-3{grid-template-columns:repeat(3,1fr);}
+.acontent-grid{display:grid;gap:1.25rem;}
+.acontent-2{grid-template-columns:1fr 1fr;}
+.acontent-3{grid-template-columns:1fr 1fr 1fr;}
+.acontent-sb{grid-template-columns:1fr 300px;}
+.apill{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;}
+.apill-green{background:rgba(52,211,153,.15);color:#34d399;} .apill-red{background:rgba(248,113,113,.15);color:#f87171;}
+.apill-amber{background:rgba(251,191,36,.15);color:#fbbf24;} .apill-blue{background:rgba(96,165,250,.15);color:#60a5fa;}
+.apill-purple{background:rgba(167,139,250,.15);color:#a78bfa;}
+.atable{width:100%;border-collapse:collapse;}
+.atable th{text-align:left;font-size:.68rem;font-weight:600;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;padding:.6rem 1rem;border-bottom:1px solid var(--admin-border);white-space:nowrap;background:rgba(255,255,255,.02);}
+.atable td{padding:.7rem 1rem;border-bottom:1px solid var(--admin-border);font-size:.82rem;color:var(--admin-text);}
+.atable tr:last-child td{border-bottom:none;}
+.atable tr:hover td{background:rgba(255,255,255,.03);}
+.afeed-item{display:flex;gap:.75rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--admin-border);}
+.afeed-item:last-child{border-bottom:none;}
+.afeed-dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;}
+.afeed-body{flex:1;}
+.afeed-title{font-size:.82rem;font-weight:500;color:#fff;}
+.afeed-sub{font-size:.72rem;color:var(--admin-muted);margin-top:.1rem;}
+.afeed-time{font-size:.68rem;color:rgba(255,255,255,.25);white-space:nowrap;}
+.sys-status-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);font-size:.82rem;}
+.sys-status-row:last-child{border-bottom:none;}
+.sys-dot{width:7px;height:7px;border-radius:50%;} .sys-dot.ok{background:#34d399;} .sys-dot.warn{background:#fbbf24;} .sys-dot.err{background:#f87171;}
+.view-all-link{font-size:.75rem;color:#a78bfa;cursor:pointer;font-weight:500;}
+.view-all-link:hover{text-decoration:underline;}
+@media(max-width:1400px){.astats-6{grid-template-columns:repeat(3,1fr)}.astats-5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:960px){.astats-4{grid-template-columns:repeat(2,1fr)}.acontent-2,.acontent-3,.acontent-sb{grid-template-columns:1fr}}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<div class="admin-shell">
+<aside class="admin-sidebar">
+  <div class="admin-logo">
+    <div style="display:flex;gap:3px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
+    <div><div class="admin-logo-text">SOHANA</div><div class="admin-logo-role">{% block sidebar_role %}Admin Portal{% endblock %}</div></div>
+  </div>
+
+  {% block sidebar_nav %}{% endblock %}
+
+  <div class="admin-user-row">
+    <div class="admin-user-avatar">{{ user.full_name[0]|upper }}</div>
+    <div style="flex:1;min-width:0;">
+      <div class="admin-user-name">{{ user.full_name }}</div>
+      <div class="admin-user-role">{{ user['admin_role'] if user['admin_role'] else 'admin'|upper }}</div>
+    </div>
+    <button onclick="API.post('/api/auth/logout',{}).then(()=>location.href='/admin/login')"
+      style="background:none;border:none;color:rgba(255,255,255,.3);font-size:.75rem;cursor:pointer;">↩</button>
+  </div>
+</aside>
+
+<div class="admin-main">
+  <header class="admin-topbar">
+    <div style="flex:1;">
+      <div class="admin-topbar-title">{% block topbar_title %}{% endblock %}</div>
+      <div class="admin-topbar-subtitle">{% block topbar_sub %}{% endblock %}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <button style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;padding:.4rem .75rem;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">
+        📅 Today
+      </button>
+      <button style="background:#7c3aed;border:none;border-radius:8px;padding:.4rem .875rem;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">
+        ↓ Export
+      </button>
+      <div style="width:32px;height:32px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#fff;">
+        {{ user.full_name[0]|upper }}
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-page">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</div>
+<div class="toast" id="_toast"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

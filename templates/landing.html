@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOHANA — Where Trust Becomes Capital</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
+</head>
+<body style="display:block;background:var(--gray-50);">
+
+<nav class="landing-nav">
+  <div class="landing-nav-logo">
+    <div style="display:flex;gap:3px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
+    SOHANA <span style="color:var(--gray-400);font-weight:400;"> Hub</span>
+  </div>
+  <div style="display:flex;gap:.75rem;align-items:center;">
+    <a href="/auth" class="btn btn-outline" style="color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.3);">Sign in</a>
+    <a href="/auth" class="btn btn-orange">Get started free</a>
+  </div>
+</nav>
+
+<section class="landing-hero">
+  <div style="display:inline-block;background:rgba(234,88,12,.15);border:1px solid rgba(234,88,12,.3);padding:.35rem 1rem;border-radius:20px;font-size:.75rem;color:#fb923c;margin-bottom:1.5rem;letter-spacing:.06em;text-transform:uppercase;">
+    Rotating Savings &amp; Credit Association Platform
+  </div>
+  <h1>Where <span>trust</span><br>becomes capital</h1>
+  <p>SOHANA digitises the Tontine, Njangi, and ROSCA — turning community savings into a portable credit score that unlocks real financial products.</p>
+  <div class="hero-cta">
+    <a href="/auth" class="btn btn-orange btn-lg">Start saving today</a>
+    <a href="#how" class="btn btn-outline btn-lg" style="color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.35);">How it works</a>
+  </div>
+  <div style="display:flex;gap:2rem;justify-content:center;margin-top:2.5rem;font-size:.8rem;opacity:.6;">
+    <span>No bank required</span><span>·</span><span>Instant payouts</span><span>·</span><span>Builds credit</span>
+  </div>
+</section>
+
+<!-- Stats bar -->
+<div style="background:var(--navy-mid);padding:1.5rem 2rem;">
+  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;text-align:center;">
+    {% for stat in [('78','Active ROSCAs'),('3,632','Members'),('$403K','In Escrow'),('$12,680','Earned')] %}
+    <div>
+      <div style="font-size:1.6rem;font-weight:800;color:#fff;">{{ stat[0] }}</div>
+      <div style="font-size:.8rem;color:rgba(255,255,255,.55);">{{ stat[1] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<section id="how" style="padding:4rem 1.5rem;background:var(--white);">
+  <div style="max-width:1000px;margin:0 auto;">
+    <h2 style="text-align:center;font-size:1.8rem;font-weight:800;color:var(--navy);margin-bottom:.5rem;">The trust economy, digitised</h2>
+    <p style="text-align:center;color:var(--text-muted);margin-bottom:3rem;">Known as Tontine, Njangi, Esusu, Chama, Hui, Tandas — now with security and credit-building.</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;">
+      {% for icon, title, desc in [
+        ('⏰','Automated Circles','Create or join a savings circle in minutes. Contributions, rotations, and payouts handled automatically.'),
+        ('⭐','Njangi Credit Score','Every on-time contribution builds your NCS score (300–850), unlocking loans and better rates.'),
+        ('💳','Unlock Products','Emergency loans, early pot access, and group financing — gated by your NCS score, not a bank.'),
+      ] %}
+      <div class="card card-pad" style="text-align:center;">
+        <div style="width:52px;height:52px;border-radius:50%;background:var(--navy-lt);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto .875rem;">{{ icon }}</div>
+        <h3 style="margin-bottom:.5rem;color:var(--navy);">{{ title }}</h3>
+        <p style="font-size:.875rem;color:var(--text-muted);line-height:1.5;">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="padding:4rem 1.5rem;background:var(--gray-50);">
+  <div style="max-width:900px;margin:0 auto;">
+    <h2 style="text-align:center;font-size:1.8rem;font-weight:800;color:var(--navy);margin-bottom:3rem;">How it works</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;">
+      {% for num, col, title, desc in [
+        ('1','var(--navy)','Join or create a circle','Browse the marketplace or start your own. Invite via link or QR code.'),
+        ('2','var(--orange)','Contribute every cycle','Pay your contribution from your wallet. Each payment builds your NCS score.'),
+        ('3','var(--green)','Receive the pot','When it\'s your turn, receive the full pot instantly. Your NCS unlocks more products.'),
+      ] %}
+      <div class="card card-pad" style="text-align:center;">
+        <div style="width:44px;height:44px;border-radius:50%;background:{{ col }};display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:#fff;margin:0 auto 1rem;">{{ num }}</div>
+        <h4 style="margin-bottom:.5rem;">{{ title }}</h4>
+        <p style="font-size:.85rem;color:var(--text-muted);">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--navy);color:#fff;padding:4rem 1.5rem;text-align:center;">
+  <div style="max-width:560px;margin:0 auto;">
+    <h2 style="font-size:1.8rem;font-weight:800;margin-bottom:1rem;">Start saving with your community today</h2>
+    <p style="opacity:.75;margin-bottom:2rem;">Join diaspora savers turning trust into financial capital.</p>
+    <a href="/auth" class="btn btn-orange btn-lg">Create free account</a>
+    <p style="margin-top:1.5rem;font-size:.8rem;opacity:.5;">Demo: phone +33611000001 · password demo123</p>
+  </div>
+</section>
+
+<footer style="background:var(--gray-900);color:rgba(255,255,255,.4);padding:1.5rem;text-align:center;font-size:.8rem;">
+  SOHANA Hub &copy; 2026 &nbsp;·&nbsp; Where Trust Becomes Capital
+</footer>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

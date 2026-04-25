@@ -1,0 +1,227 @@
+{% extends "admin_base.html" %}
+{% block title %}Compliance & Risk — SOHANA{% endblock %}
+{% block sidebar_role %}Compliance Manager{% endblock %}
+{% block topbar_title %}Compliance & Risk Dashboard{% endblock %}
+{% block topbar_sub %}Real-time overview of compliance status, risk exposure and regulatory adherence{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <span class="admin-section-label">Compliance</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/compliance" class="active">📋 Compliance Overview</a></li>
+    <li><a href="/admin/compliance">👁 KYC Monitoring</a></li>
+    <li><a href="/admin/compliance">🔍 AML Monitoring</a></li>
+    <li><a href="/admin/compliance">📡 Transaction Monitoring</a></li>
+    <li><a href="/admin/compliance">🌍 Sanctions Screening</a></li>
+    <li><a href="/admin/compliance">📊 Regulatory Reporting</a></li>
+    <li><a href="/admin/compliance">📜 Policy Management</a></li>
+    <li><a href="/admin/compliance">⚖ Risk Assessments</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Risk Management</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/compliance">📈 Risk Dashboard</a></li>
+    <li><a href="/admin/compliance">⭐ Risk Scoring</a></li>
+    <li><a href="/admin/compliance">🐞 Issue Management</a></li>
+    <li><a href="/admin/compliance">🔎 Audit & Reviews</a></li>
+  </ul>
+  <hr class="admin-divider">
+  <span class="admin-section-label">Configuration</span>
+  <ul class="admin-nav">
+    <li><a href="/admin/compliance">⚙ Compliance Settings</a></li>
+    <li><a href="/admin/compliance">✅ Approval Workflows</a></li>
+    <li><a href="/admin/compliance">🔔 Alerts & Notifications</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-5">
+  {% for label,val,delta,up,icon in [
+    ('Overall Compliance Score','92.6%','+4.3% vs last 7 days',True,'🛡'),
+    ('KYC Completion Rate','89.7%','+3.8% vs last 7 days',True,'👤'),
+    ('AML Alerts (Open)','38','-11.6% vs last 7 days',True,'⚠'),
+    ('High Risk Customers','127','+5.8% vs last 7 days',False,'🔴'),
+    ('Regulatory Reports','12','Due in next 30 days',None,'📋'),
+  ] %}
+  <div class="astat">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
+      <div class="astat-label">{{ label }}</div><span style="font-size:1rem;">{{ icon }}</span>
+    </div>
+    <div class="astat-value" style="font-size:1.5rem;color:{% if up is none %}#60a5fa{% elif up %}#34d399{% else %}#f87171{% endif %};">{{ val }}</div>
+    <div class="astat-delta {{ 'up' if up else 'down' if up is not none else '' }}" style="font-size:.7rem;margin-top:.2rem;">{{ delta }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- KYC Status -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">KYC Status Overview</div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <canvas id="kyc-donut" width="120" height="120"></canvas>
+      <div style="font-size:.78rem;">
+        <div style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:.5rem;">{{ stats.total_users }}<br><span style="font-size:.7rem;font-weight:400;color:var(--admin-muted);">Total Customers</span></div>
+        {% for label,val,color in [('Verified','69.3%','#34d399'),('In Review','14.6%','#60a5fa'),('Pending','12.0%','#fbbf24'),('Rejected','4.1%','#f87171')] %}
+        <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem;">
+          <div style="width:8px;height:8px;border-radius:50%;background:{{ color }};"></div>
+          <span style="color:var(--admin-muted);">{{ label }}</span>
+          <span style="color:#fff;font-weight:600;margin-left:auto;">{{ val }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div style="margin-top:.75rem;"><a style="font-size:.78rem;color:#a78bfa;cursor:pointer;">View full KYC report →</a></div>
+  </div>
+
+  <!-- AML Alerts over time -->
+  <div class="acard acard-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+      <span class="acard-title">AML Alerts Over Time</span>
+      <select style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);color:var(--admin-text);border-radius:6px;padding:.25rem .5rem;font-size:.72rem;"><option>Last 30 days</option></select>
+    </div>
+    <canvas id="aml-chart" height="140" style="width:100%;"></canvas>
+    <div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.72rem;">
+      <span style="color:#a78bfa;">● Total Alerts</span>
+      <span style="color:#f87171;">● High Priority</span>
+    </div>
+  </div>
+
+  <!-- Alerts by type -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Alerts by Type <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for label,cnt,pct in [('Structuring / Smurfing',14,'36.8%'),('High Risk Jurisdiction',10,'26.3%'),('Sanctions Hit',6,'15.8%'),('Suspicious Activity',5,'13.2%'),('Other',3,'7.9%')] %}
+    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
+      <span style="font-size:.85rem;">⚠</span>
+      <span style="flex:1;font-size:.8rem;color:var(--admin-text);">{{ label }}</span>
+      <span style="font-weight:600;font-size:.8rem;color:#fff;">{{ cnt }}</span>
+      <span style="font-size:.72rem;color:var(--admin-muted);">({{ pct }})</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3" style="margin-bottom:1.25rem;">
+  <!-- Transaction monitoring -->
+  <div class="acard acard-pad">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;">
+      <span class="acard-title">Transactions Monitoring</span>
+      <select style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);color:var(--admin-text);border-radius:6px;padding:.25rem .5rem;font-size:.72rem;"><option>Last 7 days</option></select>
+    </div>
+    <div class="acontent-grid acontent-2" style="gap:.75rem;margin-bottom:.875rem;">
+      {% for label,val,delta,up in [
+        ('Total Transactions','342,875','+12.4%',True),
+        ('Flagged Transactions','1,248','+8.7%',False),
+        ('Blocked Transactions','89','+15.6%',False),
+        ('Under Review','156','-4.2%',True),
+      ] %}
+      <div>
+        <div style="font-size:.7rem;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem;">{{ label }}</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff;">{{ val }}</div>
+        <div style="font-size:.7rem;color:{% if up %}#34d399{% else %}#f87171{% endif %};">{{ '↑' if up else '↓' }} {{ delta }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <a style="font-size:.78rem;color:#a78bfa;cursor:pointer;">View transactions monitor →</a>
+  </div>
+
+  <!-- Risk exposure -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Risk Exposure by Category <a class="view-all-link" style="float:right;">View full report</a></div>
+    {% for cat,level,color,w in [('Customer Risk','High','#f87171','85%'),('Geographic Risk','Medium','#fbbf24','60%'),('Product / Service Risk','Medium','#fbbf24','55%'),('Channel Risk','Low','#34d399','35%'),('Delivery Risk','Low','#34d399','25%')] %}
+    <div style="margin-bottom:.6rem;">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
+        <span style="color:var(--admin-text);">{{ cat }}</span>
+        <span style="color:{{ color }};font-weight:600;">{{ level }}</span>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:3px;height:5px;">
+        <div style="background:{{ color }};height:5px;border-radius:3px;width:{{ w }};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Risk heatmap -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Risk Heatmap <a class="view-all-link" style="float:right;">View full heatmap</a></div>
+    <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:4px;font-size:.7rem;">
+      <div style="color:var(--admin-muted);padding:.3rem;text-align:right;"></div>
+      {% for label in ['Low','Medium','High'] %}
+      <div style="color:var(--admin-muted);text-align:center;padding:.3rem;font-size:.68rem;">{{ label }}</div>
+      {% endfor %}
+      {% for row,cells in [('High',[('#34d399',''),('#fbbf24',''),('#f87171','12')]),('Medium',[('#34d399',''),('#fbbf24','7'),('#fb923c','')]),('Low',[('#34d399',''),('#34d399',''),('#fbbf24','')])] %}
+      <div style="color:var(--admin-muted);padding:.3rem;font-size:.68rem;display:flex;align-items:center;">{{ row }}</div>
+      {% for color,badge in cells %}
+      <div style="background:{{ color }}33;border:1px solid {{ color }}44;border-radius:6px;height:40px;display:flex;align-items:center;justify-content:center;">
+        {% if badge %}<span style="background:{{ color }};color:#000;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;">{{ badge }}</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% endfor %}
+    </div>
+    <div style="margin-top:.5rem;font-size:.68rem;color:var(--admin-muted);text-align:center;">← Impact →</div>
+  </div>
+</div>
+
+<div class="acontent-grid acontent-3">
+  <!-- Regulatory reporting table -->
+  <div class="acard">
+    <div class="acard-header"><span class="acard-title">Regulatory Reporting</span><a class="view-all-link">View all</a></div>
+    <table class="atable">
+      <thead><tr><th>Report</th><th>Regulator</th><th>Due Date</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for name,reg,due,status,color in [
+          ('Quarterly AML Report','BoG','Jun 15, 2024','In Progress','#60a5fa'),
+          ('Suspicious Activity Report','FIU','May 31, 2024','Submitted','#34d399'),
+          ('KYC Compliance Report','BoG','May 30, 2024','Submitted','#34d399'),
+          ('Annual Compliance Report','SEC','Aug 15, 2024','Not Started','rgba(255,255,255,.3)'),
+        ] %}
+        <tr>
+          <td style="font-weight:500;color:#fff;font-size:.8rem;">{{ name }}</td>
+          <td style="font-size:.8rem;">{{ reg }}</td>
+          <td style="font-size:.75rem;color:var(--admin-muted);">{{ due }}</td>
+          <td><span style="background:{{ color }}22;color:{{ color }};padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;">{{ status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Policy exceptions -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Policy Exceptions</div>
+    <div class="acontent-grid acontent-2" style="gap:.75rem;margin-bottom:.875rem;">
+      {% for label,val,delta,color in [('Active Exceptions','23','+9.5%','#f87171'),('Pending Approval','8','+0%','#fbbf24'),('Expired Exceptions','3','-11.1%','#34d399'),('Reviewed (30d)','45','+15.4%','#60a5fa')] %}
+      <div style="text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:.75rem;">
+        <div style="font-size:1.5rem;font-weight:800;color:{{ color }};">{{ val }}</div>
+        <div style="font-size:.7rem;color:var(--admin-muted);margin-top:.2rem;">{{ label }}</div>
+        <div style="font-size:.68rem;color:{{ color }};margin-top:.15rem;">{{ delta }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Upcoming compliance tasks -->
+  <div class="acard acard-pad">
+    <div class="acard-title" style="margin-bottom:.875rem;">Upcoming Compliance Tasks <a class="view-all-link" style="float:right;">View all</a></div>
+    {% for task,date in [
+      ('Update KYC documents for high risk customers','May 28, 2024'),
+      ('Review flagged transactions','May 29, 2024'),
+      ('Sanctions list screening - Weekly','May 30, 2024'),
+      ('Submit AML report to FIU','May 31, 2024'),
+    ] %}
+    <div style="display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
+      <span style="font-size:.9rem;">📅</span>
+      <div style="flex:1;"><div style="font-size:.8rem;color:#fff;">{{ task }}</div><div style="font-size:.7rem;color:var(--admin-muted);margin-top:.1rem;">{{ date }}</div></div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+setTimeout(()=>{
+  function donut(id,segs,size=60){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=size,cy=size,r=size-8,t=14;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
+  donut('kyc-donut',[[69.3,'#34d399'],[14.6,'#60a5fa'],[12,'#fbbf24'],[4.1,'#f87171']]);
+  const c=document.getElementById('aml-chart');
+  if(c){const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=280;const p1=[30,45,38,52,41,65,48,55,42,60,53,70,45,58,62,48,55,68,60,72,58,65,70,62,75];const p2=[8,12,10,18,12,22,15,18,12,20,16,25,14,18,20,14,18,25,20,28,22,24,28,22,30];const mn=0,mx=80;const tx=i=>(i/(p1.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);[p1,p2].forEach((pts,pi)=>{const color=pi===0?'#a78bfa':'#f87171';ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();});}
+},100);
+</script>
+{% endblock %}

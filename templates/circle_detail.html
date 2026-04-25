@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}{{ rosca.name }} — SOHANA Hub{% endblock %}
+{% block topbar_title %}Circle Detail{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="/circles">Circles</a> / {{ rosca.name }}</div>
+<div class="page-header" style="margin-top:.5rem;">
+  <div>
+    <h1 class="page-title">{{ rosca.name }}</h1>
+    <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem;flex-wrap:wrap;">
+      <span class="pill {% if rosca.status=='active' %}pill-green{% elif rosca.status=='forming' %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot">{{ rosca.status }}</span>
+      <span class="text-sm text-muted">€{{ '%.0f'%(rosca.contribution_cents/100) }} / {{ 'Monthly' if rosca.frequency_days==30 else 'Weekly' }}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    {% if not is_member %}<button class="btn btn-primary" id="btn-join" onclick="joinC()">Join Circle</button>{% endif %}
+    {% if is_organiser %}<a href="/organiser/{{ rosca.id }}" class="btn btn-outline">⚙ Manage</a>{% endif %}
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    {% if cycle_info %}{% set cycle=cycle_info.cycle %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Cycle {{ cycle.cycle_number }}/{{ rosca.total_cycles }}</span>
+        <span class="pill {% if cycle.status=='completed' %}pill-green{% else %}pill-amber{% endif %} pill-no-dot">{{ cycle.status }}</span>
+      </div>
+      <div class="card-body">
+        <div class="stats-grid stats-grid-2" style="margin-bottom:1rem;">
+          <div class="stat-card" style="padding:.75rem 1rem;"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Pot (actual)</div><div class="stat-value" style="font-size:1.3rem;">€{{ '%.0f'%(cycle.pot_cents/100) }}</div></div></div>
+          <div class="stat-card" style="padding:.75rem 1rem;"><div class="stat-icon blue">📅</div><div class="stat-body"><div class="stat-label">Due</div><div style="font-size:1rem;font-weight:700;color:var(--navy);">{{ cycle.due_at[:10] }}</div></div></div>
+        </div>
+        {% set paid=cycle_info.contributions|selectattr('status','in',['paid','late'])|list|length %}
+        {% set total=cycle_info.contributions|length %}
+        <div style="margin-bottom:1rem;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;"><span class="text-sm text-muted">Collected</span><span class="text-sm font-semibold">{{ paid }}/{{ total }}</span></div>
+          <div class="progress-track"><div class="progress-fill fill-green" style="width:{{ (paid/[total,1]|max*100)|round|int }}%"></div></div>
+        </div>
+        {% for c in cycle_info.contributions %}
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
+          <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ c.user_name[0] }}</div>
+          <div style="flex:1;"><div style="font-size:.85rem;font-weight:500;">{{ c.user_name }}{% if cycle.recipient_id==c.user_id %}<span class="pill pill-amber pill-no-dot" style="font-size:.6rem;margin-left:.35rem;">Recipient</span>{% endif %}</div></div>
+          <span class="pill {% if c.status=='paid' %}pill-green{% elif c.status=='late' %}pill-orange{% elif c.status=='missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.7rem;">{{ c.status }}</span>
+        </div>
+        {% endfor %}
+        {% if is_member and my_contrib and my_contrib.status=='pending' %}
+        <div style="background:var(--amber-lt);border:1px solid #fde68a;border-radius:var(--radius);padding:.875rem;margin-top:1rem;">
+          <div style="font-size:.875rem;font-weight:600;">Your contribution is due</div>
+          <div class="text-xs text-muted">€{{ '%.2f'%(my_contrib.amount_cents/100) }} by {{ my_contrib.due_at[:10] }}</div>
+        </div>
+        <button class="btn btn-primary btn-full mt-3" id="btn-contrib" onclick="payC()">Pay €{{ '%.2f'%(my_contrib.amount_cents/100) }}</button>
+        {% elif is_member and my_contrib and my_contrib.status in ('paid','late') %}
+        <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;margin-top:1rem;font-weight:600;color:var(--green);font-size:.875rem;">✓ Contribution paid this cycle</div>
+        {% endif %}
+      </div>
+    </div>
+    {% elif is_organiser %}
+    <div class="card card-pad"><h3 style="font-weight:600;margin-bottom:.75rem;">Start the first cycle</h3><p class="text-sm text-muted mb-3">Members will be notified when contributions open.</p><button class="btn btn-primary" id="btn-start" onclick="startCycle()">Start first cycle</button></div>
+    {% endif %}
+
+    <!-- Leaderboard -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">Circle Leaderboard</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Member</th><th>NCS</th><th>Reliability</th><th>Trust</th><th>Payout slot</th></tr></thead>
+        <tbody>
+          {% for m in leaderboard %}
+          <tr>
+            <td style="font-weight:700;color:{{ 'var(--gold)' if m.rank==1 else 'var(--gray-500)' }};">{{ m.rank }}</td>
+            <td><a href="/profile/{{ m.id }}" style="display:flex;align-items:center;gap:.5rem;text-decoration:none;">
+              <div class="admin-avatar" style="width:28px;height:28px;font-size:.65rem;">{{ m.full_name[0] }}</div>
+              <span style="font-size:.85rem;font-weight:500;color:var(--navy);">{{ m.full_name }}</span>
+            </a></td>
+            <td style="font-weight:600;">{{ m.ncs_score }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.4rem;">
+                <div class="progress-track" style="width:60px;height:5px;"><div class="progress-fill fill-green" style="width:{{ m.reliability_pct|round|int }}%"></div></div>
+                <span class="text-xs text-muted">{{ m.reliability_pct }}%</span>
+              </div>
+            </td>
+            <td><span class="pill {% if m.trust_score>=80 %}pill-green{% elif m.trust_score>=60 %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.65rem;">{{ m.trust_score }}/100</span></td>
+            <td style="font-weight:600;">Slot {{ m.slot or '—' }}</td>
+          </tr>
+          {% else %}<tr><td colspan="6" class="empty-state" style="padding:1.5rem;text-align:center;">No members yet.</td></tr>{% endfor %}
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="card card-pad">
+      <div class="card-title mb-3">Circle Details</div>
+      <table style="width:100%;font-size:.875rem;">
+        {% for label,value in [('Type',rosca.rosca_type.replace('_',' ').title()),('Contribution','€%.2f'%(rosca.contribution_cents/100)),('Frequency','Every '~rosca.frequency_days~' days'),('Full pot','€%.0f'%(rosca.contribution_cents*rosca.max_members/100)),('Min NCS',rosca.ncs_min_score),('Progress',rosca.current_cycle~'/'~rosca.total_cycles)] %}
+        <tr style="border-bottom:1px solid var(--border);"><td style="padding:.45rem 0;color:var(--text-muted);">{{ label }}</td><td style="text-align:right;font-weight:500;">{{ value }}</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Members panel -->
+  <div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Members ({{ members|length }}/{{ rosca.max_members }})</span></div>
+      {% for m in members %}
+      <div style="display:flex;align-items:center;gap:.7rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
+        <a href="/profile/{{ m.user_id }}"><div class="admin-avatar">{{ m.full_name[0] }}</div></a>
+        <div style="flex:1;">
+          <div style="font-size:.875rem;font-weight:500;">{{ m.full_name }}{% if m.user_id==rosca.organiser_id %}<span class="pill pill-blue pill-no-dot" style="font-size:.6rem;margin-left:.3rem;">Organiser</span>{% endif %}</div>
+          <div class="text-xs text-muted">NCS {{ m.ncs_score }}{% if m.hanatag %} &nbsp;·&nbsp; {{ m.hanatag }}{% endif %}</div>
+        </div>
+        {% if is_member and m.user_id != user.id %}
+        {% set endorsed = m.user_id in my_endorsements %}
+        <button class="btn btn-sm {{ 'btn-outline' if not endorsed else 'btn-danger' }}" style="font-size:.7rem;padding:.25rem .6rem;" id="endorse-{{ m.user_id }}" onclick="toggleEndorse('{{ m.user_id }}','{{ rosca.id }}',{{ 'true' if endorsed else 'false' }})">
+          {{ '✓ Endorsed' if endorsed else '+ Endorse' }}
+        </button>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function joinC(){const btn=document.getElementById('btn-join');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/join',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Joined!','success');setTimeout(()=>location.reload(),800);}
+async function payC(){const btn=document.getElementById('btn-contrib');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/contribute',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Paid! NCS updated.','success');setTimeout(()=>location.reload(),1000);}
+async function startCycle(){const btn=document.getElementById('btn-start');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/start-cycle',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Cycle started!','success');setTimeout(()=>location.reload(),800);}
+async function toggleEndorse(userId, roscaId, currently_endorsed){
+  const btn=document.getElementById('endorse-'+userId);
+  setLoading(btn,true);
+  const action=currently_endorsed?'unendorse':'endorse';
+  const d=await API.post('/api/endorsement',{user_id:userId,rosca_id:roscaId,action});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  if(action==='endorse'){btn.textContent='✓ Endorsed';btn.className='btn btn-sm btn-danger';btn.setAttribute('onclick',`toggleEndorse('${userId}','${roscaId}',true)`);toast('+3 NCS points given!','success');}
+  else{btn.textContent='+ Endorse';btn.className='btn btn-sm btn-outline';btn.setAttribute('onclick',`toggleEndorse('${userId}','${roscaId}',false)`);toast('Endorsement removed.','info');}
+}
+</script>
+{% endblock %}

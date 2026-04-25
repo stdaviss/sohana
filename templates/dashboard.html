@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SOHANA Hub{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Welcome back, {{ user.full_name.split()[0] }}!</h1>
+    <p class="page-subtitle">{% if user.get('hanatag') %}{{ user.hanatag }} &nbsp;·&nbsp; {% endif %}Your savings at a glance.</p>
+  </div>
+</div>
+
+<div class="stats-grid stats-grid-4">
+  <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;">
+    <div class="stat-label">Wallet balance</div>
+    <div class="stat-value" id="wallet-balance">€{{ '%.2f'%(balance/100) }}</div>
+    <div class="wallet-actions">
+      <button class="wallet-btn primary-w" onclick="location.href='/wallet';openModal('withdraw-modal')">Withdraw</button>
+      <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
+      <button class="wallet-btn" onclick="location.href='/wallet'" style="background:rgba(234,88,12,.7);">Pay</button>
+    </div>
+  </div>
+  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+    <div class="stat-label">Reputation Score</div>
+    <div class="stat-value" style="font-size:2rem;">{{ user.ncs_score }}</div>
+    <div class="rep-stars">{% for i in range(5) %}<span class="rep-star">{{ '★' if (user.ncs_score-300)/110>i else '☆' }}</span>{% endfor %}</div>
+  </div>
+  {% set active = my_roscas|selectattr('status','equalto','active')|list %}
+  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+    <div class="stat-label">Next contribution</div>
+    {% if active %}
+    <div class="stat-value">€{{ '%.0f'%(active[0].contribution_cents/100) }}</div>
+    <div class="stat-sub">{{ active[0].name[:22] }}</div>
+    {% else %}<div class="stat-value" style="font-size:1rem;color:var(--text-muted);">None due</div>{% endif %}
+  </div>
+  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
+    <div class="stat-label">Upcoming payout</div>
+    {% if active %}
+    <div class="stat-value">€{{ '%.0f'%(active[0].contribution_cents*active[0].max_members/100) }}</div>
+    <div class="stat-sub">{{ active[0].name[:22] }}</div>
+    {% else %}<div class="stat-value" style="font-size:1rem;color:var(--text-muted);">—</div>{% endif %}
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    {% if active %}
+    <div>
+      <div class="flex items-center justify-between mb-3"><h2 class="section-title" style="margin:0;">Active ROSCAs</h2><a href="/circles" class="view-all">View all ›</a></div>
+      <div class="content-grid-2">
+        {% for r in active %}
+        <div class="rosca-card">
+          <div class="flex items-center justify-between mb-2"><div class="rosca-card-name">{{ r.name }}</div><div style="font-size:.7rem;opacity:.7;">◑ {{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%</div></div>
+          <div class="rosca-card-meta"><span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span><span>€{{ '%.0f'%(r.contribution_cents/100) }}/cycle</span></div>
+          <div class="rosca-progress"><div class="progress-track"><div class="progress-fill fill-teal" style="width:{{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%"></div></div></div>
+          <div class="member-avatars">{% for i in range([r.member_count,5]|min) %}<div class="member-avatar-sm">{{ loop.index }}</div>{% endfor %}</div>
+          <div class="rosca-card-footer"><span class="payout-position">Slot <strong>#{{ r.slot or '?' }}</strong></span><a href="/circles/{{ r.id }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);">View</a></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div>
+      <div class="flex items-center justify-between mb-3"><h2 class="section-title" style="margin:0;">Join a ROSCA</h2><a href="/circles" class="view-all">Browse all ›</a></div>
+      <div class="content-grid-3">
+        {% for r in marketplace %}
+        <div class="market-card">
+          <div class="market-card-name">{{ r.name }}</div>
+          <div class="market-card-amount">€{{ '%.0f'%(r.contribution_cents/100) }}<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);">/{{ 'Monthly' if r.frequency_days==30 else 'Weekly' }}</span></div>
+          <div class="market-card-meta">{{ r.member_count }} Members</div>
+          {% set spots=r.max_members-r.member_count %}
+          {% if spots<=2 %}<span class="spot-badge few">{{ spots }} spot{% if spots!=1 %}s{% endif %} left</span>
+          {% elif spots==r.max_members %}<span class="spot-badge open">Open Now</span>
+          {% else %}<span class="spot-badge some">{{ spots }} spots left</span>{% endif %}
+        </div>
+        {% else %}<div class="empty-state" style="grid-column:1/-1;padding:1.5rem;"><p>No public circles yet.</p></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Transactions</span><a href="/wallet" class="view-all">View all ›</a></div>
+      {% if recent_tx %}
+      <div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount</th><th>Date</th></tr></thead><tbody>
+        {% for tx in recent_tx %}
+        <tr><td><div class="td-bold">{{ tx.description }}</div></td>
+        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
+        <td class="text-muted text-xs">{{ tx.created_at[:10] }}</td></tr>
+        {% endfor %}
+      </tbody></table></div>
+      {% else %}<div class="empty-state" style="padding:1.5rem;"><p>No transactions yet.</p></div>{% endif %}
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Notifications {% if unread>0 %}<span class="pill pill-red pill-no-dot" style="font-size:.65rem;margin-left:.3rem;">{{ unread }}</span>{% endif %}</span></div>
+      <div class="notif-list" id="dash-notifs"><div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">Loading…</div></div>
+      <div class="card-footer"><a href="/notifications" class="view-all">View all ›</a></div>
+    </div>
+    <div class="tips-card">
+      <div class="tips-img">🤝</div>
+      <div class="tips-body"><div class="tips-title">Boost Your Turn</div><div class="tips-desc">Pay contributions on time to improve your NCS score and move up the payout queue faster.</div><a href="/ncs" class="btn btn-primary btn-sm btn-full mt-3">My NCS Score</a></div>
+    </div>
+    <div class="card card-pad">
+      <div class="flex items-center justify-between mb-3"><span class="card-title">NCS Score</span><a href="/ncs" class="view-all">Details ›</a></div>
+      <div class="flex items-center gap-3">
+        <div style="font-size:2.5rem;font-weight:800;color:{{ tier.color }};">{{ user.ncs_score }}</div>
+        <div><div class="pill {% if tier.name=='exemplary' %}pill-purple{% elif tier.name=='reliable' %}pill-green{% elif tier.name=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot">{{ tier.label }}</div></div>
+      </div>
+      <div class="progress-track mt-3"><div class="progress-fill fill-blue" style="width:{{ ((user.ncs_score-300)/550*100)|round|int }}%"></div></div>
+      {% if badges %}
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.875rem;">
+        {% for b in badges %}<span class="pill pill-amber pill-no-dot" style="font-size:.7rem;">★ {{ b.label }}</span>{% endfor %}
+      </div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="deposit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('deposit-modal')">✕</button>
+    <h3 class="modal-title">Deposit Funds</h3><p class="modal-sub">No fees on deposits.</p>
+    <div class="form-group"><label class="form-label">Amount (EUR)</label><input class="form-input" id="dd-amt" type="number" min="5" placeholder="100.00"></div>
+    <div class="form-group"><label class="form-label">From</label><select class="form-input form-select"><option>Bank Transfer</option><option>Mobile Money</option></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('deposit-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-ddep" onclick="doDep()">Deposit</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function doDep(){const btn=document.getElementById('btn-ddep');const a=parseFloat(document.getElementById('dd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/deposit',{amount:a});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('deposit-modal');document.getElementById('wallet-balance').textContent='€'+(d.new_balance_cents/100).toFixed(2);toast('Deposited €'+a.toFixed(2),'success');}
+
+// Load dashboard notifications inline
+async function loadDashNotifs() {
+  const d = await API.get('/api/notifications');
+  const el = document.getElementById('dash-notifs');
+  if (!d.notifications || !d.notifications.length) { el.innerHTML='<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">No notifications</div>'; return; }
+  el.innerHTML = d.notifications.slice(0,4).map(n => `
+    <div class="notif-item" onclick="${n.link?'location.href=\''+n.link+'\'':''}" style="${!n.is_read?'background:var(--blue-lt)':''}">
+      <div class="notif-dot-icon ${n.notif_type==='success'?'green':n.notif_type==='danger'?'red':'blue'}">${n.notif_type==='success'?'✓':'ℹ'}</div>
+      <div class="notif-body"><div class="notif-text"><strong>${n.title}</strong><br><span style="font-weight:400;">${n.body}</span></div><div class="notif-time">${n.created_at.slice(0,16).replace('T',' ')}</div></div>
+      <span class="notif-arrow">›</span>
+    </div>`).join('');
+}
+loadDashNotifs();
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Circles — SOHANA Hub{% endblock %}
+{% block topbar_title %}My ROSCAs{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1 class="page-title">Savings Circles</h1><p class="page-subtitle">Join or create a rotating savings circle.</p></div>
+  <div style="display:flex;gap:.5rem;">
+    <button class="btn btn-orange" onclick="openModal('create-modal')">+ Create ROSCA</button>
+  </div>
+</div>
+<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;">
+  <button id="tab-d" onclick="sTab('discover')" style="padding:.6rem 1.2rem;background:none;border:none;font-size:.875rem;font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue);cursor:pointer;">Discover</button>
+  <button id="tab-m" onclick="sTab('mine')" style="padding:.6rem 1.2rem;background:none;border:none;font-size:.875rem;font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted);cursor:pointer;">My ROSCAs ({{ my_roscas|length }})</button>
+</div>
+<div id="pane-discover">
+  <form method="get" action="/circles" style="display:flex;gap:.5rem;margin-bottom:1.25rem;">
+    <input class="form-input" name="q" value="{{ search }}" placeholder="Search circles..." style="max-width:320px;">
+    <button type="submit" class="btn btn-outline">Search</button>
+    {% if search %}<a href="/circles" class="btn btn-ghost">✕</a>{% endif %}
+  </form>
+  {% if marketplace %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;">
+    {% for r in marketplace %}
+    <div class="market-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:.4rem;">
+        <div class="market-card-name">{{ r.name }}</div>
+        <span class="pill {% if r.status=='active' %}pill-green{% else %}pill-blue{% endif %} pill-no-dot" style="font-size:.65rem;">{{ r.status }}</span>
+      </div>
+      {% if r.description %}<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.5rem;line-height:1.4;">{{ r.description[:80] }}{% if r.description|length>80 %}…{% endif %}</p>{% endif %}
+      <div class="market-card-amount">€{{ '%.0f'%(r.contribution_cents/100) }}<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);">/{{ 'Monthly' if r.frequency_days==30 else 'Weekly' }}</span></div>
+      <div class="market-card-meta">{{ r.member_count }}/{{ r.max_members }} members &nbsp;·&nbsp; Min NCS {{ r.ncs_min_score }}</div>
+      <div class="progress-track" style="margin-bottom:.75rem;"><div class="progress-fill fill-blue" style="width:{{ (r.member_count/r.max_members*100)|round|int }}%"></div></div>
+      {% set spots=r.max_members-r.member_count %}
+      {% if spots<=1 %}<span class="spot-badge few">{{ spots }} spot left</span>
+      {% elif spots==r.max_members %}<span class="spot-badge open">Open Now</span>
+      {% else %}<span class="spot-badge some">{{ spots }} spots left</span>{% endif %}
+      <div style="display:flex;gap:.5rem;margin-top:.875rem;">
+        <a href="/circles/{{ r.id }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center;">View</a>
+        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="joinC('{{ r.id }}',this)">Join</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;"><p>No circles found.</p><button class="btn btn-orange btn-sm mt-3" onclick="openModal('create-modal')">Create one</button></div>
+  {% endif %}
+</div>
+<div id="pane-mine" class="hidden">
+  {% if my_roscas %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+    {% for r in my_roscas %}
+    <div class="rosca-card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="rosca-card-name">{{ r.name }}</div>
+        <span style="font-size:.65rem;background:rgba(255,255,255,.15);padding:.15rem .5rem;border-radius:20px;color:rgba(255,255,255,.85);">{{ r.status }}</span>
+      </div>
+      <div class="rosca-card-meta"><span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span><span>€{{ '%.0f'%(r.contribution_cents/100) }}/cycle</span></div>
+      <div class="rosca-progress"><div class="progress-track"><div class="progress-fill fill-teal" style="width:{{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%"></div></div></div>
+      <div class="member-avatars">{% for i in range([r.member_count,5]|min) %}<div class="member-avatar-sm">{{ loop.index }}</div>{% endfor %}</div>
+      <div class="rosca-card-footer">
+        <span class="payout-position">Slot <strong>#{{ r.slot or '—' }}</strong></span>
+        <div style="display:flex;gap:.35rem;">
+          <a href="/circles/{{ r.id }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);">View</a>
+          {% if r.organiser_id==user.id %}<a href="/organiser/{{ r.id }}" class="btn btn-sm" style="background:rgba(255,255,255,.25);color:#fff;border:1px solid rgba(255,255,255,.3);">Manage</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;"><p>No circles yet.</p><button onclick="sTab('discover')" class="btn btn-primary btn-sm mt-3">Browse marketplace</button></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="create-modal">
+  <div class="modal" style="max-width:520px;">
+    <button class="modal-close" onclick="closeModal('create-modal')">✕</button>
+    <h3 class="modal-title">Create a circle</h3>
+    <p class="modal-sub">
+      Creation fee based on your tier:
+      {% if creation_fee > 0 %}<strong style="color:var(--orange);">€{{ '%.2f'%(creation_fee/100) }}</strong> ({{ tier.label }} tier){% else %}<strong style="color:var(--green);">Free</strong> ({{ tier.label }} tier){% endif %}
+    </p>
+    <div class="form-group"><label class="form-label">Circle name</label><input class="form-input" id="c-name" placeholder="e.g. Marseille Njangi 2026"></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="c-desc" placeholder="Who is this circle for?"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Contribution (€)</label><input class="form-input" id="c-amt" type="number" min="5" value="50"></div>
+      <div class="form-group"><label class="form-label">Max members</label><input class="form-input" id="c-mem" type="number" min="2" max="50" value="8"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Frequency</label>
+        <select class="form-input form-select" id="c-freq"><option value="7">Weekly</option><option value="14">Bi-weekly</option><option value="30" selected>Monthly</option></select></div>
+      <div class="form-group"><label class="form-label">Min NCS score</label>
+        <select class="form-input form-select" id="c-ncs"><option value="300">300 — Open to all</option><option value="500">500 — Basic trust</option><option value="600">600 — Reliable</option></select></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem;margin-bottom:1rem;"><input type="checkbox" id="c-pub" checked> List on marketplace</label>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('create-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" id="btn-create" onclick="createC()">Create circle</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function sTab(t){const d=t==='discover';document.getElementById('pane-discover').classList.toggle('hidden',!d);document.getElementById('pane-mine').classList.toggle('hidden',d);['d','m'].forEach((id,i)=>{const el=document.getElementById('tab-'+id);const active=(i===0&&d)||(i===1&&!d);el.style.fontWeight=active?'600':'500';el.style.borderBottomColor=active?'var(--blue)':'transparent';el.style.color=active?'var(--blue)':'var(--text-muted)';});}
+async function joinC(id,btn){setLoading(btn,true);const d=await API.post(`/api/rosca/${id}/join`,{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Joined!','success');setTimeout(()=>location.href=`/circles/${id}`,800);}
+async function createC(){const btn=document.getElementById('btn-create');const name=document.getElementById('c-name').value.trim();if(!name){toast('Name required','error');return;}setLoading(btn,true);const d=await API.post('/api/rosca/create',{name,description:document.getElementById('c-desc').value,contribution:parseFloat(document.getElementById('c-amt').value),max_members:parseInt(document.getElementById('c-mem').value),frequency_days:parseInt(document.getElementById('c-freq').value),ncs_min:parseInt(document.getElementById('c-ncs').value),is_public:document.getElementById('c-pub').checked});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}if(d.creation_fee_cents>0)toast(`Circle created! Fee of €${(d.creation_fee_cents/100).toFixed(2)} charged.`,'success');else toast('Circle created!','success');setTimeout(()=>location.href=`/circles/${d.rosca_id}`,900);}
+</script>
+{% endblock %}
