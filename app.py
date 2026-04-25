@@ -6,7 +6,7 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       get_user_wallets, get_default_wallet, convert_currency,
                       ROSCA_CREATION_FEES, WITHDRAWAL_FEES, CURRENCIES,
                       EXCHANGE_RATES, CONVERSION_FEE_RATE, ADMIN_ROLES,
-                      generate_hanatag)
+                      LIMITS, get_period_total, generate_hanatag)
 import auth, rosca, ncs_engine
 
 app = Flask(__name__)
@@ -520,6 +520,14 @@ def api_deposit():
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
     wallet = _get_wallet(session["user_id"], currency)
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
+    # ── Daily deposit limit ───────────────────────────────────────────
+    lim = LIMITS["standard"]
+    deposited_today = get_period_total(wallet["id"], "deposit", "in", "day")
+    remaining = lim["deposit_daily_cents"] - deposited_today
+    if cents > remaining:
+        return jsonify({"error": f"Daily deposit limit reached. You can still deposit "
+                                  f"€{remaining/100:,.2f} today (limit €10,000/day).".replace(',', ' ')}), 400
+    # ─────────────────────────────────────────────────────────────────
     new_bal = post_transaction(wallet["id"], cents, f"Deposit ({currency})", tx_type="deposit")
     ncs_engine.apply_event(session["user_id"], "wallet_deposit")
     return jsonify({"ok": True, "new_balance_cents": new_bal})
@@ -537,6 +545,19 @@ def api_withdraw():
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
     wallet = _get_wallet(session["user_id"], currency)
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
+    # ── Withdrawal limits ─────────────────────────────────────────────
+    lim = LIMITS["standard"]
+    withdrawn_today   = get_period_total(wallet["id"], "withdrawal", "out", "day")
+    withdrawn_month   = get_period_total(wallet["id"], "withdrawal", "out", "month")
+    daily_remaining   = lim["withdraw_daily_cents"]   - withdrawn_today
+    monthly_remaining = lim["withdraw_monthly_cents"] - withdrawn_month
+    if cents > daily_remaining:
+        return jsonify({"error": f"Daily withdrawal limit reached. Remaining today: "
+                                  f"€{daily_remaining/100:,.2f} (limit €3 000/day).".replace(',', ' ')}), 400
+    if cents > monthly_remaining:
+        return jsonify({"error": f"Monthly withdrawal limit reached. Remaining this month: "
+                                  f"€{monthly_remaining/100:,.2f} (limit €10 000/month).".replace(',', ' ')}), 400
+    # ─────────────────────────────────────────────────────────────────
     bal  = wallet_balance(wallet["id"])
     fee  = calc_withdrawal_fee(cents, method)
     total = cents + fee
@@ -572,18 +593,27 @@ def api_pay():
                        (str(uuid.uuid4()), recipient["id"], currency))
         rw = _get_wallet(recipient["id"], currency)
     bal = wallet_balance(sw["id"])
-    if cents > bal: return jsonify({"error": "Insufficient balance"}), 400
+    # ── Pay fee: 2% on amounts over €5,000 ───────────────────────────
+    lim = LIMITS["standard"]
+    pay_fee = 0
+    if cents > lim["pay_fee_threshold_cents"]:
+        pay_fee = int(cents * lim["pay_fee_rate"])
+    total_debit = cents + pay_fee
+    if total_debit > bal: return jsonify({"error": "Insufficient balance"}), 400
+    # ─────────────────────────────────────────────────────────────────
     ref = str(uuid.uuid4())
     sender = fetchone("SELECT full_name, hanatag FROM users WHERE id=?", (session["user_id"],))
     stag = sender["hanatag"] or session.get("user_name","user")
-    post_transaction(sw["id"], -cents, f"Pay to {hanatag}" + (f" — {note}" if note else ""), tx_type="pay_out", ref_id=ref)
+    fee_note = f" (incl. €{pay_fee/100:.2f} fee)" if pay_fee else ""
+    post_transaction(sw["id"], -total_debit, f"Pay to {hanatag}" + (f" — {note}" if note else "") + fee_note, tx_type="pay_out", ref_id=ref)
     post_transaction(rw["id"], +cents, f"Pay from {stag}" + (f" — {note}" if note else ""), tx_type="pay_in",  ref_id=ref)
     with get_db() as db:
         db.execute("INSERT INTO hanatag_payments(id,sender_id,recipient_id,amount_cents,currency,note) VALUES(?,?,?,?,?,?)",
                    (ref, session["user_id"], recipient["id"], cents, currency, note))
-    push_notification(recipient["id"], f"You received {CURRENCIES.get(currency,{}).get('symbol','')}{cents/100:.2f}!",
+    sym = CURRENCIES.get(currency,{}).get('symbol','')
+    push_notification(recipient["id"], f"You received {sym}{cents/100:,.2f}!".replace(',', ' '),
                       f"From {sender['full_name']}" + (f": {note}" if note else ""), "success", "/wallet")
-    return jsonify({"ok": True, "recipient_name": recipient["full_name"]})
+    return jsonify({"ok": True, "recipient_name": recipient["full_name"], "fee_cents": pay_fee})
 
 @app.route("/api/wallet/statement")
 @auth.login_required

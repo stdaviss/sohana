@@ -143,7 +143,7 @@
       <tbody>
         {% for tx in recent_tx %}
         <tr><td style="font-weight:500;">{{ tx.full_name }}</td>
-        <td style="font-weight:600;color:{{ '#34d399' if tx.amount_cents>0 else '#f87171' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
+        <td style="font-weight:600;color:{{ '#34d399' if tx.amount_cents>0 else '#f87171' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', ' ') }}</td>
         <td><span class="apill apill-purple" style="font-size:.65rem;">{{ tx.tx_type }}</span></td>
         <td style="color:var(--admin-muted);font-size:.72rem;">{{ tx.created_at[11:16] }}</td></tr>
         {% endfor %}

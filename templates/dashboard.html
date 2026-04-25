@@ -12,7 +12,7 @@
 <div class="stats-grid stats-grid-4">
   <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;">
     <div class="stat-label">Wallet balance</div>
-    <div class="stat-value" id="wallet-balance">€{{ '%.2f'%(balance/100) }}</div>
+    <div class="stat-value" id="wallet-balance">€{{ '{:,.2f}'.format(balance/100).replace(',', ' ') }}</div>
     <div class="wallet-actions">
       <button class="wallet-btn primary-w" onclick="location.href='/wallet';openModal('withdraw-modal')">Withdraw</button>
       <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
@@ -84,7 +84,7 @@
       <div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount</th><th>Date</th></tr></thead><tbody>
         {% for tx in recent_tx %}
         <tr><td><div class="td-bold">{{ tx.description }}</div></td>
-        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
+        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', ' ') }}</td>
         <td class="text-muted text-xs">{{ tx.created_at[:10] }}</td></tr>
         {% endfor %}
       </tbody></table></div>

@@ -80,7 +80,7 @@
     <h3 class="modal-title">Create a circle</h3>
     <p class="modal-sub">
       Creation fee based on your tier:
-      {% if creation_fee > 0 %}<strong style="color:var(--orange);">€{{ '%.2f'%(creation_fee/100) }}</strong> ({{ tier.label }} tier){% else %}<strong style="color:var(--green);">Free</strong> ({{ tier.label }} tier){% endif %}
+      {% if creation_fee > 0 %}<strong style="color:var(--orange);">€{{ '{:,.2f}'.format(creation_fee/100).replace(',', ' ') }}</strong> ({{ tier.label }} tier){% else %}<strong style="color:var(--green);">Free</strong> ({{ tier.label }} tier){% endif %}
     </p>
     <div class="form-group"><label class="form-label">Circle name</label><input class="form-input" id="c-name" placeholder="e.g. Marseille Njangi 2026"></div>
     <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="c-desc" placeholder="Who is this circle for?"></div>

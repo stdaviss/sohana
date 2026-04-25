@@ -22,7 +22,7 @@
       <span style="font-size:1rem;">{{ cur.get('flag','') }}</span>
       <div>
         <div style="font-size:.78rem;font-weight:600;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--gray-700)' }};">{{ w.currency }}</div>
-        <div style="font-size:.82rem;font-weight:700;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--navy)' }};">{{ cur.get('symbol','') }}{{ '%.2f'%(w.balance/100) }}</div>
+        <div style="font-size:.82rem;font-weight:700;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--navy)' }};">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(w.balance / 100).replace(',', ' ') }}</div>
       </div>
     </a>
     {% endfor %}
@@ -41,7 +41,7 @@
       <span style="font-size:1.4rem;">{{ cur.get('flag','') }}</span>
       <div style="flex:1;">
         <div style="font-size:.72rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;">{{ cur.get('name',active_wallet.currency) }}</div>
-        <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;">{{ cur.get('symbol','') }}{{ '%.2f'%(active_wallet.balance/100) }}</div>
+        <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(active_wallet.balance / 100).replace(',', ' ') }}</div>
       </div>
     </div>
     <div class="wallet-actions">
@@ -56,9 +56,34 @@
   {% endif %}
 </div>
 
-<!-- Fee notice -->
-<div class="card card-pad" style="background:var(--blue-lt);border-color:#bfdbfe;margin-bottom:1.25rem;font-size:.82rem;">
-  <strong>Fees:</strong>&nbsp; Conversion: <strong>0.7%</strong> &nbsp;·&nbsp; SEPA: <strong>1%</strong> &nbsp;·&nbsp; UK: <strong>1.5%</strong> &nbsp;·&nbsp; US: <strong>2%</strong> &nbsp;·&nbsp; SWIFT: <strong>3.5%</strong> &nbsp;·&nbsp; Mobile Money: <strong>1.5%</strong> &nbsp;·&nbsp; Pay (internal): <strong>Free</strong>
+<!-- Fees + Limits notice -->
+<div class="card card-pad" style="background:var(--blue-lt);border-color:#bfdbfe;margin-bottom:.75rem;font-size:.82rem;">
+  <strong>Fees:</strong>&nbsp;
+  Conversion: <strong>0.7%</strong> &nbsp;·&nbsp;
+  SEPA: <strong>1%</strong> &nbsp;·&nbsp;
+  UK: <strong>1.5%</strong> &nbsp;·&nbsp;
+  US ACH: <strong>2%</strong> &nbsp;·&nbsp;
+  SWIFT: <strong>3.5%</strong> &nbsp;·&nbsp;
+  Mobile Money: <strong>1.5%</strong> &nbsp;·&nbsp;
+  Pay under €&#8239;5&#160;000: <strong>Free</strong> &nbsp;·&nbsp;
+  Pay over €&#8239;5&#160;000: <strong>2%</strong>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem;">
+  <div class="card card-pad" style="border-left:3px solid var(--blue);padding:.75rem 1rem;">
+    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily deposit limit</div>
+    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
+    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
+  </div>
+  <div class="card card-pad" style="border-left:3px solid var(--orange);padding:.75rem 1rem;">
+    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily withdrawal limit</div>
+    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;3&#160;000</div>
+    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
+  </div>
+  <div class="card card-pad" style="border-left:3px solid var(--purple);padding:.75rem 1rem;">
+    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Monthly withdrawal limit</div>
+    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
+    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets 1st of month</div>
+  </div>
 </div>
 
 <!-- Transaction history -->
@@ -80,8 +105,8 @@
       <tr class="tx-row {{ 'credit' if tx.amount_cents>0 else 'debit' }}">
         <td><div class="td-bold">{{ tx.description }}</div></td>
         <td><span class="pill {{ 'pill-green' if tx.amount_cents>0 else 'pill-red' }} pill-no-dot" style="font-size:.7rem;">{{ (tx.tx_type or '').replace('_',' ').title() }}</span></td>
-        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(tx.amount_cents|abs/100) }}</td>
-        <td class="text-muted">{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(tx.balance_after/100) }}</td>
+        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', '\u00a0') }}</td>
+        <td class="text-muted">{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.balance_after/100).replace(',', '\u00a0') }}</td>
         <td class="text-muted text-xs">{{ tx.created_at[:16].replace('T',' ') }}</td>
       </tr>
       {% endfor %}
@@ -123,7 +148,7 @@
       <div class="form-group">
         <label class="form-label">From</label>
         <select class="form-input form-select" id="cv-from" onchange="previewConvert()">
-          {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }} ({{ currencies.get(w.currency,{}).get('symbol','') }}{{ '%.2f'%(w.balance/100) }})</option>{% endfor %}
+          {% for w in wallets %}<option value="{{ w.currency }}" {{ 'selected' if w.currency==active_wallet.currency }}>{{ w.currency }} ({{ currencies.get(w.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(w.balance/100).replace(',', '\u00a0') }})</option>{% endfor %}
         </select>
       </div>
       <div class="form-group">
@@ -178,7 +203,7 @@
     <button class="modal-close" onclick="closeModal('withdraw-modal')">✕</button>
     <h3 class="modal-title">Withdraw Funds</h3>
     <div style="background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--radius);padding:.6rem 1rem;margin-bottom:1rem;font-size:.85rem;">
-      Available: {% if active_wallet %}<strong>{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '%.2f'%(active_wallet.balance/100) }} {{ active_wallet.currency }}</strong>{% endif %}
+      Available: {% if active_wallet %}<strong>{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(active_wallet.balance/100).replace(',', '\u00a0') }} {{ active_wallet.currency }}</strong>{% endif %}
     </div>
     <div id="wd-s1">
       <div class="form-row">
@@ -286,10 +311,10 @@ async function previewConvert(){
     const d=await API.get(`/api/currency/preview-conversion?from=${from}&to=${to}&amount=${amt}`);
     document.getElementById('cv-preview').style.display='block';
     const fs=SYMS[from]?.symbol||''; const ts=SYMS[to]?.symbol||'';
-    document.getElementById('cv-send').textContent=fs+amt.toFixed(2)+' '+from;
-    document.getElementById('cv-fee').textContent=fs+(d.fee_cents/100).toFixed(2)+' ('+d.fee_pct.toFixed(1)+'%)';
+    document.getElementById('cv-send').textContent=fmtMoney(amt,fs)+' '+from;
+    document.getElementById('cv-fee').textContent=fmtMoney(d.fee_cents/100,fs)+' ('+d.fee_pct.toFixed(1)+'%)';
     document.getElementById('cv-rate').textContent='1 '+from+' = '+d.rate.toFixed(4)+' '+to;
-    document.getElementById('cv-receive').textContent=ts+(d.to_amount/100).toFixed(2)+' '+to;
+    document.getElementById('cv-receive').textContent=fmtMoney(d.to_amount/100,ts)+' '+to;
   },400);
 }
 async function doConvert(){const btn=document.getElementById('btn-cv');const code=[0,1,2,3,4,5].map(i=>document.getElementById('cvotp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/convert',{from_currency:document.getElementById('cv-from').value,to_currency:document.getElementById('cv-to').value,amount:parseFloat(document.getElementById('cv-amt').value),otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('convert-modal');toast('Converted successfully!','success');setTimeout(()=>location.reload(),1200);}
@@ -298,13 +323,13 @@ async function doDeposit(){const btn=document.getElementById('btn-dep');const a=
 
 function updWdF(){const m=document.getElementById('wd-meth').value;document.getElementById('wd-fields').innerHTML=(BFIELDS[m]||[]).map(([id,l])=>`<div class="form-group"><label class="form-label">${l}</label><input class="form-input" id="wdf-${id}" placeholder="${l}"></div>`).join('');}
 updWdF();
-function calcFee(){const a=parseFloat(document.getElementById('wd-amt').value)||0;if(a<=0){document.getElementById('wd-prev').style.display='none';return;}const m=document.getElementById('wd-meth').value,rate=FEES[m]||.02,fee=Math.max(.5,a*rate);document.getElementById('wd-prev').style.display='block';document.getElementById('w-amt').textContent='€'+a.toFixed(2);document.getElementById('w-fee').textContent='€'+fee.toFixed(2)+' ('+(rate*100).toFixed(1)+'%)';document.getElementById('w-tot').textContent='€'+(a+fee).toFixed(2);}
+function calcFee(){const a=parseFloat(document.getElementById('wd-amt').value)||0;if(a<=0){document.getElementById('wd-prev').style.display='none';return;}const m=document.getElementById('wd-meth').value,rate=FEES[m]||.02,fee=Math.max(.5,a*rate);document.getElementById('wd-prev').style.display='block';document.getElementById('w-amt').textContent=fmtMoney(a);document.getElementById('w-fee').textContent=fmtMoney(fee)+' ('+(rate*100).toFixed(1)+'%)';document.getElementById('w-tot').textContent=fmtMoney(a+fee);}
 function goWd2(){const a=parseFloat(document.getElementById('wd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}document.getElementById('wd-s1').style.display='none';document.getElementById('wd-s2').style.display='';document.getElementById('otp0').focus();}
 async function doWd(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-wdc');setLoading(btn,true);const a=parseFloat(document.getElementById('wd-amt').value);const cur=document.getElementById('wd-cur').value;const m=document.getElementById('wd-meth').value;const holder=document.getElementById('wdf-holder')?.value||document.getElementById('wdf-iban')?.value||'account';const d=await API.post('/api/wallet/withdraw',{amount:a,method:m,currency:cur,otp:code,destination_name:holder});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('withdraw-modal');toast('Withdrawal submitted!','success');setTimeout(()=>location.reload(),1500);}
 
 let payRec=null,payTimer=null;
 function lookupTag(){clearTimeout(payTimer);payTimer=setTimeout(async()=>{const tag=document.getElementById('pay-tag').value.trim();if(tag.length<3)return;const d=await API.get('/api/profile/lookup-hanatag?tag=@'+tag.replace('@',''));const res=document.getElementById('pay-res');if(d.ok){payRec=d.user;res.innerHTML=`<div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;"><strong>✓ ${d.user.full_name}</strong></div>`;document.getElementById('btn-pay2').disabled=false;}else{payRec=null;res.innerHTML=`<div style="background:var(--red-lt);border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;color:var(--red);">Not found</div>`;document.getElementById('btn-pay2').disabled=true;}},500);}
-function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=parseFloat(document.getElementById('pay-amt').value)||0;if(a<1){toast('Enter amount','error');return;}const cur=document.getElementById('pay-cur').value;const sym=SYMS[cur]?.symbol||'';document.getElementById('p-name').textContent=payRec.full_name;document.getElementById('p-tag').textContent='@'+document.getElementById('pay-tag').value;document.getElementById('p-amt').textContent=sym+a.toFixed(2)+' '+cur;document.getElementById('pay-s1').style.display='none';document.getElementById('pay-s2').style.display='';document.getElementById('potp0').focus();}
+function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=parseFloat(document.getElementById('pay-amt').value)||0;if(a<1){toast('Enter amount','error');return;}const cur=document.getElementById('pay-cur').value;const sym=SYMS[cur]?.symbol||'';document.getElementById('p-name').textContent=payRec.full_name;document.getElementById('p-tag').textContent='@'+document.getElementById('pay-tag').value;const payFeeNote=a>5000?' (incl. 2% fee above € 5 000)':'';document.getElementById('p-amt').textContent=fmtMoney(a,sym)+' '+cur+payFeeNote;document.getElementById('pay-s1').style.display='none';document.getElementById('pay-s2').style.display='';document.getElementById('potp0').focus();}
 async function doPay(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('potp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-payc');setLoading(btn,true);const d=await API.post('/api/wallet/pay',{hanatag:'@'+document.getElementById('pay-tag').value.replace('@',''),amount:parseFloat(document.getElementById('pay-amt').value),currency:document.getElementById('pay-cur').value,note:document.getElementById('pay-note').value,otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('pay-modal');toast('Sent to '+d.recipient_name+'!','success');setTimeout(()=>location.reload(),1500);}
 
 function oN(i,el,prefix='otp'){const v=el.value;if(v&&i<5)document.getElementById(prefix+(i+1)).focus();}

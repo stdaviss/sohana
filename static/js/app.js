@@ -1,4 +1,30 @@
-/* SOHANA Hub — Global JS v3 */
+/* ── NUMBER FORMATTING ── */
+/**
+ * Format a numeric value as "x xxx xxx.xx" with space-separated thousands.
+ * @param {number} value   — the number (already in display units, e.g. 1234.56)
+ * @param {string} symbol  — currency symbol, e.g. "€" (default "€")
+ * @returns {string}       — e.g. "€1 234 567.89"
+ */
+function fmtMoney(value, symbol = '€') {
+  const num = parseFloat(value) || 0;
+  const [int, dec] = num.toFixed(2).split('.');
+  // Add space every 3 digits from the right
+  const intFormatted = int.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  return `${symbol}${intFormatted}.${dec}`;
+}
+
+/**
+ * Format cents to display string.
+ * @param {number} cents
+ * @param {string} symbol
+ */
+function fmtCents(cents, symbol = '€') {
+  return fmtMoney(Math.abs(cents) / 100, symbol);
+}
+
+
+/* ── TOAST ── */
+Global JS v3 */
 const API = {
   async post(url, data) {
     const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });

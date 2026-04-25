@@ -45,9 +45,9 @@
         {% if is_member and my_contrib and my_contrib.status=='pending' %}
         <div style="background:var(--amber-lt);border:1px solid #fde68a;border-radius:var(--radius);padding:.875rem;margin-top:1rem;">
           <div style="font-size:.875rem;font-weight:600;">Your contribution is due</div>
-          <div class="text-xs text-muted">€{{ '%.2f'%(my_contrib.amount_cents/100) }} by {{ my_contrib.due_at[:10] }}</div>
+          <div class="text-xs text-muted">€{{ '{:,.2f}'.format(my_contrib.amount_cents/100).replace(',', ' ') }} by {{ my_contrib.due_at[:10] }}</div>
         </div>
-        <button class="btn btn-primary btn-full mt-3" id="btn-contrib" onclick="payC()">Pay €{{ '%.2f'%(my_contrib.amount_cents/100) }}</button>
+        <button class="btn btn-primary btn-full mt-3" id="btn-contrib" onclick="payC()">Pay €{{ '{:,.2f}'.format(my_contrib.amount_cents/100).replace(',', ' ') }}</button>
         {% elif is_member and my_contrib and my_contrib.status in ('paid','late') %}
         <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;margin-top:1rem;font-weight:600;color:var(--green);font-size:.875rem;">✓ Contribution paid this cycle</div>
         {% endif %}

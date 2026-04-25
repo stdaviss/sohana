@@ -28,12 +28,43 @@ WITHDRAWAL_FEES = {
     "bank_eu": 0.010, "bank_uk": 0.015, "bank_us": 0.020,
     "bank_swift": 0.035, "mobile_money": 0.015, "sohana_user": 0.000,
 }
-WITHDRAWAL_FEE_MIN = 50
+WITHDRAWAL_FEE_MIN = 50  # minimum 50 cents
 
 # ROSCA creation fees by tier
 ROSCA_CREATION_FEES = {
     "probation": 500, "developing": 300, "reliable": 100, "exemplary": 0,
 }
+
+# ── Account transaction limits (Standard tier) ────────────────────────────────
+LIMITS = {
+    "standard": {
+        "deposit_daily_cents":    1_000_000,   # €10,000
+        "withdraw_daily_cents":     300_000,   # €3,000
+        "withdraw_monthly_cents": 1_000_000,   # €10,000
+        "pay_fee_threshold_cents":  500_000,   # €5,000 — Pay fee above this
+        "pay_fee_rate":               0.020,   # 2% on Pay amounts > €5,000
+    }
+}
+
+def fmt(cents, currency="EUR"):
+    """Format cents as x xxx xxx.xx with thousand-space separators."""
+    sym = CURRENCIES.get(currency, {}).get("symbol", "")
+    value = abs(cents) / 100
+    formatted = f"{value:,.2f}".replace(",", " ")  # non-breaking space
+    return f"{sym}{formatted}"
+
+def get_period_total(wallet_id, tx_type, direction, period="day"):
+    """Sum transactions of a given type/direction within today or this month."""
+    since = "datetime('now', 'start of day')" if period == "day"             else "datetime('now', 'start of month')"
+    clause = "amount_cents < 0" if direction == "out" else "amount_cents > 0"
+    row = fetchone(
+        f"""SELECT COALESCE(SUM(ABS(amount_cents)), 0) AS total
+            FROM wallet_transactions
+            WHERE wallet_id=? AND tx_type=? AND {clause}
+              AND created_at >= {since}""",
+        (wallet_id, tx_type)
+    )
+    return row["total"] if row else 0
 
 # Admin role definitions
 ADMIN_ROLES = {
