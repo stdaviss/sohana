@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}SOHANA Hub{% endblock %}</title>
+<title>{% block title %}SOHANA{% endblock %}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
 {% block head %}{% endblock %}
@@ -12,11 +12,11 @@
 <div class="app-shell">
 {% if session.user_id %}
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
+  <div class="sidebar-logo" onclick="location.href='/dashboard'" style="cursor:pointer;" title="Go to Dashboard">
     <div class="sidebar-logo-icon">
       <div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div>
     </div>
-    <span class="sidebar-logo-text">SOHANA <span>Hub</span></span>
+    <span class="sidebar-logo-text">SOHANA</span>
   </div>
   {% set p = request.path %}
   <div class="sidebar-section">
@@ -45,7 +45,7 @@
   {% endif %}
   <div class="sidebar-bottom">
     <a href="/profile"><span class="nav-icon">👤</span>My Profile</a>
-    <a href="#" onclick="doLogout()"><span class="nav-icon">←</span>Sign out</a>
+    <a href="/logout" style="cursor:pointer;"><span class="nav-icon">←</span>Sign out</a>
   </div>
 </aside>
 

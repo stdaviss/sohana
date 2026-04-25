@@ -3,20 +3,61 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sign in — SOHANA Hub</title>
+<title>Sign in — SOHANA</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
-</head>
-<body style="display:block;background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,#1e3a5f 100%);min-height:100vh;display:flex;flex-direction:column;">
+<style>
+/* Loading overlay */
+#login-overlay {
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#14213a 0%,#1a2b4a 60%,#1e3a5f 100%);
+  flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;
+}
+.dot-row { display:flex;gap:6px;align-items:center; }
+.pulse-dot {
+  width:10px;height:10px;border-radius:50%;background:#60a5fa;
+  animation:pulse 1.2s ease-in-out infinite;
+}
+.pulse-dot:nth-child(2){animation-delay:.2s;}
+.pulse-dot:nth-child(3){animation-delay:.4s;}
+@keyframes pulse{0%,80%,100%{transform:scale(.5);opacity:.3;}40%{transform:scale(1);opacity:1;}}
 
+/* Email autosuggest */
+#email-suggest {
+  position:fixed;background:#fff;border:1px solid #e2e8f0;
+  border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);
+  overflow:hidden;z-index:200;display:none;
+}
+#email-suggest div {
+  padding:.55rem 1rem;font-size:.85rem;color:#334155;cursor:pointer;
+  border-bottom:1px solid #f1f5f9;
+}
+#email-suggest div:last-child{border-bottom:none;}
+#email-suggest div:hover{background:#eff6ff;color:#2563eb;}
+
+/* Alert box */
+#alert-box {
+  display:none;padding:.65rem .875rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;
+  background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;
+}
+</style>
+</head>
+<body style="background:linear-gradient(135deg,#14213a 0%,#1a2b4a 60%,#1e3a5f 100%);min-height:100vh;display:flex;flex-direction:column;font-family:Inter,system-ui,sans-serif;">
+
+<!-- Nav -->
 <nav style="padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;">
-  <a href="/" style="display:flex;align-items:center;gap:.6rem;color:#fff;font-weight:700;font-size:1.05rem;text-decoration:none;">
-    <div style="display:flex;gap:3px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
-    SOHANA Hub
+  <a href="/" style="display:flex;align-items:center;gap:.6rem;color:#fff;font-weight:800;font-size:1.05rem;text-decoration:none;">
+    <div style="display:flex;gap:3px;">
+      <div style="width:9px;height:9px;border-radius:50%;background:#60a5fa;"></div>
+      <div style="width:9px;height:9px;border-radius:50%;background:#34d399;"></div>
+      <div style="width:9px;height:9px;border-radius:50%;background:#f59e0b;"></div>
+    </div>
+    SOHANA
   </a>
-  <span style="font-size:.8rem;color:rgba(255,255,255,.5);">Secure platform</span>
+  <span style="font-size:.8rem;color:rgba(255,255,255,.45);">Secure platform</span>
 </nav>
 
+<!-- Card -->
 <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;">
   <div style="width:100%;max-width:420px;">
     <div style="text-align:center;margin-bottom:1.75rem;">
@@ -24,50 +65,68 @@
       <p style="color:rgba(255,255,255,.55);font-size:.875rem;">Your community savings platform</p>
     </div>
 
-    <div class="card" style="border:none;border-radius:var(--radius-xl);box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
 
       <!-- Tabs -->
-      <div style="display:flex;border-bottom:1px solid var(--border);">
+      <div style="display:flex;border-bottom:1px solid #e2e8f0;">
         <button id="tab-login" onclick="switchTab('login')"
-          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue);cursor:pointer;border-radius:var(--radius-xl) 0 0 0;">
+          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:600;
+                 border-bottom:3px solid #2563eb;color:#2563eb;cursor:pointer;border-radius:20px 0 0 0;font-family:inherit;">
           Sign in
         </button>
         <button id="tab-register" onclick="switchTab('register')"
-          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted);cursor:pointer;border-radius:0 var(--radius-xl) 0 0;">
+          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:500;
+                 border-bottom:3px solid transparent;color:#64748b;cursor:pointer;border-radius:0 20px 0 0;font-family:inherit;">
           Create account
         </button>
       </div>
 
       <div style="padding:1.5rem;">
-        <div id="alert-box" class="hidden" style="margin-bottom:1rem;"></div>
+        <div id="alert-box"></div>
 
-        <!-- Login form -->
+        <!-- ── LOGIN FORM ── -->
         <div id="form-login">
-          <div class="form-group">
-            <label class="form-label">Phone number</label>
-            <input class="form-input" id="l-phone" type="tel" placeholder="+33611000001" autocomplete="tel">
-            <p class="form-hint">Demo: +33611000001 / demo123</p>
+          <div style="margin-bottom:.875rem;position:relative;">
+            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Email or phone number</label>
+            <input id="l-id" type="text" placeholder="yourname@gmail.com or +336XXXXXXXX"
+              autocomplete="username"
+              oninput="suggestEmail(this)"
+              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color .15s;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            <div id="email-suggest"></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input class="form-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+          <div style="margin-bottom:.875rem;">
+            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Password</label>
+            <input id="l-pass" type="password" placeholder="••••••••"
+              autocomplete="current-password"
+              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color .15s;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+              onkeydown="if(event.key==='Enter')doLogin()">
           </div>
-          <button class="btn btn-primary btn-full btn-lg mt-2" id="btn-login" onclick="doLogin()">Sign in</button>
-          <p style="text-align:center;font-size:.8rem;color:var(--text-muted);margin-top:.875rem;">
-            Don't have an account? <a onclick="switchTab('register')" style="color:var(--blue);cursor:pointer;font-weight:500;">Create one free</a>
+          <button id="btn-login" onclick="doLogin()"
+            style="width:100%;padding:.65rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;margin-top:.25rem;"
+            onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+            Sign in
+          </button>
+          <p style="text-align:center;font-size:.8rem;color:#64748b;margin-top:.875rem;margin-bottom:0;">
+            Don't have an account?
+            <a onclick="switchTab('register')" style="color:#2563eb;cursor:pointer;font-weight:500;">Create one free</a>
           </p>
         </div>
 
-        <!-- Register form -->
-        <div id="form-register" class="hidden">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Full name</label>
-              <input class="form-input" id="r-name" type="text" placeholder="Maria Ngono">
+        <!-- ── REGISTER FORM ── -->
+        <div id="form-register" style="display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.875rem;">
+            <div>
+              <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Full name</label>
+              <input id="r-name" type="text" placeholder="Maria Ngono"
+                style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
+                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
             </div>
-            <div class="form-group">
-              <label class="form-label">Country</label>
-              <select class="form-input form-select" id="r-country">
+            <div>
+              <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Country</label>
+              <select id="r-country"
+                style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;background:#fff;">
                 <option value="FR">France</option>
                 <option value="RW">Rwanda</option>
                 <option value="CM">Cameroon</option>
@@ -76,23 +135,40 @@
                 <option value="GB">United Kingdom</option>
                 <option value="US">United States</option>
                 <option value="BE">Belgium</option>
+                <option value="CI">Côte d'Ivoire</option>
+                <option value="SN">Senegal</option>
+                <option value="GH">Ghana</option>
+                <option value="ZA">South Africa</option>
               </select>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Phone number</label>
-            <input class="form-input" id="r-phone" type="tel" placeholder="+336XXXXXXXX">
+          <div style="margin-bottom:.875rem;">
+            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Phone number</label>
+            <input id="r-phone" type="tel" placeholder="+336XXXXXXXX"
+              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           </div>
-          <div class="form-group">
-            <label class="form-label">Email (optional)</label>
-            <input class="form-input" id="r-email" type="email" placeholder="you@example.com">
+          <div style="margin-bottom:.875rem;">
+            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Email <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
+            <input id="r-email" type="email" placeholder="yourname@gmail.com"
+              oninput="suggestEmailReg(this)"
+              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            <div id="email-suggest-reg" style="position:fixed;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);overflow:hidden;z-index:200;display:none;"></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Password</label>
-            <input class="form-input" id="r-pass" type="password" placeholder="At least 8 characters">
+          <div style="margin-bottom:.875rem;">
+            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Password</label>
+            <input id="r-pass" type="password" placeholder="At least 8 characters"
+              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
+              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+              onkeydown="if(event.key==='Enter')doRegister()">
           </div>
-          <button class="btn btn-orange btn-full btn-lg mt-2" id="btn-register" onclick="doRegister()">Create account</button>
-          <p style="text-align:center;font-size:.75rem;color:var(--text-muted);margin-top:.875rem;">
+          <button id="btn-register" onclick="doRegister()"
+            style="width:100%;padding:.65rem;background:#ea580c;color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;"
+            onmouseover="this.style.background='#c2410c'" onmouseout="this.style.background='#ea580c'">
+            Create account
+          </button>
+          <p style="text-align:center;font-size:.75rem;color:#94a3b8;margin-top:.875rem;margin-bottom:0;">
             By creating an account you agree to our terms of service.
           </p>
         </div>
@@ -101,50 +177,174 @@
   </div>
 </div>
 
-<div class="toast" id="_toast"></div>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- Loading overlay -->
+<div id="login-overlay">
+  <div style="display:flex;gap:5px;">
+    <div style="width:12px;height:12px;border-radius:50%;background:#60a5fa;"></div>
+    <div style="width:12px;height:12px;border-radius:50%;background:#34d399;"></div>
+    <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
+  </div>
+  <div style="color:#fff;font-size:1.6rem;font-weight:800;letter-spacing:-.01em;">SOHANA</div>
+  <div class="dot-row">
+    <div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div>
+  </div>
+  <div id="overlay-msg" style="color:rgba(255,255,255,.65);font-size:.9rem;">Signing you in…</div>
+</div>
+
 <script>
-function switchTab(tab) {
-  const isLogin = tab === 'login';
-  document.getElementById('form-login').classList.toggle('hidden', !isLogin);
-  document.getElementById('form-register').classList.toggle('hidden', isLogin);
-  document.getElementById('tab-login').style.cssText = `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:${isLogin?'600':'500'};border-bottom:3px solid ${isLogin?'var(--blue)':'transparent'};color:${isLogin?'var(--blue)':'var(--text-muted)'};cursor:pointer;`;
-  document.getElementById('tab-register').style.cssText = `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:${!isLogin?'600':'500'};border-bottom:3px solid ${!isLogin?'var(--blue)':'transparent'};color:${!isLogin?'var(--blue)':'var(--text-muted)'};cursor:pointer;`;
-  document.getElementById('alert-box').classList.add('hidden');
-}
-function showAlert(msg, type='error') {
+/* ── HELPERS ── */
+function showAlert(msg) {
   const el = document.getElementById('alert-box');
-  el.className = 'alert alert-' + type;
-  el.textContent = msg;
+  el.style.display = 'block';
+  el.textContent   = msg;
 }
+function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
+
+function setLoading(btn, loading) {
+  if (loading) {
+    btn._txt = btn.textContent;
+    btn.textContent = 'Please wait…';
+    btn.disabled = true;
+    btn.style.opacity = '.7';
+  } else {
+    btn.textContent = btn._txt;
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+/* ── TABS ── */
+function switchTab(tab) {
+  hideAlert();
+  document.getElementById('email-suggest').style.display = 'none';
+  const isLogin = (tab === 'login');
+  document.getElementById('form-login').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('form-register').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('tab-login').style.cssText =
+    `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;
+     font-weight:${isLogin?'600':'500'};font-family:inherit;cursor:pointer;
+     border-bottom:3px solid ${isLogin?'#2563eb':'transparent'};
+     color:${isLogin?'#2563eb':'#64748b'};border-radius:20px 0 0 0;`;
+  document.getElementById('tab-register').style.cssText =
+    `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;
+     font-weight:${isLogin?'500':'600'};font-family:inherit;cursor:pointer;
+     border-bottom:3px solid ${isLogin?'transparent':'#2563eb'};
+     color:${isLogin?'#64748b':'#2563eb'};border-radius:0 20px 0 0;`;
+}
+
+/* ── EMAIL AUTOSUGGEST ── */
+const DOMAINS = [
+  'gmail.com','yahoo.com','outlook.com','hotmail.com','icloud.com',
+  'live.com','protonmail.com','orange.fr','sfr.fr','yahoo.fr',
+  'hotmail.fr','gmx.com','aol.com','mail.com','zoho.com'
+];
+let suggestTimer = null;
+
+function buildSuggestBox(boxId, input, value) {
+  const box = document.getElementById(boxId);
+  const at  = value.indexOf('@');
+  if (at < 1) { box.style.display = 'none'; return; }
+  const prefix = value.slice(0, at + 1);
+  const typed  = value.slice(at + 1);
+  const matches = DOMAINS.filter(d => d.startsWith(typed));
+  if (!matches.length || typed === matches[0]) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.slice(0, 6).map(d =>
+    `<div onclick="pickDomain('${boxId}','${input.id}','${prefix}${d}')">${prefix}<strong>${typed}</strong>${d.slice(typed.length)}</div>`
+  ).join('');
+  const rect = input.getBoundingClientRect();
+  box.style.cssText = `display:block;position:fixed;top:${rect.bottom+3}px;left:${rect.left}px;width:${rect.width}px;
+    background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);overflow:hidden;z-index:200;`;
+}
+
+function suggestEmail(input) {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(() => buildSuggestBox('email-suggest', input, input.value), 120);
+}
+function suggestEmailReg(input) {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(() => buildSuggestBox('email-suggest-reg', input, input.value), 120);
+}
+function pickDomain(boxId, inputId, full) {
+  document.getElementById(inputId).value = full;
+  document.getElementById(boxId).style.display = 'none';
+  // Move focus to password field
+  const next = inputId === 'l-id' ? 'l-pass' : 'r-pass';
+  const nextEl = document.getElementById(next);
+  if (nextEl) nextEl.focus();
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#email-suggest') && e.target.id !== 'l-id')
+    document.getElementById('email-suggest').style.display = 'none';
+  if (!e.target.closest('#email-suggest-reg') && e.target.id !== 'r-email')
+    document.getElementById('email-suggest-reg').style.display = 'none';
+});
+
+/* ── LOADING OVERLAY ── */
+function showOverlay(name) {
+  const ov  = document.getElementById('login-overlay');
+  const msg = document.getElementById('overlay-msg');
+  ov.style.display = 'flex';
+  setTimeout(() => { msg.textContent = 'Loading your dashboard…'; }, 1000);
+  setTimeout(() => { msg.textContent = 'Welcome' + (name ? ', ' + name.split(' ')[0] : '') + '! 👋'; }, 2200);
+  setTimeout(() => { window.location.href = '/dashboard'; }, 3000);
+}
+
+/* ── LOGIN ── */
 async function doLogin() {
+  hideAlert();
+  const identifier = document.getElementById('l-id').value.trim();
+  const password   = document.getElementById('l-pass').value;
+  if (!identifier) { showAlert('Please enter your email or phone number.'); return; }
+  if (!password)   { showAlert('Please enter your password.'); return; }
   const btn = document.getElementById('btn-login');
   setLoading(btn, true);
-  const d = await API.post('/api/auth/login', { phone: document.getElementById('l-phone').value, password: document.getElementById('l-pass').value });
-  setLoading(btn, false);
-  if (d.error) { showAlert(d.error); return; }
-  window.location.href = '/dashboard';
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({ phone: identifier, password })
+    });
+    const data = await resp.json();
+    setLoading(btn, false);
+    if (data.error) { showAlert(data.error); return; }
+    showOverlay(data.user ? data.user.name : '');
+  } catch (err) {
+    setLoading(btn, false);
+    showAlert('Connection error. Please check your internet and try again.');
+  }
 }
+
+/* ── REGISTER ── */
 async function doRegister() {
+  hideAlert();
+  const name  = document.getElementById('r-name').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const pass  = document.getElementById('r-pass').value;
+  if (!name)  { showAlert('Please enter your full name.'); return; }
+  if (!phone) { showAlert('Please enter your phone number.'); return; }
+  if (pass.length < 8) { showAlert('Password must be at least 8 characters.'); return; }
   const btn = document.getElementById('btn-register');
   setLoading(btn, true);
-  const d = await API.post('/api/auth/register', {
-    phone: document.getElementById('r-phone').value,
-    full_name: document.getElementById('r-name').value,
-    password: document.getElementById('r-pass').value,
-    email: document.getElementById('r-email').value,
-    country: document.getElementById('r-country').value,
-  });
-  setLoading(btn, false);
-  if (d.error) { showAlert(d.error); return; }
-  window.location.href = '/dashboard';
-}
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    if (!document.getElementById('form-login').classList.contains('hidden')) doLogin();
-    else doRegister();
+  try {
+    const resp = await fetch('/api/auth/register', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({
+        phone, password: pass,
+        full_name: name,
+        email:   document.getElementById('r-email').value.trim(),
+        country: document.getElementById('r-country').value,
+      })
+    });
+    const data = await resp.json();
+    setLoading(btn, false);
+    if (data.error) { showAlert(data.error); return; }
+    showOverlay(name);
+  } catch (err) {
+    setLoading(btn, false);
+    showAlert('Connection error. Please try again.');
   }
-});
+}
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — SOHANA Hub{% endblock %}
+{% block title %}Dashboard — SOHANA{% endblock %}
 {% block topbar_title %}Dashboard{% endblock %}
 {% block content %}
 <div class="page-header">
@@ -139,16 +139,32 @@ async function doDep(){const btn=document.getElementById('btn-ddep');const a=par
 
 // Load dashboard notifications inline
 async function loadDashNotifs() {
-  const d = await API.get('/api/notifications');
   const el = document.getElementById('dash-notifs');
-  if (!d.notifications || !d.notifications.length) { el.innerHTML='<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">No notifications</div>'; return; }
-  el.innerHTML = d.notifications.slice(0,4).map(n => `
-    <div class="notif-item" onclick="${n.link?'location.href=\''+n.link+'\'':''}" style="${!n.is_read?'background:var(--blue-lt)':''}">
-      <div class="notif-dot-icon ${n.notif_type==='success'?'green':n.notif_type==='danger'?'red':'blue'}">${n.notif_type==='success'?'✓':'ℹ'}</div>
-      <div class="notif-body"><div class="notif-text"><strong>${n.title}</strong><br><span style="font-weight:400;">${n.body}</span></div><div class="notif-time">${n.created_at.slice(0,16).replace('T',' ')}</div></div>
-      <span class="notif-arrow">›</span>
-    </div>`).join('');
+  if (!el) return;
+  try {
+    const d = await API.get('/api/notifications');
+    if (!d || !d.notifications) {
+      el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">No notifications yet.</div>';
+      return;
+    }
+    if (!d.notifications.length) {
+      el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">You\'re all caught up!</div>';
+      return;
+    }
+    el.innerHTML = d.notifications.slice(0, 4).map(n => `
+      <div class="notif-item" onclick="${n.link ? 'location.href=\'' + n.link + '\'' : ''}" style="cursor:${n.link ? 'pointer' : 'default'};${!n.is_read ? 'background:var(--blue-lt);' : ''}">
+        <div class="notif-dot-icon ${n.notif_type === 'success' ? 'green' : n.notif_type === 'danger' ? 'red' : 'orange'}">${n.notif_type === 'success' ? '✓' : 'ℹ'}</div>
+        <div class="notif-body">
+          <div class="notif-text"><strong>${n.title}</strong><br><span style="font-weight:400;">${n.body}</span></div>
+          <div class="notif-time">${n.created_at.slice(0, 16).replace('T', ' ')}</div>
+        </div>
+        <span class="notif-arrow">›</span>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">Could not load notifications.</div>';
+  }
 }
-loadDashNotifs();
+// Run on page load
+document.addEventListener('DOMContentLoaded', loadDashNotifs);
 </script>
 {% endblock %}

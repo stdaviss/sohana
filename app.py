@@ -470,6 +470,12 @@ def api_logout():
     session.clear()
     return jsonify({"ok": True})
 
+@app.route("/logout")
+def logout():
+    """GET logout — clears session and redirects to landing. Used by sidebar Sign out link."""
+    session.clear()
+    return redirect(url_for("index"))
+
 # ── WALLET API ────────────────────────────────────────────────────────────────
 
 @app.route("/api/wallet/balances")
