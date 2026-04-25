@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}SOHANA{% endblock %}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=4.2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=4.3">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -88,7 +88,7 @@
 
 <div class="toast" id="_toast"></div>
 {% block modals %}{% endblock %}
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}?v=4.3"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
