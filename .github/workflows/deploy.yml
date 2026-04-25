@@ -1,0 +1,12 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm deployment triggered
+        run: echo "Push received — Railway is deploying automatically."
