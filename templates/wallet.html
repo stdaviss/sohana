@@ -2,6 +2,29 @@
 {% block title %}Wallet — SOHANA{% endblock %}
 {% block topbar_title %}Wallet{% endblock %}
 {% block content %}
+{% if user.get('freeze_deposits') or user.get('freeze_withdrawals') %}
+<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.875rem;align-items:start;">
+  <span style="font-size:1.3rem;flex-shrink:0;">🔒</span>
+  <div>
+    <div style="font-weight:700;color:#b91c1c;margin-bottom:.3rem;">
+      {% if user.get('freeze_deposits') and user.get('freeze_withdrawals') %}
+        Your deposits and withdrawals are currently restricted
+      {% elif user.get('freeze_deposits') %}
+        Your deposits are currently restricted
+      {% else %}
+        Your withdrawals and payments are currently restricted
+      {% endif %}
+    </div>
+    <div style="font-size:.875rem;color:#7f1d1d;line-height:1.5;">
+      To resolve this, please contact our customer service team at
+      <strong>support@sohana.app</strong> or visit the
+      <a href="/blog" style="color:#b91c1c;font-weight:600;">Help Centre</a>.
+      Please reference your account phone number when you contact us.
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="page-header">
   <div><h1 class="page-title">My Wallet</h1><p class="page-subtitle">Multi-currency wallet — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR</p></div>
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
@@ -325,7 +348,7 @@ function updWdF(){const m=document.getElementById('wd-meth').value;document.getE
 updWdF();
 function calcFee(){const a=parseFloat(document.getElementById('wd-amt').value)||0;if(a<=0){document.getElementById('wd-prev').style.display='none';return;}const m=document.getElementById('wd-meth').value,rate=FEES[m]||.02,fee=Math.max(.5,a*rate);document.getElementById('wd-prev').style.display='block';document.getElementById('w-amt').textContent=fmtMoney(a);document.getElementById('w-fee').textContent=fmtMoney(fee)+' ('+(rate*100).toFixed(1)+'%)';document.getElementById('w-tot').textContent=fmtMoney(a+fee);}
 function goWd2(){const a=parseFloat(document.getElementById('wd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}document.getElementById('wd-s1').style.display='none';document.getElementById('wd-s2').style.display='';document.getElementById('otp0').focus();}
-async function doWd(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-wdc');setLoading(btn,true);const a=parseFloat(document.getElementById('wd-amt').value);const cur=document.getElementById('wd-cur').value;const m=document.getElementById('wd-meth').value;const holder=document.getElementById('wdf-holder')?.value||document.getElementById('wdf-iban')?.value||'account';const d=await API.post('/api/wallet/withdraw',{amount:a,method:m,currency:cur,otp:code,destination_name:holder});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('withdraw-modal');toast('Withdrawal submitted!','success');setTimeout(()=>location.reload(),1500);}
+async function doWd(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-wdc');setLoading(btn,true);const a=parseFloat(document.getElementById('wd-amt').value);const cur=document.getElementById('wd-cur').value;const m=document.getElementById('wd-meth').value;const holder=document.getElementById('wdf-holder')?.value||document.getElementById('wdf-iban')?.value||'account';const d=await API.post('/api/wallet/withdraw',{amount:a,method:m,currency:cur,otp:code,destination_name:holder});setLoading(btn,false);if(d.frozen){toast('Withdrawals are restricted. Contact support@sohana.app','error');closeModal('withdraw-modal');return;}if(d.error){toast(d.error,'error');return;}closeModal('withdraw-modal');toast('Withdrawal submitted!','success');setTimeout(()=>location.reload(),1500);}
 
 let payRec=null,payTimer=null;
 function lookupTag(){clearTimeout(payTimer);payTimer=setTimeout(async()=>{const tag=document.getElementById('pay-tag').value.trim();if(tag.length<3)return;const d=await API.get('/api/profile/lookup-hanatag?tag=@'+tag.replace('@',''));const res=document.getElementById('pay-res');if(d.ok){payRec=d.user;res.innerHTML=`<div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;"><strong>✓ ${d.user.full_name}</strong></div>`;document.getElementById('btn-pay2').disabled=false;}else{payRec=null;res.innerHTML=`<div style="background:var(--red-lt);border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;color:var(--red);">Not found</div>`;document.getElementById('btn-pay2').disabled=true;}},500);}

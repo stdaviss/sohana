@@ -71,6 +71,7 @@ ADMIN_ROLES = {
     "ceo":        {"label": "CEO",                 "dashboard": "executive",   "color": "#7c3aed", "icon": "👑"},
     "cto":        {"label": "CTO",                 "dashboard": "engineering", "color": "#0891b2", "icon": "⚙️"},
     "cco":        {"label": "CCO",                 "dashboard": "compliance",  "color": "#16a34a", "icon": "🛡️"},
+    "cfo":        {"label": "CFO",                 "dashboard": "executive",   "color": "#0369a1", "icon": "💼"},
     "operations": {"label": "Operations Officer",  "dashboard": "operations",  "color": "#2563eb", "icon": "📊"},
     "compliance": {"label": "Compliance Manager",  "dashboard": "compliance",  "color": "#16a34a", "icon": "📋"},
     "fraud":      {"label": "Fraud Analyst",       "dashboard": "fraud",       "color": "#dc2626", "icon": "🔍"},
@@ -100,7 +101,12 @@ CREATE TABLE IF NOT EXISTS users (
     admin_role    TEXT,
     notif_email   INTEGER NOT NULL DEFAULT 1,
     notif_push    INTEGER NOT NULL DEFAULT 1,
-    notif_sms     INTEGER NOT NULL DEFAULT 0,
+    notif_sms          INTEGER NOT NULL DEFAULT 0,
+    freeze_deposits    INTEGER NOT NULL DEFAULT 0,
+    freeze_withdrawals INTEGER NOT NULL DEFAULT 0,
+    freeze_reason      TEXT,
+    frozen_by          TEXT,
+    frozen_at          TEXT,
     created_at    TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -287,6 +293,17 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_wallet_tx        ON wallet_transactions(wallet_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS freeze_log (
+    id              TEXT PRIMARY KEY,
+    target_user_id  TEXT NOT NULL REFERENCES users(id),
+    admin_id        TEXT NOT NULL REFERENCES users(id),
+    action          TEXT NOT NULL,
+    freeze_type     TEXT NOT NULL,
+    reason          TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_freeze_log ON freeze_log(target_user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_contrib_user     ON contributions(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ncs_events_user  ON ncs_events(user_id, recorded_at DESC);
 CREATE INDEX IF NOT EXISTS idx_members_rosca    ON rosca_members(rosca_id);

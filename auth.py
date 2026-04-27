@@ -62,7 +62,7 @@ def get_current_user():
     if "user_id" not in session:
         return None
     row = fetchone(
-        "SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,ncs_score,ncs_tier,kyc_level,is_admin,admin_role,notif_email,notif_push,notif_sms,created_at FROM users WHERE id=?",
+        "SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,ncs_score,ncs_tier,kyc_level,is_admin,admin_role,notif_email,notif_push,notif_sms,freeze_deposits,freeze_withdrawals,freeze_reason,created_at FROM users WHERE id=?",
         (session["user_id"],)
     )
     return dict(row) if row else None

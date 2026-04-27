@@ -43,6 +43,36 @@ def admin_required(f):
 # Alias for backwards compatibility
 any_admin_required = admin_required
 
+# ── FREEZE HELPERS ────────────────────────────────────────────────────────────
+
+FREEZE_AUTHORIZED_ROLES = {"ceo", "cco", "cfo"}   # roles that can freeze others
+CEO_ONLY = {"ceo"}                                  # CEO can freeze admins too
+
+def _get_freeze_status(user_id):
+    """Return (freeze_deposits, freeze_withdrawals, reason) for a user."""
+    row = fetchone("SELECT freeze_deposits, freeze_withdrawals, freeze_reason FROM users WHERE id=?", (user_id,))
+    if not row: return False, False, None
+    return bool(row["freeze_deposits"]), bool(row["freeze_withdrawals"]), row["freeze_reason"]
+
+def _can_freeze(actor_role, target_is_admin):
+    """Check if actor has permission to freeze a target user."""
+    if actor_role not in FREEZE_AUTHORIZED_ROLES:
+        return False
+    if target_is_admin and actor_role not in CEO_ONLY:
+        return False  # Only CEO can freeze other admins
+    return True
+
+FROZEN_DEPOSIT_MSG = (
+    "Your deposits are currently restricted. "
+    "Please contact our customer service team at support@sohana.app "
+    "or visit the Help Centre to resolve this."
+)
+FROZEN_WITHDRAW_MSG = (
+    "Your withdrawals are currently restricted. "
+    "Please contact our customer service team at support@sohana.app "
+    "or visit the Help Centre to resolve this."
+)
+
 # ── PUBLIC PAGES ─────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -576,6 +606,10 @@ def api_deposit():
     cents    = int(float(d.get("amount", 0)) * 100)
     currency = d.get("currency", "EUR")
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
+    # ── Freeze check ──────────────────────────────────────────────────
+    fd, fw, freason = _get_freeze_status(session["user_id"])
+    if fd: return jsonify({"error": FROZEN_DEPOSIT_MSG, "frozen": True}), 403
+    # ─────────────────────────────────────────────────────────────────
     wallet = _get_wallet(session["user_id"], currency)
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
     # ── Daily deposit limit ───────────────────────────────────────────
@@ -601,6 +635,10 @@ def api_withdraw():
     if len(otp) != 6 or not otp.isdigit():
         return jsonify({"error": "Invalid verification code"}), 400
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
+    # ── Freeze check ──────────────────────────────────────────────────
+    fd, fw, freason = _get_freeze_status(session["user_id"])
+    if fw: return jsonify({"error": FROZEN_WITHDRAW_MSG, "frozen": True}), 403
+    # ─────────────────────────────────────────────────────────────────
     wallet = _get_wallet(session["user_id"], currency)
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
     # ── Withdrawal limits ─────────────────────────────────────────────
@@ -637,6 +675,10 @@ def api_pay():
     if len(otp) != 6 or not otp.isdigit():
         return jsonify({"error": "Invalid verification code"}), 400
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
+    # ── Freeze check (Pay counts as outgoing transfer) ────────────────
+    fd, fw, freason = _get_freeze_status(session["user_id"])
+    if fw: return jsonify({"error": FROZEN_WITHDRAW_MSG, "frozen": True}), 403
+    # ─────────────────────────────────────────────────────────────────
     if not hanatag.startswith("@"): hanatag = f"@{hanatag}"
     recipient = fetchone("SELECT id, full_name FROM users WHERE hanatag=?", (hanatag,))
     if not recipient: return jsonify({"error": "Hanatag not found"}), 404
@@ -1218,6 +1260,175 @@ def api_pool_report_csv(pool_id):
     name = p["name"].replace(" ","-").lower()
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": f"attachment; filename=pool-report-{name}.csv"})
+
+# ── ADMIN FREEZE CONTROLS ─────────────────────────────────────────────────────
+
+@app.route("/api/admin/freeze", methods=["POST"])
+@admin_required
+def api_admin_freeze():
+    """
+    Freeze deposits and/or withdrawals for a user.
+    Authorized roles: CEO, CCO, CFO.
+    Only CEO can freeze another admin.
+    """
+    d          = request.json or {}
+    target_id  = d.get("user_id","").strip()
+    freeze_dep = bool(d.get("freeze_deposits", False))
+    freeze_wd  = bool(d.get("freeze_withdrawals", False))
+    reason     = d.get("reason","").strip()
+
+    if not target_id: return jsonify({"error": "user_id required"}), 400
+    if not reason:    return jsonify({"error": "A reason is required"}), 400
+    if not freeze_dep and not freeze_wd:
+        return jsonify({"error": "Select at least one: deposits or withdrawals"}), 400
+
+    # Check actor role
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in FREEZE_AUTHORIZED_ROLES:
+        return jsonify({"error": "Insufficient privileges. Only CEO, CCO, and CFO can freeze accounts."}), 403
+
+    # Check target exists and whether they are an admin
+    target = fetchone("SELECT id, full_name, is_admin, admin_role FROM users WHERE id=?", (target_id,))
+    if not target: return jsonify({"error": "User not found"}), 404
+
+    if not _can_freeze(actor["admin_role"], bool(target["is_admin"])):
+        return jsonify({"error": "Only the CEO can restrict another admin account."}), 403
+
+    # Prevent self-freeze
+    if target_id == session["user_id"]:
+        return jsonify({"error": "You cannot freeze your own account"}), 400
+
+    with get_db() as db:
+        db.execute("""UPDATE users SET
+                      freeze_deposits=?, freeze_withdrawals=?,
+                      freeze_reason=?, frozen_by=?, frozen_at=datetime('now')
+                      WHERE id=?""",
+                   (1 if freeze_dep else 0, 1 if freeze_wd else 0,
+                    reason, session["user_id"], target_id))
+        # Audit log
+        db.execute("""INSERT INTO freeze_log(id,target_user_id,admin_id,action,freeze_type,reason)
+                      VALUES(?,?,?,?,?,?)""",
+                   (str(uuid.uuid4()), target_id, session["user_id"],
+                    "freeze",
+                    ("deposits+withdrawals" if freeze_dep and freeze_wd
+                     else "deposits" if freeze_dep else "withdrawals"),
+                    reason))
+
+    # Notify the affected user
+    frozen_what = []
+    if freeze_dep: frozen_what.append("deposits")
+    if freeze_wd:  frozen_what.append("withdrawals")
+    push_notification(target_id,
+                      "Account restriction applied",
+                      f"Your {' and '.join(frozen_what)} have been restricted. "
+                      f"Please contact support@sohana.app to resolve this.",
+                      "danger")
+
+    return jsonify({"ok": True, "target_name": target["full_name"]})
+
+
+@app.route("/api/admin/unfreeze", methods=["POST"])
+@admin_required
+def api_admin_unfreeze():
+    """Lift deposits and/or withdrawals freeze for a user."""
+    d          = request.json or {}
+    target_id  = d.get("user_id","").strip()
+    unfreeze_dep = bool(d.get("unfreeze_deposits", False))
+    unfreeze_wd  = bool(d.get("unfreeze_withdrawals", False))
+    reason       = d.get("reason","").strip()
+
+    if not target_id: return jsonify({"error": "user_id required"}), 400
+    if not unfreeze_dep and not unfreeze_wd:
+        return jsonify({"error": "Select at least one to unfreeze"}), 400
+
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in FREEZE_AUTHORIZED_ROLES:
+        return jsonify({"error": "Insufficient privileges"}), 403
+
+    target = fetchone("SELECT id, full_name, is_admin FROM users WHERE id=?", (target_id,))
+    if not target: return jsonify({"error": "User not found"}), 404
+    if not _can_freeze(actor["admin_role"], bool(target["is_admin"])):
+        return jsonify({"error": "Only the CEO can modify restrictions on admin accounts."}), 403
+
+    with get_db() as db:
+        if unfreeze_dep and unfreeze_wd:
+            db.execute("""UPDATE users SET freeze_deposits=0, freeze_withdrawals=0,
+                          freeze_reason=NULL, frozen_by=NULL, frozen_at=NULL WHERE id=?""", (target_id,))
+        elif unfreeze_dep:
+            db.execute("UPDATE users SET freeze_deposits=0 WHERE id=?", (target_id,))
+        else:
+            db.execute("UPDATE users SET freeze_withdrawals=0 WHERE id=?", (target_id,))
+
+        # Update freeze_reason if both now clear
+        current = fetchone("SELECT freeze_deposits, freeze_withdrawals FROM users WHERE id=?", (target_id,))
+        if current and not current["freeze_deposits"] and not current["freeze_withdrawals"]:
+            db.execute("UPDATE users SET freeze_reason=NULL, frozen_by=NULL, frozen_at=NULL WHERE id=?", (target_id,))
+
+        db.execute("""INSERT INTO freeze_log(id,target_user_id,admin_id,action,freeze_type,reason)
+                      VALUES(?,?,?,?,?,?)""",
+                   (str(uuid.uuid4()), target_id, session["user_id"],
+                    "unfreeze",
+                    ("deposits+withdrawals" if unfreeze_dep and unfreeze_wd
+                     else "deposits" if unfreeze_dep else "withdrawals"),
+                    reason or "Restriction lifted"))
+
+    unfrozen_what = []
+    if unfreeze_dep: unfrozen_what.append("deposits")
+    if unfreeze_wd:  unfrozen_what.append("withdrawals")
+    push_notification(target_id,
+                      "Account restriction lifted ✓",
+                      f"Your {' and '.join(unfrozen_what)} restriction has been removed.",
+                      "success")
+
+    return jsonify({"ok": True, "target_name": target["full_name"]})
+
+
+@app.route("/api/admin/freeze-log")
+@admin_required
+def api_freeze_log():
+    """Full audit log of all freeze/unfreeze actions."""
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in FREEZE_AUTHORIZED_ROLES:
+        return jsonify({"error": "Insufficient privileges"}), 403
+    logs = fetchall("""SELECT fl.*, u.full_name as target_name, a.full_name as admin_name, a.admin_role
+                       FROM freeze_log fl
+                       JOIN users u ON u.id=fl.target_user_id
+                       JOIN users a ON a.id=fl.admin_id
+                       ORDER BY fl.created_at DESC LIMIT 100""")
+    return jsonify({"logs": [dict(l) for l in logs]})
+
+
+@app.route("/admin/freeze")
+@admin_required
+def admin_freeze_panel():
+    """Dedicated freeze management page for CEO/CCO/CFO."""
+    user  = auth.get_current_user()
+    actor_role = user["admin_role"] if user else ""
+    if actor_role not in FREEZE_AUTHORIZED_ROLES:
+        return redirect(url_for("admin_home"))
+
+    # All users with their freeze status
+    users = fetchall("""SELECT id, full_name, phone, email, hanatag, ncs_score, ncs_tier,
+                               is_admin, admin_role, freeze_deposits, freeze_withdrawals,
+                               freeze_reason, frozen_at
+                        FROM users ORDER BY is_admin DESC, full_name""")
+
+    # Freeze log
+    logs = fetchall("""SELECT fl.*, u.full_name as target_name, a.full_name as admin_name, a.admin_role
+                       FROM freeze_log fl
+                       JOIN users u ON u.id=fl.target_user_id
+                       JOIN users a ON a.id=fl.admin_id
+                       ORDER BY fl.created_at DESC LIMIT 50""")
+
+    # Stats
+    frozen_dep_count = sum(1 for u in users if u["freeze_deposits"])
+    frozen_wd_count  = sum(1 for u in users if u["freeze_withdrawals"])
+
+    return render_template("admin_freeze.html", user=user, all_users=users,
+                           logs=logs, actor_role=actor_role,
+                           frozen_dep_count=frozen_dep_count,
+                           frozen_wd_count=frozen_wd_count)
+
 
 def _seed_all():
     if fetchone("SELECT id FROM users WHERE phone='+33611000001'"): return

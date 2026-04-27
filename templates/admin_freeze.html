@@ -1,0 +1,361 @@
+{% extends "admin_base.html" %}
+{% block title %}Freeze Controls — SOHANA Admin{% endblock %}
+{% block sidebar_role %}{% if actor_role == 'ceo' %}CEO{% elif actor_role == 'cfo' %}CFO{% else %}CCO{% endif %}{% endblock %}
+{% block topbar_title %}Account Freeze Controls{% endblock %}
+{% block topbar_sub %}Restrict deposits and withdrawals for specific users{% endblock %}
+
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin">← Back to Dashboard</a></li>
+    <li><a href="/admin/freeze" class="active">🔒 Freeze Controls</a></li>
+    <li><a href="/admin/users">👥 All Users</a></li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Authority notice -->
+<div class="acard acard-pad" style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);margin-bottom:1.5rem;">
+  <div style="display:flex;align-items:center;gap:.75rem;">
+    <span style="font-size:1.5rem;">🔒</span>
+    <div>
+      <div style="font-weight:600;color:#c4b5fd;margin-bottom:.2rem;">Freeze Authority — {{ actor_role|upper }}</div>
+      <div style="font-size:.82rem;color:var(--admin-muted);">
+        {% if actor_role == 'ceo' %}
+          As CEO, you can freeze any user account including other admins (CCO, CFO).
+        {% else %}
+          As {{ actor_role|upper }}, you can freeze regular user accounts. Only the CEO can freeze admin accounts.
+        {% endif %}
+        All freeze actions are permanently logged for audit purposes.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="astats-grid astats-3" style="margin-bottom:1.5rem;">
+  <div class="astat">
+    <div class="astat-label">Deposits frozen</div>
+    <div class="astat-value" style="color:{% if frozen_dep_count > 0 %}#f87171{% else %}#34d399{% endif %};">{{ frozen_dep_count }}</div>
+    <div class="astat-delta" style="font-size:.72rem;color:var(--admin-muted);">{{ 'accounts restricted' if frozen_dep_count > 0 else 'all clear' }}</div>
+  </div>
+  <div class="astat">
+    <div class="astat-label">Withdrawals frozen</div>
+    <div class="astat-value" style="color:{% if frozen_wd_count > 0 %}#f87171{% else %}#34d399{% endif %};">{{ frozen_wd_count }}</div>
+    <div class="astat-delta" style="font-size:.72rem;color:var(--admin-muted);">{{ 'accounts restricted' if frozen_wd_count > 0 else 'all clear' }}</div>
+  </div>
+  <div class="astat">
+    <div class="astat-label">Total actions logged</div>
+    <div class="astat-value">{{ logs|length }}</div>
+    <div class="astat-delta" style="font-size:.72rem;color:var(--admin-muted);">last 50 shown</div>
+  </div>
+</div>
+
+<!-- User table with freeze controls -->
+<div class="acard" style="margin-bottom:1.5rem;">
+  <div class="acard-header">
+    <span class="acard-title">All Users — Freeze Status</span>
+    <div style="display:flex;gap:.5rem;">
+      <input type="text" id="search-input" placeholder="Search by name or phone…"
+        oninput="filterUsers()"
+        style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:6px;color:var(--admin-text);padding:.35rem .75rem;font-size:.8rem;width:220px;font-family:inherit;">
+      <select id="filter-status" onchange="filterUsers()"
+        style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);color:var(--admin-text);border-radius:6px;padding:.35rem .6rem;font-size:.78rem;font-family:inherit;">
+        <option value="all">All users</option>
+        <option value="frozen">Any freeze active</option>
+        <option value="clear">No restrictions</option>
+      </select>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="atable" id="user-table">
+      <thead><tr>
+        <th>User</th><th>Type</th><th>NCS</th>
+        <th>Deposits</th><th>Withdrawals</th>
+        <th>Reason</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for u in all_users %}
+        {% set can_act = (actor_role == 'ceo') or (not u.is_admin) %}
+        <tr class="user-row {{ 'has-freeze' if u.freeze_deposits or u.freeze_withdrawals else 'no-freeze' }}"
+            data-name="{{ u.full_name|lower }}" data-phone="{{ u.phone or '' }}">
+          <td>
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <div class="admin-avatar" style="width:28px;height:28px;font-size:.68rem;background:{% if u.is_admin %}#7c3aed{% else %}var(--admin-surface){% endif %};">{{ u.full_name[0] }}</div>
+              <div>
+                <div style="font-weight:500;color:#fff;font-size:.83rem;">{{ u.full_name }}</div>
+                <div style="font-size:.7rem;color:var(--admin-muted);">{{ u.phone or u.email or '' }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if u.is_admin %}
+            <span class="apill apill-purple" style="font-size:.65rem;">{{ u.admin_role|upper }}</span>
+            {% else %}
+            <span class="apill apill-blue" style="font-size:.65rem;">User</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem;font-weight:600;">{{ u.ncs_score }}</td>
+          <td>
+            {% if u.freeze_deposits %}
+            <span style="background:rgba(248,113,113,.15);color:#f87171;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:600;">🔒 Frozen</span>
+            {% else %}
+            <span style="background:rgba(52,211,153,.1);color:#34d399;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;">✓ Open</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.freeze_withdrawals %}
+            <span style="background:rgba(248,113,113,.15);color:#f87171;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;font-weight:600;">🔒 Frozen</span>
+            {% else %}
+            <span style="background:rgba(52,211,153,.1);color:#34d399;padding:.2rem .6rem;border-radius:20px;font-size:.72rem;">✓ Open</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.75rem;color:var(--admin-muted);max-width:160px;">
+            {% if u.freeze_reason %}
+            <span title="{{ u.freeze_reason }}">{{ u.freeze_reason[:40] }}{% if u.freeze_reason|length > 40 %}…{% endif %}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if can_act %}
+            <div style="display:flex;gap:.3rem;flex-wrap:wrap;">
+              {% if not u.freeze_deposits or not u.freeze_withdrawals %}
+              <button class="apill apill-red" style="cursor:pointer;font-size:.65rem;border:none;padding:.2rem .6rem;"
+                onclick="openFreezeModal('{{ u.id }}','{{ u.full_name }}',{{ 'true' if u.freeze_deposits else 'false' }},{{ 'true' if u.freeze_withdrawals else 'false' }})">
+                🔒 Freeze
+              </button>
+              {% endif %}
+              {% if u.freeze_deposits or u.freeze_withdrawals %}
+              <button class="apill apill-green" style="cursor:pointer;font-size:.65rem;border:none;padding:.2rem .6rem;"
+                onclick="openUnfreezeModal('{{ u.id }}','{{ u.full_name }}',{{ 'true' if u.freeze_deposits else 'false' }},{{ 'true' if u.freeze_withdrawals else 'false' }})">
+                🔓 Unfreeze
+              </button>
+              {% endif %}
+            </div>
+            {% else %}
+            <span style="font-size:.72rem;color:var(--admin-muted);">CEO only</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Audit log -->
+<div class="acard">
+  <div class="acard-header"><span class="acard-title">📋 Freeze Action Log</span><span style="font-size:.75rem;color:var(--admin-muted);">All actions are permanent and cannot be deleted</span></div>
+  {% if logs %}
+  <table class="atable">
+    <thead><tr><th>Date</th><th>Action</th><th>Target User</th><th>Type</th><th>By</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for l in logs %}
+      <tr>
+        <td style="font-size:.75rem;color:var(--admin-muted);white-space:nowrap;">{{ l.created_at[:16].replace('T',' ') }}</td>
+        <td>
+          <span class="apill {% if l.action=='freeze' %}apill-red{% else %}apill-green{% endif %}" style="font-size:.65rem;">
+            {{ '🔒 Freeze' if l.action=='freeze' else '🔓 Unfreeze' }}
+          </span>
+        </td>
+        <td style="font-size:.82rem;color:#fff;font-weight:500;">{{ l.target_name }}</td>
+        <td style="font-size:.78rem;color:var(--admin-muted);">{{ l.freeze_type }}</td>
+        <td style="font-size:.78rem;">
+          <span style="color:#c4b5fd;">{{ l.admin_name }}</span>
+          <span class="apill apill-purple" style="font-size:.58rem;margin-left:.2rem;">{{ l.admin_role|upper }}</span>
+        </td>
+        <td style="font-size:.75rem;color:var(--admin-muted);max-width:200px;">{{ l.reason or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:2rem;text-align:center;color:var(--admin-muted);">No freeze actions have been taken yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Freeze modal -->
+<div class="amodal-backdrop" id="freeze-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#1a2035;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="color:#fff;font-size:1.05rem;font-weight:700;">🔒 Freeze account</h3>
+      <button onclick="closeFreezeModal()" style="background:none;border:none;color:var(--admin-muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <p style="font-size:.85rem;color:var(--admin-muted);margin-bottom:1.25rem;">Restricting <strong id="fm-name" style="color:#fff;"></strong></p>
+
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:.78rem;color:var(--admin-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">What to freeze</div>
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid var(--admin-border);margin-bottom:.4rem;" id="fm-dep-label">
+        <input type="checkbox" id="fm-dep" style="width:16px;height:16px;">
+        <div>
+          <div style="color:#fff;font-size:.85rem;font-weight:500;">Freeze deposits</div>
+          <div style="font-size:.72rem;color:var(--admin-muted);">User cannot add money to their wallet</div>
+        </div>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid var(--admin-border);" id="fm-wd-label">
+        <input type="checkbox" id="fm-wd" style="width:16px;height:16px;">
+        <div>
+          <div style="color:#fff;font-size:.85rem;font-weight:500;">Freeze withdrawals & payments</div>
+          <div style="font-size:.72rem;color:var(--admin-muted);">User cannot withdraw or send money</div>
+        </div>
+      </label>
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:.78rem;color:var(--admin-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">Reason (required)</div>
+      <input type="text" id="fm-reason" placeholder="e.g. Suspicious transaction pattern, AML review pending…"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;padding:.55rem .875rem;color:#fff;font-size:.85rem;font-family:inherit;box-sizing:border-box;outline:none;">
+      <div style="font-size:.7rem;color:var(--admin-muted);margin-top:.3rem;">This reason will be logged permanently and shown to the user in their freeze notification.</div>
+    </div>
+
+    <div style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:.65rem .875rem;margin-bottom:1.25rem;font-size:.78rem;color:#fca5a5;">
+      ⚠ The user will be immediately notified and will see a message directing them to contact customer support.
+    </div>
+
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="closeFreezeModal()" style="flex:1;padding:.6rem;background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;color:var(--admin-text);cursor:pointer;font-family:inherit;">Cancel</button>
+      <button id="btn-freeze-confirm" onclick="confirmFreeze()"
+        style="flex:1;padding:.6rem;background:#ef4444;border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-size:.9rem;font-family:inherit;">Apply freeze</button>
+    </div>
+    <input type="hidden" id="fm-uid">
+  </div>
+</div>
+
+<!-- Unfreeze modal -->
+<div class="amodal-backdrop" id="unfreeze-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;">
+  <div style="background:#1a2035;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:1.5rem;width:100%;max-width:460px;margin:1rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="color:#fff;font-size:1.05rem;font-weight:700;">🔓 Lift restriction</h3>
+      <button onclick="closeUnfreezeModal()" style="background:none;border:none;color:var(--admin-muted);font-size:1.2rem;cursor:pointer;">✕</button>
+    </div>
+    <p style="font-size:.85rem;color:var(--admin-muted);margin-bottom:1.25rem;">Lifting restrictions on <strong id="ufm-name" style="color:#fff;"></strong></p>
+
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:.78rem;color:var(--admin-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.6rem;">What to unfreeze</div>
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid var(--admin-border);margin-bottom:.4rem;" id="ufm-dep-label">
+        <input type="checkbox" id="ufm-dep" style="width:16px;height:16px;">
+        <div style="color:#fff;font-size:.85rem;font-weight:500;">Unfreeze deposits</div>
+      </label>
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.5rem;border-radius:8px;border:1px solid var(--admin-border);" id="ufm-wd-label">
+        <input type="checkbox" id="ufm-wd" style="width:16px;height:16px;">
+        <div style="color:#fff;font-size:.85rem;font-weight:500;">Unfreeze withdrawals & payments</div>
+      </label>
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:.78rem;color:var(--admin-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem;">Note (optional)</div>
+      <input type="text" id="ufm-reason" placeholder="e.g. Review completed, account cleared"
+        style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;padding:.55rem .875rem;color:#fff;font-size:.85rem;font-family:inherit;box-sizing:border-box;outline:none;">
+    </div>
+
+    <div style="display:flex;gap:.5rem;">
+      <button onclick="closeUnfreezeModal()" style="flex:1;padding:.6rem;background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;color:var(--admin-text);cursor:pointer;font-family:inherit;">Cancel</button>
+      <button id="btn-unfreeze-confirm" onclick="confirmUnfreeze()"
+        style="flex:1;padding:.6rem;background:#34d399;border:none;border-radius:8px;color:#0f172a;font-weight:700;cursor:pointer;font-size:.9rem;font-family:inherit;">Lift restriction</button>
+    </div>
+    <input type="hidden" id="ufm-uid">
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search / filter
+function filterUsers() {
+  const q      = document.getElementById('search-input').value.toLowerCase();
+  const status = document.getElementById('filter-status').value;
+  document.querySelectorAll('.user-row').forEach(row => {
+    const nameMatch  = row.dataset.name.includes(q) || row.dataset.phone.includes(q);
+    const hasFreezes = row.classList.contains('has-freeze');
+    const statusOk   = status === 'all'
+                    || (status === 'frozen' && hasFreezes)
+                    || (status === 'clear'  && !hasFreezes);
+    row.style.display = (nameMatch && statusOk) ? '' : 'none';
+  });
+}
+
+// Freeze modal
+function openFreezeModal(uid, name, depFrozen, wdFrozen) {
+  document.getElementById('fm-uid').value  = uid;
+  document.getElementById('fm-name').textContent = name;
+  document.getElementById('fm-dep').checked = !depFrozen;
+  document.getElementById('fm-wd').checked  = !wdFrozen;
+  document.getElementById('fm-reason').value = '';
+  // Dim already-frozen options
+  document.getElementById('fm-dep-label').style.opacity = depFrozen ? '.4' : '1';
+  document.getElementById('fm-dep').disabled = depFrozen;
+  document.getElementById('fm-wd-label').style.opacity = wdFrozen ? '.4' : '1';
+  document.getElementById('fm-wd').disabled = wdFrozen;
+  document.getElementById('freeze-modal').style.display = 'flex';
+}
+function closeFreezeModal() {
+  document.getElementById('freeze-modal').style.display = 'none';
+}
+async function confirmFreeze() {
+  const reason = document.getElementById('fm-reason').value.trim();
+  if (!reason) { alert('Please provide a reason.'); return; }
+  const dep = document.getElementById('fm-dep').checked;
+  const wd  = document.getElementById('fm-wd').checked;
+  if (!dep && !wd) { alert('Select at least one option.'); return; }
+  const btn = document.getElementById('btn-freeze-confirm');
+  btn.textContent = 'Applying…'; btn.disabled = true;
+  const d = await fetch('/api/admin/freeze', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      user_id: document.getElementById('fm-uid').value,
+      freeze_deposits: dep, freeze_withdrawals: wd, reason
+    })
+  }).then(r=>r.json());
+  btn.textContent = 'Apply freeze'; btn.disabled = false;
+  if (d.error) { alert(d.error); return; }
+  closeFreezeModal();
+  setTimeout(()=>location.reload(), 500);
+}
+
+// Unfreeze modal
+function openUnfreezeModal(uid, name, depFrozen, wdFrozen) {
+  document.getElementById('ufm-uid').value  = uid;
+  document.getElementById('ufm-name').textContent = name;
+  document.getElementById('ufm-dep').checked = depFrozen;
+  document.getElementById('ufm-wd').checked  = wdFrozen;
+  document.getElementById('ufm-reason').value = '';
+  document.getElementById('ufm-dep-label').style.opacity = depFrozen ? '1' : '.4';
+  document.getElementById('ufm-dep').disabled = !depFrozen;
+  document.getElementById('ufm-wd-label').style.opacity = wdFrozen ? '1' : '.4';
+  document.getElementById('ufm-wd').disabled = !wdFrozen;
+  document.getElementById('unfreeze-modal').style.display = 'flex';
+}
+function closeUnfreezeModal() {
+  document.getElementById('unfreeze-modal').style.display = 'none';
+}
+async function confirmUnfreeze() {
+  const btn = document.getElementById('btn-unfreeze-confirm');
+  btn.textContent = 'Lifting…'; btn.disabled = true;
+  const d = await fetch('/api/admin/unfreeze', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      user_id: document.getElementById('ufm-uid').value,
+      unfreeze_deposits: document.getElementById('ufm-dep').checked,
+      unfreeze_withdrawals: document.getElementById('ufm-wd').checked,
+      reason: document.getElementById('ufm-reason').value,
+    })
+  }).then(r=>r.json());
+  btn.textContent = 'Lift restriction'; btn.disabled = false;
+  if (d.error) { alert(d.error); return; }
+  closeUnfreezeModal();
+  setTimeout(()=>location.reload(), 500);
+}
+
+// Close modals on backdrop click
+['freeze-modal','unfreeze-modal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', e=>{
+    if(e.target===document.getElementById(id)) {
+      document.getElementById(id).style.display='none';
+    }
+  });
+});
+</script>
+{% endblock %}
