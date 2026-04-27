@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.title }} — SOHANA{% endblock %}
+{% block topbar_title %}Campaign{% endblock %}
+
+{% block content %}
+{% set cat = categories.get(campaign.category, {'emoji':'🎯','label':'Campaign','desc':''}) %}
+<div class="breadcrumb"><a href="/campaigns">Fundraising</a> / {{ campaign.title[:40] }}</div>
+
+<div class="content-grid content-grid-sidebar" style="margin-top:.75rem;">
+  <!-- Main column -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Hero card -->
+    <div class="card" style="overflow:hidden;">
+      <div style="height:140px;background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,#1e3a5f 100%);display:flex;align-items:center;justify-content:center;font-size:4rem;">
+        {{ cat.emoji }}
+      </div>
+      <div class="card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:.5rem;flex-wrap:wrap;gap:.5rem;">
+          <span class="pill pill-blue pill-no-dot" style="font-size:.7rem;">{{ cat.label }}</span>
+          <span class="pill {% if campaign.status=='completed' %}pill-green{% elif campaign.status=='active' %}pill-blue{% elif campaign.status=='flagged' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.7rem;">{{ campaign.status }}</span>
+        </div>
+        <h1 style="font-size:1.4rem;font-weight:800;color:var(--navy);margin-bottom:.5rem;line-height:1.3;">{{ campaign.title }}</h1>
+        <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.25rem;">
+          By <strong style="color:var(--navy);">{{ campaign.creator_name }}</strong>
+          {% if campaign.creator_hanatag %}<span style="color:var(--blue);">{{ campaign.creator_hanatag }}</span>{% endif %}
+          · NCS <span class="pill {% if campaign.creator_tier=='exemplary' %}pill-purple{% elif campaign.creator_tier=='reliable' %}pill-green{% elif campaign.creator_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.65rem;">{{ campaign.creator_ncs }}</span>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-track mb-2" style="height:10px;"><div class="progress-fill {% if pct >= 100 %}fill-green{% else %}fill-blue{% endif %}" style="width:{{ pct }}%;"></div></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem;">
+          <div>
+            <div style="font-size:1.6rem;font-weight:800;color:{% if pct >= 100 %}var(--green){% else %}var(--navy){% endif %};">€{{ '{:,.2f}'.format(campaign.raised_cents/100).replace(',', ' ') }}</div>
+            <div class="text-xs text-muted">raised of €{{ '{:,.0f}'.format(campaign.goal_cents/100).replace(',', ' ') }} goal</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ campaign.donor_count }}</div>
+            <div class="text-xs text-muted">donors</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--blue);">{{ pct }}%</div>
+            <div class="text-xs text-muted">funded{% if campaign.deadline %} · ends {{ campaign.deadline[:10] }}{% endif %}</div>
+          </div>
+        </div>
+
+        <!-- Donate button -->
+        {% if campaign.status == 'active' %}
+        {% if user %}
+        <button class="btn btn-orange btn-full" style="font-size:1rem;padding:.75rem;" onclick="openModal('donate-modal')">💚 Donate now</button>
+        {% else %}
+        <a href="/auth" class="btn btn-orange btn-full" style="font-size:1rem;padding:.75rem;text-align:center;display:block;">💚 Sign in to donate</a>
+        {% endif %}
+        {% elif campaign.status == 'completed' %}
+        <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;text-align:center;font-weight:600;color:var(--green);">🎉 Goal reached! This campaign has completed.</div>
+        {% endif %}
+        {% if is_creator %}
+        <a href="/campaigns/{{ campaign.slug }}/manage" class="btn btn-outline btn-full btn-sm mt-2">⚙ Manage campaign</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Story -->
+    <div class="card card-pad">
+      <div class="card-title mb-3">About this campaign</div>
+      <div style="font-size:.9rem;line-height:1.75;color:var(--text);white-space:pre-wrap;">{{ campaign.story }}</div>
+    </div>
+
+    <!-- Recent donors -->
+    {% if donations %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent supporters ({{ campaign.donor_count }})</span></div>
+      {% for d in donations[:10] %}
+      <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--blue-lt);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:var(--blue);">
+          {{ d.donor_name[0] if d.donor_name != 'Anonymous' else '?' }}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:.875rem;font-weight:500;">{{ d.donor_name }}</div>
+          {% if d.message %}<div class="text-xs text-muted" style="font-style:italic;">"{{ d.message[:80] }}"</div>{% endif %}
+        </div>
+        <div style="text-align:right;">
+          <div style="font-weight:700;font-size:.875rem;color:var(--green);">€{{ '{:,.2f}'.format(d.amount_cents/100).replace(',', ' ') }}</div>
+          <div class="text-xs text-muted">{{ d.created_at[:10] }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right sidebar -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- Top donors -->
+    {% if top_donors %}
+    <div class="card card-pad">
+      <div class="card-title mb-3">🏆 Top donors</div>
+      {% for d in top_donors %}
+      <div style="display:flex;align-items:center;gap:.65rem;margin-bottom:.65rem;">
+        <div style="width:26px;height:26px;border-radius:50%;background:var(--amber-lt);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--amber);">{{ loop.index }}</div>
+        <div style="flex:1;font-size:.85rem;font-weight:500;">{{ d.donor_name }}</div>
+        <div style="font-weight:700;font-size:.85rem;color:var(--navy);">€{{ '{:,.2f}'.format(d.total/100).replace(',', ' ') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Share -->
+    <div class="card card-pad">
+      <div class="card-title mb-2">Share this campaign</div>
+      <p class="text-sm text-muted mb-3">Every share can bring new supporters.</p>
+      <div style="background:var(--gray-100);border-radius:6px;padding:.5rem .75rem;font-size:.78rem;word-break:break-all;color:var(--text-muted);margin-bottom:.75rem;" id="share-url">{{ request.url }}</div>
+      <button class="btn btn-outline btn-full btn-sm" onclick="copyLink()">📋 Copy link</button>
+    </div>
+
+    <!-- NCS note -->
+    {% if user %}
+    <div class="card card-pad" style="background:var(--green-lt);border-color:#86efac;">
+      <div style="font-size:.85rem;font-weight:600;color:var(--green);margin-bottom:.3rem;">✨ Earn NCS points</div>
+      <p class="text-xs" style="color:#166534;line-height:1.5;">Donating to campaigns earns you <strong>+2 NCS points</strong> for each donation — growing your trust score and unlocking better ROSCA positions.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+{% if user and campaign.status == 'active' %}
+<div class="modal-backdrop" id="donate-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('donate-modal')">✕</button>
+    <h3 class="modal-title">Donate to {{ campaign.title[:35] }}</h3>
+    <p class="modal-sub">Your donation goes directly to the campaign creator. A 2.5% platform fee is deducted.</p>
+
+    <!-- Quick amounts -->
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.875rem;">
+      {% for amt in [5, 10, 25, 50, 100, 250] %}
+      <button class="btn btn-outline btn-sm" onclick="setAmt({{ amt }})" style="flex:1;min-width:60px;">€{{ amt }}</button>
+      {% endfor %}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Amount (€)</label>
+      <input class="form-input" type="number" id="don-amount" min="1" step="1" placeholder="Enter amount" oninput="updateDonPreview()">
+    </div>
+    <div class="modal-confirm-box" id="don-preview" style="display:none;">
+      <div class="confirm-row"><span class="confirm-label">Your donation</span><span id="don-gross" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">Platform fee (2.5%)</span><span id="don-fee" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">Campaign receives</span><span id="don-net" class="confirm-value" style="color:var(--green);">—</span></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message (optional)</label>
+      <input class="form-input" id="don-msg" placeholder="e.g. Stay strong! Wishing you a speedy recovery.">
+    </div>
+    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.85rem;margin-bottom:1rem;">
+      <input type="checkbox" id="don-anon"> Donate anonymously
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('donate-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" id="btn-donate" onclick="confirmDonate()">Donate now 💚</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CAMPAIGN_ID = '{{ campaign.id }}';
+function setAmt(a){document.getElementById('don-amount').value=a;updateDonPreview();}
+function updateDonPreview(){
+  const a=parseFloat(document.getElementById('don-amount').value)||0;
+  const p=document.getElementById('don-preview');
+  if(a<1){p.style.display='none';return;}
+  p.style.display='block';
+  const fee=a*0.025;const net=a-fee;
+  document.getElementById('don-gross').textContent=fmtMoney(a);
+  document.getElementById('don-fee').textContent=fmtMoney(fee);
+  document.getElementById('don-net').textContent=fmtMoney(net);
+}
+async function confirmDonate(){
+  const amt=parseFloat(document.getElementById('don-amount').value)||0;
+  if(amt<1){toast('Enter an amount','error');return;}
+  const btn=document.getElementById('btn-donate');setLoading(btn,true);
+  const d=await API.post('/api/campaigns/'+CAMPAIGN_ID+'/donate',{
+    amount:amt,
+    message:document.getElementById('don-msg').value,
+    is_anonymous:document.getElementById('don-anon').checked,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('donate-modal');
+  toast('Thank you for your donation! 💚','success');
+  setTimeout(()=>location.reload(),1200);
+}
+function copyLink(){
+  navigator.clipboard.writeText(document.getElementById('share-url').textContent.trim());
+  toast('Link copied!','success');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Manage — {{ campaign.title }}{% endblock %}
+{% block topbar_title %}Campaign Management{% endblock %}
+
+{% block content %}
+{% set cat = categories.get(campaign.category, {'emoji':'🎯','label':'Campaign'}) %}
+<div class="breadcrumb"><a href="/campaigns">Fundraising</a> / <a href="/campaigns/{{ campaign.slug }}">{{ campaign.title[:35] }}</a> / Manage</div>
+
+<div class="page-header" style="margin-top:.5rem;">
+  <div>
+    <h1 class="page-title">{{ cat.emoji }} {{ campaign.title }}</h1>
+    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem;flex-wrap:wrap;">
+      <span class="pill {% if campaign.status=='active' %}pill-blue{% elif campaign.status=='completed' %}pill-green{% elif campaign.status=='flagged' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot">{{ campaign.status }}</span>
+      <span class="text-sm text-muted">{{ cat.label }}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a href="/campaigns/{{ campaign.slug }}" class="btn btn-outline btn-sm" target="_blank">🔗 View public page</a>
+    <button class="btn btn-outline btn-sm" onclick="copyLink()">📋 Copy link</button>
+    {% if campaign.status == 'active' %}
+    <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:#fecaca;" onclick="closeCampaign()">Close campaign</button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid stats-grid-4" style="margin-bottom:1.25rem;">
+  <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Total raised (net)</div><div class="stat-value">€{{ '{:,.2f}'.format(campaign.raised_cents/100).replace(',', ' ') }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-body"><div class="stat-label">Donors</div><div class="stat-value">{{ campaign.donor_count }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon amber">🎯</div><div class="stat-body">
+    <div class="stat-label">Progress</div>
+    <div class="stat-value">{{ pct }}%</div>
+    <div class="progress-track mt-2"><div class="progress-fill {% if pct >= 100 %}fill-green{% else %}fill-blue{% endif %}" style="width:{{ pct }}%"></div></div>
+  </div></div>
+  <div class="stat-card"><div class="stat-icon orange">💳</div><div class="stat-body"><div class="stat-label">Available to withdraw</div><div class="stat-value" style="color:var(--green);">€{{ '{:,.2f}'.format(available/100).replace(',', ' ') }}</div><div class="stat-sub">€{{ '{:,.2f}'.format(campaign.withdrawn_cents/100).replace(',', ' ') }} already withdrawn</div></div></div>
+</div>
+
+<!-- Tabs -->
+<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
+  {% for tid,tlabel in [('donations','Donations'),('withdraw','Withdraw Funds'),('settings','Settings')] %}
+  <button id="cmtab-{{ tid }}" onclick="switchTab('{{ tid }}')"
+    style="padding:.6rem 1.1rem;background:none;border:none;font-size:.85rem;white-space:nowrap;cursor:pointer;font-family:inherit;
+           {% if loop.first %}font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue){% else %}font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted){% endif %}">
+    {{ tlabel }}
+  </button>
+  {% endfor %}
+</div>
+
+<!-- DONATIONS TAB -->
+<div id="cmpane-donations">
+  {% if top_donors %}
+  <div class="card card-pad" style="margin-bottom:1.25rem;background:linear-gradient(135deg,var(--navy-dark),var(--navy));border:none;color:#fff;">
+    <div style="font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.45);margin-bottom:.875rem;">🏆 Top donors</div>
+    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+      {% for d in top_donors %}
+      <div style="text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:.2rem;">{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}⭐{% endif %}</div>
+        <div style="font-size:.85rem;font-weight:600;">{{ d.donor_name }}</div>
+        <div style="font-size:.8rem;color:var(--gold);">€{{ '{:,.2f}'.format(d.total/100).replace(',', ' ') }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">All donations ({{ campaign.donor_count }})</span></div>
+    {% if donations %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Donor</th><th>Amount</th><th>Platform fee</th><th>Message</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for d in donations %}
+          <tr>
+            <td style="font-weight:500;">{{ d.donor_name }}{% if d.is_anonymous %}<span class="pill pill-gray pill-no-dot" style="font-size:.6rem;margin-left:.3rem;">anon</span>{% endif %}</td>
+            <td style="font-weight:600;color:var(--green);">€{{ '{:,.2f}'.format(d.amount_cents/100).replace(',', ' ') }}</td>
+            <td class="text-muted text-xs">€{{ '{:,.2f}'.format(d.platform_fee/100).replace(',', ' ') }}</td>
+            <td style="font-size:.8rem;color:var(--text-muted);max-width:200px;">{% if d.message %}<em>"{{ d.message[:60] }}{% if d.message|length > 60 %}…{% endif %}"</em>{% else %}—{% endif %}</td>
+            <td class="text-muted text-xs">{{ d.created_at[:16].replace('T',' ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:2rem;text-align:center;">No donations yet. Share your campaign link to start receiving support.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- WITHDRAW TAB -->
+<div id="cmpane-withdraw" class="hidden">
+  <div class="card card-pad" style="max-width:520px;">
+    <div class="card-title mb-2">Withdraw raised funds</div>
+    <p class="text-sm text-muted mb-3">Funds are transferred instantly to your SOHANA wallet. You can withdraw partial amounts or the full balance at any time.</p>
+
+    <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;margin-bottom:1.25rem;">
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:.2rem;">Available to withdraw</div>
+      <div style="font-size:1.6rem;font-weight:800;color:var(--green);">€{{ '{:,.2f}'.format(available/100).replace(',', ' ') }}</div>
+    </div>
+
+    {% if available > 0 %}
+    <div class="form-group">
+      <label class="form-label">Amount to withdraw (€)</label>
+      <input class="form-input" type="number" id="wd-amount" min="1" max="{{ available/100 }}" step="0.01" placeholder="{{ '{:.2f}'.format(available/100) }}" oninput="updateWdPreview()">
+    </div>
+    <div class="modal-confirm-box" id="wd-preview" style="display:none;">
+      <div class="confirm-row"><span class="confirm-label">Amount</span><span id="wd-amt-show" class="confirm-value">—</span></div>
+      <div class="confirm-row"><span class="confirm-label">Goes to</span><span class="confirm-value">Your SOHANA wallet</span></div>
+    </div>
+    <button class="btn btn-green" id="btn-wd" onclick="doWithdraw()">Withdraw to my wallet</button>
+    <p class="text-xs text-muted mt-2">Funds appear in your wallet instantly. Then withdraw to your bank as normal.</p>
+    {% else %}
+    <div class="empty-state" style="padding:1.5rem;text-align:center;"><p>No funds available to withdraw yet. Share your campaign to receive donations.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div id="cmpane-settings" class="hidden">
+  <div class="card card-pad" style="max-width:560px;">
+    <div class="card-title mb-3">Campaign settings</div>
+    <div class="form-group"><label class="form-label">Title</label>
+      <input class="form-input" id="set-title" value="{{ campaign.title }}"></div>
+    <div class="form-group"><label class="form-label">Story</label>
+      <textarea class="form-input" id="set-story" rows="6" style="resize:vertical;">{{ campaign.story }}</textarea></div>
+    <div class="form-group"><label class="form-label">Deadline</label>
+      <input class="form-input" type="date" id="set-deadline" value="{{ campaign.deadline[:10] if campaign.deadline else '' }}"></div>
+    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem;margin-bottom:1rem;">
+      <input type="checkbox" id="set-public" {{ 'checked' if campaign.is_public }}> List campaign publicly
+    </label>
+    <div style="display:flex;gap:.5rem;">
+      <button class="btn btn-primary" onclick="saveSettings()">Save changes</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CAMPAIGN_ID='{{ campaign.id }}';
+const CAMPAIGN_SLUG='{{ campaign.slug }}';
+const AVAILABLE={{ available }};
+
+function switchTab(t){
+  ['donations','withdraw','settings'].forEach(id=>{
+    document.getElementById('cmpane-'+id).classList.toggle('hidden',id!==t);
+    const btn=document.getElementById('cmtab-'+id);const active=id===t;
+    btn.style.fontWeight=active?'600':'500';btn.style.borderBottom=active?'3px solid var(--blue)':'3px solid transparent';btn.style.color=active?'var(--blue)':'var(--text-muted)';
+  });
+}
+function updateWdPreview(){
+  const a=parseFloat(document.getElementById('wd-amount').value)||0;
+  const p=document.getElementById('wd-preview');
+  p.style.display=a>0?'block':'none';
+  document.getElementById('wd-amt-show').textContent=fmtMoney(a);
+}
+async function doWithdraw(){
+  const a=parseFloat(document.getElementById('wd-amount').value)||0;
+  if(a<1){toast('Enter an amount','error');return;}
+  if(a*100>AVAILABLE){toast('Exceeds available balance','error');return;}
+  const btn=document.getElementById('btn-wd');setLoading(btn,true);
+  const d=await API.post('/api/campaigns/'+CAMPAIGN_ID+'/withdraw',{amount:a});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  toast('€'+a.toFixed(2)+' added to your wallet!','success');
+  setTimeout(()=>location.reload(),1000);
+}
+async function saveSettings(){
+  const d=await API.post('/api/campaigns/'+CAMPAIGN_ID+'/update',{
+    title:document.getElementById('set-title').value,
+    story:document.getElementById('set-story').value,
+    deadline:document.getElementById('set-deadline').value||null,
+    is_public:document.getElementById('set-public').checked?1:0,
+  });
+  if(d.ok)toast('Saved!','success');else toast(d.error,'error');
+}
+async function closeCampaign(){
+  if(!confirm('Close this campaign? Donors will no longer be able to donate.'))return;
+  const d=await API.post('/api/campaigns/'+CAMPAIGN_ID+'/close',{});
+  if(d.ok){toast('Campaign closed','info');setTimeout(()=>location.reload(),800);}
+  else toast(d.error,'error');
+}
+function copyLink(){
+  navigator.clipboard.writeText('{{ request.host_url }}campaigns/'+CAMPAIGN_SLUG);
+  toast('Campaign link copied!','success');
+}
+</script>
+{% endblock %}

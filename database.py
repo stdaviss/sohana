@@ -498,6 +498,12 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_pool_disbursements ON pool_disbursements(pool_id, status)",
         "CREATE INDEX IF NOT EXISTS idx_freeze_log         ON freeze_log(target_user_id, created_at DESC)",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_hanatag ON users(hanatag) WHERE hanatag IS NOT NULL",
+        """CREATE TABLE IF NOT EXISTS campaigns (id TEXT PRIMARY KEY, creator_id TEXT NOT NULL REFERENCES users(id), title TEXT NOT NULL, slug TEXT UNIQUE NOT NULL, category TEXT NOT NULL DEFAULT 'personal', story TEXT NOT NULL, cover_emoji TEXT NOT NULL DEFAULT '🎯', goal_cents INTEGER NOT NULL, raised_cents INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL DEFAULT 'EUR', status TEXT NOT NULL DEFAULT 'active', is_public INTEGER NOT NULL DEFAULT 1, allow_anonymous INTEGER NOT NULL DEFAULT 1, deadline TEXT, platform_fee_rate REAL NOT NULL DEFAULT 0.025, withdrawn_cents INTEGER NOT NULL DEFAULT 0, donor_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))""",
+        """CREATE TABLE IF NOT EXISTS campaign_donations (id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL REFERENCES campaigns(id), donor_id TEXT REFERENCES users(id), donor_name TEXT NOT NULL DEFAULT 'Anonymous', amount_cents INTEGER NOT NULL, message TEXT, is_anonymous INTEGER NOT NULL DEFAULT 0, platform_fee INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))""",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_status   ON campaigns(status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_creator  ON campaigns(creator_id)",
+        "CREATE INDEX IF NOT EXISTS idx_donations_campaign ON campaign_donations(campaign_id, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_campaigns_slug     ON campaigns(slug)",
     ]
 
     for sql in safe_migrations:

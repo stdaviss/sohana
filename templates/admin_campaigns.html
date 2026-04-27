@@ -1,0 +1,108 @@
+{% extends "admin_base.html" %}
+{% block title %}Campaigns — SOHANA Admin{% endblock %}
+{% block sidebar_role %}Admin{% endblock %}
+{% block topbar_title %}Fundraising Campaigns{% endblock %}
+{% block topbar_sub %}Monitor, moderate and manage all platform campaigns{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin">← Dashboard</a></li>
+    <li><a href="/admin/campaigns" class="active">💚 Campaigns</a></li>
+    <li><a href="/admin/users">👥 Users</a></li>
+  </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="astats-grid astats-4" style="margin-bottom:1.5rem;">
+  {% for label,val,color in [
+    ('Total campaigns', stats.total, '#60a5fa'),
+    ('Active campaigns', stats.active, '#34d399'),
+    ('Total raised', '€'+'{:,.0f}'.format(stats.raised/100).replace(',', ' '), '#f59e0b'),
+    ('Platform fees earned', '€'+'{:,.2f}'.format(stats.fees/100).replace(',', ' '), '#a78bfa'),
+  ] %}
+  <div class="astat">
+    <div class="astat-label">{{ label }}</div>
+    <div class="astat-value" style="color:{{ color }};">{{ val }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Status filter -->
+<div style="display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+  {% for s,label in [('','All'),('active','Active'),('completed','Completed'),('flagged','Flagged'),('closed','Closed')] %}
+  <a href="/admin/campaigns{% if s %}?status={{ s }}{% endif %}"
+     class="apill {% if status_filter==s %}apill-blue{% else %}apill-blue' style='opacity:.4{% endif %}"
+     style="cursor:pointer;font-size:.75rem;text-decoration:none;">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="acard">
+  <div class="acard-header"><span class="acard-title">All Campaigns ({{ campaigns|length }})</span></div>
+  {% if campaigns %}
+  <div style="overflow-x:auto;">
+    <table class="atable">
+      <thead><tr>
+        <th>Campaign</th><th>Creator</th><th>Category</th><th>Raised</th><th>Goal</th><th>%</th><th>Donors</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        {% for c in campaigns %}
+        {% set pct = [((c.raised_cents / [c.goal_cents,1]|max)*100)|round|int, 100]|min %}
+        {% set cat = categories.get(c.category, {'emoji':'🎯'}) %}
+        <tr>
+          <td>
+            <div style="font-weight:600;color:#fff;font-size:.85rem;">{{ cat.emoji }} {{ c.title[:40] }}</div>
+            <div style="font-size:.7rem;color:var(--admin-muted);">/campaigns/{{ c.slug }}</div>
+          </td>
+          <td style="font-size:.82rem;">{{ c.creator_name }}</td>
+          <td><span class="apill apill-blue" style="font-size:.62rem;">{{ c.category }}</span></td>
+          <td style="font-weight:600;color:#34d399;">€{{ '{:,.0f}'.format(c.raised_cents/100).replace(',', ' ') }}</td>
+          <td style="font-size:.8rem;color:var(--admin-muted);">€{{ '{:,.0f}'.format(c.goal_cents/100).replace(',', ' ') }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.35rem;">
+              <div style="width:44px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;">
+                <div style="width:{{ pct }}%;height:4px;background:#34d399;border-radius:2px;"></div>
+              </div>
+              <span style="font-size:.72rem;color:var(--admin-muted);">{{ pct }}%</span>
+            </div>
+          </td>
+          <td style="font-size:.82rem;">{{ c.donor_count }}</td>
+          <td>
+            <span class="apill {% if c.status=='active' %}apill-blue{% elif c.status=='completed' %}apill-green{% elif c.status=='flagged' %}apill-red{% else %}apill-amber{% endif %}" style="font-size:.62rem;">{{ c.status }}</span>
+          </td>
+          <td>
+            <div style="display:flex;gap:.25rem;flex-wrap:wrap;">
+              <a href="/campaigns/{{ c.slug }}" target="_blank" class="apill apill-blue" style="font-size:.6rem;cursor:pointer;text-decoration:none;">View</a>
+              {% if c.status == 'active' %}
+              <button class="apill apill-red" style="font-size:.6rem;cursor:pointer;border:none;" onclick="flagCamp('{{ c.id }}')">Flag</button>
+              {% elif c.status == 'flagged' %}
+              <button class="apill apill-green" style="font-size:.6rem;cursor:pointer;border:none;" onclick="restoreCamp('{{ c.id }}')">Restore</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div style="padding:2.5rem;text-align:center;color:var(--admin-muted);">No campaigns yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function flagCamp(id){
+  const reason=prompt('Reason for flagging this campaign:');
+  if(!reason)return;
+  const d=await fetch('/api/admin/campaigns/'+id+'/flag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reason})}).then(r=>r.json());
+  if(d.ok){location.reload();}else alert(d.error);
+}
+async function restoreCamp(id){
+  if(!confirm('Restore this campaign?'))return;
+  const d=await fetch('/api/admin/campaigns/'+id+'/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).then(r=>r.json());
+  if(d.ok){location.reload();}else alert(d.error);
+}
+</script>
+{% endblock %}

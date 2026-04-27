@@ -7,7 +7,7 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       ROSCA_CREATION_FEES, WITHDRAWAL_FEES, CURRENCIES,
                       EXCHANGE_RATES, CONVERSION_FEE_RATE, ADMIN_ROLES,
                       LIMITS, get_period_total, generate_hanatag)
-import auth, rosca, pool, ncs_engine
+import auth, rosca, pool, campaign, ncs_engine
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
@@ -1428,6 +1428,187 @@ def admin_freeze_panel():
                            logs=logs, actor_role=actor_role,
                            frozen_dep_count=frozen_dep_count,
                            frozen_wd_count=frozen_wd_count)
+
+
+# ── CAMPAIGN PAGE ROUTES ─────────────────────────────────────────────────────
+
+@app.route("/campaigns")
+def campaigns_page():
+    """Public browse page — no login required."""
+    user     = auth.get_current_user() if "user_id" in session else None
+    category = request.args.get("category","")
+    search   = request.args.get("q","")
+    campaigns_list = campaign.browse_campaigns(
+        category=category or None,
+        search=search or None,
+        limit=24
+    )
+    categories = campaign.CAMPAIGN_CATEGORIES
+    stats      = campaign.get_campaign_stats()
+    return render_template("campaigns.html", user=user,
+                           campaigns=campaigns_list, categories=categories,
+                           stats=stats, active_category=category, search=search)
+
+
+@app.route("/campaigns/<slug>")
+def campaign_detail(slug):
+    """Public campaign page — shareable, no login needed to view."""
+    user = auth.get_current_user() if "user_id" in session else None
+    c    = campaign.get_campaign(slug=slug)
+    if not c: return redirect(url_for("campaigns_page"))
+    donations  = campaign.get_donations(c["id"], limit=20)
+    top_donors = campaign.get_top_donors(c["id"])
+    is_creator = user and user["id"] == c["creator_id"]
+    categories = campaign.CAMPAIGN_CATEGORIES
+    pct = min(100, round(c["raised_cents"] / max(c["goal_cents"], 1) * 100))
+    return render_template("campaign_detail.html", user=user, campaign=dict(c),
+                           donations=donations, top_donors=top_donors,
+                           is_creator=is_creator, categories=categories, pct=pct)
+
+
+@app.route("/campaigns/<slug>/manage")
+@auth.login_required
+def campaign_manage(slug):
+    """Creator-only management page."""
+    user = auth.get_current_user()
+    c    = campaign.get_campaign(slug=slug)
+    if not c or c["creator_id"] != user["id"]:
+        return redirect(url_for("campaign_detail", slug=slug))
+    donations  = campaign.get_donations(c["id"], limit=100)
+    top_donors = campaign.get_top_donors(c["id"])
+    categories = campaign.CAMPAIGN_CATEGORIES
+    pct        = min(100, round(c["raised_cents"] / max(c["goal_cents"], 1) * 100))
+    available  = c["raised_cents"] - c["withdrawn_cents"]
+    return render_template("campaign_manage.html", user=user, campaign=dict(c),
+                           donations=donations, top_donors=top_donors,
+                           categories=categories, pct=pct, available=available)
+
+
+@app.route("/my-campaigns")
+@auth.login_required
+def my_campaigns():
+    user = auth.get_current_user()
+    my   = campaign.get_user_campaigns(user["id"])
+    categories = campaign.CAMPAIGN_CATEGORIES
+    return render_template("campaigns.html", user=user, campaigns=None,
+                           my_campaigns=my, categories=categories,
+                           stats=campaign.get_campaign_stats(),
+                           active_category="", search="")
+
+
+# ── CAMPAIGN API ──────────────────────────────────────────────────────────────
+
+@app.route("/api/campaigns/create", methods=["POST"])
+@auth.login_required
+def api_create_campaign():
+    d = request.json or {}
+    try:
+        goal = int(float(d.get("goal", 0)) * 100)
+        cid, slug = campaign.create_campaign(
+            creator_id=session["user_id"],
+            title=d.get("title","").strip(),
+            story=d.get("story","").strip(),
+            category=d.get("category","personal"),
+            goal_cents=goal,
+            currency=d.get("currency","EUR"),
+            deadline=d.get("deadline") or None,
+            is_public=bool(d.get("is_public", True)),
+            allow_anonymous=bool(d.get("allow_anonymous", True)),
+        )
+        return jsonify({"ok": True, "campaign_id": cid, "slug": slug})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/campaigns/<campaign_id>/donate", methods=["POST"])
+@auth.login_required
+def api_donate(campaign_id):
+    d = request.json or {}
+    cents = int(float(d.get("amount", 0)) * 100)
+    try:
+        did, net, fee = campaign.donate(
+            campaign_id=campaign_id,
+            amount_cents=cents,
+            donor_id=session["user_id"],
+            message=d.get("message",""),
+            is_anonymous=bool(d.get("is_anonymous", False)),
+        )
+        return jsonify({"ok": True, "donation_id": did, "net_cents": net, "fee_cents": fee})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/campaigns/<campaign_id>/withdraw", methods=["POST"])
+@auth.login_required
+def api_campaign_withdraw(campaign_id):
+    d = request.json or {}
+    cents = int(float(d.get("amount", 0)) * 100)
+    try:
+        ref = campaign.withdraw_funds(campaign_id, session["user_id"], cents)
+        return jsonify({"ok": True, "ref": ref})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/campaigns/<campaign_id>/update", methods=["POST"])
+@auth.login_required
+def api_update_campaign(campaign_id):
+    d = request.json or {}
+    try:
+        campaign.update_campaign(campaign_id, session["user_id"],
+                                 title=d.get("title"),
+                                 story=d.get("story"),
+                                 deadline=d.get("deadline"),
+                                 is_public=d.get("is_public"))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/campaigns/<campaign_id>/close", methods=["POST"])
+@auth.login_required
+def api_close_campaign(campaign_id):
+    try:
+        campaign.close_campaign(campaign_id, session["user_id"])
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# ── ADMIN CAMPAIGN ROUTES ─────────────────────────────────────────────────────
+
+@app.route("/admin/campaigns")
+@admin_required
+def admin_campaigns_page():
+    user  = auth.get_current_user()
+    status_filter = request.args.get("status","")
+    all_c = campaign.get_all_campaigns(status=status_filter or None)
+    stats = campaign.get_campaign_stats()
+    return render_template("admin_campaigns.html", user=user,
+                           campaigns=all_c, stats=stats,
+                           status_filter=status_filter,
+                           categories=campaign.CAMPAIGN_CATEGORIES)
+
+
+@app.route("/api/admin/campaigns/<campaign_id>/flag", methods=["POST"])
+@admin_required
+def api_admin_flag_campaign(campaign_id):
+    d = request.json or {}
+    try:
+        campaign.admin_flag_campaign(campaign_id, session["user_id"], d.get("reason","Policy violation"))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/admin/campaigns/<campaign_id>/restore", methods=["POST"])
+@admin_required
+def api_admin_restore_campaign(campaign_id):
+    try:
+        campaign.admin_restore_campaign(campaign_id)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 def _seed_all():

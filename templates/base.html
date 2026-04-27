@@ -28,6 +28,7 @@
       <li><a href="/history"   class="{{ 'active' if p=='/history' }}"><span class="nav-icon">⊟</span>History</a></li>
       <li><a href="/ncs"       class="{{ 'active' if p=='/ncs' }}"><span class="nav-icon">★</span>NCS Score</a></li>
       <li><a href="/blog"      class="{{ 'active' if '/blog' in p }}"><span class="nav-icon">📰</span>News &amp; Blog</a></li>
+      <li><a href="/campaigns" class="{{ 'active' if '/campaigns' in p or '/my-campaigns' in p }}"><span class="nav-icon">💚</span>Fundraising</a></li>
     </ul>
   </div>
   {% if session.is_admin %}
@@ -41,6 +42,7 @@
       <li><a href="/admin/payments"class="{{ 'active' if '/admin/payment' in p }}"><span class="nav-icon">◈</span>Payments</a></li>
       <li><a href="/admin/admins"  class="{{ 'active' if '/admin/admin' in p }}"><span class="nav-icon">◎</span>Admins</a></li>
       <li><a href="/admin/blog"    class="{{ 'active' if '/admin/blog' in p }}"><span class="nav-icon">📝</span>Blog</a></li>
+      <li><a href="/admin/campaigns" class="{{ 'active' if '/admin/campaign' in p }}"><span class="nav-icon">💚</span>Campaigns</a></li>
       <li><a href="/admin/freeze"  class="{{ 'active' if '/admin/freeze' in p }}"><span class="nav-icon">🔒</span>Freeze Controls</a></li>
       <li><a href="/admin/waitlist" class="{{ 'active' if '/admin/waitlist' in p }}"><span class="nav-icon">📧</span>Waitlist</a></li>
     </ul>

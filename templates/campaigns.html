@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Fundraising — SOHANA{% endblock %}
+{% block topbar_title %}Fundraising & Donations{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Fundraising Campaigns</h1>
+    <p class="page-subtitle">Support causes that matter. Every donation goes directly to the campaign.</p>
+  </div>
+  {% if user %}
+  <div style="display:flex;gap:.5rem;">
+    <a href="/my-campaigns" class="btn btn-outline btn-sm">My campaigns</a>
+    <button class="btn btn-orange" onclick="openModal('create-campaign-modal')">+ Start a campaign</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Platform stats -->
+<div class="stats-grid stats-grid-4" style="margin-bottom:1.5rem;">
+  {% for label,val,icon in [
+    ('Total raised','€'+('{:,.2f}'.format(stats.raised/100).replace(',', ' ')),  '💰'),
+    ('Active campaigns', stats.active, '🚀'),
+    ('Total donations',  stats.donors, '🤝'),
+    ('Platform fee','2.5% per donation','ℹ'),
+  ] %}
+  <div class="stat-card">
+    <div class="stat-icon blue">{{ icon }}</div>
+    <div class="stat-body">
+      <div class="stat-label">{{ label }}</div>
+      <div class="stat-value" style="font-size:1.2rem;">{{ val }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Category filter -->
+<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;overflow-x:auto;padding-bottom:.25rem;">
+  <a href="/campaigns" class="btn btn-sm {{ 'btn-primary' if not active_category else 'btn-outline' }}">All</a>
+  {% for key, cat in categories.items() %}
+  <a href="/campaigns?category={{ key }}" class="btn btn-sm {{ 'btn-primary' if active_category==key else 'btn-outline' }}" style="white-space:nowrap;">
+    {{ cat.emoji }} {{ cat.label }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Search -->
+<form method="get" action="/campaigns" style="display:flex;gap:.5rem;margin-bottom:1.5rem;">
+  {% if active_category %}<input type="hidden" name="category" value="{{ active_category }}">{% endif %}
+  <input class="form-input" name="q" value="{{ search }}" placeholder="Search campaigns…" style="max-width:320px;">
+  <button type="submit" class="btn btn-outline">Search</button>
+  {% if search %}<a href="/campaigns{% if active_category %}?category={{ active_category }}{% endif %}" class="btn btn-ghost">✕ Clear</a>{% endif %}
+</form>
+
+<!-- My campaigns (if on /my-campaigns) -->
+{% if my_campaigns is defined and my_campaigns is not none %}
+<h2 class="section-title mb-3">My campaigns</h2>
+{% if my_campaigns %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;margin-bottom:2rem;">
+  {% for c in my_campaigns %}
+  {% set pct = [((c.raised_cents / [c.goal_cents,1]|max)*100)|round|int, 100]|min %}
+  {% set cat = categories.get(c.category, {'emoji':'🎯','label':'Campaign'}) %}
+  <div class="card" style="border-top:4px solid {% if c.status=='completed' %}var(--green){% elif c.status=='active' %}var(--blue){% elif c.status=='flagged' %}var(--red){% else %}var(--gray-400){% endif %};">
+    <div class="card-pad">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:.5rem;">
+        <span style="font-size:1.6rem;">{{ cat.emoji }}</span>
+        <span class="pill {% if c.status=='active' %}pill-blue{% elif c.status=='completed' %}pill-green{% elif c.status=='flagged' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.65rem;">{{ c.status }}</span>
+      </div>
+      <div style="font-weight:700;font-size:.95rem;color:var(--navy);margin-bottom:.3rem;">{{ c.title }}</div>
+      <div class="text-xs text-muted mb-3">{{ c.donation_count }} donation{{ 's' if c.donation_count != 1 }}</div>
+      <div class="progress-track mb-1"><div class="progress-fill {% if pct >= 100 %}fill-green{% else %}fill-blue{% endif %}" style="width:{{ pct }}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.875rem;">
+        <span style="font-weight:700;color:var(--green);">€{{ '{:,.2f}'.format(c.raised_cents/100).replace(',', ' ') }} raised</span>
+        <span class="text-muted">€{{ '{:,.2f}'.format(c.goal_cents/100).replace(',', ' ') }} goal</span>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <a href="/campaigns/{{ c.slug }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center;">View</a>
+        <a href="/campaigns/{{ c.slug }}/manage" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">Manage</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card card-pad" style="padding:3rem;margin-bottom:2rem;">
+  <div style="font-size:2rem;margin-bottom:.5rem;">💚</div>
+  <p>You haven't started a campaign yet.</p>
+  <button class="btn btn-orange btn-sm mt-3" onclick="openModal('create-campaign-modal')">Start your first campaign</button>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Browse campaigns grid -->
+{% if campaigns is not none %}
+{% if campaigns %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">
+  {% for c in campaigns %}
+  {% set pct = [((c.raised_cents / [c.goal_cents,1]|max)*100)|round|int, 100]|min %}
+  {% set cat = categories.get(c.category, {'emoji':'🎯','label':'Campaign'}) %}
+  <a href="/campaigns/{{ c.slug }}" style="text-decoration:none;">
+    <div class="card" style="height:100%;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow=''">
+      <div style="height:90px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;">{{ cat.emoji }}</div>
+      <div class="card-pad">
+        <span class="pill pill-blue pill-no-dot" style="font-size:.62rem;margin-bottom:.4rem;display:inline-block;">{{ cat.label }}</span>
+        <div style="font-weight:700;color:var(--navy);font-size:.95rem;margin-bottom:.3rem;line-height:1.35;">{{ c.title }}</div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.75rem;">by {{ c.creator_name }}</div>
+        <div class="progress-track mb-1" style="height:6px;"><div class="progress-fill {% if pct >= 100 %}fill-green{% else %}fill-blue{% endif %}" style="width:{{ pct }}%;"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.4rem;">
+          <span style="font-weight:700;color:var(--green);">€{{ '{:,.0f}'.format(c.raised_cents/100).replace(',', ' ') }}</span>
+          <span class="text-muted">{{ pct }}% of €{{ '{:,.0f}'.format(c.goal_cents/100).replace(',', ' ') }}</span>
+        </div>
+        <div class="text-xs text-muted">{{ c.donor_count }} donor{{ 's' if c.donor_count != 1 }}</div>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state card card-pad" style="padding:3rem;text-align:center;">
+  <div style="font-size:2rem;margin-bottom:.5rem;">🔍</div>
+  <p>No campaigns found{% if search %} for "{{ search }}"{% endif %}.</p>
+  {% if user %}<button class="btn btn-orange btn-sm mt-3" onclick="openModal('create-campaign-modal')">Start a campaign</button>{% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block modals %}
+{% if user %}
+<div class="modal-backdrop" id="create-campaign-modal">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" onclick="closeModal('create-campaign-modal')">✕</button>
+    <h3 class="modal-title">Start a fundraising campaign</h3>
+    <p class="modal-sub">2.5% platform fee on each donation. You can withdraw at any time.</p>
+
+    <div class="form-group">
+      <label class="form-label">Campaign title</label>
+      <input class="form-input" id="cc-title" placeholder="e.g. Help Marie with her medical bills">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-input form-select" id="cc-category">
+        {% for key, cat in categories.items() %}
+        <option value="{{ key }}">{{ cat.emoji }} {{ cat.label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your story</label>
+      <textarea class="form-input" id="cc-story" rows="5" style="resize:vertical;"
+        placeholder="Explain your cause clearly. Tell people why you need support and how the funds will be used."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Goal amount (€)</label>
+        <input class="form-input" type="number" id="cc-goal" min="10" step="10" placeholder="500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Deadline (optional)</label>
+        <input class="form-input" type="date" id="cc-deadline">
+      </div>
+    </div>
+    <div style="display:flex;gap:1rem;margin-bottom:1rem;">
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.85rem;">
+        <input type="checkbox" id="cc-public" checked> Public (anyone can find it)
+      </label>
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.85rem;">
+        <input type="checkbox" id="cc-anon" checked> Allow anonymous donations
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('create-campaign-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" id="btn-cc" onclick="createCampaign()">Launch campaign</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function createCampaign() {
+  const btn=document.getElementById('btn-cc');
+  const title=document.getElementById('cc-title').value.trim();
+  const story=document.getElementById('cc-story').value.trim();
+  const goal=parseFloat(document.getElementById('cc-goal').value)||0;
+  if(!title){toast('Enter a campaign title','error');return;}
+  if(!story||story.length<30){toast('Please write a story of at least 30 characters','error');return;}
+  if(goal<10){toast('Goal must be at least €10','error');return;}
+  setLoading(btn,true);
+  const d=await API.post('/api/campaigns/create',{
+    title, story, goal,
+    category:document.getElementById('cc-category').value,
+    deadline:document.getElementById('cc-deadline').value||null,
+    is_public:document.getElementById('cc-public').checked,
+    allow_anonymous:document.getElementById('cc-anon').checked,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('create-campaign-modal');
+  toast('Campaign launched!','success');
+  setTimeout(()=>location.href='/campaigns/'+d.slug+'/manage',900);
+}
+</script>
+{% endblock %}
