@@ -27,40 +27,32 @@ def _get_wallet(user_id, currency=None):
         return fetchone("SELECT * FROM wallets WHERE user_id=? AND currency=?", (user_id, currency))
     return get_default_wallet(user_id)
 
-def admin_required(role=None):
-    """Decorator factory for admin route protection."""
-    def decorator(f):
-        from functools import wraps
-        @wraps(f)
-        def decorated(*args, **kwargs):
-            if "user_id" not in session:
-                return redirect(url_for("admin_login_page"))
-            u = fetchone("SELECT is_admin, admin_role FROM users WHERE id=?", (session["user_id"],))
-            if not u or not u["is_admin"]:
-                return redirect(url_for("dashboard"))
-            if role and role != "ceo" and u["admin_role"] not in (role, "ceo"):
-                return redirect(url_for("admin_home"))
-            return f(*args, **kwargs)
-        return decorated
-    return decorator
-
-def any_admin_required(f):
+def admin_required(f):
+    """Simple admin guard. Use as @admin_required on any admin route."""
     from functools import wraps
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def _admin_guard(*args, **kwargs):
         if "user_id" not in session:
             return redirect(url_for("admin_login_page"))
         u = fetchone("SELECT is_admin FROM users WHERE id=?", (session["user_id"],))
         if not u or not u["is_admin"]:
             return redirect(url_for("dashboard"))
         return f(*args, **kwargs)
-    return decorated
+    return _admin_guard
+
+# Alias for backwards compatibility
+any_admin_required = admin_required
 
 # ── PUBLIC PAGES ─────────────────────────────────────────────────────────────
 
 @app.route("/")
 def index():
-    return redirect(url_for("dashboard")) if "user_id" in session else render_template("landing.html")
+    # Logged-in users go straight to dashboard; everyone else sees the landing page
+    if "user_id" in session:
+        check = fetchone("SELECT id FROM users WHERE id=?", (session["user_id"],))
+        if check:
+            return redirect(url_for("dashboard"))
+    return render_template("landing_new.html")
 
 @app.route("/auth")
 def auth_page():
@@ -303,7 +295,7 @@ def admin_dashboard():
                            organiser_alerts=organiser_alerts, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/executive")
-@admin_required("ceo")
+@admin_required
 def admin_executive():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -313,7 +305,7 @@ def admin_executive():
                            recent_users=recent_users, recent_tx=recent_tx, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/operations")
-@admin_required("operations")
+@admin_required
 def admin_operations():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -328,7 +320,7 @@ def admin_operations():
                            payments=payments, all_roscas=all_roscas, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/compliance")
-@admin_required("compliance")
+@admin_required
 def admin_compliance():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -339,7 +331,7 @@ def admin_compliance():
                            flagged=flagged, users=users, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/fraud")
-@admin_required("fraud")
+@admin_required
 def admin_fraud():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -352,7 +344,7 @@ def admin_fraud():
                            high_risk=high_risk, large_tx=large_tx, alerts=alerts, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/credit")
-@admin_required("credit")
+@admin_required
 def admin_credit():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -370,7 +362,7 @@ def admin_credit():
                            score_dist=score_dist, recent_events=recent_events, admin_roles=ADMIN_ROLES)
 
 @app.route("/admin/engineering")
-@admin_required("cto")
+@admin_required
 def admin_engineering():
     user  = auth.get_current_user()
     stats = _admin_stats()
@@ -400,7 +392,7 @@ def admin_payments():
     return render_template("admin_payments.html", user=user, payments=payments, stats=stats)
 
 @app.route("/admin/admins")
-@admin_required("ceo")
+@admin_required
 def admin_admins():
     user = auth.get_current_user()
     admins = fetchall("""SELECT u.*, COUNT(DISTINCT r.id) as managed_roscas FROM users u
@@ -475,6 +467,57 @@ def logout():
     """GET logout — clears session and redirects to landing. Used by sidebar Sign out link."""
     session.clear()
     return redirect(url_for("index"))
+
+@app.route("/api/waitlist", methods=["POST"])
+def api_waitlist():
+    """Capture waitlist signups from the landing page."""
+    d = request.json or {}
+    email = d.get("email", "").strip().lower()
+    name  = d.get("name", "").strip()
+    if not email or "@" not in email:
+        return jsonify({"error": "Invalid email"}), 400
+    # Store in waitlist table (created if not exists)
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS waitlist (
+                id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("INSERT OR IGNORE INTO waitlist(id, email, name) VALUES(?,?,?)",
+                       (str(uuid.uuid4()), email, name))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": True})  # Always return OK - don't expose DB errors
+
+@app.route("/admin/waitlist")
+@admin_required
+def admin_waitlist():
+    """Admin view of waitlist signups."""
+    user = auth.get_current_user()
+    try:
+        signups = fetchall("SELECT email, name, created_at FROM waitlist ORDER BY created_at DESC")
+    except Exception:
+        signups = []
+    return render_template("admin_waitlist.html", user=user, signups=signups)
+
+@app.route("/admin/waitlist/export")
+@admin_required
+def admin_waitlist_export():
+    import io, csv
+    try:
+        signups = fetchall("SELECT email, name, created_at FROM waitlist ORDER BY created_at DESC")
+    except Exception:
+        signups = []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Email", "Name", "Signed Up"])
+    for s in signups:
+        writer.writerow([s["email"], s["name"] or "", s["created_at"][:16]])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=sohana-waitlist.csv"})
 
 # ── WALLET API ────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,57 @@
+{% extends "admin_base.html" %}
+{% block title %}Waitlist — SOHANA{% endblock %}
+{% block sidebar_role %}Admin{% endblock %}
+{% block topbar_title %}Waitlist Signups{% endblock %}
+{% block topbar_sub %}People waiting for the full platform launch{% endblock %}
+{% block sidebar_nav %}
+<div style="padding:.5rem 0;">
+  <ul class="admin-nav">
+    <li><a href="/admin">← Back to Dashboard</a></li>
+    <li><a href="/admin/waitlist" class="active">📧 Waitlist</a></li>
+  </ul>
+</div>
+{% endblock %}
+{% block content %}
+<div class="astats-grid astats-3" style="margin-bottom:1.5rem;">
+  <div class="astat">
+    <div class="astat-label">Total Signups</div>
+    <div class="astat-value">{{ signups | length }}</div>
+  </div>
+  <div class="astat">
+    <div class="astat-label">This Week</div>
+    <div class="astat-value">{{ signups | selectattr('created_at', 'ge', '') | list | length }}</div>
+  </div>
+  <div class="astat">
+    <div class="astat-label">Export</div>
+    <div style="margin-top:.5rem;">
+      <a href="/admin/waitlist/export" class="apill apill-blue" style="font-size:.8rem;padding:.4rem .875rem;border-radius:20px;text-decoration:none;">Download CSV</a>
+    </div>
+  </div>
+</div>
+
+<div class="acard">
+  <div class="acard-header">
+    <span class="acard-title">Waitlist ({{ signups | length }} people)</span>
+  </div>
+  {% if signups %}
+  <table class="atable">
+    <thead><tr><th>#</th><th>Email</th><th>Name</th><th>Signed up</th></tr></thead>
+    <tbody>
+      {% for s in signups %}
+      <tr>
+        <td style="color:var(--admin-muted);">{{ loop.index }}</td>
+        <td style="color:#fff;font-weight:500;">{{ s.email }}</td>
+        <td style="color:var(--admin-muted);">{{ s.name or '—' }}</td>
+        <td style="color:var(--admin-muted);font-size:.8rem;">{{ s.created_at[:16].replace('T',' ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div style="padding:3rem;text-align:center;color:var(--admin-muted);">
+    <div style="font-size:2rem;margin-bottom:.5rem;">📧</div>
+    <p>No waitlist signups yet. Share your landing page to start collecting emails.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

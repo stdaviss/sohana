@@ -1,0 +1,1319 @@
+<!DOCTYPE html><html lang="en"><head>
+
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOHANA — Where Trust Becomes Capital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #1a2b4a;
+  --navy-dark: #0f1c33;
+  --navy-mid: #1e3258;
+  --blue: #2563eb;
+  --blue-light: #3b82f6;
+  --gold: #f59e0b;
+  --green: #16a34a;
+  --orange: #ea580c;
+  --orange-light: #fb923c;
+  --white: #ffffff;
+  --off-white: #f8fafc;
+  --light-gray: #f1f5f9;
+  --mid-gray: #e2e8f0;
+  --text-dark: #0f172a;
+  --text-mid: #475569;
+  --text-light: #94a3b8;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', sans-serif; color: var(--text-dark); background: var(--white); overflow-x: hidden; }
+
+/* UTILITY */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.btn-orange { background: var(--orange); color: #fff; border: none; border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s, transform 0.1s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-orange:hover { background: #c2410c; transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: #fff; border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; padding: 10px 22px; font-size: 15px; font-weight: 600; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.btn-ghost:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+.section-label { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 10px; }
+.section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 800; line-height: 1.15; color: var(--text-dark); }
+.section-title.light { color: #fff; }
+
+/* SCROLL ANIMATION */
+.fade-up { opacity: 0; transform: translateY(32px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.fade-up.visible { opacity: 1; transform: translateY(0); }
+
+/* ===== NAV ===== */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--navy-dark);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  height: 64px; display: flex; align-items: center;
+}
+.nav-inner { display: flex; align-items: center; gap: 40px; width: 100%; }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; }
+.logo-dots { display: flex; gap: 5px; }
+.logo-dot { width: 9px; height: 9px; border-radius: 50%; }
+.logo-dot.blue { background: var(--blue-light); }
+.logo-dot.green { background: var(--green); }
+.logo-dot.gold { background: var(--gold); }
+.logo-text { font-size: 20px; font-weight: 900; color: #fff; letter-spacing: 0.04em; }
+.nav-links { display: flex; gap: 32px; flex: 1; }
+.nav-links a { color: rgba(255,255,255,0.75); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: #fff; }
+.nav-actions { display: flex; gap: 12px; align-items: center; flex-shrink: 0; }
+.btn-signin { background: transparent; color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.25); border-radius: 7px; padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-signin:hover { border-color: #fff; color: #fff; }
+.btn-nav-cta { background: var(--orange); color: #fff; border: none; border-radius: 7px; padding: 9px 20px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-nav-cta:hover { background: #c2410c; }
+
+/* ===== HERO ===== */
+.hero {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, #0d2150 50%, #162d5c 100%);
+  min-height: 620px; display: flex; align-items: center;
+  position: relative; overflow: hidden; padding: 80px 0;
+}
+.hero-bg-shapes { position: absolute; inset: 0; pointer-events: none; }
+.hero-shape { position: absolute; border-radius: 50%; opacity: 0.12; }
+.hero-shape-1 { width: 500px; height: 500px; background: radial-gradient(circle, var(--blue) 0%, transparent 70%); top: -100px; right: 200px; }
+.hero-shape-2 { width: 300px; height: 300px; background: radial-gradient(circle, var(--gold) 0%, transparent 70%); bottom: -50px; right: 100px; opacity: 0.08; }
+.hero-shape-3 { width: 200px; height: 200px; background: radial-gradient(circle, var(--green) 0%, transparent 70%); top: 100px; left: -50px; opacity: 0.1; }
+.hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; position: relative; z-index: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 100px; padding: 6px 14px; font-size: 13px; color: rgba(255,255,255,0.8); margin-bottom: 24px; }
+.hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+.hero h1 { font-size: clamp(36px, 5vw, 58px); font-weight: 900; color: #fff; line-height: 1.1; margin-bottom: 20px; }
+.hero h1 span { color: var(--gold); }
+.hero-sub { font-size: 18px; color: rgba(255,255,255,0.7); line-height: 1.6; margin-bottom: 36px; max-width: 460px; }
+.hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-stats { display: flex; gap: 32px; margin-top: 48px; padding-top: 32px; border-top: 1px solid rgba(255,255,255,0.1); }
+.hero-stat { }
+.hero-stat-num { font-size: 22px; font-weight: 800; color: #fff; }
+.hero-stat-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+
+/* PHONE MOCKUP */
+.phone-wrap { display: flex; justify-content: center; align-items: center; position: relative; }
+.phone-outer { width: 260px; height: 520px; background: linear-gradient(160deg, #1e3a6e, #0f1c33); border-radius: 40px; border: 2px solid rgba(255,255,255,0.15); position: relative; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05); }
+.phone-notch { width: 90px; height: 22px; background: #0a1120; border-radius: 0 0 14px 14px; margin: 0 auto; position: absolute; top: 0; left: 50%; transform: translateX(-50%); z-index: 2; }
+.phone-screen { padding: 36px 16px 16px; height: 100%; display: flex; flex-direction: column; gap: 10px; }
+.phone-header { display: flex; justify-content: space-between; align-items: center; }
+.phone-header-name { font-size: 12px; color: rgba(255,255,255,0.6); }
+.phone-header-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--green)); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+.phone-balance-card { background: linear-gradient(135deg, var(--blue) 0%, #1d4ed8 100%); border-radius: 14px; padding: 14px; }
+.phone-balance-label { font-size: 10px; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
+.phone-balance-amount { font-size: 22px; font-weight: 800; color: #fff; }
+.phone-balance-tag { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 6px; }
+.phone-ncs-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; }
+.phone-ncs-label { font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+.phone-ncs-row { display: flex; justify-content: space-between; align-items: center; }
+.phone-ncs-score { font-size: 26px; font-weight: 800; color: var(--gold); }
+.phone-ncs-tier { font-size: 10px; font-weight: 700; color: var(--gold); background: rgba(245,158,11,0.15); padding: 3px 8px; border-radius: 6px; }
+.phone-ncs-bar { margin-top: 8px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.phone-ncs-fill { height: 100%; width: 62%; background: linear-gradient(90deg, var(--green), var(--gold)); border-radius: 2px; }
+.phone-circle-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; }
+.phone-circle-label { font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+.phone-circle-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.phone-circle-name { font-size: 10px; color: rgba(255,255,255,0.8); }
+.phone-circle-progress { font-size: 10px; font-weight: 700; color: var(--green); }
+.phone-circle-bar-wrap { height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+.phone-circle-bar-fill { height: 100%; background: var(--green); border-radius: 2px; }
+.phone-actions-row { display: flex; gap: 8px; }
+.phone-action-btn { flex: 1; background: rgba(255,255,255,0.08); border-radius: 10px; padding: 8px 4px; text-align: center; font-size: 9px; color: rgba(255,255,255,0.7); cursor: pointer; }
+.phone-action-icon { font-size: 16px; margin-bottom: 2px; }
+/* Floating cards around phone */
+.float-card { position: absolute; background: rgba(255,255,255,0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 14px; white-space: nowrap; }
+.float-card-1 { top: 60px; right: -30px; }
+.float-card-2 { bottom: 80px; left: -40px; }
+.float-card-label { font-size: 10px; color: rgba(255,255,255,0.5); }
+.float-card-val { font-size: 14px; font-weight: 700; color: #fff; }
+.float-card-val.gold { color: var(--gold); }
+.float-card-val.green { color: #4ade80; }
+
+/* ===== SECTION: PRODUCT CARDS ===== */
+.section-cards { background: var(--off-white); padding: 80px 0; }
+.cards-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+.cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.product-card { background: #fff; border-radius: 16px; padding: 28px 24px; border: 1px solid var(--mid-gray); transition: box-shadow 0.2s, transform 0.2s; cursor: pointer; }
+.product-card:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.08); transform: translateY(-3px); }
+.product-card-icon { width: 72px; height: 72px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden; }
+.product-card-icon img { width: 44px; height: 44px; object-fit: contain; display: block; }
+.product-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.product-card p { font-size: 14px; color: var(--text-mid); line-height: 1.5; }
+.product-card-link { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--blue); margin-top: 12px; text-decoration: none; }
+
+/* NCS Interactive */
+.ncs-unlock-item { transition: opacity 0.3s, border-color 0.3s, background 0.3s; }
+.ncs-unlock-item.locked { opacity: 0.28; }
+.ncs-unlock-item.next-unlock { border-color: var(--gold) !important; background: rgba(245,158,11,0.04); }
+.ncs-next-tag { font-size: 10px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 6px; }
+
+/* ===== SECTION: NCS SCORE ===== */
+.section-ncs { background: #fff; padding: 80px 0; }
+.ncs-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+.ncs-gauge-wrap { position: relative; }
+/* SVG gauge */
+.ncs-gauge-svg { width: 100%; max-width: 320px; }
+.ncs-tiers { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+.ncs-tier { display: flex; align-items: center; gap: 12px; }
+.ncs-tier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.ncs-tier-info { }
+.ncs-tier-name { font-size: 14px; font-weight: 700; }
+.ncs-tier-range { font-size: 12px; color: var(--text-mid); }
+.ncs-builders { margin-top: 24px; }
+.ncs-builders h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.08em; }
+.ncs-builder-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--mid-gray); font-size: 14px; }
+.ncs-builder-item:last-child { border-bottom: none; }
+.ncs-builder-check { width: 20px; height: 20px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; flex-shrink: 0; }
+/* Right: unlocks */
+.ncs-unlocks { }
+.ncs-unlocks-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+.ncs-unlocks-sub { font-size: 15px; color: var(--text-mid); margin-bottom: 28px; line-height: 1.5; }
+.ncs-unlock-item { display: flex; align-items: center; gap: 16px; padding: 18px; border-radius: 12px; margin-bottom: 12px; border: 1px solid var(--mid-gray); transition: border-color 0.2s; }
+.ncs-unlock-item:hover { border-color: var(--blue); }
+.ncs-unlock-score { font-size: 22px; font-weight: 900; min-width: 56px; }
+.ncs-unlock-content h5 { font-size: 15px; font-weight: 700; }
+.ncs-unlock-content p { font-size: 13px; color: var(--text-mid); margin-top: 2px; }
+.score-550 { color: #f59e0b; }
+.score-650 { color: #16a34a; }
+.score-700 { color: #2563eb; }
+.score-750 { color: #7c3aed; }
+
+/* ===== CALCULATOR ===== */
+.section-calc { background: #fff; padding: 80px 0; }
+.calc-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; margin-top: 48px; }
+.calc-form { background: var(--off-white); border-radius: 20px; padding: 36px; border: 1px solid var(--mid-gray); }
+.calc-currency-select { width: 100%; padding: 12px 16px; border: 1.5px solid var(--mid-gray); border-radius: 10px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23475569' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center; font-size: 14px; font-weight: 600; color: var(--text-dark); font-family: inherit; cursor: pointer; outline: none; -webkit-appearance: none; appearance: none; margin-bottom: 28px; transition: border-color 0.2s; }
+.calc-currency-select:focus { border-color: var(--blue); }
+.calc-field { margin-bottom: 28px; }
+.calc-field-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+.calc-field-label { font-size: 14px; font-weight: 600; color: var(--text-dark); }
+.calc-field-value { font-size: 20px; font-weight: 800; color: var(--navy-dark); }
+.calc-field-value span { font-size: 13px; font-weight: 500; color: var(--text-mid); margin-left: 4px; }
+.calc-slider { width: 100%; -webkit-appearance: none; appearance: none; height: 5px; border-radius: 3px; background: var(--mid-gray); outline: none; cursor: pointer; }
+.calc-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--navy-dark); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); border: 2px solid #fff; }
+.calc-slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--navy-dark); cursor: pointer; border: 2px solid #fff; }
+.calc-field-hint { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-light); margin-top: 6px; }
+.calc-result { background: var(--navy-dark); border-radius: 20px; padding: 36px; color: #fff; position: sticky; top: 88px; }
+.calc-result-label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+.calc-payout { font-size: 52px; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 4px; transition: all 0.3s; }
+.calc-payout-sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 28px; }
+.calc-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.calc-stat { background: rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; }
+.calc-stat-val { font-size: 22px; font-weight: 800; transition: all 0.3s; }
+.calc-stat-val.gold { color: var(--gold); }
+.calc-stat-val.green { color: #4ade80; }
+.calc-stat-label { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 3px; }
+.calc-timeline-label { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.calc-timeline { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 20px; }
+.calc-slot { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); transition: all 0.3s; }
+.calc-slot.you { background: var(--gold); color: #1a2b4a; transform: scale(1.15); }
+.calc-ncs-row { display: flex; align-items: center; gap: 12px; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); border-radius: 12px; padding: 14px; margin-bottom: 20px; }
+.calc-ncs-text { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.4; }
+.calc-ncs-text strong { color: var(--gold); }
+.calc-cta { width: 100%; background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+.calc-cta:hover { background: #c2410c; }
+@media (max-width: 900px) { .calc-inner { grid-template-columns: 1fr; } .calc-result { position: static; } }
+
+/* ===== SECTION: BENEFITS STRIP ===== */
+.section-benefits { background: var(--off-white); padding: 80px 0; }
+.benefits-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 40px; }
+.benefit-card { border-radius: 16px; padding: 28px 22px; color: #fff; position: relative; overflow: hidden; min-height: 200px; display: flex; flex-direction: column; justify-content: space-between; }
+.benefit-card-bg { position: absolute; inset: 0; opacity: 0.15; }
+.benefit-card h3 { font-size: 17px; font-weight: 800; line-height: 1.3; position: relative; z-index: 1; }
+.benefit-card p { font-size: 13px; opacity: 0.85; line-height: 1.5; position: relative; z-index: 1; margin-top: 10px; }
+.benefit-card-icon { position: relative; z-index: 1; margin-bottom: 16px; width: 56px; height: 56px; }
+.benefit-card-icon img { width: 56px; height: 56px; object-fit: contain; }
+.bc-1 { background: linear-gradient(135deg, #1d4ed8, #2563eb); }
+.bc-2 { background: linear-gradient(135deg, #15803d, #16a34a); }
+.bc-3 { background: linear-gradient(135deg, #b45309, #d97706); }
+.bc-4 { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
+
+/* ===== STATS BAND ===== */
+.section-stats { background: var(--navy-dark); padding: 80px 0; text-align: center; }
+.stats-headline { font-size: clamp(36px, 5vw, 56px); font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 12px; }
+.stats-headline span { color: var(--gold); }
+.stats-sub { font-size: 18px; color: rgba(255,255,255,0.6); max-width: 560px; margin: 0 auto 48px; line-height: 1.6; }
+.stats-row { display: flex; justify-content: center; gap: 0; flex-wrap: wrap; }
+.stat-pill { padding: 20px 48px; border-right: 1px solid rgba(255,255,255,0.1); }
+.stat-pill:last-child { border-right: none; }
+.stat-pill-num { font-size: 32px; font-weight: 900; color: #fff; }
+.stat-pill-num span { color: var(--gold); }
+.stat-pill-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+/* ===== SERVICES GRID ===== */
+.section-services { background: var(--off-white); padding: 80px 0; }
+.services-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start; }
+.services-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.service-tile { background: #fff; border-radius: 14px; padding: 24px 20px; border: 1px solid var(--mid-gray); transition: box-shadow 0.2s, transform 0.2s; }
+.service-tile:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.07); transform: translateY(-2px); }
+.service-tile-icon { margin-bottom: 14px; width: 44px; height: 44px; }
+.service-tile-icon img { width: 44px; height: 44px; object-fit: contain; }
+.service-tile h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.service-tile p { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+
+/* ===== HOW IT WORKS ===== */
+.section-how { background: #fff; padding: 80px 0; }
+.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 48px; position: relative; }
+.steps-grid::before { content: ''; position: absolute; top: 36px; left: 13%; right: 13%; height: 2px; background: linear-gradient(90deg, var(--blue), var(--green), var(--gold)); opacity: 0.3; }
+.step-item { text-align: center; position: relative; }
+.step-num { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #fff; margin: 0 auto 20px; position: relative; z-index: 1; }
+.sn-1 { background: var(--blue); }
+.sn-2 { background: var(--green); }
+.sn-3 { background: var(--gold); }
+.step-item h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.step-item p { font-size: 14px; color: var(--text-mid); line-height: 1.6; }
+
+/* ===== APP DOWNLOAD ===== */
+.section-app { background: linear-gradient(135deg, var(--navy-dark) 0%, #1a2b4a 100%); padding: 80px 0; }
+.app-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+.app-left h2 { font-size: clamp(30px, 4vw, 44px); font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 16px; }
+.app-left p { font-size: 17px; color: rgba(255,255,255,0.65); line-height: 1.6; margin-bottom: 32px; }
+.app-badges { display: flex; gap: 14px; flex-wrap: wrap; }
+.app-badge { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 20px; opacity: 0.6; cursor: not-allowed; }
+.app-badge-icon { font-size: 24px; }
+.app-badge-text { }
+.app-badge-coming { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.08em; }
+.app-badge-name { font-size: 15px; font-weight: 700; color: #fff; }
+.app-right { display: flex; justify-content: center; }
+
+/* ===== WAITLIST ===== */
+.section-waitlist { background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 60%, #0d2150 100%); padding: 80px 0; }
+.waitlist-inner { text-align: center; max-width: 600px; margin: 0 auto; }
+.waitlist-inner h2 { font-size: clamp(30px, 4vw, 48px); font-weight: 900; color: #fff; margin-bottom: 12px; }
+.waitlist-inner p { font-size: 18px; color: rgba(255,255,255,0.75); margin-bottom: 36px; }
+.waitlist-form { display: flex; gap: 12px; max-width: 480px; margin: 0 auto 16px; }
+.waitlist-input { flex: 1; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-radius: 10px; padding: 14px 18px; font-size: 15px; color: #fff; outline: none; font-family: inherit; }
+.waitlist-input::placeholder { color: rgba(255,255,255,0.45); }
+.waitlist-input:focus { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); }
+.waitlist-btn { background: var(--orange); color: #fff; border: none; border-radius: 10px; padding: 14px 24px; font-size: 15px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; transition: background 0.2s; }
+.waitlist-btn:hover { background: #c2410c; }
+.waitlist-fine { font-size: 13px; color: rgba(255,255,255,0.45); }
+.waitlist-success { display: none; background: rgba(22,163,74,0.2); border: 1px solid rgba(22,163,74,0.4); border-radius: 10px; padding: 16px 24px; color: #4ade80; font-weight: 600; font-size: 15px; text-align: center; max-width: 480px; margin: 0 auto; }
+.waitlist-success.show { display: block; }
+
+/* ===== BLOG ===== */
+.section-blog { background: var(--off-white); padding: 80px 0; }
+.blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 40px; }
+.blog-card { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid var(--mid-gray); transition: box-shadow 0.2s, transform 0.2s; cursor: pointer; }
+.blog-card:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.08); transform: translateY(-3px); }
+.blog-card-img { height: 210px; overflow: hidden; position: relative; background: #1a2b4a; }
+.blog-card-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.5s ease; }
+.blog-card:hover .blog-card-img img { transform: scale(1.06); }
+.blog-card-img .blog-img-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.4) 100%); }
+.blog-img-1 { background: #1a2b4a; }
+.blog-img-2 { background: #0f3d22; }
+.blog-img-3 { background: #2c1a4a; }
+.blog-img-placeholder { position: relative; z-index: 1; }
+.blog-card-body { padding: 20px; }
+.blog-tag { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 10px; border-radius: 6px; margin-bottom: 10px; }
+.tag-edu { background: #dbeafe; color: #1d4ed8; }
+.tag-tips { background: #dcfce7; color: #15803d; }
+.tag-news { background: #fef3c7; color: #b45309; }
+.blog-card-title { font-size: 16px; font-weight: 700; line-height: 1.4; margin-bottom: 8px; }
+.blog-card-excerpt { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+.blog-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-light); }
+
+/* ===== FOOTER ===== */
+footer { background: var(--navy-dark); padding: 64px 0 0; }
+.footer-top { display: grid; grid-template-columns: 1.8fr 1fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-brand {}
+.footer-tagline { font-size: 14px; color: rgba(255,255,255,0.45); margin-top: 10px; font-style: italic; line-height: 1.5; }
+.footer-desc { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 12px; line-height: 1.6; max-width: 260px; }
+.footer-col h5 { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.9); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col ul li a { font-size: 14px; color: rgba(255,255,255,0.45); text-decoration: none; transition: color 0.2s; }
+.footer-col ul li a:hover { color: rgba(255,255,255,0.85); }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,0.08); padding: 24px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: gap; gap: 16px; }
+.footer-copy { font-size: 13px; color: rgba(255,255,255,0.35); }
+.social-icons { display: flex; gap: 12px; }
+.social-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); font-size: 15px; text-decoration: none; transition: background 0.2s, color 0.2s; }
+.social-icon:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+/* ===== MOBILE NAV TOGGLE ===== */
+.nav-mobile-toggle { display: none; background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+.mobile-menu { display: none; position: fixed; inset: 0; background: var(--navy-dark); z-index: 200; padding: 24px; flex-direction: column; gap: 24px; }
+.mobile-menu.open { display: flex; }
+.mobile-menu-close { align-self: flex-end; background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; margin-bottom: 20px; }
+.mobile-menu a { font-size: 22px; font-weight: 700; color: rgba(255,255,255,0.85); text-decoration: none; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .hero-inner { grid-template-columns: 1fr; }
+  .phone-wrap { display: none; }
+  .cards-grid { grid-template-columns: repeat(2, 1fr); }
+  .ncs-inner { grid-template-columns: 1fr; }
+  .benefits-grid { grid-template-columns: repeat(2, 1fr); }
+  .services-inner { grid-template-columns: 1fr; }
+  .app-inner { grid-template-columns: 1fr; }
+  .app-right { display: none; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .steps-grid::before { display: none; }
+  .blog-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  .nav-links { display: none; }
+  .nav-mobile-toggle { display: block; }
+}
+@media (max-width: 600px) {
+  .cards-grid { grid-template-columns: 1fr; }
+  .benefits-grid { grid-template-columns: 1fr; }
+  .services-grid { grid-template-columns: 1fr; }
+  .waitlist-form { flex-direction: column; }
+  .footer-top { grid-template-columns: 1fr; }
+  .stats-row { flex-direction: column; gap: 0; }
+  .stat-pill { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .hero-stats { flex-wrap: wrap; gap: 20px; }
+}
+</style>
+</head>
+<body data-cc-id="cc-1" style="cursor: crosshair; font-size: 45px; font-family: Arial;">
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="closeMobileMenu()">✕</button>
+  <a href="#features" onclick="closeMobileMenu()">Features</a>
+  <a href="#how-it-works" onclick="closeMobileMenu()">How it works</a>
+  <a href="#circles" onclick="closeMobileMenu()">Circles</a>
+  <a href="#ncs-score" onclick="closeMobileMenu()">NCS Score</a>
+  <a href="#blog" onclick="closeMobileMenu()">Blog</a>
+  <button class="btn-orange" style="margin-top:16px;justify-content:center;font-size:17px;padding:16px;" onclick="document.getElementById('waitlistEmailMobile').focus();closeMobileMenu()">Join the waitlist</button>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="logo">
+        <div class="logo-dots">
+          <div class="logo-dot blue"></div>
+          <div class="logo-dot green"></div>
+          <div class="logo-dot gold"></div>
+        </div>
+        <span class="logo-text">SOHANA</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#circles">Circles</a>
+        <a href="#ncs-score">NCS Score</a>
+        <a href="#blog">Blog</a>
+      </div>
+      <div class="nav-actions">
+        <a href="/auth" class="btn-signin" style="text-decoration:none;">Sign in</a>
+        <button class="btn-nav-cta" onclick="scrollToWaitlist()">Join the waitlist</button>
+      </div>
+      <button class="nav-mobile-toggle" onclick="openMobileMenu()">☰</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="background: linear-gradient(135deg, rgba(10,38,10,0.87) 0%, rgba(8,52,28,0.84) 50%, rgba(12,42,24,0.84) 100%), url('https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;">
+  <div class="hero-bg-shapes">
+    <div class="hero-shape hero-shape-1"></div>
+    <div class="hero-shape hero-shape-2"></div>
+    <div class="hero-shape hero-shape-3"></div>
+  </div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left fade-up visible">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"></div>
+          Now accepting waitlist applications
+        </div>
+        <h1>Save together.<br>Build <span>credit</span>.<br>Send money home.</h1>
+        <p class="hero-sub">SOHANA brings your savings circle online — with the NCS credit score that opens doors banks can't.</p>
+        <div class="hero-btns">
+          <button class="btn-orange" onclick="scrollToWaitlist()">Join the waitlist →</button>
+          <button class="btn-ghost" onclick="document.getElementById('how-it-works').scrollIntoView()">See how it works</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-num">3,000+</div>
+            <div class="hero-stat-label">Waitlist members</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">8</div>
+            <div class="hero-stat-label">Currencies supported</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num">300–850</div>
+            <div class="hero-stat-label">NCS score range</div>
+          </div>
+        </div>
+      </div>
+      <!-- PHONE MOCKUP -->
+      <div class="phone-wrap fade-up visible" style="transition-delay:0.15s">
+        <div class="float-card float-card-1">
+          <div class="float-card-label">NCS Score</div>
+          <div class="float-card-val gold">721 ✦</div>
+        </div>
+        <div class="float-card float-card-2">
+          <div class="float-card-label">Circle payout</div>
+          <div class="float-card-val green">+€450 ↑</div>
+        </div>
+        <div class="phone-outer">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div>
+                <div class="phone-header-name" style="font-size:9px;color:rgba(255,255,255,0.4);">Good morning</div>
+                <div style="font-size:13px;font-weight:700;color:#fff;">Amara K.</div>
+              </div>
+              <div class="phone-header-avatar">AK</div>
+            </div>
+            <div class="phone-balance-card">
+              <div class="phone-balance-label">Total balance</div>
+              <div class="phone-balance-amount">€2,450.00</div>
+              <div class="phone-balance-tag">@amarak · EUR wallet</div>
+            </div>
+            <div class="phone-ncs-card">
+              <div class="phone-ncs-label">Njangi Credit Score</div>
+              <div class="phone-ncs-row">
+                <div class="phone-ncs-score">721</div>
+                <div class="phone-ncs-tier">Reliable</div>
+              </div>
+              <div class="phone-ncs-bar"><div class="phone-ncs-fill"></div></div>
+            </div>
+            <div class="phone-circle-card">
+              <div class="phone-circle-label">Active circles</div>
+              <div class="phone-circle-item">
+                <div class="phone-circle-name">Paris Diaspora Group</div>
+                <div class="phone-circle-progress">5/12 paid</div>
+              </div>
+              <div class="phone-circle-bar-wrap"><div class="phone-circle-bar-fill" style="width:42%"></div></div>
+              <div class="phone-circle-item" style="margin-top:6px">
+                <div class="phone-circle-name">Family Njangi — Douala</div>
+                <div class="phone-circle-progress">3/8 paid</div>
+              </div>
+              <div class="phone-circle-bar-wrap"><div class="phone-circle-bar-fill" style="width:37%;background:var(--gold)"></div></div>
+            </div>
+            <div class="phone-actions-row">
+              <div class="phone-action-btn"><div class="phone-action-icon">💸</div>Send</div>
+              <div class="phone-action-btn"><div class="phone-action-icon">⬇️</div>Receive</div>
+              <div class="phone-action-btn"><div class="phone-action-icon">🔄</div>Exchange</div>
+              <div class="phone-action-btn"><div class="phone-action-icon">➕</div>Circle</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT CARDS -->
+<section class="section-cards" id="features">
+  <div class="container">
+    <div class="cards-header fade-up visible">
+      <div>
+        <div class="section-label">Platform</div>
+        <h2 class="section-title">Everything your savings circle needs</h2>
+      </div>
+      <button class="btn-orange" onclick="scrollToWaitlist()">Get early access</button>
+    </div>
+    <div class="cards-grid">
+      <div class="product-card fade-up visible" style="transition-delay:0s">
+        <div class="product-card-icon" style="background:#dbeafe;"><img src="https://api.iconify.design/noto/handshake.svg" width="44" height="44" alt=""></div>
+        <h3>Savings Circles</h3>
+        <p>Start or join a Tontine, Njangi, Esusu, or ROSCA — fully digital with automatic rotation and member verification.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+      <div class="product-card fade-up visible" style="transition-delay:0.05s">
+        <div class="product-card-icon" style="background:#fef3c7;"><img src="https://api.iconify.design/noto/bar-chart.svg" width="44" height="44" alt=""></div>
+        <h3>NCS Score</h3>
+        <p>Your savings behaviour becomes your credit identity. Build a portable score from 300–850 based on real community finance.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+      <div class="product-card fade-up visible" style="transition-delay:0.1s">
+        <div class="product-card-icon" style="background:#dcfce7;"><img src="https://api.iconify.design/noto/credit-card.svg" width="44" height="44" alt=""></div>
+        <h3>Multicurrency Wallet</h3>
+        <p>Hold and convert EUR, GBP, USD, CAD, XAF, NGN, GHC and ZAR — all in one place, at honest rates.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+      <div class="product-card fade-up visible" style="transition-delay:0.15s">
+        <div class="product-card-icon" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe);"><span style="font-size:36px;font-weight:900;background:linear-gradient(135deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-family:Inter,sans-serif;line-height:1;">@</span></div>
+        <h3>Hanatag Payments</h3>
+        <p>Send money instantly with @yourname. Free transfers to any SOHANA member, across borders, in seconds.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+      <div class="product-card fade-up visible" style="transition-delay:0.2s">
+        <div class="product-card-icon" style="background:#ffedd5;"><img src="https://api.iconify.design/noto/clipboard.svg" width="44" height="44" alt=""></div>
+        <h3>Organiser Controls</h3>
+        <p>Manage members, approve joiners, set contribution amounts, and automate payouts — no spreadsheets.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+      <div class="product-card fade-up visible" style="transition-delay:0.25s">
+        <div class="product-card-icon" style="background:#f0fdf4;"><img src="https://api.iconify.design/noto/money-with-wings.svg" width="44" height="44" alt=""></div>
+        <h3>Withdrawals &amp; Transfers</h3>
+        <p>Cash out via bank transfer, mobile money, SEPA, or SWIFT. Your money, your way, wherever you are.</p>
+        <a class="product-card-link" href="#">Learn more →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NCS SCORE -->
+<section class="section-ncs" id="ncs-score">
+  <div class="container">
+    <div class="ncs-inner">
+      <div class="fade-up">
+        <div class="section-label">Credit identity</div>
+        <h2 class="section-title" style="margin-bottom:20px;">Your Njangi Credit Score</h2>
+        <svg id="ncsGaugeSvg" class="ncs-gauge-svg" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ef4444"></stop>
+              <stop offset="33%" stop-color="#f59e0b"></stop>
+              <stop offset="66%" stop-color="#16a34a"></stop>
+              <stop offset="100%" stop-color="#7c3aed"></stop>
+            </linearGradient>
+          </defs>
+          <path d="M 20 160 A 140 140 0 0 1 300 160" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round"></path>
+          <path id="ncsGaugeFill" d="M 20 160 A 140 140 0 0 1 300 160" fill="none" stroke="url(#gaugeGrad)" stroke-width="18" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="167"></path>
+          <line id="ncsNeedleLine" x1="160" y1="160" x2="195" y2="55" stroke="#1a2b4a" stroke-width="3" stroke-linecap="round"></line>
+          <circle id="ncsNeedleTip" cx="195" cy="55" r="5" fill="#1a2b4a"></circle>
+          <circle cx="160" cy="160" r="10" fill="#1a2b4a"></circle>
+          <text id="ncsGaugeScore" x="160" y="145" font-size="30" font-weight="900" fill="#1a2b4a" font-family="Inter,sans-serif" text-anchor="middle">721</text>
+          <text id="ncsGaugeTier" x="160" y="163" font-size="11" fill="#16a34a" font-family="Inter,sans-serif" text-anchor="middle">Reliable</text>
+          <text x="10" y="178" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">300</text>
+          <text x="284" y="178" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">850</text>
+        </svg>
+        <div style="margin-top:12px;">
+          <input type="range" id="ncsScoreSlider" min="300" max="850" value="721" step="1" class="calc-slider" oninput="updateNCSGauge(this.value)">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);margin-top:6px;"><span>300 · Probation</span><span>850 · Exemplary</span></div>
+        </div>
+        <div class="ncs-builders" style="margin-top:24px;">
+          <h4>What builds your score</h4>
+          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>On-time contributions each cycle</div>
+          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Completed circle cycles</div>
+          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Peer endorsements from members</div>
+          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Wallet activity and deposits</div>
+        </div>
+      </div>
+
+      <div class="fade-up" style="transition-delay:0.15s">
+        <div class="section-label" style="margin-bottom:10px;">Unlocks</div>
+        <div class="ncs-unlocks-title">Drag the slider to explore your score</div>
+        <div class="ncs-unlocks-sub">Traditional banks can't see your savings discipline. SOHANA can — and rewards you for it.</div>
+
+        <div class="ncs-unlock-item locked" data-threshold="550">
+          <div class="ncs-unlock-score score-550">550</div>
+          <div class="ncs-unlock-content">
+            <h5>Emergency Loan</h5>
+            <p>Access short-term emergency credit backed by your circle history.</p>
+          </div>
+        </div>
+        <div class="ncs-unlock-item locked" data-threshold="650">
+          <div class="ncs-unlock-score score-650">650</div>
+          <div class="ncs-unlock-content">
+            <h5>Early Payout Loan</h5>
+            <p>Receive your rotation slot ahead of schedule when you need it most.</p>
+          </div>
+        </div>
+        <div class="ncs-unlock-item locked" data-threshold="700">
+          <div class="ncs-unlock-score score-700">700</div>
+          <div class="ncs-unlock-content">
+            <h5>ROSCA-Backed Loan</h5>
+            <p>Use your active circle as collateral for larger structured credit.</p>
+          </div>
+        </div>
+        <div class="ncs-unlock-item locked" data-threshold="750">
+          <div class="ncs-unlock-score score-750">750</div>
+          <div class="ncs-unlock-content">
+            <h5>Credit Bureau Reporting</h5>
+            <p>Your NCS data exported to formal credit bureaus — building your mainstream credit file.</p>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTRIBUTIONS CALCULATOR -->
+<section class="section-calc" id="calculator">
+  <div class="container">
+    <div class="fade-up">
+      <div class="section-label">Njangi Calculator</div>
+      <h2 class="section-title">See what your savings circle could do</h2>
+      <p style="font-size:16px;color:var(--text-mid);margin-top:10px;max-width:540px;line-height:1.6;">Adjust the sliders to model your circle. See your projected payout, how long you wait, and the NCS boost you'd earn.</p>
+    </div>
+    <div class="calc-inner">
+      <div class="calc-form fade-up" style="transition-delay:0.05s">
+        <div style="font-size:13px;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Currency</div>
+        <select class="calc-currency-select" id="currencySelect" onchange="setCurrencyFromSelect(this)">
+          <optgroup label="Western Currencies">
+            <option value="€|western" selected>€ EUR — Euro</option>
+            <option value="£|western">£ GBP — British Pound</option>
+            <option value="$|western">$ USD — US Dollar</option>
+            <option value="CA$|western">CA$ CAD — Canadian Dollar</option>
+            <option value="A$|western">A$ AUD — Australian Dollar</option>
+            <option value="CHF |western">CHF — Swiss Franc</option>
+          </optgroup>
+          <optgroup label="West Africa">
+            <option value="CFA |african">CFA XAF — CFA Franc BEAC (Cameroon, Chad, Gabon…)</option>
+            <option value="CFA |african">CFA XOF — CFA Franc BCEAO (Senegal, Côte d’Ivoire…)</option>
+            <option value="₦|african">₦ NGN — Nigerian Naira</option>
+            <option value="GH₵|african">GH₵ GHS — Ghanaian Cedi</option>
+          </optgroup>
+          <optgroup label="East Africa">
+            <option value="KSh|african">KSh KES — Kenyan Shilling</option>
+            <option value="USh|african">USh UGX — Ugandan Shilling</option>
+            <option value="TSh|african">TSh TZS — Tanzanian Shilling</option>
+            <option value="RF|african">RF RWF — Rwandan Franc</option>
+            <option value="Br|african">Br ETB — Ethiopian Birr</option>
+          </optgroup>
+          <optgroup label="North Africa">
+            <option value="E£|african">E£ EGP — Egyptian Pound</option>
+            <option value="MAD |african">MAD — Moroccan Dirham</option>
+            <option value="DZD |african">DZD — Algerian Dinar</option>
+            <option value="TND |african">TND — Tunisian Dinar</option>
+          </optgroup>
+          <optgroup label="Southern Africa">
+            <option value="R|african">R ZAR — South African Rand</option>
+            <option value="ZK|african">ZK ZMW — Zambian Kwacha</option>
+            <option value="P|african">P BWP — Botswana Pula</option>
+            <option value="Kz|african">Kz AOA — Angolan Kwanza</option>
+            <option value="MZN |african">MZN — Mozambican Metical</option>
+          </optgroup>
+          <optgroup label="Central Africa">
+            <option value="FC|african">FC CDF — Congolese Franc</option>
+          </optgroup>
+        </select>
+        <div class="calc-field">
+          <div class="calc-field-header">
+            <div class="calc-field-label">Monthly contribution</div>
+            <div class="calc-field-value" id="contribDisplay">€100</div>
+          </div>
+          <input type="range" class="calc-slider" id="contribSlider" min="50" max="100000" step="50" value="100" oninput="updateCalc()">
+          <div class="calc-field-hint"><span id="contribMin">Min 50</span><span id="contribMax">Max 100 000</span></div>
+        </div>
+        <div class="calc-field">
+          <div class="calc-field-header">
+            <div class="calc-field-label">Circle members</div>
+            <div class="calc-field-value" id="membersDisplay">8 <span>people</span></div>
+          </div>
+          <input type="range" class="calc-slider" id="membersSlider" min="2" max="24" step="1" value="8" oninput="updateCalc()">
+          <div class="calc-field-hint"><span>2 members</span><span>24 members</span></div>
+        </div>
+        <div class="calc-field">
+          <div class="calc-field-header">
+            <div class="calc-field-label">Your rotation slot</div>
+            <div class="calc-field-value" id="slotDisplay">4th <span>of 8</span></div>
+          </div>
+          <input type="range" class="calc-slider" id="slotSlider" min="1" max="8" step="1" value="4" oninput="updateCalc()">
+          <div class="calc-field-hint"><span>1st (earliest)</span><span>Last</span></div>
+        </div>
+        <div style="background:rgba(37,99,235,0.06);border:1px solid rgba(37,99,235,0.15);border-radius:12px;padding:14px;font-size:13px;color:var(--text-mid);line-height:1.5;">
+          💡 <strong style="color:var(--text-dark);">How it works:</strong> Each member contributes monthly. The pooled amount rotates to one member per month. Everyone gets paid out exactly once per cycle.
+        </div>
+      </div>
+      <div class="calc-result fade-up" style="transition-delay:0.1s">
+        <div class="calc-result-label">Your lump-sum payout</div>
+        <div class="calc-payout" id="calcPayout">€800</div>
+        <div class="calc-payout-sub" id="calcPayoutSub">received after 4 months · 8-member circle</div>
+        <div class="calc-stats-grid">
+          <div class="calc-stat">
+            <div class="calc-stat-val green" id="calcTotal">€6,400</div>
+            <div class="calc-stat-label">Total circle pool per cycle</div>
+          </div>
+          <div class="calc-stat">
+            <div class="calc-stat-val" id="calcWait" style="color:#fff;">3 months</div>
+            <div class="calc-stat-label">Wait before your payout</div>
+          </div>
+          <div class="calc-stat">
+            <div class="calc-stat-val gold" id="calcNCS">+48 pts</div>
+            <div class="calc-stat-label">Estimated NCS boost</div>
+          </div>
+          <div class="calc-stat">
+            <div class="calc-stat-val" id="calcCycles" style="color:#fff;">8 months</div>
+            <div class="calc-stat-label">Full cycle duration</div>
+          </div>
+        </div>
+        <div class="calc-timeline-label">Rotation order — your slot highlighted</div>
+        <div class="calc-timeline" id="calcTimeline"></div>
+        <div class="calc-ncs-row">
+          <img src="https://api.iconify.design/noto/star.svg" width="28" height="28" alt="">
+          <div class="calc-ncs-text">Complete this circle and your NCS score could reach <strong id="calcNCSTarget">548</strong> — unlocking emergency loan access at 550.</div>
+        </div>
+        <button class="calc-cta" onclick="scrollToWaitlist()">Join the waitlist to start your circle →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BENEFITS STRIP -->
+<section class="section-benefits" id="circles">
+  <div class="container">
+    <div class="fade-up visible">
+      <div class="section-label">Why SOHANA</div>
+      <h2 class="section-title">Built around how your community actually saves</h2>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-card bc-1 fade-up" style="transition-delay:0s;background:linear-gradient(135deg,rgba(29,78,216,0.82),rgba(37,99,235,0.78)),url('https://images.unsplash.com/photo-1579621970795-87facc2f976d?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;">
+        <div class="benefit-card-icon"><img src="https://api.iconify.design/noto/chart-increasing.svg" width="56" height="56" alt=""></div>
+        <div>
+          <h3>Earn while you save</h3>
+          <p>Every on-time contribution adds to your NCS score — turning discipline into financial identity.</p>
+        </div>
+      </div>
+      <div class="benefit-card bc-2 fade-up" style="transition-delay:0.08s;background:linear-gradient(135deg,rgba(21,128,61,0.82),rgba(22,163,74,0.78)),url('https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;">
+        <div class="benefit-card-icon"><img src="https://api.iconify.design/noto/trophy.svg" width="56" height="56" alt=""></div>
+        <div>
+          <h3>Priority payouts</h3>
+          <p>Higher NCS score earns you earlier rotation slots. Good behaviour has real, immediate rewards.</p>
+        </div>
+      </div>
+      <div class="benefit-card bc-3 fade-up" style="transition-delay:0.16s;background:linear-gradient(135deg,rgba(180,83,9,0.82),rgba(217,119,6,0.78)),url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;">
+        <div class="benefit-card-icon"><img src="https://api.iconify.design/noto/mobile-phone.svg" width="56" height="56" alt=""></div>
+        <div>
+          <h3>No bank required</h3>
+          <p>Open a multicurrency wallet with just your phone number. No branch visits, no paperwork.</p>
+        </div>
+      </div>
+      <div class="benefit-card bc-4 fade-up" style="transition-delay:0.24s;background:linear-gradient(135deg,rgba(124,58,237,0.82),rgba(139,92,246,0.78)),url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80') center/cover no-repeat;">
+        <div class="benefit-card-icon"><img src="https://api.iconify.design/noto/globe-showing-europe-africa.svg" width="56" height="56" alt=""></div>
+        <div>
+          <h3>Cross-border</h3>
+          <p>Send money to Cameroon, Ghana, Nigeria in seconds. EUR ↔ XAF ↔ NGN without the hidden fees.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS BAND -->
+<section class="section-stats">
+  <div class="container">
+    <div class="fade-up visible">
+      <div class="stats-headline"><span>92.5%</span> completion rate<br>across all SOHANA circles</div>
+      <div class="stats-sub">Our members finish what they start — because the platform enforces fairness automatically.</div>
+    </div>
+    <div class="stats-row fade-up visible" style="transition-delay:0.1s">
+      <div class="stat-pill">
+        <div class="stat-pill-num">1,245</div>
+        <div class="stat-pill-label">Active circles</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-num">15,<span>620</span></div>
+        <div class="stat-pill-label">Members worldwide</div>
+      </div>
+      <div class="stat-pill">
+        <div class="stat-pill-num" style="color:var(--gold)">€2.45M</div>
+        <div class="stat-pill-label">Rotated to date</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES GRID -->
+<section class="section-services">
+  <div class="container">
+    <div class="services-inner">
+      <div class="fade-up visible">
+        <div class="section-label">Services</div>
+        <h2 class="section-title" style="margin-bottom:16px;">Everything in one platform</h2>
+        <p style="font-size:16px;color:var(--text-mid);line-height:1.7;margin-bottom:32px;">From currency conversion to group savings, SOHANA removes the friction that keeps diaspora communities relying on informal networks.</p>
+        <button class="btn-orange" onclick="scrollToWaitlist()">Join the waitlist</button>
+      </div>
+      <div class="services-grid fade-up visible" style="transition-delay:0.1s">
+        <div class="service-tile">
+          <div class="service-tile-icon"><img src="https://api.iconify.design/noto/currency-exchange.svg" width="44" height="44" alt=""></div>
+          <h4>Currency conversion</h4>
+          <p>Convert at 0.7% — transparent, honest pricing with no hidden spreads.</p>
+        </div>
+        <div class="service-tile">
+          <div class="service-tile-icon"><img src="https://api.iconify.design/noto/people-holding-hands.svg" width="44" height="44" alt=""></div>
+          <h4>Group savings circles</h4>
+          <p>Tontine, Njangi, Esusu or ROSCA — your tradition, now digital and protected.</p>
+        </div>
+        <div class="service-tile">
+          <div class="service-tile-icon"><img src="https://api.iconify.design/noto/high-voltage.svg" width="44" height="44" alt=""></div>
+          <h4>Hanatag payments</h4>
+          <p>Instant free transfers to any @username on SOHANA, anywhere in the world.</p>
+        </div>
+        <div class="service-tile">
+          <div class="service-tile-icon"><img src="https://api.iconify.design/noto/page-facing-up.svg" width="44" height="44" alt=""></div>
+          <h4>Statements &amp; history</h4>
+          <p>Full transaction history, circle records, and downloadable statements for every account.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section-how" id="how-it-works">
+  <div class="container">
+    <div style="text-align:center;" class="fade-up visible">
+      <div class="section-label">Simple by design</div>
+      <h2 class="section-title">Up and saving in three steps</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step-item fade-up visible" style="transition-delay:0s">
+        <div class="step-num sn-1">1</div>
+        <h3>Create your account</h3>
+        <p>Sign up with your phone number and claim your Hanatag — your unique @username that follows you everywhere on SOHANA.</p>
+      </div>
+      <div class="step-item fade-up visible" style="transition-delay:0.1s">
+        <div class="step-num sn-2">2</div>
+        <h3>Join or start a circle</h3>
+        <p>Invite your family and friends, or join an existing circle. Set the contribution amount, cycle length, and rotation order.</p>
+      </div>
+      <div class="step-item fade-up visible" style="transition-delay:0.2s">
+        <div class="step-num sn-3">3</div>
+        <h3>Contribute. Get paid. Build credit.</h3>
+        <p>Make your contributions on time and receive payouts in rotation. Every action builds your NCS score automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- APP DOWNLOAD -->
+<section class="section-app">
+  <div class="container">
+    <div class="app-inner">
+      <div class="app-left fade-up visible">
+        <div class="section-label" style="color:rgba(255,255,255,0.5)">Mobile app</div>
+        <h2>SOHANA on your phone</h2>
+        <p>The full SOHANA experience, anywhere. Manage your circles, check your NCS score, and send money home — all from your pocket.</p>
+        <p style="font-size:14px;color:rgba(255,255,255,0.45);margin-bottom:28px;margin-top:-16px;">Available on iOS and Android — coming soon.</p>
+        <div class="app-badges">
+          <a href="#" class="app-badge" style="padding:0;overflow:hidden;opacity:0.7;background:none;border:none;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="Download on the App Store" height="44" style="display:block;">
+          </a>
+          <a href="#" class="app-badge" style="padding:0;overflow:hidden;opacity:0.7;background:none;border:none;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" height="44" style="display:block;">
+          </a>
+        </div>
+      </div>
+      <div class="app-right fade-up visible" style="transition-delay:0.15s">
+        <!-- Second phone mockup -->
+        <div class="phone-outer" style="height:480px;width:240px;">
+          <div class="phone-notch"></div>
+          <div class="phone-screen" style="gap:8px;">
+            <div style="font-size:13px;font-weight:800;color:#fff;margin-top:4px;">Send money</div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;">
+              <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;">To</div>
+              <div style="font-size:14px;font-weight:700;color:#fff;">@kofi.asante</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Kofi Asante · GHC wallet</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;text-align:center;">
+              <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:4px;">Amount</div>
+              <div style="font-size:32px;font-weight:900;color:#fff;">€150</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px;">≈ GHC 2,200 · 0.7% fee</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:rgba(255,255,255,0.5)">Exchange rate</span><span style="color:#fff;font-weight:600;">1 EUR = 14.67 GHC</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:rgba(255,255,255,0.5)">Arrival</span><span style="color:#4ade80;font-weight:600;">Instant</span></div>
+            </div>
+            <div style="background:var(--orange);border-radius:10px;padding:12px;text-align:center;font-size:14px;font-weight:700;color:#fff;margin-top:auto;">Send €150 →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="section-waitlist" id="waitlist">
+  <div class="container">
+    <div class="waitlist-inner fade-up visible">
+      <h2>Be first when we launch</h2>
+      <p>Join 3,000+ people already on the waitlist.</p>
+      <div class="waitlist-form" id="waitlistForm">
+        <input class="waitlist-input" type="email" placeholder="Your email address" id="waitlistEmail">
+        <button class="waitlist-btn" onclick="handleWaitlist()">Claim your spot</button>
+      </div>
+      <div class="waitlist-success" id="waitlistSuccess">
+        ✓ You're on the list! We'll be in touch when SOHANA launches.
+      </div>
+      <div class="waitlist-fine">No spam. Unsubscribe any time.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOG -->
+<section class="section-blog" id="blog">
+  <div class="container">
+    <div class="fade-up visible">
+      <div class="section-label">Resources</div>
+      <h2 class="section-title">Learn about community finance</h2>
+    </div>
+    <div class="blog-grid">
+      <div class="blog-card fade-up visible" style="transition-delay:0s">
+        <div class="blog-card-img blog-img-1">
+          <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80" alt="Community savings group" onerror="this.style.display='none'">
+          <div class="blog-img-overlay"></div>
+        </div>
+        <div class="blog-card-body">
+          <span class="blog-tag tag-edu">Education</span>
+          <div class="blog-card-title">What is a Tontine? The 500-year savings tradition going digital</div>
+          <div class="blog-card-excerpt">Rotating savings groups predate modern banking. Here's how they work — and why millions still prefer them.</div>
+          <div class="blog-card-meta">
+            <span>Apr 18, 2026</span> · <span>5 min read</span>
+          </div>
+        </div>
+      </div>
+      <div class="blog-card fade-up visible" style="transition-delay:0.1s">
+        <div class="blog-card-img blog-img-2">
+          <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=800&q=80" alt="Credit score and fintech" onerror="this.style.display='none'">
+          <div class="blog-img-overlay"></div>
+        </div>
+        <div class="blog-card-body">
+          <span class="blog-tag tag-tips">Tips</span>
+          <div class="blog-card-title">5 ways to build your NCS score faster in your first circle</div>
+          <div class="blog-card-excerpt">Your NCS score starts building from day one. These habits will have you unlocking credit in your first cycle.</div>
+          <div class="blog-card-meta">
+            <span>Apr 10, 2026</span> · <span>4 min read</span>
+          </div>
+        </div>
+      </div>
+      <div class="blog-card fade-up visible" style="transition-delay:0.2s">
+        <div class="blog-card-img blog-img-3">
+          <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=800&q=80" alt="African diaspora in Europe" onerror="this.style.display='none'">
+          <div class="blog-img-overlay"></div>
+        </div>
+        <div class="blog-card-body">
+          <span class="blog-tag tag-news">News</span>
+          <div class="blog-card-title">How African diaspora communities in France are changing fintech</div>
+          <div class="blog-card-excerpt">€15B in annual remittances and a generation demanding better tools. The market that Revolut missed.</div>
+          <div class="blog-card-meta">
+            <span>Apr 2, 2026</span> · <span>6 min read</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-dots">
+            <div class="logo-dot blue"></div>
+            <div class="logo-dot green"></div>
+            <div class="logo-dot gold"></div>
+          </div>
+          <span class="logo-text">SOHANA</span>
+        </a>
+        <div class="footer-tagline">Where trust becomes capital.</div>
+        <div class="footer-desc">Digitalising community savings — Tontine, Njangi, Esusu, and ROSCA — for diaspora communities in Europe and across Africa.</div>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#">Circles</a></li>
+          <li><a href="#">Wallet</a></li>
+          <li><a href="#">NCS Score</a></li>
+          <li><a href="#">Hanatag</a></li>
+          <li><a href="#">Pricing</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Support</h5>
+        <ul>
+          <li><a href="#">Help Centre</a></li>
+          <li><a href="#">Contact</a></li>
+          <li><a href="#">Security</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Legal</h5>
+        <ul>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Cookie Policy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copy">© 2026 SOHANA. Where trust becomes capital.</div>
+      <div class="social-icons">
+        <a href="#" class="social-icon" title="X / Twitter">𝕏</a>
+        <a href="#" class="social-icon" title="LinkedIn">in</a>
+        <a href="#" class="social-icon" title="Instagram">◻</a>
+        <a href="#" class="social-icon" title="WhatsApp">📱</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Scroll animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Mobile menu
+function openMobileMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+function closeMobileMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+// Scroll to waitlist
+function scrollToWaitlist() {
+  const el = document.getElementById('waitlist');
+  const y = el.getBoundingClientRect().top + window.scrollY - 80;
+  window.scrollTo({ top: y, behavior: 'smooth' });
+  setTimeout(() => document.getElementById('waitlistEmail').focus(), 600);
+}
+
+// Waitlist form
+async function handleWaitlist() {
+  const emailEl = document.getElementById('waitlistEmail');
+  const email = emailEl.value.trim();
+  if (!email || !email.includes('@')) {
+    emailEl.style.borderColor = '#ef4444';
+    setTimeout(() => emailEl.style.borderColor = '', 1500);
+    return;
+  }
+  // Also handle mobile input if present
+  const mobileEl = document.getElementById('waitlistEmailMobile');
+  const name = (document.getElementById('waitlistName') || {}).value || '';
+  // Show success immediately for good UX
+  document.getElementById('waitlistForm').style.display = 'none';
+  document.getElementById('waitlistSuccess').classList.add('show');
+  // Store in localStorage as fallback
+  try {
+    const list = JSON.parse(localStorage.getItem('sohana_waitlist') || '[]');
+    list.push({ email, ts: Date.now() });
+    localStorage.setItem('sohana_waitlist', JSON.stringify(list));
+  } catch(e) {}
+  // POST to Flask backend
+  try {
+    await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name })
+    });
+  } catch(e) { /* localStorage backup already saved it */ }
+}
+
+// Enter key on waitlist
+document.getElementById('waitlistEmail').addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleWaitlist();
+});
+
+// NCS Gauge
+function updateNCSGauge(score) {
+  score = parseInt(score);
+  const pct = (score - 300) / 550;
+  const angle = (1 - pct) * Math.PI;
+  const tipX = (160 + 110 * Math.cos(angle)).toFixed(1);
+  const tipY = (160 - 110 * Math.sin(angle)).toFixed(1);
+  const dashOffset = (440 * (1 - pct)).toFixed(1);
+  document.getElementById('ncsNeedleLine').setAttribute('x2', tipX);
+  document.getElementById('ncsNeedleLine').setAttribute('y2', tipY);
+  document.getElementById('ncsNeedleTip').setAttribute('cx', tipX);
+  document.getElementById('ncsNeedleTip').setAttribute('cy', tipY);
+  document.getElementById('ncsGaugeFill').setAttribute('stroke-dashoffset', dashOffset);
+  document.getElementById('ncsGaugeScore').textContent = score;
+  let tier = 'Probation', tierColor = '#ef4444';
+  if (score >= 750) { tier = 'Exemplary'; tierColor = '#7c3aed'; }
+  else if (score >= 650) { tier = 'Reliable'; tierColor = '#16a34a'; }
+  else if (score >= 500) { tier = 'Developing'; tierColor = '#f59e0b'; }
+  const tierEl = document.getElementById('ncsGaugeTier');
+  tierEl.textContent = tier;
+  tierEl.setAttribute('fill', tierColor);
+  // Slider fill
+  const sl = document.getElementById('ncsScoreSlider');
+  const sp = ((sl.value - sl.min) / (sl.max - sl.min)) * 100;
+  sl.style.background = `linear-gradient(to right, #1a2b4a ${sp}%, #e2e8f0 ${sp}%)`;
+  // Unlock items
+  let nextFound = false;
+  document.querySelectorAll('.ncs-unlock-item').forEach(item => {
+    const thresh = parseInt(item.dataset.threshold);
+    const tag = item.querySelector('.ncs-next-tag');
+    if (tag) tag.remove();
+    if (score >= thresh) {
+      item.classList.remove('locked', 'next-unlock');
+    } else if (!nextFound) {
+      item.classList.remove('locked');
+      item.classList.add('next-unlock');
+      const t = document.createElement('span');
+      t.className = 'ncs-next-tag';
+      t.textContent = 'Next unlock at ' + thresh;
+      item.prepend(t);
+      nextFound = true;
+    } else {
+      item.classList.add('locked');
+      item.classList.remove('next-unlock');
+    }
+  });
+}
+updateNCSGauge(721);
+
+// Calculator
+let calcSym = '€';
+let calcIsAfrican = false;
+
+function setCurrencyFromSelect(sel) {
+  const parts = sel.value.split('|');
+  calcSym = parts[0];
+  calcIsAfrican = parts[1] === 'african';
+  const slider = document.getElementById('contribSlider');
+  if (calcIsAfrican) {
+    slider.min = 10; slider.max = 10000000; slider.step = 1000;
+    if (parseInt(slider.value) < 10) slider.value = 10000;
+    if (parseInt(slider.value) > 10000000) slider.value = 10000000;
+    document.getElementById('contribMin').textContent = 'Min 10';
+    document.getElementById('contribMax').textContent = 'Max 10 000 000';
+  } else {
+    slider.min = 50; slider.max = 100000; slider.step = 50;
+    if (parseInt(slider.value) < 50) slider.value = 100;
+    if (parseInt(slider.value) > 100000) slider.value = 100000;
+    document.getElementById('contribMin').textContent = 'Min 50';
+    document.getElementById('contribMax').textContent = 'Max 100 000';
+  }
+  updateCalc();
+}
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+function fmtNum(n) {
+  // Format: x xxx xxx (space thousands separator)
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+function updateCalc() {
+  const contrib = parseInt(document.getElementById('contribSlider').value);
+  const members = parseInt(document.getElementById('membersSlider').value);
+  // Clamp slot to members
+  const slotEl = document.getElementById('slotSlider');
+  slotEl.max = members;
+  if (parseInt(slotEl.value) > members) slotEl.value = members;
+  const slot = parseInt(slotEl.value);
+
+  const payout = contrib * members;
+  const total = contrib * members * members;
+  const wait = slot - 1;
+  const ncsBoost = Math.round(25 + (members * 3) + (slot === 1 ? 5 : 0));
+  const ncsTarget = 500 + ncsBoost;
+
+  // Update displays
+  document.getElementById('contribDisplay').textContent = calcSym + fmtNum(contrib);
+  document.getElementById('membersDisplay').innerHTML = members + ' <span>people</span>';
+  document.getElementById('slotDisplay').innerHTML = ordinal(slot) + ' <span>of ' + members + '</span>';
+
+  document.getElementById('calcPayout').textContent = calcSym + fmtNum(payout);
+  document.getElementById('calcPayoutSub').textContent = 'received after ' + slot + ' month' + (slot > 1 ? 's' : '') + ' · ' + members + '-member circle';
+  document.getElementById('calcTotal').textContent = calcSym + fmtNum(total);
+  document.getElementById('calcWait').textContent = wait === 0 ? 'Immediately!' : wait + ' month' + (wait > 1 ? 's' : '');
+  document.getElementById('calcNCS').textContent = '+' + ncsBoost + ' pts';
+  document.getElementById('calcCycles').textContent = members + ' months';
+
+  // NCS unlock message
+  let unlockMsg = '';
+  if (ncsTarget >= 750) unlockMsg = '— qualifying for credit bureau reporting';
+  else if (ncsTarget >= 700) unlockMsg = '— unlocking ROSCA-backed loans';
+  else if (ncsTarget >= 650) unlockMsg = '— unlocking early payout loans';
+  else if (ncsTarget >= 550) unlockMsg = '— unlocking emergency loan access';
+  else unlockMsg = '— keep contributing to unlock more';
+  document.getElementById('calcNCSTarget').textContent = ncsTarget;
+  document.querySelector('.calc-ncs-text').innerHTML =
+    'Complete this circle and your NCS score could reach <strong id="calcNCSTarget">' + ncsTarget + '</strong> ' + unlockMsg + '.';
+
+  // Timeline
+  const tl = document.getElementById('calcTimeline');
+  tl.innerHTML = '';
+  for (let i = 1; i <= members; i++) {
+    const s = document.createElement('div');
+    s.className = 'calc-slot' + (i === slot ? ' you' : '');
+    s.textContent = i;
+    tl.appendChild(s);
+  }
+
+  // Slider track fill
+  ['contribSlider','membersSlider','slotSlider'].forEach(id => {
+    const el = document.getElementById(id);
+    const pct = ((el.value - el.min) / (el.max - el.min)) * 100;
+    el.style.background = `linear-gradient(to right, #1a2b4a ${pct}%, #e2e8f0 ${pct}%)`;
+  });
+}
+// Init
+updateCalc();
+window.addEventListener('message', e => {
+  if (e.data?.type === '__activate_edit_mode') showTweaks(true);
+  if (e.data?.type === '__deactivate_edit_mode') showTweaks(false);
+});
+window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "primaryColor": "#ea580c",
+  "accentColor": "#2563eb",
+  "heroHeadline": "Save together. Build credit. Send money home.",
+  "showStats": true,
+  "darkHero": true
+}/*EDITMODE-END*/;
+
+let tweaks = { ...TWEAK_DEFAULTS };
+
+function showTweaks(show) {
+  const panel = document.getElementById('tweaksPanel');
+  panel.style.display = show ? 'flex' : 'none';
+}
+
+function applyTweak(key, val) {
+  tweaks[key] = val;
+  if (key === 'primaryColor') {
+    document.querySelectorAll('.btn-orange, .btn-nav-cta, .waitlist-btn').forEach(el => el.style.background = val);
+    document.documentElement.style.setProperty('--orange', val);
+  }
+  if (key === 'accentColor') {
+    document.documentElement.style.setProperty('--blue', val);
+  }
+  if (key === 'heroHeadline') {
+    document.querySelector('.hero h1').innerHTML = val.replace(/\./g, '.<br>').replace('credit', '<span>credit</span>');
+  }
+  if (key === 'darkHero') {
+    document.querySelector('.hero').style.background = val
+      ? 'linear-gradient(135deg, #0f1c33 0%, #0d2150 50%, #162d5c 100%)'
+      : 'linear-gradient(135deg, #0d2f0d 0%, #0a3d22 50%, #0f3320 100%)';
+  }
+  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+}
+</script>
+
+<!-- TWEAKS PANEL -->
+<div id="tweaksPanel" style="display: flex; position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: rgb(30, 41, 59); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 20px; width: 280px; flex-direction: column; gap: 14px; box-shadow: rgba(0, 0, 0, 0.4) 0px 24px 48px; font-family: Inter, sans-serif; color: rgb(255, 255, 255);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    <div style="font-size:14px;font-weight:700;">Tweaks</div>
+    <button onclick="showTweaks(false);window.parent.postMessage({type:'__edit_mode_dismissed'},'*')" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:18px;line-height:1;">✕</button>
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">CTA Color</div>
+    <input type="color" value="#ea580c" onchange="applyTweak('primaryColor',this.value)" style="width:100%;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Accent Color</div>
+    <input type="color" value="#2563eb" onchange="applyTweak('accentColor',this.value)" style="width:100%;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
+  </div>
+  <div>
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Hero Headline</div>
+    <textarea onchange="applyTweak('heroHeadline',this.value)" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;padding:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:64px;">Save together. Build credit. Send money home.</textarea>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:600;">Hero theme</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="applyTweak('darkHero',true);this.style.background='rgba(255,255,255,0.2)';this.nextSibling.style.background='rgba(255,255,255,0.06)'" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">Dark</button>
+      <button onclick="applyTweak('darkHero',false);this.style.background='rgba(255,255,255,0.2)';this.previousSibling.style.background='rgba(255,255,255,0.06)'" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer;">Forest</button>
+    </div>
+  </div>
+</div>
+
+
+
+</body></html>
