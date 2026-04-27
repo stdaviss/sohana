@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}{{ pool.name }} — SOHANA{% endblock %}
+{% block topbar_title %}Contribution Pool{% endblock %}
+{% block content %}
+{% set purpose_info = purposes.get(pool.purpose, {'label':pool.purpose,'icon':'🤝'}) %}
+<div class="breadcrumb"><a href="/pools">Pools</a> / {{ pool.name }}</div>
+<div class="page-header" style="margin-top:.5rem;">
+  <div>
+    <h1 class="page-title">{{ purpose_info.icon }} {{ pool.name }}</h1>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;">
+      <span class="pill {% if pool.status=='active' %}pill-green{% else %}pill-blue{% endif %} pill-no-dot">{{ pool.status }}</span>
+      <span class="text-sm text-muted">{{ purpose_info.label }}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    {% if is_admin %}<a href="/pools/{{ pool.id }}/manage" class="btn btn-orange btn-sm">⚙ Manage pool</a>{% endif %}
+    {% if not is_member %}<button class="btn btn-primary btn-sm" onclick="openModal('join-pool-modal')">Request to join</button>{% endif %}
+  </div>
+</div>
+
+<!-- Pool hero stats -->
+<div class="card" style="background:linear-gradient(135deg,var(--navy-dark),var(--navy));border:none;color:#fff;margin-bottom:1.25rem;">
+  <div style="padding:1.5rem;display:flex;gap:2rem;flex-wrap:wrap;align-items:center;">
+    <div style="font-size:3rem;">{{ purpose_info.icon }}</div>
+    <div style="flex:1;">
+      {% if pool.description %}<p style="color:rgba(255,255,255,.7);font-size:.9rem;margin-bottom:.75rem;">{{ pool.description }}</p>{% endif %}
+      <div style="display:flex;gap:2.5rem;flex-wrap:wrap;">
+        {% for label,val,color in [
+          ('Pool balance','€'+('{:,.2f}'.format(pool.total_balance_cents/100).replace(',', ' ')),'var(--gold)'),
+          ('Monthly per member','€'+('{:,.0f}'.format(pool.monthly_amount_cents/100).replace(',', ' ')),'#60a5fa'),
+          ('Annual per member','€'+('{:,.0f}'.format(pool.annual_amount_cents/100).replace(',', ' ')),'#34d399'),
+          ('Duration','%(duration_months)s months' % pool,'rgba(255,255,255,.8)'),
+        ] %}
+        <div><div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.45);margin-bottom:.25rem;">{{ label }}</div>
+        <div style="font-size:1.2rem;font-weight:700;color:{{ color }};">{{ val }}</div></div>
+        {% endfor %}
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:.3rem;">Payout type</div>
+      <div style="font-size:1rem;font-weight:700;">{{ 'Single recipient' if pool.payout_type=='single' else 'Split equally' }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="content-grid content-grid-sidebar">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+    <!-- My contribution status (if member) -->
+    {% if is_member and my_status %}
+    <div class="card card-pad" style="border-left:4px solid {% if my_status.arrears_cents > 0 %}var(--red){% else %}var(--green){% endif %};">
+      <div class="card-title mb-3">My contribution status</div>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+        {% for label,val,color in [
+          ('Months covered', my_status.months_paid, 'var(--green)'),
+          ('Months due', my_status.months_due, 'var(--red)' if my_status.months_due > 0 else 'var(--text-muted)'),
+          ('Arrears', '€'+('{:,.2f}'.format(my_status.arrears_cents/100).replace(',', ' ')), 'var(--red)' if my_status.arrears_cents > 0 else 'var(--green)'),
+        ] %}
+        <div><div class="text-xs text-muted">{{ label }}</div><div style="font-size:1.1rem;font-weight:700;color:{{ color }};">{{ val }}</div></div>
+        {% endfor %}
+      </div>
+      <div style="margin-bottom:.875rem;">
+        <div class="text-xs text-muted mb-1">Your payment schedule</div>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+          {% for key,sch in schedules.items() %}
+          <button class="btn btn-sm {{ 'btn-primary' if my_status.payment_schedule==key else 'btn-outline' }}" style="font-size:.72rem;" onclick="setSchedule('{{ key }}',this)">{{ sch.label }}</button>
+          {% endfor %}
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+        <button class="btn btn-green btn-sm" onclick="openModal('contribute-modal')">Pay my contribution</button>
+        <button class="btn btn-outline btn-sm" onclick="openModal('pay-for-modal')">Pay for another member</button>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Disbursements -->
+    {% if disbursements %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">Disbursements</span></div>
+      {% for d in disbursements %}
+      {% set approvals = [d.approved_by_1, d.approved_by_2, d.approved_by_3]|select|list|length %}
+      <div style="padding:.875rem 1.25rem;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:.5rem;">
+          <div>
+            <div style="font-weight:600;font-size:.875rem;">€{{ '{:,.2f}'.format(d.amount_cents/100).replace(',', ' ') }}</div>
+            <div class="text-xs text-muted">{{ d.purpose_note }}</div>
+            <div class="text-xs text-muted">Requested by {{ d.requester_name }} · {{ d.created_at[:10] }}</div>
+          </div>
+          <span class="pill {% if d.status=='executed' %}pill-green{% elif d.status=='rejected' %}pill-red{% else %}pill-amber{% endif %} pill-no-dot" style="font-size:.7rem;">{{ d.status }}</span>
+        </div>
+        {% if d.status == 'pending' %}
+        <div style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem;">
+          <div class="progress-track" style="flex:1;height:6px;"><div class="progress-fill fill-green" style="width:{{ (approvals/3*100)|round|int }}%"></div></div>
+          <span class="text-xs text-muted">{{ approvals }}/3 approvals</span>
+          {% if is_admin %}
+          <button class="btn btn-green btn-sm" style="font-size:.7rem;padding:.2rem .6rem;" onclick="approveDisbursement('{{ pool.id }}','{{ d.id }}',this)">Approve</button>
+          <button class="btn btn-outline btn-sm" style="font-size:.7rem;padding:.2rem .6rem;color:var(--red);border-color:#fecaca;" onclick="rejectDisbursement('{{ pool.id }}','{{ d.id }}',this)">Reject</button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Members sidebar -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Members ({{ members|selectattr('status','equalto','active')|list|length }})</span>
+    </div>
+    {% for m in members %}
+    {% if m.status == 'active' %}
+    <div style="display:flex;align-items:center;gap:.65rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
+      <div style="width:30px;height:30px;border-radius:50%;background:{% if m.role=='admin' %}var(--orange){% else %}var(--navy){% endif %};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;">{{ m.full_name[0] }}</div>
+      <div style="flex:1;">
+        <div style="font-size:.85rem;font-weight:500;">{{ m.full_name }}</div>
+        <div class="text-xs text-muted">{% if m.role=='admin' %}👑 Admin · {% endif %}{{ m.hanatag or '' }}</div>
+      </div>
+      <span class="pill {% if m.ncs_tier=='exemplary' %}pill-purple{% elif m.ncs_tier=='reliable' %}pill-green{% elif m.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.62rem;">{{ m.ncs_score }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% if is_admin %}
+    <div style="padding:.75rem 1.25rem;border-top:1px solid var(--border);">
+      <button class="btn btn-orange btn-sm btn-full" onclick="openModal('disburse-modal')">Request disbursement</button>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Join pool -->
+<div class="modal-backdrop" id="join-pool-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('join-pool-modal')">✕</button>
+    <h3 class="modal-title">Request to join {{ pool.name }}</h3>
+    <p class="modal-sub">Monthly contribution: <strong>€{{ '{:,.2f}'.format(pool.monthly_amount_cents/100).replace(',', ' ') }}</strong></p>
+    <div class="form-group"><label class="form-label">Preferred payment schedule</label>
+      <select class="form-input form-select" id="join-schedule">
+        {% for key,sch in schedules.items() %}
+        <option value="{{ key }}">{{ sch.label }} — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*sch.months/100).replace(',', ' ') }} at a time</option>
+        {% endfor %}
+      </select></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('join-pool-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-join-pool" onclick="joinPool()">Request to join</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contribute -->
+<div class="modal-backdrop" id="contribute-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('contribute-modal')">✕</button>
+    <h3 class="modal-title">Pay contribution</h3>
+    <div class="form-group"><label class="form-label">Months to pay</label>
+      <select class="form-input form-select" id="c-months" onchange="updateContribPreview()">
+        <option value="1">1 month — €{{ '{:,.2f}'.format(pool.monthly_amount_cents/100).replace(',', ' ') }}</option>
+        <option value="3">3 months — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*3/100).replace(',', ' ') }}</option>
+        <option value="6">6 months — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*6/100).replace(',', ' ') }}</option>
+        <option value="12">12 months (full year) — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*12/100).replace(',', ' ') }}</option>
+      </select></div>
+    <div class="modal-confirm-box" id="contrib-preview">
+      <div class="confirm-row"><span class="confirm-label">Deducted from wallet</span><span id="cp-amount" class="confirm-value">€{{ '{:,.2f}'.format(pool.monthly_amount_cents/100).replace(',', ' ') }}</span></div>
+      <div class="confirm-row"><span class="confirm-label">Pool balance after</span><span class="confirm-value" style="color:var(--green);">Increases</span></div>
+    </div>
+    <div class="form-group"><label class="form-label">Note (optional)</label>
+      <input class="form-input" id="c-note" placeholder="e.g. January 2026"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('contribute-modal')">Cancel</button>
+      <button class="btn btn-green btn-full" id="btn-contrib" onclick="doContribute()">Pay contribution</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pay for another member -->
+<div class="modal-backdrop" id="pay-for-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('pay-for-modal')">✕</button>
+    <h3 class="modal-title">Pay for another member</h3>
+    <p class="modal-sub">Paying on behalf of a member boosts your NCS score.</p>
+    <div class="form-group"><label class="form-label">Select member</label>
+      <select class="form-input form-select" id="pf-member">
+        {% for m in members %}{% if m.status=='active' %}
+        <option value="{{ m.user_id }}">{{ m.full_name }}{% if m.role=='admin' %} (Admin){% endif %}</option>
+        {% endif %}{% endfor %}
+      </select></div>
+    <div class="form-group"><label class="form-label">Months to cover</label>
+      <select class="form-input form-select" id="pf-months">
+        <option value="1">1 month — €{{ '{:,.2f}'.format(pool.monthly_amount_cents/100).replace(',', ' ') }}</option>
+        <option value="3">3 months — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*3/100).replace(',', ' ') }}</option>
+        <option value="6">6 months — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*6/100).replace(',', ' ') }}</option>
+        <option value="12">Full year — €{{ '{:,.2f}'.format(pool.monthly_amount_cents*12/100).replace(',', ' ') }}</option>
+      </select></div>
+    <div class="form-group"><label class="form-label">Note</label>
+      <input class="form-input" id="pf-note" placeholder="e.g. Helping during tough month"></div>
+    <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.65rem .875rem;font-size:.82rem;margin-bottom:1rem;">
+      ✨ Paying for another member earns you <strong>+3 NCS points</strong>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('pay-for-modal')">Cancel</button>
+      <button class="btn btn-green btn-full" id="btn-pf" onclick="doPayFor()">Pay on their behalf</button>
+    </div>
+  </div>
+</div>
+
+<!-- Request disbursement -->
+<div class="modal-backdrop" id="disburse-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('disburse-modal')">✕</button>
+    <h3 class="modal-title">Request disbursement</h3>
+    <p class="modal-sub">All 3 pool admins must approve before funds are released.</p>
+    <div style="background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:var(--radius);padding:.65rem .875rem;font-size:.82rem;margin-bottom:1rem;">
+      Available: <strong>€{{ '{:,.2f}'.format(pool.total_balance_cents/100).replace(',', ' ') }}</strong>
+    </div>
+    <div class="form-group"><label class="form-label">Amount (€)</label>
+      <input class="form-input" type="number" id="dis-amount" min="1" placeholder="500.00"></div>
+    <div class="form-group"><label class="form-label">Purpose / note</label>
+      <input class="form-input" id="dis-note" placeholder="e.g. Funeral support for Marie's family"></div>
+    <div class="form-group"><label class="form-label">Recipient (leave blank for organiser)</label>
+      <select class="form-input form-select" id="dis-recipient">
+        <option value="">Pool organiser (default)</option>
+        {% for m in members %}{% if m.status=='active' %}
+        <option value="{{ m.user_id }}">{{ m.full_name }}</option>
+        {% endif %}{% endfor %}
+      </select></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('disburse-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" id="btn-dis" onclick="requestDisbursement()">Submit request</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const POOL_ID = '{{ pool.id }}';
+const MONTHLY = {{ pool.monthly_amount_cents }};
+
+function updateContribPreview() {
+  const m = parseInt(document.getElementById('c-months').value);
+  document.getElementById('cp-amount').textContent = '€' + (MONTHLY*m/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0');
+}
+
+async function joinPool() {
+  const btn=document.getElementById('btn-join-pool'); setLoading(btn,true);
+  const d=await API.post('/api/pools/'+POOL_ID+'/join',{payment_schedule:document.getElementById('join-schedule').value});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('join-pool-modal'); toast('Request sent! An admin will review it.','success');
+  setTimeout(()=>location.reload(),1000);
+}
+
+async function doContribute() {
+  const btn=document.getElementById('btn-contrib'); setLoading(btn,true);
+  const d=await API.post('/api/pools/'+POOL_ID+'/contribute',{
+    months:parseInt(document.getElementById('c-months').value),
+    note:document.getElementById('c-note').value,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('contribute-modal'); toast('Contribution paid!','success');
+  setTimeout(()=>location.reload(),1000);
+}
+
+async function doPayFor() {
+  const btn=document.getElementById('btn-pf'); setLoading(btn,true);
+  const d=await API.post('/api/pools/'+POOL_ID+'/contribute',{
+    beneficiary_id:document.getElementById('pf-member').value,
+    months:parseInt(document.getElementById('pf-months').value),
+    note:document.getElementById('pf-note').value,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('pay-for-modal'); toast('Paid on their behalf! +3 NCS earned 🌟','success');
+  setTimeout(()=>location.reload(),1000);
+}
+
+async function requestDisbursement() {
+  const btn=document.getElementById('btn-dis'); setLoading(btn,true);
+  const d=await API.post('/api/pools/'+POOL_ID+'/disburse',{
+    amount:parseFloat(document.getElementById('dis-amount').value)||0,
+    purpose_note:document.getElementById('dis-note').value,
+    recipient_id:document.getElementById('dis-recipient').value||null,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('disburse-modal'); toast('Disbursement requested — admins will be notified.','success');
+  setTimeout(()=>location.reload(),1000);
+}
+
+async function approveDisbursement(poolId, did, btn) {
+  if(!confirm('Approve this disbursement?')) return;
+  setLoading(btn,true);
+  const d=await API.post('/api/pools/'+poolId+'/disburse/'+did+'/approve',{});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  toast('Approved!','success'); setTimeout(()=>location.reload(),800);
+}
+
+async function rejectDisbursement(poolId, did, btn) {
+  const note = prompt('Reason for rejection (optional):');
+  if(note===null) return;
+  setLoading(btn,true);
+  const d=await API.post('/api/pools/'+poolId+'/disburse/'+did+'/reject',{note});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  toast('Disbursement rejected','info'); setTimeout(()=>location.reload(),800);
+}
+
+async function setSchedule(key, btn) {
+  const d=await API.post('/api/pools/'+POOL_ID+'/schedule',{schedule:key});
+  if(d.ok){toast('Payment schedule updated','success'); setTimeout(()=>location.reload(),600);}
+  else toast(d.error,'error');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Contribution Pools — SOHANA{% endblock %}
+{% block topbar_title %}Contribution Pools{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Contribution Pools</h1>
+    <p class="page-subtitle">Long-term collective funds for weddings, funerals, projects and more.</p>
+  </div>
+  <button class="btn btn-orange" onclick="openModal('create-pool-modal')">+ Create pool</button>
+</div>
+
+<!-- Tab switcher -->
+<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;">
+  <button id="ptab-mine" onclick="switchPTab('mine')" style="padding:.6rem 1.2rem;background:none;border:none;font-size:.875rem;font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue);cursor:pointer;font-family:inherit;">My Pools ({{ my_pools|length }})</button>
+  <button id="ptab-discover" onclick="switchPTab('discover')" style="padding:.6rem 1.2rem;background:none;border:none;font-size:.875rem;font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted);cursor:pointer;font-family:inherit;">Discover</button>
+</div>
+
+<!-- MY POOLS -->
+<div id="ppane-mine">
+  {% if my_pools %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;">
+    {% for p in my_pools %}
+    {% set purpose = purposes.get(p.purpose, {'label':p.purpose,'icon':'🤝'}) %}
+    <div class="card" style="border-top:4px solid {% if p.status=='active' %}var(--green){% elif p.status=='completed' %}var(--purple){% else %}var(--blue){% endif %};">
+      <div class="card-pad">
+        <div style="display:flex;align-items:start;justify-content:space-between;margin-bottom:.75rem;">
+          <div style="font-size:1.5rem;">{{ purpose.icon }}</div>
+          <span class="pill {% if p.status=='active' %}pill-green{% elif p.status=='completed' %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot" style="font-size:.65rem;">{{ p.status }}</span>
+        </div>
+        <div style="font-weight:700;font-size:.975rem;color:var(--navy);margin-bottom:.2rem;">{{ p.name }}</div>
+        <div class="text-xs text-muted mb-3">{{ purpose.label }} · {{ p.member_count }} member{{ 's' if p.member_count != 1 }}</div>
+        <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:.875rem;">
+          <div><div class="text-xs text-muted">Monthly</div><div style="font-weight:700;color:var(--navy);">€{{ '{:,.0f}'.format(p.monthly_amount_cents/100).replace(',', ' ') }}</div></div>
+          <div style="text-align:center;"><div class="text-xs text-muted">Annual</div><div style="font-weight:700;color:var(--navy);">€{{ '{:,.0f}'.format(p.annual_amount_cents/100).replace(',', ' ') }}</div></div>
+          <div style="text-align:right;"><div class="text-xs text-muted">Balance</div><div style="font-weight:700;color:var(--green);">€{{ '{:,.2f}'.format(p.total_balance_cents/100).replace(',', ' ') }}</div></div>
+        </div>
+        {% if p.mem_status == 'active' %}
+        <div style="background:var(--blue-lt);border-radius:6px;padding:.4rem .75rem;font-size:.75rem;margin-bottom:.875rem;">
+          Schedule: <strong>{{ schedules.get(p.payment_schedule, {}).get('label', p.payment_schedule) }}</strong>
+          {% if p.role == 'admin' %} · <span style="color:var(--orange);font-weight:600;">Admin</span>{% endif %}
+        </div>
+        {% elif p.mem_status == 'pending' %}
+        <div style="background:#fef3c7;border-radius:6px;padding:.4rem .75rem;font-size:.75rem;color:#92400e;margin-bottom:.875rem;">⏳ Approval pending</div>
+        {% endif %}
+        <div style="display:flex;gap:.5rem;">
+          <a href="/pools/{{ p.id }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center;">View</a>
+          {% if p.role == 'admin' %}<a href="/pools/{{ p.id }}/manage" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">Manage</a>{% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;text-align:center;">
+    <div style="font-size:2rem;margin-bottom:.5rem;">🏦</div>
+    <p class="text-muted mb-3">You haven't joined any contribution pools yet.</p>
+    <button class="btn btn-orange btn-sm" onclick="switchPTab('discover')">Browse pools</button>
+  </div>
+  {% endif %}
+</div>
+
+<!-- DISCOVER -->
+<div id="ppane-discover" class="hidden">
+  {% if market %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+    {% for p in market %}
+    {% set purpose = purposes.get(p.purpose, {'label':p.purpose,'icon':'🤝'}) %}
+    <div class="card card-pad" style="border-top:4px solid var(--blue);">
+      <div style="font-size:1.3rem;margin-bottom:.5rem;">{{ purpose.icon }}</div>
+      <div style="font-weight:700;color:var(--navy);margin-bottom:.2rem;">{{ p.name }}</div>
+      <div class="text-xs text-muted mb-2">{{ purpose.label }} · by {{ p.organiser_name }}</div>
+      {% if p.description %}<p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem;line-height:1.45;">{{ p.description[:80] }}{% if p.description|length>80 %}…{% endif %}</p>{% endif %}
+      <div style="display:flex;gap:1rem;font-size:.85rem;margin-bottom:.875rem;">
+        <div><div class="text-xs text-muted">Monthly</div><div style="font-weight:700;">€{{ '{:,.0f}'.format(p.monthly_amount_cents/100).replace(',', ' ') }}</div></div>
+        <div><div class="text-xs text-muted">Members</div><div style="font-weight:700;">{{ p.member_count }}</div></div>
+        <div><div class="text-xs text-muted">Duration</div><div style="font-weight:700;">{{ p.duration_months }}mo</div></div>
+      </div>
+      <div style="display:flex;gap:.5rem;">
+        <a href="/pools/{{ p.id }}" class="btn btn-outline btn-sm" style="flex:1;justify-content:center;">View</a>
+        <button class="btn btn-primary btn-sm" style="flex:1;" onclick="joinPool('{{ p.id }}',this)">Request to join</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;text-align:center;">
+    <p>No public pools available. Create one to get started.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="create-pool-modal">
+  <div class="modal" style="max-width:540px;">
+    <button class="modal-close" onclick="closeModal('create-pool-modal')">✕</button>
+    <h3 class="modal-title">Create a contribution pool</h3>
+    <p class="modal-sub">A long-term collective fund for your group or association.</p>
+    <div class="form-group"><label class="form-label">Pool name</label>
+      <input class="form-input" id="cp-name" placeholder="e.g. Ngono Family Fund"></div>
+    <div class="form-group"><label class="form-label">Purpose</label>
+      <select class="form-input form-select" id="cp-purpose">
+        {% for key, p in purposes.items() %}
+        <option value="{{ key }}">{{ p.icon }} {{ p.label }}</option>
+        {% endfor %}
+      </select></div>
+    <div class="form-group"><label class="form-label">Description</label>
+      <input class="form-input" id="cp-desc" placeholder="What is this pool for?"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Annual amount per member (€)</label>
+        <input class="form-input" type="number" id="cp-annual" value="600" min="60" step="12" oninput="updateMonthly()"></div>
+      <div class="form-group"><label class="form-label">= Monthly contribution</label>
+        <div class="form-input" id="cp-monthly-display" style="background:var(--gray-100);color:var(--text-muted);">€ 50.00</div></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Duration (months)</label>
+        <input class="form-input" type="number" id="cp-duration" value="12" min="3" max="120"></div>
+      <div class="form-group"><label class="form-label">Payout type</label>
+        <select class="form-input form-select" id="cp-payout">
+          <option value="single">Single recipient</option>
+          <option value="split">Split equally among all</option>
+        </select></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem;margin-bottom:1rem;">
+      <input type="checkbox" id="cp-public"> List publicly (anyone can discover and request to join)
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('create-pool-modal')">Cancel</button>
+      <button class="btn btn-orange btn-full" id="btn-cp" onclick="createPool()">Create pool</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchPTab(t) {
+  ['mine','discover'].forEach(id => {
+    document.getElementById('ppane-'+id).classList.toggle('hidden', id!==t);
+    const btn = document.getElementById('ptab-'+id);
+    const active = id===t;
+    btn.style.fontWeight = active?'600':'500';
+    btn.style.borderBottom = active?'3px solid var(--blue)':'3px solid transparent';
+    btn.style.color = active?'var(--blue)':'var(--text-muted)';
+  });
+}
+function updateMonthly() {
+  const annual = parseFloat(document.getElementById('cp-annual').value)||0;
+  document.getElementById('cp-monthly-display').textContent = '€ '+(annual/12).toFixed(2);
+}
+async function createPool() {
+  const btn=document.getElementById('btn-cp'); setLoading(btn,true);
+  const d=await API.post('/api/pools/create',{
+    name:document.getElementById('cp-name').value.trim(),
+    purpose:document.getElementById('cp-purpose').value,
+    description:document.getElementById('cp-desc').value,
+    annual_amount:parseFloat(document.getElementById('cp-annual').value),
+    duration_months:parseInt(document.getElementById('cp-duration').value),
+    payout_type:document.getElementById('cp-payout').value,
+    is_public:document.getElementById('cp-public').checked,
+  });
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  closeModal('create-pool-modal');
+  toast('Pool created!','success');
+  setTimeout(()=>location.href='/pools/'+d.pool_id,800);
+}
+async function joinPool(id,btn) {
+  setLoading(btn,true);
+  const d=await API.post('/api/pools/'+id+'/join',{payment_schedule:'monthly'});
+  setLoading(btn,false);
+  if(d.error){toast(d.error,'error');return;}
+  btn.textContent='⏳ Pending';btn.disabled=true;btn.style.background='var(--amber)';
+  toast('Request sent — an admin will review it.','success');
+}
+</script>
+{% endblock %}
