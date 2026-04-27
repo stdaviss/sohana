@@ -7,7 +7,7 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       ROSCA_CREATION_FEES, WITHDRAWAL_FEES, CURRENCIES,
                       EXCHANGE_RATES, CONVERSION_FEE_RATE, ADMIN_ROLES,
                       LIMITS, get_period_total, generate_hanatag)
-import auth, rosca, ncs_engine
+import auth, rosca, pool, ncs_engine
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
@@ -1002,6 +1002,222 @@ def api_create_blog():
     return jsonify({"ok": True})
 
 # ── SEED DATA ─────────────────────────────────────────────────────────────────
+
+# ── POOL PAGE ROUTES ─────────────────────────────────────────────────────────
+
+@app.route("/pools")
+@auth.login_required
+def pools_page():
+    user      = auth.get_current_user()
+    my_pools  = pool.get_user_pools(user["id"])
+    market    = pool.get_marketplace_pools(limit=6)
+    purposes  = pool.POOL_PURPOSES
+    schedules = pool.PAYMENT_SCHEDULES
+    return render_template("pools.html", user=user, my_pools=my_pools,
+                           market=market, purposes=purposes, schedules=schedules)
+
+@app.route("/pools/<pool_id>")
+@auth.login_required
+def pool_detail(pool_id):
+    user = auth.get_current_user()
+    p    = pool.get_pool(pool_id)
+    if not p: return redirect(url_for("pools_page"))
+    members      = pool.get_pool_members(pool_id)
+    disbursements= pool.get_disbursements(pool_id)
+    admins       = pool.get_pool_admins(pool_id)
+    is_member    = any(m["user_id"]==user["id"] and m["status"]=="active" for m in members)
+    is_admin_m   = any(m["user_id"]==user["id"] and m["role"]=="admin" and m["status"]=="active" for m in members)
+    my_status    = pool.get_member_contribution_status(pool_id, user["id"]) if is_member else None
+    purposes     = pool.POOL_PURPOSES
+    schedules    = pool.PAYMENT_SCHEDULES
+    return render_template("pool_detail.html", user=user, pool=dict(p),
+                           members=members, disbursements=disbursements,
+                           admins=admins, is_member=is_member, is_admin=is_admin_m,
+                           my_status=my_status, purposes=purposes, schedules=schedules)
+
+@app.route("/pools/<pool_id>/manage")
+@auth.login_required
+def pool_manage(pool_id):
+    user = auth.get_current_user()
+    p    = pool.get_pool(pool_id)
+    if not p: return redirect(url_for("pools_page"))
+    # Must be admin
+    admins = pool.get_pool_admins(pool_id)
+    if not any(a["user_id"]==user["id"] for a in admins):
+        return redirect(url_for("pool_detail", pool_id=pool_id))
+    members      = pool.get_pool_members(pool_id)
+    pending      = pool.get_pending_pool_members(pool_id)
+    disbursements= pool.get_disbursements(pool_id)
+    summary      = pool.get_pool_contribution_summary(pool_id)
+    report       = pool.get_pool_report(pool_id)
+    purposes     = pool.POOL_PURPOSES
+    schedules    = pool.PAYMENT_SCHEDULES
+    return render_template("pool_manage.html", user=user, pool=dict(p),
+                           members=members, pending=pending, admins=admins,
+                           disbursements=disbursements, summary=summary,
+                           report=report, purposes=purposes, schedules=schedules)
+
+# ── POOL API ──────────────────────────────────────────────────────────────────
+
+@app.route("/api/pools/create", methods=["POST"])
+@auth.login_required
+def api_create_pool():
+    d = request.json or {}
+    try:
+        annual = int(float(d.get("annual_amount", 600)) * 100)
+        pid, fee = pool.create_pool(
+            organiser_id=session["user_id"],
+            name=d.get("name","").strip(),
+            description=d.get("description",""),
+            purpose=d.get("purpose","general"),
+            annual_amount_cents=annual,
+            duration_months=int(d.get("duration_months", 12)),
+            payout_type=d.get("payout_type","single"),
+            currency=d.get("currency","EUR"),
+            ncs_min=int(d.get("ncs_min", 300)),
+            is_public=bool(d.get("is_public", False)),
+        )
+        if fee > 0:
+            w = _get_wallet(session["user_id"], "EUR")
+            if w and wallet_balance(w["id"]) >= fee:
+                post_transaction(w["id"], -fee, f"Pool creation fee: {d.get('name','')}", tx_type="fee")
+        return jsonify({"ok": True, "pool_id": pid, "fee_cents": fee})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/join", methods=["POST"])
+@auth.login_required
+def api_join_pool(pool_id):
+    d = request.json or {}
+    try:
+        pool.request_to_join_pool(pool_id, session["user_id"],
+                                  d.get("payment_schedule", "monthly"))
+        return jsonify({"ok": True, "status": "pending"})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/approve/<user_id>", methods=["POST"])
+@auth.login_required
+def api_approve_pool_member(pool_id, user_id):
+    try:
+        pool.approve_pool_member(pool_id, user_id, session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/reject/<user_id>", methods=["POST"])
+@auth.login_required
+def api_reject_pool_member(pool_id, user_id):
+    try:
+        pool.reject_pool_member(pool_id, user_id, session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/remove/<user_id>", methods=["POST"])
+@auth.login_required
+def api_remove_pool_member(pool_id, user_id):
+    d = request.json or {}
+    try:
+        pool.remove_pool_member(pool_id, user_id, session["user_id"], d.get("reason",""))
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/promote/<user_id>", methods=["POST"])
+@auth.login_required
+def api_promote_pool_admin(pool_id, user_id):
+    try:
+        pool.promote_to_admin(pool_id, user_id, session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/schedule", methods=["POST"])
+@auth.login_required
+def api_update_pool_schedule(pool_id):
+    d = request.json or {}
+    try:
+        pool.update_payment_schedule(pool_id, session["user_id"], d.get("schedule","monthly"))
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/contribute", methods=["POST"])
+@auth.login_required
+def api_pool_contribute(pool_id):
+    d = request.json or {}
+    beneficiary_id = d.get("beneficiary_id", session["user_id"])
+    months         = int(d.get("months", 1))
+    if months not in [1, 3, 6, 12]:
+        return jsonify({"error": "Months must be 1, 3, 6, or 12"}), 400
+    try:
+        cid = pool.pay_pool_contribution(pool_id, session["user_id"], beneficiary_id,
+                                         months, note=d.get("note",""))
+        return jsonify({"ok": True, "contribution_id": cid})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/disburse", methods=["POST"])
+@auth.login_required
+def api_request_disbursement(pool_id):
+    d = request.json or {}
+    try:
+        did = pool.request_disbursement(
+            pool_id, session["user_id"],
+            int(float(d.get("amount", 0)) * 100),
+            d.get("purpose_note",""),
+            d.get("recipient_id")
+        )
+        return jsonify({"ok": True, "disbursement_id": did})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/disburse/<disbursement_id>/approve", methods=["POST"])
+@auth.login_required
+def api_approve_disbursement(pool_id, disbursement_id):
+    try:
+        pool.approve_disbursement(pool_id, disbursement_id, session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/disburse/<disbursement_id>/reject", methods=["POST"])
+@auth.login_required
+def api_reject_disbursement(pool_id, disbursement_id):
+    d = request.json or {}
+    try:
+        pool.reject_disbursement(pool_id, disbursement_id, session["user_id"], d.get("note",""))
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/pools/<pool_id>/report")
+@auth.login_required
+def api_pool_report(pool_id):
+    p = pool.get_pool(pool_id)
+    if not p: return jsonify({"error": "Not found"}), 404
+    return jsonify({"report": pool.get_pool_report(pool_id)})
+
+@app.route("/api/pools/<pool_id>/report/csv")
+@auth.login_required
+def api_pool_report_csv(pool_id):
+    import io, csv as csv_mod
+    p = pool.get_pool(pool_id)
+    if not p: return jsonify({"error": "Not found"}), 404
+    report = pool.get_pool_report(pool_id)
+    output = io.StringIO()
+    writer = csv_mod.writer(output)
+    writer.writerow(["Member","Role","Months Covered","Total Paid (€)","Received Help (€)","Helped Others (€)"])
+    for m in report["members"]:
+        writer.writerow([m["full_name"], m["role"].title(),
+                         m["months_covered"], f"{m['total_paid_cents']/100:.2f}",
+                         f"{m['received_help_cents']/100:.2f}",
+                         f"{m['helped_others_cents']/100:.2f}"])
+    output.seek(0)
+    name = p["name"].replace(" ","-").lower()
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=pool-report-{name}.csv"})
 
 def _seed_all():
     if fetchone("SELECT id FROM users WHERE phone='+33611000001'"): return

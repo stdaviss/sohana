@@ -292,6 +292,76 @@ CREATE INDEX IF NOT EXISTS idx_ncs_events_user  ON ncs_events(user_id, recorded_
 CREATE INDEX IF NOT EXISTS idx_members_rosca    ON rosca_members(rosca_id);
 CREATE INDEX IF NOT EXISTS idx_members_user     ON rosca_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifs_user      ON notifications(user_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS pools (
+    id                   TEXT PRIMARY KEY,
+    name                 TEXT NOT NULL,
+    description          TEXT,
+    purpose              TEXT NOT NULL DEFAULT 'general',
+    organiser_id         TEXT NOT NULL REFERENCES users(id),
+    status               TEXT NOT NULL DEFAULT 'forming',
+    currency             TEXT NOT NULL DEFAULT 'EUR',
+    annual_amount_cents  INTEGER NOT NULL,
+    monthly_amount_cents INTEGER NOT NULL,
+    payout_type          TEXT NOT NULL DEFAULT 'single',
+    payout_recipient_id  TEXT REFERENCES users(id),
+    duration_months      INTEGER NOT NULL DEFAULT 12,
+    start_date           TEXT,
+    end_date             TEXT,
+    ncs_min_score        INTEGER NOT NULL DEFAULT 300,
+    is_public            INTEGER NOT NULL DEFAULT 0,
+    creation_fee_cents   INTEGER NOT NULL DEFAULT 0,
+    total_balance_cents  INTEGER NOT NULL DEFAULT 0,
+    created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS pool_members (
+    id              TEXT PRIMARY KEY,
+    pool_id         TEXT NOT NULL REFERENCES pools(id),
+    user_id         TEXT NOT NULL REFERENCES users(id),
+    role            TEXT NOT NULL DEFAULT 'member',
+    status          TEXT NOT NULL DEFAULT 'pending',
+    payment_schedule TEXT NOT NULL DEFAULT 'monthly',
+    joined_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(pool_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS pool_contributions (
+    id              TEXT PRIMARY KEY,
+    pool_id         TEXT NOT NULL REFERENCES pools(id),
+    payer_id        TEXT NOT NULL REFERENCES users(id),
+    beneficiary_id  TEXT NOT NULL REFERENCES users(id),
+    amount_cents    INTEGER NOT NULL,
+    period_covered  TEXT NOT NULL,
+    months_covered  INTEGER NOT NULL DEFAULT 1,
+    paid_on_behalf  INTEGER NOT NULL DEFAULT 0,
+    note            TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS pool_disbursements (
+    id              TEXT PRIMARY KEY,
+    pool_id         TEXT NOT NULL REFERENCES pools(id),
+    amount_cents    INTEGER NOT NULL,
+    recipient_id    TEXT REFERENCES users(id),
+    purpose_note    TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    requested_by    TEXT NOT NULL REFERENCES users(id),
+    approved_by_1   TEXT REFERENCES users(id),
+    approved_by_2   TEXT REFERENCES users(id),
+    approved_by_3   TEXT REFERENCES users(id),
+    rejected_by     TEXT REFERENCES users(id),
+    rejection_note  TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    approved_at     TEXT,
+    executed_at     TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_pool_members_pool   ON pool_members(pool_id, status);
+CREATE INDEX IF NOT EXISTS idx_pool_members_user   ON pool_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_pool_contribs_pool  ON pool_contributions(pool_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pool_disbursements  ON pool_disbursements(pool_id, status);
+
 CREATE INDEX IF NOT EXISTS idx_hanatag_payments ON hanatag_payments(sender_id, created_at DESC);
 """
 
