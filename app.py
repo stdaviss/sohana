@@ -211,8 +211,17 @@ def organiser_dashboard(rosca_id):
     r    = rosca.get_rosca(rosca_id)
     if not r or r["organiser_id"] != user["id"]: return redirect(url_for("circles_page"))
     members    = rosca.get_rosca_members(rosca_id)
+    pending    = rosca.get_pending_members(rosca_id)
     cycle_info = rosca.get_cycle_status(rosca_id)
-    return render_template("organiser.html", user=user, rosca=r, members=members, cycle_info=cycle_info)
+    all_cycles = fetchall("SELECT * FROM cycles WHERE rosca_id=? ORDER BY cycle_number", (rosca_id,))
+    all_contribs = fetchall("""SELECT c.*, u.full_name FROM contributions c
+                               JOIN users u ON u.id=c.user_id
+                               WHERE c.rosca_id=? ORDER BY c.created_at DESC""", (rosca_id,))
+    report     = rosca.get_circle_report(rosca_id)
+    return render_template("organiser.html", user=user, rosca=dict(r),
+                           members=members, pending=pending,
+                           cycle_info=cycle_info, all_cycles=all_cycles,
+                           all_contribs=all_contribs, report=report)
 
 # ── ADMIN SIGN-IN ─────────────────────────────────────────────────────────────
 
@@ -797,11 +806,105 @@ def api_create_rosca():
 @app.route("/api/rosca/<rosca_id>/join", methods=["POST"])
 @auth.login_required
 def api_join_rosca(rosca_id):
+    """Request to join — creates pending membership for organiser approval."""
     try:
-        rosca.join_rosca(rosca_id, session["user_id"])
+        rosca.request_to_join(rosca_id, session["user_id"])
+        return jsonify({"ok": True, "status": "pending"})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/pending")
+@auth.login_required
+def api_pending_members(rosca_id):
+    """Get list of pending join requests (organiser only)."""
+    r = rosca.get_rosca(rosca_id)
+    if not r or r["organiser_id"] != session["user_id"]:
+        return jsonify({"error": "Unauthorised"}), 403
+    pending = rosca.get_pending_members(rosca_id)
+    return jsonify({"pending": [dict(p) for p in pending]})
+
+@app.route("/api/rosca/<rosca_id>/approve/<user_id>", methods=["POST"])
+@auth.login_required
+def api_approve_member(rosca_id, user_id):
+    try:
+        rosca.approve_member(rosca_id, user_id, session["user_id"])
         return jsonify({"ok": True})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/reject/<user_id>", methods=["POST"])
+@auth.login_required
+def api_reject_member(rosca_id, user_id):
+    try:
+        rosca.reject_member(rosca_id, user_id, session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/remove/<user_id>", methods=["POST"])
+@auth.login_required
+def api_remove_member(rosca_id, user_id):
+    d = request.json or {}
+    try:
+        rosca.remove_member(rosca_id, user_id, session["user_id"], reason=d.get("reason",""))
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/add-member", methods=["POST"])
+@auth.login_required
+def api_add_member_direct(rosca_id):
+    """Organiser directly adds a member by hanatag or phone."""
+    d = request.json or {}
+    identifier = d.get("identifier","").strip()
+    # Look up by hanatag or phone
+    user = None
+    if identifier.startswith("@"):
+        user = fetchone("SELECT id FROM users WHERE hanatag=?", (identifier,))
+    else:
+        user = fetchone("SELECT id FROM users WHERE phone=? OR email=?", (identifier, identifier))
+    if not user:
+        return jsonify({"error": "User not found. Check hanatag or phone number."}), 404
+    try:
+        rosca.add_member_direct(rosca_id, user["id"], session["user_id"])
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/report")
+@auth.login_required
+def api_rosca_report(rosca_id):
+    """Full circle performance report — organiser only."""
+    r = rosca.get_rosca(rosca_id)
+    if not r or r["organiser_id"] != session["user_id"]:
+        return jsonify({"error": "Unauthorised"}), 403
+    report = rosca.get_circle_report(rosca_id)
+    return jsonify({"report": report})
+
+@app.route("/api/rosca/<rosca_id>/report/csv")
+@auth.login_required
+def api_rosca_report_csv(rosca_id):
+    """Download circle report as CSV."""
+    import io, csv
+    r = rosca.get_rosca(rosca_id)
+    if not r or r["organiser_id"] != session["user_id"]:
+        return jsonify({"error": "Unauthorised"}), 403
+    report = rosca.get_circle_report(rosca_id)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Rank","Member","NCS Score","Tier","On-Time","Late","Missed","On-Time Rate","Total Contributed","Payout Received"])
+    for m in report["member_stats"]:
+        writer.writerow([
+            m["rank"], m["full_name"], m["ncs_score"], m["ncs_tier"].title(),
+            m["paid_on_time"], m["paid_late"], m["missed"],
+            f"{m['on_time_rate']}%",
+            f"€{m['total_paid_cents']/100:.2f}",
+            f"€{m['payout_received_cents']/100:.2f}" if m["payout_received_cents"] else "Pending"
+        ])
+    output.seek(0)
+    circle_name = r["name"].replace(" ","-").lower()
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=sohana-report-{circle_name}.csv"})
 
 @app.route("/api/rosca/<rosca_id>/contribute", methods=["POST"])
 @auth.login_required

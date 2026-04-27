@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Manage — {{ rosca.name }}{% endblock %}
-{% block topbar_title %}Organiser Dashboard{% endblock %}
+{% block topbar_title %}Organiser Panel{% endblock %}
 
 {% block content %}
 <div class="breadcrumb"><a href="/circles">Circles</a> / <a href="/circles/{{ rosca.id }}">{{ rosca.name }}</a> / Manage</div>
@@ -8,202 +8,507 @@
 <div class="page-header" style="margin-top:.5rem;">
   <div>
     <h1 class="page-title">{{ rosca.name }}</h1>
-    <span class="pill {% if rosca.status == 'active' %}pill-green{% else %}pill-blue{% endif %} pill-no-dot">{{ rosca.status }}</span>
+    <div style="display:flex;gap:.5rem;align-items:center;margin-top:.35rem;flex-wrap:wrap;">
+      <span class="pill {% if rosca.status=='active' %}pill-green{% elif rosca.status=='completed' %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot">{{ rosca.status }}</span>
+      <span class="text-sm text-muted">€{{ '{:,.0f}'.format(rosca.contribution_cents/100).replace(',', ' ') }}/cycle · {{ rosca.frequency_days }}-day frequency</span>
+      {% if pending %}<span class="pill pill-red pill-no-dot" style="font-size:.7rem;">{{ pending|length }} pending</span>{% endif %}
+    </div>
   </div>
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
     <a href="/circles/{{ rosca.id }}" class="btn btn-outline btn-sm">View circle</a>
-    {% if rosca.status == 'forming' %}
-    <button class="btn btn-green btn-sm" id="btn-activate" onclick="activateCircle()">▶ Activate circle</button>
-    {% endif %}
-    {% if rosca.status == 'active' %}
-    <button class="btn btn-primary btn-sm" id="btn-cycle" onclick="startCycle()">
-      {{ 'Start next cycle' if cycle_info else 'Start first cycle' }}
-    </button>
-    {% endif %}
+    {% if rosca.status=='forming' %}<button class="btn btn-green btn-sm" id="btn-activate" onclick="activateCircle()">▶ Activate</button>{% endif %}
+    {% if rosca.status=='active' %}<button class="btn btn-primary btn-sm" id="btn-cycle" onclick="startCycle()">{{ 'Next cycle' if cycle_info else 'Start first cycle' }}</button>{% endif %}
+    {% if report and report.cycles_complete > 0 %}<a href="/api/rosca/{{ rosca.id }}/report/csv" class="btn btn-outline btn-sm">⬇ Download report</a>{% endif %}
   </div>
 </div>
 
-<!-- Stats -->
-<div class="stats-grid stats-grid-4">
-  <div class="stat-card">
-    <div class="stat-icon blue">👥</div>
-    <div class="stat-body">
-      <div class="stat-label">Members</div>
-      <div class="stat-value">{{ members|length }}/{{ rosca.max_members }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon green">💰</div>
-    <div class="stat-body">
-      <div class="stat-label">Current Pot</div>
-      <div class="stat-value">&euro;{{ '%.0f' % (rosca.contribution_cents * members|length / 100) }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon amber">◎</div>
-    <div class="stat-body">
-      <div class="stat-label">Cycle</div>
-      <div class="stat-value">{{ rosca.current_cycle }}/{{ rosca.total_cycles }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon teal">💵</div>
-    <div class="stat-body">
-      <div class="stat-label">Contribution</div>
-      <div class="stat-value">&euro;{{ '%.0f' % (rosca.contribution_cents / 100) }}</div>
-      <div class="stat-sub">per member/cycle</div>
-    </div>
-  </div>
+<!-- Summary stats -->
+<div class="stats-grid stats-grid-4" style="margin-bottom:1.25rem;">
+  {% set active_members = members|selectattr('status','equalto','active')|list|length %}
+  <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-body"><div class="stat-label">Active members</div><div class="stat-value">{{ active_members }}/{{ rosca.max_members }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Cycle pot</div><div class="stat-value">€{{ '{:,.0f}'.format(rosca.contribution_cents*active_members/100).replace(',', ' ') }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon amber">◎</div><div class="stat-body"><div class="stat-label">Progress</div><div class="stat-value">{{ rosca.current_cycle }}/{{ rosca.total_cycles }}</div><div class="progress-track mt-2"><div class="progress-fill fill-blue" style="width:{{ [(rosca.current_cycle/[rosca.total_cycles,1]|max*100)|round|int,100]|min }}%"></div></div></div></div>
+  <div class="stat-card"><div class="stat-icon teal">📊</div><div class="stat-body"><div class="stat-label">Collection rate</div><div class="stat-value" style="color:{% if report.collection_rate >= 90 %}var(--green){% elif report.collection_rate >= 70 %}var(--amber){% else %}var(--red){% endif %};">{{ report.collection_rate }}%</div></div></div>
 </div>
 
-<div class="content-grid content-grid-sidebar">
+<!-- TABS -->
+<div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
+  {% for tab_id,tab_label,badge in [
+    ('members','Members',pending|length if pending else 0),
+    ('contributions','Contributions',0),
+    ('report','Circle Report',0),
+    ('calculator','Calculator',0),
+  ] %}
+  <button id="otab-{{ tab_id }}" onclick="switchTab('{{ tab_id }}')"
+    style="padding:.6rem 1.1rem;background:none;border:none;font-size:.85rem;white-space:nowrap;cursor:pointer;font-family:inherit;
+           {% if loop.first %}font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue){% else %}font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted){% endif %}">
+    {{ tab_label }}{% if badge %} <span style="background:var(--red);color:#fff;border-radius:20px;font-size:.65rem;padding:.1rem .4rem;margin-left:.25rem;">{{ badge }}</span>{% endif %}
+  </button>
+  {% endfor %}
+</div>
 
-  <!-- Left: contribution status -->
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">
-          {% if cycle_info %}Cycle {{ cycle_info.cycle.cycle_number }} Contributions{% else %}No Active Cycle{% endif %}
-        </span>
-        {% if cycle_info %}
-        <span class="pill {% if cycle_info.cycle.status == 'completed' %}pill-green{% else %}pill-amber{% endif %} pill-no-dot">
-          {{ cycle_info.cycle.status }}
-        </span>
-        {% endif %}
+<!-- ══ TAB: MEMBERS ══ -->
+<div id="opane-members">
+
+  {% if pending %}
+  <div class="card" style="border:2px solid #fecaca;margin-bottom:1.25rem;">
+    <div class="card-header" style="background:#fef2f2;">
+      <span class="card-title" style="color:var(--red);">⏳ Pending join requests ({{ pending|length }})</span>
+    </div>
+    {% for p in pending %}
+    <div style="display:flex;align-items:center;gap:.875rem;padding:.875rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <div class="admin-avatar" style="width:38px;height:38px;font-size:.85rem;">{{ p.full_name[0] }}</div>
+      <div style="flex:1;min-width:160px;">
+        <div style="font-weight:600;font-size:.875rem;">{{ p.full_name }}</div>
+        <div class="text-xs text-muted">{{ p.hanatag or '' }} · NCS {{ p.ncs_score }} ({{ p.ncs_tier.title() }}) · {{ p.active_circles }} active circle{{ 's' if p.active_circles != 1 }}</div>
+        <div class="text-xs text-muted">{{ p.contrib_count }} past contributions · {{ p.missed_count }} missed</div>
       </div>
+      <div style="display:flex;gap:.35rem;">
+        <span class="pill {% if p.ncs_tier=='exemplary' %}pill-purple{% elif p.ncs_tier=='reliable' %}pill-green{% elif p.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.7rem;">{{ p.ncs_score }}</span>
+        <button class="btn btn-green btn-sm" onclick="approveM('{{ p.user_id }}','{{ p.full_name }}')">✓ Approve</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--red);border-color:var(--red);" onclick="rejectM('{{ p.user_id }}','{{ p.full_name }}')">✕ Decline</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-      {% if cycle_info %}
-        {% set paid = cycle_info.contributions | selectattr('status','in',['paid','late']) | list | length %}
-        {% set total = cycle_info.contributions | length %}
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;">
-            <span class="text-sm text-muted">Collected</span>
-            <span class="text-sm font-semibold">{{ paid }}/{{ total }} members</span>
-          </div>
-          <div class="progress-track" style="margin-bottom:1rem;">
-            <div class="progress-fill fill-green" style="width:{{ (paid / [total,1]|max * 100)|round|int }}%"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-muted);">
-            <span>Pot: &euro;{{ '%.0f' % (cycle_info.cycle.pot_cents / 100) }}</span>
-            <span>Target: &euro;{{ '%.0f' % (rosca.contribution_cents * total / 100) }}</span>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Member</th><th>Due</th><th>Paid</th><th>Status</th></tr></thead>
-            <tbody>
-              {% for c in cycle_info.contributions %}
-              <tr>
-                <td>
-                  <div style="display:flex;align-items:center;gap:.5rem;">
-                    <div class="admin-avatar" style="width:28px;height:28px;font-size:.7rem;">{{ c.user_name[0] }}</div>
-                    <span style="font-size:.85rem;font-weight:500;">{{ c.user_name }}</span>
-                  </div>
-                </td>
-                <td class="text-xs text-muted">{{ c.due_at[:10] }}</td>
-                <td class="text-xs text-muted">{{ c.paid_at[:10] if c.paid_at else '—' }}</td>
-                <td>
-                  <span class="pill {% if c.status == 'paid' %}pill-green{% elif c.status == 'late' %}pill-orange{% elif c.status == 'missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot">
-                    {{ c.status }}
-                  </span>
-                  {% if c.late_days > 0 %}<span class="text-xs text-muted"> {{ c.late_days }}d late</span>{% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="card-header">
+      <span class="card-title">Active members ({{ members|selectattr('status','equalto','active')|list|length }})</span>
+      <button class="btn btn-primary btn-sm" onclick="openModal('add-member-modal')">+ Add member</button>
+    </div>
+    {% for m in members %}
+    {% if m.status == 'active' %}
+    <div style="display:flex;align-items:center;gap:.875rem;padding:.75rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;" id="row-{{ m.user_id }}">
+      <div style="width:30px;height:30px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;">{{ m.full_name[0] }}</div>
+      <div style="flex:1;min-width:140px;">
+        <div style="font-weight:600;font-size:.875rem;">{{ m.full_name }}</div>
+        <div class="text-xs text-muted">{{ m.hanatag or '' }} · NCS {{ m.ncs_score }} · Slot #{{ m.slot or '—' }}</div>
+      </div>
+      <span class="pill {% if m.ncs_tier=='exemplary' %}pill-purple{% elif m.ncs_tier=='reliable' %}pill-green{% elif m.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.7rem;">{{ m.ncs_tier.title() }}</span>
+      {% if m.user_id != rosca.organiser_id %}
+      <button class="btn btn-outline btn-sm" style="font-size:.72rem;color:var(--red);border-color:#fecaca;" onclick="openRemoveModal('{{ m.user_id }}','{{ m.full_name }}')">Remove</button>
       {% else %}
-        <div class="empty-state" style="padding:2rem;">
-          <p class="text-sm text-muted" style="margin-bottom:.75rem;">No cycle running yet.</p>
-          {% if rosca.status == 'active' %}
-          <button class="btn btn-primary btn-sm" onclick="startCycle()">Start first cycle</button>
-          {% else %}
-          <p class="text-xs text-muted">Activate the circle first.</p>
-          {% endif %}
-        </div>
+      <span class="pill pill-blue pill-no-dot" style="font-size:.65rem;">Organiser</span>
       {% endif %}
     </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ══ TAB: CONTRIBUTIONS ══ -->
+<div id="opane-contributions" class="hidden">
+  {% if all_cycles %}
+  <!-- Cycle selector -->
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+    {% for cy in all_cycles %}
+    <button class="btn btn-sm {{ 'btn-primary' if loop.first else 'btn-outline' }}" id="cyclebtn-{{ cy.id }}"
+      onclick="showCycle('{{ cy.id }}')">
+      Cycle {{ cy.cycle_number }}
+      <span class="pill {% if cy.status=='completed' %}pill-green{% else %}pill-amber{% endif %} pill-no-dot" style="font-size:.6rem;margin-left:.2rem;">{{ cy.status }}</span>
+    </button>
+    {% endfor %}
   </div>
 
-  <!-- Right: members + settings + invite -->
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
+  {% for cy in all_cycles %}
+  <div id="cycle-{{ cy.id }}" class="{{ '' if loop.first else 'hidden' }}">
+    <div class="stats-grid stats-grid-3" style="margin-bottom:1rem;">
+      {% set cycle_contribs = all_contribs|selectattr('cycle_id','equalto',cy.id)|list %}
+      {% set paid_count = cycle_contribs|selectattr('status','in',['paid','late'])|list|length %}
+      <div class="card card-pad">
+        <div class="text-xs text-muted mb-1">Pot collected</div>
+        <div style="font-size:1.4rem;font-weight:800;color:var(--navy);">€{{ '{:,.2f}'.format(cy.pot_cents/100).replace(',', ' ') }}</div>
+        <div class="progress-track mt-2"><div class="progress-fill fill-green" style="width:{{ (paid_count/[cycle_contribs|length,1]|max*100)|round|int }}%"></div></div>
+        <div class="text-xs text-muted mt-1">{{ paid_count }}/{{ cycle_contribs|length }} paid</div>
+      </div>
+      <div class="card card-pad">
+        <div class="text-xs text-muted mb-1">Due date</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--navy);">{{ cy.due_at[:10] }}</div>
+        <div class="text-xs text-muted mt-1">Status: {{ cy.status }}</div>
+        {% if cy.completed_at %}<div class="text-xs text-muted">Completed: {{ cy.completed_at[:10] }}</div>{% endif %}
+      </div>
+      <div class="card card-pad">
+        <div class="text-xs text-muted mb-1">Platform fee (1.25%)</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--orange);">€{{ '{:,.2f}'.format(cy.pot_cents*0.0125/100).replace(',', ' ') }}</div>
+        <div class="text-xs text-muted mt-1">Net payout: €{{ '{:,.2f}'.format(cy.pot_cents*0.9875/100).replace(',', ' ') }}</div>
+      </div>
+    </div>
 
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">Members</span>
-      </div>
-      {% for m in members %}
-      <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
-        <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ m.full_name[0] }}</div>
-        <div style="flex:1;">
-          <div style="font-size:.85rem;font-weight:500;">{{ m.full_name }}</div>
-          <div class="text-xs text-muted">NCS {{ m.ncs_score }} · <span class="pill pill-no-dot {% if m.ncs_tier == 'reliable' or m.ncs_tier == 'exemplary' %}pill-green{% elif m.ncs_tier == 'developing' %}pill-amber{% else %}pill-orange{% endif %}" style="font-size:.62rem;">{{ m.ncs_tier }}</span></div>
-        </div>
-        <div style="font-size:.75rem;color:var(--text-muted);">Slot {{ m.slot or '—' }}</div>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Invite card -->
-    <div class="card card-pad">
-      <div class="card-title mb-2">Invite Members</div>
-      <p class="text-sm text-muted mb-3">Share your circle's invite link.</p>
-      <div class="input-group">
-        <input class="form-input" id="invite-link" value="{{ request.host_url }}circles/{{ rosca.id }}" readonly style="font-size:.75rem;flex:1;">
-        <button class="btn btn-primary" onclick="copyLink()">Copy</button>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:.75rem;font-size:.8rem;">
-        <span class="text-muted">Spots remaining</span>
-        <span style="font-weight:600;">{{ rosca.max_members - members|length }}</span>
+      <div class="card-header"><span class="card-title">Contributions — Cycle {{ cy.cycle_number }}</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Member</th><th>Status</th><th>Amount</th><th>Paid at</th><th>Late days</th></tr></thead>
+          <tbody>
+            {% for c in cycle_contribs %}
+            <tr>
+              <td style="font-weight:500;">{{ c.full_name }}{% if c.user_id == rosca.organiser_id %} <span style="font-size:.65rem;color:var(--blue);">(organiser)</span>{% endif %}</td>
+              <td><span class="pill {% if c.status=='paid' %}pill-green{% elif c.status=='late' %}pill-amber{% elif c.status=='missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.7rem;">{{ c.status }}</span></td>
+              <td style="font-weight:600;">€{{ '{:,.2f}'.format(c.amount_cents/100).replace(',', ' ') }}</td>
+              <td class="text-muted text-xs">{{ c.paid_at[:10] if c.paid_at else '—' }}</td>
+              <td class="text-muted text-xs">{{ c.late_days if c.late_days else '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
+  </div>
+  {% endfor %}
 
-    <!-- Circle settings -->
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;"><p>No cycles have started yet.</p></div>
+  {% endif %}
+</div>
+
+<!-- ══ TAB: CIRCLE REPORT ══ -->
+<div id="opane-report" class="hidden">
+  {% if report and report.cycles_complete > 0 %}
+
+  <!-- Summary cards -->
+  <div class="stats-grid stats-grid-4" style="margin-bottom:1.5rem;">
+    {% for label,val,color in [
+      ('Total collected','€'+('{:,.2f}'.format(report.total_collected_cents/100).replace(',', ' ')),None),
+      ('Collection rate',report.collection_rate|string+'%','var(--green)' if report.collection_rate>=90 else 'var(--amber)' if report.collection_rate>=70 else 'var(--red)'),
+      ('Total missed','€'+('{:,.2f}'.format(report.total_missed_cents/100).replace(',', ' ')),'var(--red)' if report.total_missed_cents else None),
+      ('Platform fees','€'+('{:,.2f}'.format(report.platform_fees_cents/100).replace(',', ' ')),'var(--orange)'),
+    ] %}
     <div class="card card-pad">
-      <div class="card-title mb-3">Settings</div>
-      <table style="width:100%;font-size:.85rem;">
-        {% for label, value in [
-          ('Type', rosca.rosca_type.replace('_',' ').title()),
-          ('Frequency', 'Every ' ~ rosca.frequency_days ~ ' days'),
-          ('Visibility', 'Public' if rosca.is_public else 'Private'),
-          ('Min NCS', rosca.ncs_min_score),
-        ] %}
-        <tr style="border-bottom:1px solid var(--border);">
-          <td style="padding:.4rem 0;color:var(--text-muted);">{{ label }}</td>
-          <td style="text-align:right;font-weight:500;">{{ value }}</td>
-        </tr>
-        {% endfor %}
+      <div class="text-xs text-muted mb-1" style="text-transform:uppercase;letter-spacing:.04em;">{{ label }}</div>
+      <div style="font-size:1.35rem;font-weight:800;color:{{ color or 'var(--navy)' }};">{{ val }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Member ranking table -->
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="card-header">
+      <span class="card-title">🏆 Member Reliability Ranking</span>
+      <a href="/api/rosca/{{ rosca.id }}/report/csv" class="btn btn-outline btn-sm">⬇ CSV</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Rank</th><th>Member</th><th>NCS</th>
+          <th>On-time</th><th>Late</th><th>Missed</th>
+          <th>Rate</th><th>Contributed</th><th>Payout received</th>
+        </tr></thead>
+        <tbody>
+          {% for m in report.member_stats %}
+          <tr>
+            <td>
+              <span style="font-size:1.1rem;font-weight:800;color:{% if m.rank==1 %}var(--gold){% elif m.rank==2 %}#94a3b8{% elif m.rank==3 %}#cd7f32{% else %}var(--text-muted){% endif %};">
+                {% if m.rank==1 %}🥇{% elif m.rank==2 %}🥈{% elif m.rank==3 %}🥉{% else %}#{{ m.rank }}{% endif %}
+              </span>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:.875rem;">{{ m.full_name }}</div>
+              <div class="text-xs text-muted">{{ m.hanatag or '' }} · {{ m.country }}</div>
+            </td>
+            <td>
+              <span class="pill {% if m.ncs_tier=='exemplary' %}pill-purple{% elif m.ncs_tier=='reliable' %}pill-green{% elif m.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.7rem;">{{ m.ncs_score }}</span>
+            </td>
+            <td style="color:var(--green);font-weight:600;">{{ m.paid_on_time }}</td>
+            <td style="color:var(--amber);font-weight:600;">{{ m.paid_late }}</td>
+            <td style="color:{% if m.missed > 0 %}var(--red){% else %}var(--text-muted){% endif %};font-weight:600;">{{ m.missed }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:.4rem;">
+                <div class="progress-track" style="width:55px;height:5px;"><div class="progress-fill {% if m.on_time_rate>=90 %}fill-green{% elif m.on_time_rate>=70 %}fill-amber{% else %}fill-red{% endif %}" style="width:{{ m.on_time_rate|round|int }}%;"></div></div>
+                <span style="font-size:.78rem;font-weight:600;">{{ m.on_time_rate }}%</span>
+              </div>
+            </td>
+            <td style="font-weight:600;">€{{ '{:,.2f}'.format(m.total_paid_cents/100).replace(',', ' ') }}</td>
+            <td style="font-weight:600;color:var(--green);">{% if m.payout_received_cents %}€{{ '{:,.2f}'.format(m.payout_received_cents/100).replace(',', ' ') }}{% else %}<span class="text-muted">Pending</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
       </table>
     </div>
+  </div>
 
+  <!-- Cycle-by-cycle summary -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">Cycle History</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Cycle</th><th>Pot collected</th><th>Net payout</th><th>Status</th><th>Completed</th></tr></thead>
+        <tbody>
+          {% for cy in report.cycles %}
+          <tr>
+            <td style="font-weight:700;">#{{ cy.cycle_number }}</td>
+            <td style="font-weight:600;">€{{ '{:,.2f}'.format(cy.pot_cents/100).replace(',', ' ') }}</td>
+            <td style="font-weight:600;color:var(--green);">€{{ '{:,.2f}'.format(cy.pot_cents*0.9875/100).replace(',', ' ') }}</td>
+            <td><span class="pill {% if cy.status=='completed' %}pill-green{% elif cy.status=='collecting' %}pill-amber{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.7rem;">{{ cy.status }}</span></td>
+            <td class="text-muted text-xs">{{ cy.completed_at[:10] if cy.completed_at else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="empty-state card card-pad" style="padding:3rem;">
+    <div style="font-size:2rem;margin-bottom:.5rem;">📊</div>
+    <p>The full report will be available once at least one cycle completes.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ══ TAB: CALCULATOR ══ -->
+<div id="opane-calculator" class="hidden">
+  <div class="content-grid content-grid-sidebar">
+    <div>
+      <div class="card card-pad" style="margin-bottom:1.25rem;">
+        <div class="card-title mb-3">Circle Calculator</div>
+        <p class="text-sm text-muted mb-3">Adjust settings to model different scenarios for your circle.</p>
+        <div class="form-group">
+          <label class="form-label">Members <span id="cv-members-val" style="float:right;font-weight:700;color:var(--navy);">{{ members|selectattr('status','equalto','active')|list|length }}</span></label>
+          <input type="range" id="cv-members" min="2" max="50" value="{{ members|selectattr('status','equalto','active')|list|length }}" class="form-input" style="padding:.2rem 0;" oninput="calcUpdate()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contribution per cycle (€) <span id="cv-contrib-val" style="float:right;font-weight:700;color:var(--navy);">{{ (rosca.contribution_cents/100)|round|int }}</span></label>
+          <input type="range" id="cv-contrib" min="10" max="2000" step="10" value="{{ (rosca.contribution_cents/100)|round|int }}" class="form-input" style="padding:.2rem 0;" oninput="calcUpdate()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frequency</label>
+          <select class="form-input form-select" id="cv-freq" onchange="calcUpdate()">
+            <option value="7">Weekly</option>
+            <option value="14">Bi-weekly</option>
+            <option value="30" {{ 'selected' if rosca.frequency_days==30 }}>Monthly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expected on-time rate (%)</label>
+          <input type="number" class="form-input" id="cv-ontime" value="90" min="50" max="100" oninput="calcUpdate()">
+        </div>
+      </div>
+
+      <!-- Payout order preview -->
+      <div class="card card-pad">
+        <div class="card-title mb-3">Payout slot order</div>
+        <div id="slot-preview" style="display:flex;flex-wrap:wrap;gap:.35rem;">
+          {% for m in members %}{% if m.status=='active' %}
+          <div style="background:var(--navy);color:#fff;border-radius:8px;padding:.35rem .7rem;font-size:.78rem;font-weight:600;">
+            #{{ m.slot }} {{ m.full_name.split()[0] }}
+          </div>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Results panel -->
+    <div class="card" style="background:var(--navy);color:#fff;border:none;align-self:start;">
+      <div style="padding:1.5rem;">
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.45);margin-bottom:.35rem;">Pot per cycle</div>
+        <div style="font-size:2.2rem;font-weight:800;color:var(--gold);margin-bottom:1.25rem;" id="r-pot">—</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+          {% for id,label in [('r-payout','Each member receives'),('r-fee','Platform fee (1.25%)'),('r-duration','Total duration'),('r-total','Total rotated')] %}
+          <div>
+            <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:.2rem;">{{ label }}</div>
+            <div style="font-size:1rem;font-weight:700;" id="{{ id }}">—</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div style="border-top:1px solid rgba(255,255,255,.1);padding-top:1.25rem;">
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);margin-bottom:.75rem;">Projected collection</div>
+          <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+            <div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.12);position:relative;">
+              <div id="r-bar-paid" style="height:8px;border-radius:4px;background:#34d399;position:absolute;top:0;left:0;transition:width .3s;"></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.75rem;color:rgba(255,255,255,.55);">
+            <span id="r-paid-lbl">— paid on time</span>
+            <span id="r-late-lbl">— may be late</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,255,255,.06);padding:1rem 1.5rem;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div style="font-size:.75rem;font-weight:600;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">NCS Tiers in this circle</div>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap;" id="r-tiers">
+          {% for m in members %}{% if m.status=='active' %}
+          <span class="pill {% if m.ncs_tier=='exemplary' %}pill-purple{% elif m.ncs_tier=='reliable' %}pill-green{% elif m.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.65rem;">{{ m.full_name.split()[0] }} {{ m.ncs_score }}</span>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block modals %}
+<!-- Add member modal -->
+<div class="modal-backdrop" id="add-member-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('add-member-modal')">✕</button>
+    <h3 class="modal-title">Add member directly</h3>
+    <p class="modal-sub">Enter the member's @hanatag or phone number. They will be added immediately without needing to request.</p>
+    <div class="form-group">
+      <label class="form-label">Hanatag or phone number</label>
+      <input class="form-input" id="add-identifier" placeholder="@hanatag or +33611000001">
+      <p class="form-hint" id="add-lookup-result"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('add-member-modal')">Cancel</button>
+      <button class="btn btn-primary btn-full" id="btn-add" onclick="addMember()">Add member</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove member modal -->
+<div class="modal-backdrop" id="remove-member-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('remove-member-modal')">✕</button>
+    <h3 class="modal-title">Remove member</h3>
+    <p class="modal-sub">This will remove <strong id="remove-name"></strong> from the circle. Their NCS score will be affected. This cannot be undone.</p>
+    <div class="form-group">
+      <label class="form-label">Reason (optional)</label>
+      <input class="form-input" id="remove-reason" placeholder="e.g. repeated late payments">
+    </div>
+    <input type="hidden" id="remove-uid">
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-full" onclick="closeModal('remove-member-modal')">Cancel</button>
+      <button class="btn btn-full" style="background:var(--red);color:#fff;" id="btn-remove" onclick="confirmRemove()">Remove member</button>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+const ROSCA_ID = '{{ rosca.id }}';
+
+function switchTab(t) {
+  ['members','contributions','report','calculator'].forEach(id => {
+    document.getElementById('opane-'+id).classList.toggle('hidden', id!==t);
+    const btn = document.getElementById('otab-'+id);
+    const active = id===t;
+    btn.style.fontWeight = active?'600':'500';
+    btn.style.borderBottom = active?'3px solid var(--blue)':'3px solid transparent';
+    btn.style.color = active?'var(--blue)':'var(--text-muted)';
+  });
+  if (t==='calculator') calcUpdate();
+}
+
+// Cycle switcher
+function showCycle(cid) {
+  document.querySelectorAll('[id^="cycle-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('[id^="cyclebtn-"]').forEach(el => { el.className='btn btn-sm btn-outline'; });
+  document.getElementById('cycle-'+cid)?.classList.remove('hidden');
+  const btn = document.getElementById('cyclebtn-'+cid);
+  if (btn) btn.className = 'btn btn-sm btn-primary';
+}
+
+// Approve / reject pending
+async function approveM(uid, name) {
+  if (!confirm(`Approve ${name} to join?`)) return;
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/approve/${uid}`, {});
+  if (d.ok) { toast(`${name} approved!`, 'success'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
+}
+async function rejectM(uid, name) {
+  if (!confirm(`Decline ${name}'s request?`)) return;
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/reject/${uid}`, {});
+  if (d.ok) { toast('Request declined', 'info'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
+}
+
+// Remove member
+function openRemoveModal(uid, name) {
+  document.getElementById('remove-uid').value = uid;
+  document.getElementById('remove-name').textContent = name;
+  document.getElementById('remove-reason').value = '';
+  openModal('remove-member-modal');
+}
+async function confirmRemove() {
+  const uid = document.getElementById('remove-uid').value;
+  const reason = document.getElementById('remove-reason').value;
+  const btn = document.getElementById('btn-remove');
+  setLoading(btn, true);
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/remove/${uid}`, { reason });
+  setLoading(btn, false);
+  if (d.ok) { closeModal('remove-member-modal'); toast('Member removed', 'info'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
+}
+
+// Add member directly
+async function addMember() {
+  const id = document.getElementById('add-identifier').value.trim();
+  if (!id) { toast('Enter hanatag or phone', 'error'); return; }
+  const btn = document.getElementById('btn-add');
+  setLoading(btn, true);
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/add-member`, { identifier: id });
+  setLoading(btn, false);
+  if (d.ok) { closeModal('add-member-modal'); toast('Member added!', 'success'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
+}
+
+// Activate / start cycle
 async function activateCircle() {
   const btn = document.getElementById('btn-activate');
   setLoading(btn, true);
-  const d = await API.post('/api/rosca/{{ rosca.id }}/activate', {});
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/activate`, {});
   setLoading(btn, false);
-  if (d.error) { toast(d.error, 'error'); return; }
-  toast('Circle activated!', 'success'); setTimeout(() => location.reload(), 800);
+  if (d.ok) { toast('Circle activated!', 'success'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
 }
 async function startCycle() {
   const btn = document.getElementById('btn-cycle');
   setLoading(btn, true);
-  const d = await API.post('/api/rosca/{{ rosca.id }}/start-cycle', {});
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/start-cycle`, {});
   setLoading(btn, false);
-  if (d.error) { toast(d.error, 'error'); return; }
-  toast('Cycle started!', 'success'); setTimeout(() => location.reload(), 800);
+  if (d.ok) { toast('Cycle started!', 'success'); setTimeout(()=>location.reload(), 900); }
+  else toast(d.error, 'error');
 }
-function copyLink() {
-  const el = document.getElementById('invite-link');
-  el.select(); document.execCommand('copy');
-  toast('Invite link copied!', 'success');
+
+// ── CALCULATOR ──
+function calcUpdate() {
+  const members  = parseInt(document.getElementById('cv-members').value);
+  const contrib  = parseInt(document.getElementById('cv-contrib').value);
+  const freqDays = parseInt(document.getElementById('cv-freq').value);
+  const ontime   = parseInt(document.getElementById('cv-ontime').value) / 100;
+
+  document.getElementById('cv-members-val').textContent = members;
+  document.getElementById('cv-contrib-val').textContent = contrib;
+
+  const pot      = members * contrib;
+  const fee      = pot * 0.0125;
+  const payout   = pot - fee;
+  const totalDur = members * freqDays;
+  const totalRot = pot * members;
+
+  document.getElementById('r-pot').textContent    = fmtMoney(pot);
+  document.getElementById('r-payout').textContent = fmtMoney(payout);
+  document.getElementById('r-fee').textContent    = fmtMoney(fee);
+  document.getElementById('r-total').textContent  = fmtMoney(totalRot);
+
+  const durMonths = Math.round(totalDur / 30);
+  const durWeeks  = Math.round(totalDur / 7);
+  document.getElementById('r-duration').textContent = freqDays===30 ? `${members} months` : `${durWeeks} weeks`;
+
+  const paidPct  = Math.round(ontime * 100);
+  const latePct  = Math.round((1-ontime)*50);
+  document.getElementById('r-bar-paid').style.width = paidPct + '%';
+  document.getElementById('r-paid-lbl').textContent = paidPct + '% paid on time';
+  document.getElementById('r-late-lbl').textContent = (100-paidPct) + '% may be late';
 }
+
+function fmtMoney(val) {
+  return '€' + parseFloat(val).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+}
+
+// Auto-run calculator on load
+document.addEventListener('DOMContentLoaded', () => {
+  calcUpdate();
+  // URL hash tab switching
+  const hash = window.location.hash.replace('#','');
+  if (['members','contributions','report','calculator'].includes(hash)) switchTab(hash);
+});
 </script>
 {% endblock %}

@@ -121,7 +121,7 @@
 
 {% block scripts %}
 <script>
-async function joinC(){const btn=document.getElementById('btn-join');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/join',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Joined!','success');setTimeout(()=>location.reload(),800);}
+async function joinC(){const btn=document.getElementById('btn-join');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/join',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}btn.textContent='⏳ Request sent';btn.disabled=true;btn.style.background='var(--amber)';toast('Request sent! The organiser will review your application.','success');}
 async function payC(){const btn=document.getElementById('btn-contrib');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/contribute',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Paid! NCS updated.','success');setTimeout(()=>location.reload(),1000);}
 async function startCycle(){const btn=document.getElementById('btn-start');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/start-cycle',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Cycle started!','success');setTimeout(()=>location.reload(),800);}
 async function toggleEndorse(userId, roscaId, currently_endorsed){
