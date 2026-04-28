@@ -141,7 +141,7 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
     fee = int(amount_cents * PLATFORM_FEE_RATE)
     net = amount_cents - fee
 
-    # Determine donor display name
+    # Resolve donor display name BEFORE opening any DB connection
     if is_anonymous or not donor_id:
         display_name = "Anonymous"
     elif donor_name_override:
@@ -150,56 +150,92 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
         row = fetchone("SELECT full_name FROM users WHERE id=?", (donor_id,))
         display_name = row["full_name"] if row else "Anonymous"
 
-    did = str(uuid.uuid4())
-
+    # Resolve donor wallet BEFORE opening the main transaction
+    donor_wallet_id = None
     if donor_id:
-        # Debit donor's wallet
         wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?",
                           (donor_id, c["currency"]))
         if not wallet:
             wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'", (donor_id,))
         if not wallet: raise ValueError("No wallet found to donate from")
-        post_transaction(wallet["id"], -amount_cents,
-                         f"Donation to '{c['title']}'",
-                         ref_type="campaign_donation", ref_id=did,
-                         tx_type="pay_out")
-        # NCS reward for donating
-        ncs_engine.apply_event(donor_id, "peer_endorsement",
-                               ref_type="campaign_donation", ref_id=did,
-                               metadata={"campaign_id": campaign_id, "amount": amount_cents})
+        donor_wallet_id = wallet["id"]
 
+    did = str(uuid.uuid4())
+    goal_reached = False
+    creator_id   = c["creator_id"]
+
+    # ── SINGLE ATOMIC TRANSACTION ─────────────────────────────────────────────
+    # Everything inside one connection: wallet debit, donation record,
+    # campaign balance update, goal check. If anything fails, all rolls back.
+    # This prevents the "database locked" + partial-credit bug.
     with get_db() as db:
+        # 1. Debit donor wallet
+        if donor_wallet_id:
+            post_transaction(donor_wallet_id, -amount_cents,
+                             f"Donation to '{c['title']}'",
+                             ref_type="campaign_donation", ref_id=did,
+                             tx_type="pay_out", _db=db)
+
+        # 2. Record the donation
         db.execute("""INSERT INTO campaign_donations(id,campaign_id,donor_id,donor_name,
                       amount_cents,message,is_anonymous,platform_fee)
                       VALUES(?,?,?,?,?,?,?,?)""",
                    (did, campaign_id, donor_id, display_name,
-                    amount_cents, message, 1 if (is_anonymous or not donor_id) else 0, fee))
+                    amount_cents, message,
+                    1 if (is_anonymous or not donor_id) else 0, fee))
+
+        # 3. Credit campaign balance and increment donor count
         db.execute("""UPDATE campaigns
                       SET raised_cents=raised_cents+?,
                           donor_count=donor_count+1,
                           updated_at=datetime('now')
                       WHERE id=?""", (net, campaign_id))
 
-        # Check if goal reached
-        updated = db.execute("SELECT raised_cents, goal_cents, creator_id FROM campaigns WHERE id=?",
-                             (campaign_id,)).fetchone()
-        if updated["raised_cents"] >= updated["goal_cents"]:
-            db.execute("UPDATE campaigns SET status='completed', updated_at=datetime('now') WHERE id=?",
-                       (campaign_id,))
-            push_notification(updated["creator_id"],
+        # 4. Check if goal is now reached (read updated value inside same tx)
+        updated = db.execute(
+            "SELECT raised_cents, goal_cents FROM campaigns WHERE id=?",
+            (campaign_id,)
+        ).fetchone()
+        if updated and updated["raised_cents"] >= updated["goal_cents"]:
+            db.execute(
+                "UPDATE campaigns SET status='completed', updated_at=datetime('now') WHERE id=?",
+                (campaign_id,)
+            )
+            goal_reached = True
+    # ── END ATOMIC TRANSACTION ────────────────────────────────────────────────
+
+    # Post-commit side effects (notifications and NCS) run AFTER the
+    # transaction closes, so they open fresh connections without conflict.
+    if donor_id:
+        try:
+            ncs_engine.apply_event(donor_id, "peer_endorsement",
+                                   ref_type="campaign_donation", ref_id=did,
+                                   metadata={"campaign_id": campaign_id, "amount": amount_cents})
+        except Exception:
+            pass  # NCS failure must never roll back a completed donation
+
+    if goal_reached:
+        try:
+            push_notification(creator_id,
                               "🎉 Goal reached!",
                               f"Your campaign '{c['title']}' has reached its goal!",
                               "success", f"/campaigns/{c['slug']}/manage")
-            ncs_engine.apply_event(updated["creator_id"], "cycle_completed",
+            ncs_engine.apply_event(creator_id, "cycle_completed",
                                    ref_type="campaign_completed", ref_id=campaign_id)
+        except Exception:
+            pass
 
-    # Notify campaign creator
-    sym = "€"
-    push_notification(c["creator_id"],
-                      f"New donation received! {sym}{net/100:.2f}",
-                      f"{display_name} donated {sym}{amount_cents/100:.2f}" +
-                      (f': "{message}"' if message else ""),
-                      "success", f"/campaigns/{c['slug']}/manage")
+    # Always notify creator of the donation
+    try:
+        sym = "€"
+        push_notification(creator_id,
+                          f"New donation received! {sym}{net/100:.2f}",
+                          f"{display_name} donated {sym}{amount_cents/100:.2f}" +
+                          (f': "{message}"' if message else ""),
+                          "success", f"/campaigns/{c['slug']}/manage")
+    except Exception:
+        pass
+
     return did, net, fee
 
 
