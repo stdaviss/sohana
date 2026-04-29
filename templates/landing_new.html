@@ -1245,74 +1245,7 @@ function updateCalc() {
 }
 // Init
 updateCalc();
-window.addEventListener('message', e => {
-  if (e.data?.type === '__activate_edit_mode') showTweaks(true);
-  if (e.data?.type === '__deactivate_edit_mode') showTweaks(false);
-});
-window.parent.postMessage({ type: '__edit_mode_available' }, '*');
-
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "primaryColor": "#ea580c",
-  "accentColor": "#2563eb",
-  "heroHeadline": "Save together. Build credit. Send money home.",
-  "showStats": true,
-  "darkHero": true
-}/*EDITMODE-END*/;
-
-let tweaks = { ...TWEAK_DEFAULTS };
-
-function showTweaks(show) {
-  const panel = document.getElementById('tweaksPanel');
-  panel.style.display = show ? 'flex' : 'none';
-}
-
-function applyTweak(key, val) {
-  tweaks[key] = val;
-  if (key === 'primaryColor') {
-    document.querySelectorAll('.btn-orange, .btn-nav-cta, .waitlist-btn').forEach(el => el.style.background = val);
-    document.documentElement.style.setProperty('--orange', val);
-  }
-  if (key === 'accentColor') {
-    document.documentElement.style.setProperty('--blue', val);
-  }
-  if (key === 'heroHeadline') {
-    document.querySelector('.hero h1').innerHTML = val.replace(/\./g, '.<br>').replace('credit', '<span>credit</span>');
-  }
-  if (key === 'darkHero') {
-    document.querySelector('.hero').style.background = val
-      ? 'linear-gradient(135deg, #0f1c33 0%, #0d2150 50%, #162d5c 100%)'
-      : 'linear-gradient(135deg, #0d2f0d 0%, #0a3d22 50%, #0f3320 100%)';
-  }
-  window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
-}
 </script>
-
-<!-- TWEAKS PANEL -->
-<div id="tweaksPanel" style="display: flex; position: fixed; bottom: 24px; right: 24px; z-index: 9999; background: rgb(30, 41, 59); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px; padding: 20px; width: 280px; flex-direction: column; gap: 14px; box-shadow: rgba(0, 0, 0, 0.4) 0px 24px 48px; font-family: Inter, sans-serif; color: rgb(255, 255, 255);">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-    <div style="font-size:14px;font-weight:700;">Tweaks</div>
-    <button onclick="showTweaks(false);window.parent.postMessage({type:'__edit_mode_dismissed'},'*')" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:18px;line-height:1;">✕</button>
-  </div>
-  <div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">CTA Color</div>
-    <input type="color" value="#ea580c" onchange="applyTweak('primaryColor',this.value)" style="width:100%;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
-  </div>
-  <div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Accent Color</div>
-    <input type="color" value="#2563eb" onchange="applyTweak('accentColor',this.value)" style="width:100%;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;">
-  </div>
-  <div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:8px;">Hero Headline</div>
-    <textarea onchange="applyTweak('heroHeadline',this.value)" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;padding:10px;font-size:13px;font-family:inherit;resize:vertical;min-height:64px;">Save together. Build credit. Send money home.</textarea>
-  </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;">
-    <div style="font-size:13px;font-weight:600;">Hero theme</div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="applyTweak('darkHero',true);this.style.background='rgba(255,255,255,0.2)';this.nextSibling.style.background='rgba(255,255,255,0.06)'" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">Dark</button>
-      <button onclick="applyTweak('darkHero',false);this.style.background='rgba(255,255,255,0.2)';this.previousSibling.style.background='rgba(255,255,255,0.06)'" style="background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: rgb(255, 255, 255); font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer;">Forest</button>
-    </div>
-  </div>
-</div>
 
 
 
