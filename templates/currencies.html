@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}Supported Currencies{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Resources</div>
+    <h1>Supported Currencies & Rates</h1>
+    <p>SOHANA currently supports eight currencies with more on the way. All conversions use live exchange rates at a flat 0.7% fee.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">🇪🇺</div>
+      <h3>Euro (EUR)</h3>
+      <p>The primary currency of SOHANA and our European user base. Zero conversion fee for EUR-denominated circles and pools.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🇬🇧</div>
+      <h3>British Pound (GBP)</h3>
+      <p>Full wallet support for UK-based members. Withdraw via UK Faster Payments at 1.5% fee.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🇺🇸</div>
+      <h3>US Dollar (USD)</h3>
+      <p>For North American diaspora and international business. Withdraw via US ACH at 2.0% fee.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🌍</div>
+      <h3>CFA Franc (XAF), Ghanaian Cedi (GHC), Nigerian Naira (NGN)</h3>
+      <p>Our three West and Central African currencies support local mobile money withdrawals at 1.5% fee. More African currencies coming in 2026.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

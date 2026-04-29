@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}Accessibility{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Legal</div>
+    <h1>Accessibility Statement</h1>
+    <p>Our commitment to making SOHANA accessible to everyone.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">♿</div>
+      <h3>Our commitment</h3>
+      <p>SOHANA is committed to making our platform accessible to all users regardless of disability or assistive technology. We aim to meet WCAG 2.1 Level AA across all our web interfaces.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📱</div>
+      <h3>Current accessibility features</h3>
+      <p>The SOHANA web platform supports keyboard navigation, screen readers, and high-contrast display modes. All form fields have appropriate labels. Error messages are descriptive and actionable.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🔧</div>
+      <h3>Known limitations</h3>
+      <p>Some data visualisation elements (NCS score charts, sparklines) do not yet have full screen reader equivalents. We are working to add text alternatives in our next development cycle.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📬</div>
+      <h3>Feedback and assistance</h3>
+      <p>If you encounter an accessibility barrier or need assistance using any part of the platform, email support@sohana.app with the subject line 'Accessibility'. We will respond within 48 hours.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

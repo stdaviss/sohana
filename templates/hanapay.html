@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}HanaPay{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Products</div>
+    <h1>HanaPay — Instant Payments</h1>
+    <p>HanaPay is SOHANA's internal payment system — instant, free under €5,000, and built on a trust layer that no traditional payment provider can replicate.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">@</div>
+      <h3>Your Hanatag is your payment identity</h3>
+      <p>Every SOHANA account gets a unique @username called a Hanatag. Share it with anyone, and they can send you money instantly — no bank details, no account numbers.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">⚡</div>
+      <h3>Instant internal transfers</h3>
+      <p>Payments between SOHANA users settle instantly, 24/7, with no weekends or banking hours. Send money the moment someone needs it.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">💰</div>
+      <h3>Free under €5,000</h3>
+      <p>All HanaPay transfers under €5,000 are completely free. A 2% fee applies above that threshold — still significantly cheaper than any international wire.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🌍</div>
+      <h3>Across 8 currencies</h3>
+      <p>Send EUR to someone whose wallet holds GBP. SOHANA handles the conversion automatically at 0.7% — the fairest rate in the corridor.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

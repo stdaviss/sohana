@@ -1611,6 +1611,49 @@ def api_admin_restore_campaign(campaign_id):
         return jsonify({"error": str(e)}), 400
 
 
+# ── PUBLIC CONTENT PAGES ─────────────────────────────────────────────────────
+
+PUBLIC_PAGES = {
+    # Products
+    "njangi":        ("njangi.html",        "Njangi Circles"),
+    "pools-page":    ("pools-page.html",    "Contribution Pools"),
+    "fundraising":   ("fundraising.html",   "Fundraising & Donations"),
+    "hanapay":       ("hanapay.html",       "HanaPay"),
+    "wallet-page":   ("wallet-page.html",   "Multicurrency Wallet"),
+    "ncs-page":      ("ncs-page.html",      "NCS Credit Score"),
+    # Resources
+    "how-it-works":  ("how-it-works.html",  "How It Works"),
+    "ncs-guide":     ("ncs-guide.html",     "NCS Score Guide"),
+    "currencies":    ("currencies.html",    "Supported Currencies"),
+    "security":      ("security.html",      "Security & Trust"),
+    # Company
+    "about":         ("about.html",         "About SOHANA"),
+    "mission":       ("mission.html",       "Our Mission"),
+    "careers":       ("careers.html",       "Careers"),
+    "press":         ("press.html",         "Press"),
+    "partnerships":  ("partnerships.html",  "Partnerships"),
+    # Help
+    "help":          ("help.html",          "Help Centre"),
+    "contact":       ("contact.html",       "Contact Us"),
+    "service-status":("service-status.html","Service Status"),
+    # Legal
+    "privacy":       ("privacy.html",       "Privacy Policy"),
+    "terms":         ("terms.html",         "Terms of Service"),
+    "cookies":       ("cookies.html",       "Cookie Policy"),
+    "complaints":    ("complaints.html",    "Complaints"),
+    "accessibility": ("accessibility.html", "Accessibility"),
+}
+
+@app.route("/<path:slug>")
+def public_page(slug):
+    """Serve any public content page by slug."""
+    if slug in PUBLIC_PAGES:
+        template, title = PUBLIC_PAGES[slug]
+        return render_template(template)
+    # Not a public page — return 404
+    return render_template("landing_new.html"), 404
+
+
 def _seed_all():
     if fetchone("SELECT id FROM users WHERE phone='+33611000001'"): return
 

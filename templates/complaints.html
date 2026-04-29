@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}Complaints{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Legal</div>
+    <h1>How to Make a Complaint</h1>
+    <p>SOHANA takes all complaints seriously. Here is how to raise one and what to expect from our response.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">📬</div>
+      <h3>Step 1: Contact our support team</h3>
+      <p>Email support@sohana.app with a clear description of your complaint. Include your account phone number and any relevant dates or transaction references. We will acknowledge your complaint within 24 hours.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">⏱️</div>
+      <h3>Step 2: Our investigation</h3>
+      <p>We aim to resolve all complaints within 15 business days. Complex cases may take up to 35 business days. We will keep you informed of progress throughout.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">⚖️</div>
+      <h3>Step 3: If you are not satisfied</h3>
+      <p>If our resolution does not satisfy you, you may escalate to the relevant financial ombudsman or regulatory authority in your country of residence. Contact legal@sohana.app for the appropriate escalation path.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📋</div>
+      <h3>What makes a good complaint</h3>
+      <p>The more detail you provide — dates, amounts, screenshots, what you expected versus what happened — the faster we can investigate and resolve your issue.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}NCS Score Guide{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Resources</div>
+    <h1>Understanding Your NCS Score</h1>
+    <p>Your NCS score is the most important number in your SOHANA account. Here is exactly how it is calculated, what each tier means, and how to build it as fast as possible.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">📊</div>
+      <h3>How your score is calculated</h3>
+      <p>Five weighted components determine your NCS: contribution reliability (35%), cycle completion (25%), default recovery (20%), peer endorsements (10%), and wallet behaviour (10%). The score updates in real time with every action.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📈</div>
+      <h3>How to improve your score</h3>
+      <p>Pay contributions on time. Complete full cycles without missing a payment. Endorse reliable members in your circles. Make regular deposits to your wallet. Help fellow members by covering their contributions when they are in difficulty.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🏅</div>
+      <h3>NCS tiers and what they unlock</h3>
+      <p>Probation (300–549): Basic access. Developing (550–649): Reduced creation fees. Reliable (650–749): Early payout options. Exemplary (750–850): Free circle creation, priority payout, and credit partner access.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">⚠️</div>
+      <h3>What lowers your score</h3>
+      <p>Missing a contribution: -18 points. Late payment: -5 points. Being removed from a circle by an organiser: -8 points. Defaulting on a full cycle: -30 points.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

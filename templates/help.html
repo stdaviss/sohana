@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}Help Centre{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Help</div>
+    <h1>SOHANA Help Centre</h1>
+    <p>Find answers to common questions about your SOHANA account, payments, savings circles, and NCS score.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">👤</div>
+      <h3>Account and registration</h3>
+      <p>How to create an account, set your Hanatag, update your profile, change your password, and manage notification preferences. All account settings are available in your profile page after signing in.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">💰</div>
+      <h3>Wallet and payments</h3>
+      <p>Depositing to your wallet, withdrawing to your bank or mobile money, sending payments via Hanatag, converting currencies, and understanding your transaction history.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">◎</div>
+      <h3>Savings circles (ROSCA)</h3>
+      <p>Creating a circle, joining as a member, paying contributions, understanding the payout rotation, and what happens if a member misses a payment.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📬</div>
+      <h3>Still need help?</h3>
+      <p>If you cannot find the answer here, email support@sohana.app. We respond to all support requests within 24 hours on business days.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

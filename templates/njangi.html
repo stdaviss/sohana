@@ -1,0 +1,51 @@
+{% extends "page_base.html" %}
+{% block title %}Njangi Circles{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="container">
+    <div class="page-hero-label">Products</div>
+    <h1>Savings Circles</h1>
+    <p>Njangi Circles bring the oldest savings tradition in Africa into the digital age. Join a circle, contribute on time, and receive your payout when your turn comes.</p>
+    <div class="page-hero-cta">
+      <a href="/auth" class="btn-primary">Get started free</a>
+      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    </div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card-grid">
+    <div class="info-card">
+      <div class="icon">🔄</div>
+      <h3>How Njangi circles work</h3>
+      <p>A Njangi (also known as Tontine, ROSCA, or Esusu) is a rotating savings group where every member contributes a fixed amount each period. The pooled amount goes to one member at a time until everyone has received it once.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🔒</div>
+      <h3>Built-in trust and governance</h3>
+      <p>Every circle on SOHANA requires organiser approval for new members. Three co-admins must agree on any change to payout order. Your money is protected by rules, not promises.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">📊</div>
+      <h3>Your NCS score grows with every circle</h3>
+      <p>Every on-time contribution adds to your Njangi Credit Score. The longer you participate, the stronger your financial identity becomes.</p>
+    </div>
+    <div class="info-card">
+      <div class="icon">🌍</div>
+      <h3>Cross-border circles</h3>
+      <p>Run a circle with members in France, Cameroon, Rwanda, and the UK simultaneously. Contributions and payouts settle across our multicurrency wallet instantly.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <h2>Ready to get started?</h2>
+    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
+    <div class="page-hero-cta" style="margin-top:1rem;">
+      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
