@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}SOHANA{% endblock %}</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=4.4">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=4.5">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -94,6 +94,80 @@
 <div class="toast" id="_toast"></div>
 {% block modals %}{% endblock %}
 <script src="{{ url_for('static', filename='js/app.js') }}?v=4.4"></script>
+
+<!-- MOBILE BOTTOM NAV (hidden on desktop via CSS) -->
+{% if session.get('user_id') and not request.path.startswith('/admin') %}
+<nav class="bottom-nav" id="bottom-nav">
+  <a href="/dashboard" class="bottom-nav-item {{ 'active' if request.path=='/dashboard' }}">
+    <span class="bnav-icon">⊞</span><span class="bnav-label">Home</span>
+  </a>
+  <a href="/wallet" class="bottom-nav-item {{ 'active' if request.path=='/wallet' }}">
+    <span class="bnav-icon">◈</span><span class="bnav-label">Wallet</span>
+  </a>
+  <a href="/circles" class="bottom-nav-item {{ 'active' if '/circles' in request.path }}">
+    <span class="bnav-icon">◎</span><span class="bnav-label">Circles</span>
+  </a>
+  <a href="/ncs" class="bottom-nav-item {{ 'active' if request.path=='/ncs' }}">
+    <span class="bnav-icon">★</span><span class="bnav-label">NCS</span>
+  </a>
+  <button class="bottom-nav-item" onclick="openMoreDrawer()" id="bnav-more">
+    {% if unread_count is defined and unread_count > 0 %}
+    <span class="bnav-badge">{{ unread_count }}</span>
+    {% endif %}
+    <span class="bnav-icon">☰</span><span class="bnav-label">More</span>
+  </button>
+</nav>
+
+<!-- MORE DRAWER -->
+<div class="more-drawer" id="more-drawer">
+  <div class="more-drawer-backdrop" onclick="closeMoreDrawer()"></div>
+  <div class="more-drawer-panel">
+    <div class="more-drawer-handle"></div>
+    <div class="more-drawer-grid">
+      <a href="/pools"     class="more-drawer-item {{ 'active' if '/pools' in request.path }}"><span class="nav-icon">🏦</span> Pools</a>
+      <a href="/campaigns" class="more-drawer-item {{ 'active' if '/campaigns' in request.path }}"><span class="nav-icon">💚</span> Fundraising</a>
+      <a href="/history"   class="more-drawer-item {{ 'active' if request.path=='/history' }}"><span class="nav-icon">⊟</span> History</a>
+      <a href="/blog"      class="more-drawer-item {{ 'active' if '/blog' in request.path }}"><span class="nav-icon">📰</span> Blog</a>
+      <a href="/notifications" class="more-drawer-item {{ 'active' if request.path=='/notifications' }}">
+        <span class="nav-icon">🔔</span> Notifications
+        {% if unread_count is defined and unread_count > 0 %}<span style="margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:20px;">{{ unread_count }}</span>{% endif %}
+      </a>
+      <a href="/profile"   class="more-drawer-item {{ 'active' if '/profile' in request.path }}"><span class="nav-icon">👤</span> Profile</a>
+      {% if session.get('is_admin') %}
+      <hr class="more-drawer-divider">
+      <a href="/admin" class="more-drawer-item"><span class="nav-icon">⚙</span> Admin panel</a>
+      {% endif %}
+      <hr class="more-drawer-divider">
+    </div>
+    <div class="more-drawer-footer">
+      <a href="/profile"><span class="nav-icon">👤</span> My Profile</a>
+      <a href="/logout" style="color:rgba(255,100,100,.8);"><span class="nav-icon">←</span> Sign out</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function openMoreDrawer() {
+  document.getElementById('more-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMoreDrawer() {
+  document.getElementById('more-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+// Swipe down to close drawer
+(function(){
+  let startY = 0;
+  const panel = document.querySelector('.more-drawer-panel');
+  if (!panel) return;
+  panel.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, {passive:true});
+  panel.addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientY - startY > 60) closeMoreDrawer();
+  }, {passive:true});
+})();
+</script>
+{% endif %}
+
 {% block scripts %}{% endblock %}
 </body>
 </html>
