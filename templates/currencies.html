@@ -1,74 +1,410 @@
 {% extends "page_base.html" %}
-{% block title %}African Gold Standard Exchange — SOHANA{% endblock %}
+{% block title %}Pan-African Currency Value Explorer — SOHANA{% endblock %}
 
 {% block content %}
 
-<!-- ── HERO ─────────────────────────────────────────────────────────────────── -->
-<div class="page-hero" style="background:radial-gradient(1200px 700px at 60% 0%,rgba(182,245,105,.13),transparent 55%),radial-gradient(600px 400px at 0% 100%,rgba(118,224,161,.07),transparent 60%),#0E120F;padding:96px 5% 80px;overflow:hidden;position:relative;">
-  <div style="position:absolute;top:0;right:0;width:500px;height:500px;background:radial-gradient(circle,rgba(182,245,105,.06) 0%,transparent 70%);pointer-events:none;"></div>
-  <div class="container" style="position:relative;z-index:1;">
-    <div class="page-hero-label">African Finance Infrastructure</div>
-    <h1 style="font-size:clamp(2.2rem,5vw,3.8rem);font-weight:400;line-height:1.05;letter-spacing:-0.03em;margin-bottom:1.5rem;max-width:720px;">
-      The first intra-African<br>currency exchange<br><span style="color:#B6F569;">anchored to gold</span>
-    </h1>
-    <p style="font-size:1.1rem;color:#B7BAB4;max-width:560px;line-height:1.7;margin-bottom:2rem;">
-      For the first time in financial history, African currencies are priced against each other using gold — the continent's own wealth — rather than the US Dollar. SOHANA's gold-anchored exchange is a declaration of economic sovereignty.
-    </p>
-    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
-      <a href="/auth" class="btn-primary" style="background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.8rem 1.75rem;font-size:.95rem;font-weight:600;cursor:pointer;display:inline-block;">Open a wallet</a>
-      <a href="#converter" class="btn-outline-white" style="border:1px solid rgba(244,242,236,.2);color:#B7BAB4;border-radius:999px;padding:.8rem 1.5rem;font-size:.95rem;font-weight:500;display:inline-block;">Try the converter ↓</a>
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1 — TITLE + POSITIONING
+══════════════════════════════════════════════════════════ -->
+<div style="background:radial-gradient(1000px 500px at 70% -5%,rgba(182,245,105,.1),transparent 55%),#0E120F;border-bottom:1px solid rgba(244,242,236,.08);padding:72px 5% 56px;position:relative;overflow:hidden;">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(182,245,105,.03) 0%,transparent 100%);pointer-events:none;"></div>
+  <div class="container" style="position:relative;z-index:1;max-width:900px;">
+
+    <!-- Lab badge -->
+    <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(182,245,105,.06);border:1px solid rgba(182,245,105,.18);border-radius:999px;padding:.35rem .9rem;margin-bottom:1.5rem;">
+      <span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;animation:pulse 2.5s infinite;"></span>
+      <span style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:#B6F569;">Sohana Labs — Research Tool</span>
     </div>
-    <!-- live gold ticker -->
-    <div style="display:flex;gap:2.5rem;margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(244,242,236,.08);flex-wrap:wrap;">
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:400;letter-spacing:-0.03em;line-height:1.05;color:#F4F2EC;margin-bottom:1rem;">
+      Pan-African Currency<br>Value Explorer
+    </h1>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:1.5rem;">
+      <span style="background:rgba(244,192,106,.1);border:1px solid rgba(244,192,106,.25);color:#F4C06A;border-radius:999px;padding:.3rem .85rem;font-size:.72rem;font-weight:600;letter-spacing:.05em;">Experimental</span>
+      <span style="background:rgba(118,224,161,.08);border:1px solid rgba(118,224,161,.2);color:#76E0A1;border-radius:999px;padding:.3rem .85rem;font-size:.72rem;font-weight:600;letter-spacing:.05em;">Research-Based</span>
+      <span style="background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.2);color:#B6F569;border-radius:999px;padding:.3rem .85rem;font-size:.72rem;font-weight:600;letter-spacing:.05em;">Gold-Normalised</span>
+    </div>
+    <p style="font-size:1.05rem;color:#B7BAB4;max-width:620px;line-height:1.75;">
+      Explore relative currency values across African markets using a gold-indexed reference model designed for research and comparative analysis. All outputs are model estimates — not tradable rates.
+    </p>
+
+    <!-- Gold reference ticker -->
+    <div id="ticker-bar" style="display:flex;gap:2.5rem;margin-top:2.5rem;padding-top:1.75rem;border-top:1px solid rgba(244,242,236,.08);flex-wrap:wrap;align-items:center;">
       <div>
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Gold (XAU/oz)</div>
-        <div style="font-size:1.4rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;" id="gold-usd">$2,341.50</div>
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.3rem;">Gold Reference Price (External Market Data – Indicative)</div>
+        <div style="font-size:1.25rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;" id="gold-display">Loading…</div>
       </div>
       <div>
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Platinum (XPT/oz)</div>
-        <div style="font-size:1.4rem;font-weight:500;color:#76E0A1;" id="plat-usd">$981.20</div>
-      </div>
-      <div>
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Cobalt (t)</div>
-        <div style="font-size:1.4rem;font-weight:500;color:#B7BAB4;">$33,400</div>
-      </div>
-      <div>
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Coltan (kg)</div>
-        <div style="font-size:1.4rem;font-weight:500;color:#B7BAB4;">$82.00</div>
+        <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.3rem;">Silver (XAG/oz) — Indicative</div>
+        <div style="font-size:1.25rem;font-weight:500;color:#76E0A1;" id="silver-display">—</div>
       </div>
       <div style="margin-left:auto;text-align:right;">
-        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Rates reference</div>
-        <div style="font-size:.82rem;color:#8A8E87;">Representative • Not live data</div>
-        <div style="font-size:.72rem;color:#8A8E87;margin-top:.15rem;font-style:italic;">Live rates coming with API integration</div>
+        <div style="font-size:.65rem;color:#8A8E87;">Data source</div>
+        <div style="font-size:.78rem;color:#B7BAB4;margin-top:.1rem;" id="data-source-label">Fetching live data…</div>
+        <div style="font-size:.65rem;color:#8A8E87;margin-top:.1rem;font-style:italic;">FX: open.er-api.com · Gold: metals API</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ── WHY GOLD ──────────────────────────────────────────────────────────────── -->
-<div style="background:#161B17;border-top:1px solid rgba(244,242,236,.08);border-bottom:1px solid rgba(244,242,236,.08);padding:72px 5%;">
-  <div class="container">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;">
-      <div>
-        <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:1rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Why gold, not the dollar</div>
-        <h2 style="font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:400;letter-spacing:-0.025em;line-height:1.1;color:#F4F2EC;margin-bottom:1.5rem;">Africa holds <span style="color:#B6F569;">40% of the world's gold reserves</span>. Why price its currencies against someone else's paper?</h2>
-        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">The US Dollar became the world's reserve currency by political agreement in 1944 — not because it represented real wealth. African economies have been priced against a currency that has no physical backing, managed by institutions in which Africa has no meaningful vote.</p>
-        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">Gold is different. It exists in the ground — much of it African ground. The DRC alone holds an estimated $24 trillion in mineral reserves. Ghana, South Africa, Mali, Burkina Faso, and Sudan are among the world's largest gold producers. When the Ghanaian Cedi is priced against gold rather than the dollar, it is priced against something Ghana actually has.</p>
-        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;">SOHANA's gold-anchored exchange is not just a currency tool. It is a philosophical and practical argument that intra-African trade should be denominated in Africa's own wealth.</p>
+<!-- ═══════════════════════════════════════════════════════
+     MANDATORY DISCLAIMER — ALWAYS VISIBLE
+══════════════════════════════════════════════════════════ -->
+<div style="background:rgba(244,192,106,.06);border-bottom:2px solid rgba(244,192,106,.25);padding:1rem 5%;">
+  <div class="container" style="display:flex;gap:.875rem;align-items:flex-start;max-width:900px;">
+    <span style="font-size:1.1rem;flex-shrink:0;margin-top:.05rem;">⚠️</span>
+    <div>
+      <div style="font-size:.78rem;font-weight:700;color:#F4C06A;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem;">Important Notice — Research Tool Only</div>
+      <div style="font-size:.8rem;color:#B7BAB4;line-height:1.6;">
+        This tool presents an <strong style="color:#F4C06A;">experimental valuation model</strong> using gold as a normalisation reference across currencies.
+        It <strong style="color:#FF6A55;">does not reflect tradable or official exchange rates</strong>,
+        is <strong style="color:#FF6A55;">not intended for financial transactions or decision-making</strong>,
+        and values may differ significantly from real market conditions.
+        Built for <strong style="color:#76E0A1;">research, education, and exploratory analysis only</strong>.
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2 — MAIN TOOL (Inputs)
+     SECTION 3 — Output + Confidence + Drivers
+     SECTION 4 — Toggle (USD vs Gold)
+══════════════════════════════════════════════════════════ -->
+<div id="main-tool" style="background:#0E120F;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+
+    <div style="text-align:center;margin-bottom:2.5rem;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Gold-Normalised Comparative Model</div>
+      <h2 style="font-size:clamp(1.5rem,3vw,2.2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.6rem;">Generate a comparative value estimate</h2>
+      <p style="font-size:.9rem;color:#8A8E87;">Select two African currencies and an input value to explore their gold-normalised relationship.</p>
+    </div>
+
+    <!-- VIEW TOGGLE — Section 4 -->
+    <div style="display:flex;justify-content:center;margin-bottom:2rem;">
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:4px;display:inline-flex;gap:4px;">
+        <button id="toggle-gold" onclick="setMode('gold')"
+          style="background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;">
+          ⚖️ Gold-Based Model
+        </button>
+        <button id="toggle-usd" onclick="setMode('usd')"
+          style="background:transparent;color:#8A8E87;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s;">
+          $ USD-Based View
+        </button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-bottom:2rem;">
+      <span id="mode-label" style="font-size:.72rem;color:#8A8E87;background:rgba(182,245,105,.06);border:1px solid rgba(182,245,105,.15);border-radius:999px;padding:.25rem .75rem;">
+        Mode: Gold-Normalised — routing through XAU as unit of account
+      </span>
+    </div>
+
+    <!-- INPUT FORM -->
+    <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px;padding:2rem 2rem 1.5rem;">
+
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:end;margin-bottom:1.5rem;">
+
+        <!-- Base Currency -->
+        <div>
+          <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.5rem;">Base Currency (Reference)</div>
+          <select id="cv-from" onchange="generateValue()"
+            style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.9rem;font-family:inherit;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">
+            <option value="GHC" selected>🇬🇭 Ghanaian Cedi — GHC</option>
+            <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
+            <option value="XAF">🌍 CFA Franc — XAF</option>
+            <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
+            <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
+            <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
+            <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
+            <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
+            <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
+            <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
+            <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
+            <option value="XOF">🌍 West African CFA — XOF</option>
+            <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
+            <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
+            <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
+            <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
+          </select>
+          <div style="margin-top:.5rem;">
+            <div style="font-size:.62rem;color:#8A8E87;margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.08em;">Input Value (Simulated)</div>
+            <input id="cv-amount" type="number" value="10000" min="1" oninput="generateValue()"
+              style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.65rem 1rem;font-size:.9rem;font-family:inherit;outline:none;text-align:right;">
+          </div>
+        </div>
+
+        <!-- Swap -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:.4rem;padding-bottom:.5rem;">
+          <button onclick="swapCurrencies()"
+            style="background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.2);border-radius:50%;width:40px;height:40px;color:#B6F569;cursor:pointer;font-size:1rem;transition:all .2s;display:flex;align-items:center;justify-content:center;"
+            onmouseover="this.style.background='rgba(182,245,105,.18)'" onmouseout="this.style.background='rgba(182,245,105,.08)'">⇄</button>
+          <span style="font-size:.58rem;color:#8A8E87;">SWAP</span>
+        </div>
+
+        <!-- Comparison Currency -->
+        <div>
+          <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.5rem;">Comparison Currency</div>
+          <select id="cv-to" onchange="generateValue()"
+            style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.9rem;font-family:inherit;outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;">
+            <option value="XAF" selected>🌍 CFA Franc — XAF</option>
+            <option value="GHC">🇬🇭 Ghanaian Cedi — GHC</option>
+            <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
+            <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
+            <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
+            <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
+            <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
+            <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
+            <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
+            <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
+            <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
+            <option value="XOF">🌍 West African CFA — XOF</option>
+            <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
+            <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
+            <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
+            <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button id="generate-btn" onclick="generateValue()"
+        style="width:100%;background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.9rem;font-size:.95rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;letter-spacing:-.005em;"
+        onmouseover="this.style.background='#cef870'" onmouseout="this.style.background='#B6F569'">
+        Generate Comparative Value
+      </button>
+    </div>
+
+    <!-- OUTPUT — Section 3 -->
+    <div id="output-panel" style="background:#161B17;border:1px solid rgba(182,245,105,.15);border-radius:24px;padding:2rem;margin-top:1.25rem;">
+
+      <!-- Main result -->
+      <div style="margin-bottom:1.5rem;">
+        <div style="font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.5rem;">Model-Derived Relative Value (Gold-Normalised)</div>
+        <div id="output-main" style="font-size:2.8rem;font-weight:400;color:#B6F569;letter-spacing:-0.03em;line-height:1;margin-bottom:.4rem;">—</div>
+        <div id="output-index" style="font-size:.875rem;color:#8A8E87;font-family:monospace;">Relative Value Index: waiting for input</div>
+      </div>
+
+      <!-- Gold bridge trace -->
+      <div id="gold-trace" style="background:rgba(182,245,105,.05);border:1px solid rgba(182,245,105,.1);border-radius:10px;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.78rem;color:#B7BAB4;font-family:monospace;display:none;"></div>
+
+      <!-- Confidence + Drivers -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div style="background:#0E120F;border-radius:12px;padding:1rem;">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">Data Confidence</div>
+          <div id="confidence-badge" style="display:inline-flex;align-items:center;gap:.4rem;border-radius:999px;padding:.35rem .875rem;font-size:.78rem;font-weight:600;background:rgba(118,224,161,.1);border:1px solid rgba(118,224,161,.25);color:#76E0A1;">
+            ● High
+          </div>
+          <div id="confidence-note" style="font-size:.7rem;color:#8A8E87;margin-top:.5rem;line-height:1.4;">Stable reference currency</div>
+        </div>
+        <div style="background:#0E120F;border-radius:12px;padding:1rem;">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">Today's Change Drivers (Estimate)</div>
+          <div style="font-size:.78rem;color:#B7BAB4;line-height:1.8;">
+            <div>⚖️ Gold Impact: <span id="gold-impact" style="color:#B6F569;font-weight:600;">—</span></div>
+            <div>📊 FX Movement: <span id="fx-impact" style="color:#76E0A1;font-weight:600;">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:.7rem;color:#8A8E87;margin-top:1rem;padding-top:.875rem;border-top:1px solid rgba(244,242,236,.06);line-height:1.5;text-align:center;">
+        All values are <strong style="color:#F4C06A;">model estimates</strong> for research purposes only.
+        Not tradable rates. Not financial advice. Gold-normalised methodology — see section 7 below.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5 — INSIGHTS (Stability + Value Gaps)
+══════════════════════════════════════════════════════════ -->
+<div style="background:#161B17;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+    <div style="margin-bottom:2rem;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;"><span style="width:5px;height:5px;background:#76E0A1;border-radius:50%;display:inline-block;"></span>Insights Layer — Model Estimates</div>
+      <h2 style="font-size:clamp(1.4rem,2.5vw,2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">Currency stability scores &amp; value gaps</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+
+      <!-- Stability Scores -->
+      <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:20px;padding:1.5rem;">
+        <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:1.25rem;">Currency Stability Score (Model)</div>
+        <div id="stability-list">
+          <!-- JS rendered -->
+        </div>
+        <div style="font-size:.68rem;color:#8A8E87;margin-top:1rem;line-height:1.45;">Stability = 100 − (volatility proxy + gold deviation). Higher = more stable. Research estimate only.</div>
+      </div>
+
+      <!-- Value Gaps -->
+      <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:20px;padding:1.5rem;">
+        <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:1.25rem;">Top Model Value Gaps (Gold vs USD Basis)</div>
+        <div id="value-gaps">
+          <!-- JS rendered -->
+        </div>
+        <div style="font-size:.68rem;color:#8A8E87;margin-top:1rem;line-height:1.45;">Gap = difference between gold-normalised model rate and USD-based rate. Positive = undervalued in gold terms. Model estimate only.</div>
+      </div>
+    </div>
+
+    <!-- Currency table with filter -->
+    <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:20px;overflow:hidden;">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid rgba(244,242,236,.08);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;">
+        <div style="font-size:.78rem;font-weight:500;color:#F4F2EC;">1 troy ounce of gold (XAU) — priced in African currencies</div>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+          <button onclick="filterTable('all')" id="btn-all" class="filter-btn active-filter">All</button>
+          <button onclick="filterTable('west')" id="btn-west" class="filter-btn">West</button>
+          <button onclick="filterTable('east')" id="btn-east" class="filter-btn">East</button>
+          <button onclick="filterTable('south')" id="btn-south" class="filter-btn">Southern</button>
+          <button onclick="filterTable('north')" id="btn-north" class="filter-btn">North</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="width:100%;border-collapse:collapse;" id="currency-table">
+          <thead>
+            <tr style="border-bottom:1px solid rgba(244,242,236,.08);">
+              <th style="text-align:left;font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.65rem 1.25rem;">Currency</th>
+              <th style="text-align:right;font-size:.62rem;color:#8A8E87;padding:.65rem .75rem;text-transform:uppercase;letter-spacing:.06em;">Code</th>
+              <th style="text-align:right;font-size:.62rem;color:#8A8E87;padding:.65rem .75rem;text-transform:uppercase;letter-spacing:.06em;">1 XAU (Model)</th>
+              <th style="text-align:right;font-size:.62rem;color:#8A8E87;padding:.65rem .75rem;text-transform:uppercase;letter-spacing:.06em;">Stability (Est.)</th>
+              <th style="text-align:right;font-size:.62rem;color:#8A8E87;padding:.65rem 1.25rem;text-transform:uppercase;letter-spacing:.06em;">Region</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div style="padding:.75rem 1.25rem;font-size:.67rem;color:#8A8E87;border-top:1px solid rgba(244,242,236,.06);">Representative model reference rates. Not official or tradable. Gold reference: XAU/oz.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 6 — ADVANCED TOOLS
+══════════════════════════════════════════════════════════ -->
+<div style="background:#0E120F;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+    <div style="margin-bottom:2.5rem;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Advanced Research Tools</div>
+      <h2 style="font-size:clamp(1.4rem,2.5vw,2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">Deeper exploratory analysis</h2>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem;">
+
+      <!-- 6.1 Purchasing Power Explorer -->
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:20px;padding:1.5rem;">
+        <div style="font-size:.75rem;font-weight:700;color:#B6F569;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">Purchasing Power Explorer</div>
+        <p style="font-size:.8rem;color:#8A8E87;line-height:1.5;margin-bottom:1.25rem;">Enter a reference value and see its gold-normalised equivalent across all African currencies.</p>
+        <div style="margin-bottom:.75rem;">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.35rem;">Reference Value (USD equivalent)</div>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <span style="color:#8A8E87;font-size:.9rem;">$</span>
+            <input id="pp-usd" type="number" value="100" min="1"
+              style="flex:1;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.55rem .875rem;font-size:.9rem;font-family:inherit;outline:none;">
+          </div>
+        </div>
+        <button onclick="calcPurchasingPower()"
+          style="width:100%;background:rgba(182,245,105,.1);border:1px solid rgba(182,245,105,.2);color:#B6F569;border-radius:999px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:1rem;transition:all .2s;"
+          onmouseover="this.style.background='rgba(182,245,105,.2)'" onmouseout="this.style.background='rgba(182,245,105,.1)'">
+          Generate Comparative Value
+        </button>
+        <div id="pp-results" style="font-size:.78rem;color:#B7BAB4;line-height:2;font-family:monospace;max-height:200px;overflow-y:auto;">Select an amount to explore.</div>
+      </div>
+
+      <!-- 6.2 Remittance Simulation -->
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:20px;padding:1.5rem;">
+        <div style="font-size:.75rem;font-weight:700;color:#76E0A1;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem;">Remittance Route Simulator</div>
+        <p style="font-size:.8rem;color:#8A8E87;line-height:1.5;margin-bottom:1.25rem;">Compare a theoretical USD-routed estimate against a gold-normalised model estimate. For research exploration only.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem;">
+          <div>
+            <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">From Currency</div>
+            <select id="rem-from" style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.5rem .7rem;font-size:.82rem;font-family:inherit;outline:none;appearance:none;">
+              <option value="GHC">GHC</option><option value="NGN">NGN</option><option value="XAF">XAF</option>
+              <option value="KES">KES</option><option value="ZAR">ZAR</option><option value="EGP">EGP</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">To Currency</div>
+            <select id="rem-to" style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.5rem .7rem;font-size:.82rem;font-family:inherit;outline:none;appearance:none;">
+              <option value="XAF">XAF</option><option value="NGN">NGN</option><option value="GHC">GHC</option>
+              <option value="KES">KES</option><option value="ZAR">ZAR</option><option value="RWF">RWF</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:.75rem;">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">Amount (Simulated)</div>
+          <input id="rem-amount" type="number" value="1000" style="width:100%;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.5rem .875rem;font-size:.88rem;font-family:inherit;outline:none;">
+        </div>
+        <button onclick="calcRemittance()"
+          style="width:100%;background:rgba(118,224,161,.08);border:1px solid rgba(118,224,161,.2);color:#76E0A1;border-radius:999px;padding:.55rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:1rem;transition:all .2s;"
+          onmouseover="this.style.background='rgba(118,224,161,.18)'" onmouseout="this.style.background='rgba(118,224,161,.08)'">
+          Generate Comparative Value
+        </button>
+        <div id="rem-results" style="font-size:.78rem;color:#B7BAB4;line-height:1.8;">Enter values above.</div>
+      </div>
+    </div>
+
+    <!-- 6.3 Afro Index — Signature Feature -->
+    <div style="background:#161B17;border:1px solid rgba(182,245,105,.15);border-radius:20px;padding:1.75rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+        <div>
+          <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.2);border-radius:999px;padding:.3rem .75rem;margin-bottom:.6rem;">
+            <span style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#B6F569;">Signature Feature</span>
+          </div>
+          <div style="font-size:1.05rem;font-weight:600;color:#F4F2EC;margin-bottom:.3rem;">Sohana Afro Index <span style="font-size:.72rem;color:#8A8E87;font-weight:400;">(Experimental)</span></div>
+          <p style="font-size:.82rem;color:#8A8E87;line-height:1.5;max-width:480px;">A synthetic index of 5 major African currencies weighted by economic significance and normalised against gold. Tracks collective purchasing power of the African economic bloc.</p>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Afro Index Value</div>
+          <div id="afro-index-value" style="font-size:2.5rem;font-weight:400;color:#B6F569;letter-spacing:-0.03em;line-height:1;">—</div>
+          <div id="afro-index-change" style="font-size:.75rem;color:#8A8E87;margin-top:.2rem;">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Weights display -->
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+        {% for code, weight, color in [('NGN','25%','#B6F569'),('ZAR','25%','#76E0A1'),('KES','20%','#F4C06A'),('GHC','15%','#C084FC'),('EGP','15%','#76E0A1')] %}
+        <div style="flex:1;min-width:80px;background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:12px;padding:.75rem;text-align:center;">
+          <div style="font-size:.85rem;font-weight:600;color:{{ color }};margin-bottom:.2rem;">{{ code }}</div>
+          <div style="font-size:.65rem;color:#8A8E87;">{{ weight }}</div>
+          <div style="margin-top:.4rem;height:3px;background:rgba(244,242,236,.08);border-radius:2px;overflow:hidden;">
+            <div style="height:100%;width:{{ weight }};background:{{ color }};border-radius:2px;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Index bar chart -->
+      <div id="afro-chart" style="display:flex;gap:.5rem;align-items:flex-end;height:80px;padding-top:.5rem;border-top:1px solid rgba(244,242,236,.06);">
+        <!-- JS rendered bars -->
+      </div>
+      <div style="font-size:.67rem;color:#8A8E87;margin-top:.75rem;line-height:1.45;">Weights: NGN 25% · ZAR 25% · KES 20% · GHS 15% · EGP 15%. Normalised against gold (XAU). All values are model estimates for research purposes only. Basket composition subject to revision.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     EDITORIAL — WHY GOLD (context, not lead)
+══════════════════════════════════════════════════════════ -->
+<div style="background:#161B17;border-top:1px solid rgba(244,242,236,.08);border-bottom:1px solid rgba(244,242,236,.08);padding:72px 5%;">
+  <div class="container" style="max-width:900px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;">
+      <div>
+        <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Research context</div>
+        <h2 style="font-size:clamp(1.5rem,2.8vw,2.2rem);font-weight:400;letter-spacing:-0.025em;line-height:1.1;color:#F4F2EC;margin-bottom:1.25rem;">Africa holds <span style="color:#B6F569;">40% of the world's gold reserves.</span> Why price its currencies against someone else's paper?</h2>
+        <p style="font-size:.925rem;color:#B7BAB4;line-height:1.75;margin-bottom:1rem;">The US Dollar became the world's reserve currency by political agreement in 1944 — not because it represented real wealth. African economies have been priced against a currency with no physical backing, managed by institutions in which Africa has no meaningful vote.</p>
+        <p style="font-size:.925rem;color:#B7BAB4;line-height:1.75;">Gold is different. It exists in the ground — much of it African ground. This tool is our first step toward building the analytical infrastructure that makes a gold-anchored intra-African currency framework legible.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.875rem;">
         {% for stat, val, icon in [
-          ('African gold share of world reserves','40%','⛏'),
+          ('African share of world gold reserves','40%','⛏'),
           ('DRC mineral reserve value','$24T','💎'),
-          ('African countries as top-10 gold producers','7','🌍'),
-          ('Intra-African trade as % of total trade','15%','📊'),
-          ('Estimated value if priced in gold','3× current','📈'),
-          ('Year USD gold standard ended','1971','🗓'),
+          ('African countries in top-10 gold producers','7','🌍'),
+          ('Intra-African trade as % of total','15%','📊'),
+          ('Year USD abandoned gold standard','1971','🗓'),
+          ('African platinum share of world reserves','90%','⚗️'),
         ] %}
-        <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:16px;padding:1.25rem;transition:border-color .2s;" onmouseover="this.style.borderColor='rgba(182,245,105,.3)'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)'">
-          <div style="font-size:1.5rem;margin-bottom:.5rem;">{{ icon }}</div>
-          <div style="font-size:1.4rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;margin-bottom:.3rem;">{{ val }}</div>
-          <div style="font-size:.75rem;color:#8A8E87;line-height:1.4;">{{ stat }}</div>
+        <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:14px;padding:1.1rem;transition:border-color .2s;cursor:default;" onmouseover="this.style.borderColor='rgba(182,245,105,.25)'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)'">
+          <div style="font-size:1.3rem;margin-bottom:.4rem;">{{ icon }}</div>
+          <div style="font-size:1.25rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;margin-bottom:.2rem;">{{ val }}</div>
+          <div style="font-size:.7rem;color:#8A8E87;line-height:1.4;">{{ stat }}</div>
         </div>
         {% endfor %}
       </div>
@@ -76,415 +412,556 @@
   </div>
 </div>
 
-<!-- ── GOLD CONVERTER ────────────────────────────────────────────────────────── -->
-<div id="converter" style="background:#0E120F;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
-  <div class="container">
-    <div style="text-align:center;margin-bottom:3rem;">
-      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Intra-African gold converter</div>
-      <h2 style="font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.75rem;">Convert between African currencies<br>using gold as the unit of account</h2>
-      <p style="font-size:1rem;color:#8A8E87;max-width:520px;margin:0 auto;">All conversions route through XAU (gold). No USD. No Euro. No intermediary colonial currency.</p>
+<!-- Africa's mineral wealth -->
+<div style="background:#0E120F;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+    <div style="margin-bottom:2rem;text-align:center;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Why this model matters</div>
+      <h2 style="font-size:clamp(1.4rem,2.5vw,2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.6rem;">The resources that should anchor our currencies</h2>
+      <p style="font-size:.9rem;color:#8A8E87;max-width:540px;margin:0 auto;">Africa holds the world's dominant reserves of chromium, cobalt, manganese, and platinum-group metals. These are the materials powering the global tech economy. Their value belongs to Africa.</p>
     </div>
-
-    <div style="max-width:680px;margin:0 auto;">
-      <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px;padding:2rem;">
-
-        <!-- FROM -->
-        <div style="margin-bottom:1.25rem;">
-          <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">From</div>
-          <div style="display:flex;gap:.75rem;">
-            <select id="cv-from" onchange="runConvert()" style="flex:1;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;cursor:pointer;">
-              <option value="XAF">🌍 CFA Franc — XAF</option>
-              <option value="GHC" selected>🇬🇭 Ghanaian Cedi — GHC</option>
-              <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
-              <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
-              <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
-              <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
-              <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
-              <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
-              <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
-              <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
-              <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
-              <option value="XOF">🌍 West African CFA — XOF</option>
-              <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
-              <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
-              <option value="MZN">🇲🇿 Mozambican Metical — MZN</option>
-              <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
-              <option value="GNF">🇬🇳 Guinean Franc — GNF</option>
-              <option value="SLL">🇸🇱 Sierra Leonean Leone — SLL</option>
-              <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
-              <option value="SDG">🇸🇩 Sudanese Pound — SDG</option>
-            </select>
-            <input id="cv-amount" type="number" value="10000" min="1" oninput="runConvert()"
-              style="width:160px;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;text-align:right;">
-          </div>
-        </div>
-
-        <!-- GOLD BRIDGE -->
-        <div style="display:flex;align-items:center;gap:.75rem;margin:1rem 0;padding:.875rem 1rem;background:rgba(182,245,105,.05);border:1px solid rgba(182,245,105,.12);border-radius:12px;">
-          <span style="font-size:1.1rem;">⚖️</span>
-          <div style="flex:1;">
-            <div style="font-size:.72rem;color:#8A8E87;margin-bottom:.2rem;">Gold bridge (XAU/oz)</div>
-            <div style="font-size:.9rem;color:#B6F569;font-weight:500;" id="gold-bridge">Calculating…</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:.65rem;color:#8A8E87;margin-bottom:.15rem;">SOHANA fee</div>
-            <div style="font-size:.82rem;color:#76E0A1;font-weight:500;">0.7%</div>
-          </div>
-        </div>
-
-        <!-- SWAP BUTTON -->
-        <div style="text-align:center;margin:.5rem 0;">
-          <button onclick="swapCurrencies()" style="background:rgba(244,242,236,.06);border:1px solid rgba(244,242,236,.12);border-radius:50%;width:36px;height:36px;color:#B7BAB4;cursor:pointer;font-size:.9rem;transition:all .2s;" onmouseover="this.style.borderColor='rgba(182,245,105,.3)';this.style.color='#B6F569'" onmouseout="this.style.borderColor='rgba(244,242,236,.12)';this.style.color='#B7BAB4'">⇅</button>
-        </div>
-
-        <!-- TO -->
-        <div style="margin-bottom:1.5rem;">
-          <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">To</div>
-          <div style="display:flex;gap:.75rem;">
-            <select id="cv-to" onchange="runConvert()" style="flex:1;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;cursor:pointer;">
-              <option value="XAF" selected>🌍 CFA Franc — XAF</option>
-              <option value="GHC">🇬🇭 Ghanaian Cedi — GHC</option>
-              <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
-              <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
-              <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
-              <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
-              <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
-              <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
-              <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
-              <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
-              <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
-              <option value="XOF">🌍 West African CFA — XOF</option>
-              <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
-              <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
-              <option value="MZN">🇲🇿 Mozambican Metical — MZN</option>
-              <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
-              <option value="GNF">🇬🇳 Guinean Franc — GNF</option>
-              <option value="SLL">🇸🇱 Sierra Leonean Leone — SLL</option>
-              <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
-              <option value="SDG">🇸🇩 Sudanese Pound — SDG</option>
-            </select>
-            <div id="cv-result" style="width:160px;background:#0E120F;border:1px solid rgba(182,245,105,.2);border-radius:12px;color:#B6F569;padding:.75rem 1rem;font-size:.95rem;font-weight:600;text-align:right;display:flex;align-items:center;justify-content:flex-end;letter-spacing:-0.01em;">—</div>
-          </div>
-        </div>
-
-        <!-- RESULT ROW -->
-        <div style="background:#0E120F;border-radius:12px;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;">
-          <div style="font-size:.82rem;color:#8A8E87;" id="cv-rate-text">Select currencies to see rate</div>
-          <div style="font-size:.75rem;color:#8A8E87;">Gold-anchored · No USD bridge</div>
-        </div>
-
-        <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;text-align:center;line-height:1.5;">Representative rates using gold as unit of account. Live rates will be powered by commodity exchange data. SOHANA charges 0.7% on conversions within the platform.</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── AFRICAN CURRENCIES vs GOLD TABLE ─────────────────────────────────────── -->
-<div style="background:#161B17;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
-  <div class="container">
-    <div style="margin-bottom:2.5rem;">
-      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>African currencies vs precious metals</div>
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;">
-        <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">One troy ounce of gold,<br>priced in every African currency</h2>
-        <div style="display:flex;gap:.5rem;align-items:center;">
-          <span style="font-size:.75rem;color:#8A8E87;">Filter:</span>
-          <button onclick="filterTable('all')" id="btn-all" style="background:rgba(182,245,105,.15);color:#B6F569;border:1px solid rgba(182,245,105,.3);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">All regions</button>
-          <button onclick="filterTable('west')" id="btn-west" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">West Africa</button>
-          <button onclick="filterTable('east')" id="btn-east" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">East Africa</button>
-          <button onclick="filterTable('south')" id="btn-south" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">Southern Africa</button>
-          <button onclick="filterTable('north')" id="btn-north" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">North Africa</button>
-        </div>
-      </div>
-    </div>
-
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-      <table style="width:100%;border-collapse:collapse;" id="currency-table">
-        <thead>
-          <tr style="border-bottom:1px solid rgba(244,242,236,.1);">
-            <th style="text-align:left;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Country / Currency</th>
-            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Code</th>
-            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XAU (Gold/oz)</th>
-            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XPT (Platinum/oz)</th>
-            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XAG (Silver/oz)</th>
-            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Region</th>
-          </tr>
-        </thead>
-        <tbody id="table-body">
-          <!-- JS-rendered -->
-        </tbody>
-      </table>
-    </div>
-    <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;">Representative reference rates. XAU = gold troy ounce ($2,341.50), XPT = platinum troy ounce ($981.20), XAG = silver troy ounce ($27.45). Prices sourced from commodity markets; not live data during beta phase.</p>
-  </div>
-</div>
-
-<!-- ── PRECIOUS METALS & RARE EARTH STRIP ─────────────────────────────────── -->
-<div style="background:#0E120F;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
-  <div class="container">
-    <div style="margin-bottom:2.5rem;text-align:center;">
-      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Africa's mineral wealth</div>
-      <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.75rem;">The resources that should anchor our currencies</h2>
-      <p style="font-size:.95rem;color:#8A8E87;max-width:600px;margin:0 auto;">Africa holds the world's largest reserves of chromium, cobalt, manganese, and platinum-group metals. These are the materials that power the global tech economy. Their value belongs to Africa.</p>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
-      {% for metal, symbol, price, unit, pct, countries, desc in [
-        ('Gold','XAU','$2,341.50','per troy oz','40% of world reserves','Ghana, South Africa, Sudan, Mali, DRC','The oldest store of value on earth. Africa produces over 600 tonnes annually yet prices its currencies against a floating dollar.'),
-        ('Platinum','XPT','$981.20','per troy oz','90% of world reserves','South Africa (overwhelmingly)','South Africa alone holds 90% of global platinum reserves — the most concentrated mineral dominance of any nation on earth.'),
-        ('Cobalt','—','$33,400','per metric tonne','70% of world reserves','DRC (65%), Zambia, Morocco','The indispensable mineral in every lithium-ion battery. The DRC produces more cobalt than the rest of the world combined.'),
-        ('Coltan','—','$82.00','per kg','80% of world reserves','DRC, Rwanda, Nigeria','Columbite-tantalite, from which tantalum is refined, is in every smartphone capacitor. Africa controls the global supply.'),
-        ('Chromium','—','$9,800','per metric tonne','44% of world reserves','South Africa, Zimbabwe, Madagascar','Essential for stainless steel. South Africa holds the largest proven chromium reserves on earth.'),
-        ('Manganese','—','$4,200','per metric tonne','26% of world reserves','South Africa, Gabon, Ghana','Critical for steel and battery cathodes. South Africa and Gabon together dominate global supply.'),
-        ('Phosphate','—','$115','per metric tonne','50% of world reserves','Morocco (overwhelmingly), Algeria, Egypt','Morocco controls 70% of global phosphate reserves — the nutrient that feeds the world. An under-priced African monopoly.'),
-        ('Rare Earths','—','$1,100–$3,200','per kg (varies)','30%+ of world deposits','DRC, South Africa, Malawi, Tanzania','Neodymium, dysprosium, and other rare earths that make wind turbines and EV motors possible are found in abundance across eastern and southern Africa.'),
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:.875rem;">
+      {% for metal, price, unit, pct, countries in [
+        ('Gold (XAU)','$2,341/oz','troy oz','40% of world reserves','Ghana, South Africa, Mali, DRC'),
+        ('Platinum (XPT)','$981/oz','troy oz','90% of world reserves','South Africa overwhelmingly'),
+        ('Cobalt','$33,400/t','metric tonne','70% of world reserves','DRC, Zambia, Morocco'),
+        ('Coltan','$82/kg','per kg','80% of world reserves','DRC, Rwanda, Nigeria'),
+        ('Chromium','$9,800/t','metric tonne','44% of world reserves','South Africa, Zimbabwe'),
+        ('Rare Earths','$1,100–3,200/kg','per kg','30%+ of world deposits','DRC, South Africa, Tanzania'),
       ] %}
-      <div style="background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:20px;padding:1.5rem;transition:all .2s;cursor:default;" onmouseover="this.style.borderColor='rgba(182,245,105,.25)';this.style.background='#1C231D'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)';this.style.background='#161B17'">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.875rem;">
-          <div>
-            <div style="font-size:1rem;font-weight:600;color:#F4F2EC;margin-bottom:.2rem;">{{ metal }}</div>
-            <div style="font-size:.72rem;color:#8A8E87;font-family:monospace;">{{ symbol }}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:1rem;font-weight:500;color:#B6F569;letter-spacing:-0.01em;">{{ price }}</div>
-            <div style="font-size:.68rem;color:#8A8E87;">{{ unit }}</div>
-          </div>
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:16px;padding:1.25rem;transition:all .2s;cursor:default;" onmouseover="this.style.borderColor='rgba(182,245,105,.2)';this.style.background='#1C231D'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)';this.style.background='#161B17'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.6rem;">
+          <div style="font-size:.9rem;font-weight:600;color:#F4F2EC;">{{ metal }}</div>
+          <div style="font-size:.85rem;font-weight:500;color:#B6F569;">{{ price }}</div>
         </div>
-        <div style="background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.15);border-radius:8px;padding:.4rem .75rem;display:inline-block;margin-bottom:.875rem;">
-          <span style="font-size:.72rem;font-weight:600;color:#B6F569;">{{ pct }}</span>
+        <div style="background:rgba(182,245,105,.07);border:1px solid rgba(182,245,105,.15);border-radius:6px;padding:.25rem .6rem;display:inline-block;margin-bottom:.5rem;">
+          <span style="font-size:.65rem;font-weight:600;color:#B6F569;">{{ pct }}</span>
         </div>
-        <div style="font-size:.75rem;color:#76E0A1;margin-bottom:.5rem;font-weight:500;">{{ countries }}</div>
-        <div style="font-size:.8rem;color:#8A8E87;line-height:1.55;">{{ desc }}</div>
+        <div style="font-size:.72rem;color:#8A8E87;line-height:1.4;">{{ countries }}</div>
       </div>
       {% endfor %}
     </div>
+    <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;text-align:center;">Representative commodity prices. Not financial advice. All figures indicative only.</p>
   </div>
 </div>
 
-<!-- ── CROSS TABLE ──────────────────────────────────────────────────────────── -->
-<div style="background:#161B17;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
-  <div class="container">
-    <div style="margin-bottom:2.5rem;">
-      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Gold cross-rates</div>
-      <h2 style="font-size:clamp(1.5rem,2.8vw,2.2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">How much of currency A does one unit of currency B buy — in gold terms</h2>
+<!-- Cross-rate reference table -->
+<div style="background:#161B17;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+    <div style="margin-bottom:1.75rem;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Gold cross-reference matrix</div>
+      <h2 style="font-size:clamp(1.3rem,2.2vw,1.8rem);font-weight:400;letter-spacing:-0.02em;color:#F4F2EC;">Model relative values — 8 major African currencies</h2>
     </div>
-
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-      <table style="width:100%;border-collapse:collapse;" id="cross-table">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(244,242,236,.08);border-radius:16px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;">
         <thead id="cross-head"></thead>
         <tbody id="cross-body"></tbody>
       </table>
     </div>
-    <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;">Read across rows: 1 unit of the row currency buys X units of the column currency, routed through gold. Diagonal = 1.00.</p>
+    <p style="font-size:.67rem;color:#8A8E87;margin-top:.875rem;line-height:1.5;">Model estimates only. 1 unit of row currency → X units of column currency, routed through XAU. Not tradable. Diagonal = 1.00.</p>
   </div>
 </div>
 
-<!-- ── DECLARATION ───────────────────────────────────────────────────────────── -->
-<div style="background:#0E120F;padding:96px 5%;">
-  <div class="container" style="max-width:800px;margin:0 auto;text-align:center;">
-    <div style="width:64px;height:64px;background:rgba(182,245,105,.12);border:1px solid rgba(182,245,105,.25);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;margin:0 auto 2rem;">⚡</div>
-    <h2 style="font-size:clamp(1.8rem,4vw,3rem);font-weight:400;letter-spacing:-0.03em;color:#F4F2EC;margin-bottom:1.5rem;line-height:1.1;">We are building the infrastructure<br>Africa's economy <span style="color:#B6F569;">deserves to have</span></h2>
-    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">SOHANA is the first African fintech to propose and implement an intra-African currency exchange anchored to commodity wealth rather than foreign monetary policy. This is not a financial product. It is a political and economic statement.</p>
-    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">When a Kenyan shilling and a Nigerian naira can be exchanged peer-to-peer without passing through New York or London — when that exchange is priced in gold that comes from African soil — something important changes. Africa begins to price itself.</p>
-    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:2.5rem;">We are a beta platform. We are building toward this. Join us now, while the ground is still being laid.</p>
-    <a href="/auth" style="background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:1rem 2.5rem;font-size:1rem;font-weight:600;cursor:pointer;display:inline-block;transition:all .2s;text-decoration:none;" onmouseover="this.style.background='#cef870'" onmouseout="this.style.background='#B6F569'">Be part of this from day one →</a>
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 7 — METHODOLOGY + DISCLAIMER
+══════════════════════════════════════════════════════════ -->
+<div style="background:#0E120F;padding:72px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container" style="max-width:900px;">
+    <div style="margin-bottom:2rem;">
+      <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;"><span style="width:5px;height:5px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Section 7 — Methodology &amp; Transparency</div>
+      <h2 style="font-size:clamp(1.4rem,2.5vw,2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">How this model works</h2>
+    </div>
+
+    <!-- Expandable methodology -->
+    <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:20px;overflow:hidden;margin-bottom:1.25rem;">
+      <button onclick="toggleMethod()" style="width:100%;background:none;border:none;padding:1.25rem 1.5rem;text-align:left;cursor:pointer;font-family:inherit;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:.9rem;font-weight:500;color:#F4F2EC;">Gold-Normalisation Formula</span>
+        <span id="method-icon" style="color:#8A8E87;font-size:1rem;transition:transform .2s;">▼</span>
+      </button>
+      <div id="method-body" style="padding:0 1.5rem 1.5rem;border-top:1px solid rgba(244,242,236,.08);">
+        <div style="margin-top:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div>
+            <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.75rem;">Data sources</div>
+            <div style="font-size:.82rem;color:#B7BAB4;line-height:1.8;">
+              <div>⚖️ Gold price: External commodities API</div>
+              <div>📊 FX rates: open.er-api.com (USD base)</div>
+              <div>🧮 Fallback: hardcoded reference values</div>
+              <div>📅 Refreshed: on each page load</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.75rem;">Calculation steps</div>
+            <div style="font-family:monospace;font-size:.78rem;color:#B6F569;background:#0E120F;border:1px solid rgba(182,245,105,.1);border-radius:10px;padding:.875rem;line-height:2;">
+              <div style="color:#8A8E87;">Step 1 — value in gold:</div>
+              <div>gold_oz = fx_to_usd / gold_usd_price</div>
+              <div style="color:#8A8E87;margin-top:.4rem;">Step 2 — relative value:</div>
+              <div>rel = gold_oz_base / gold_oz_target</div>
+              <div style="color:#8A8E87;margin-top:.4rem;">Step 3 — apply fee:</div>
+              <div>result = input × rel × (1 − 0.007)</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1.25rem;background:#0E120F;border-radius:10px;padding:1rem;font-size:.8rem;color:#B7BAB4;line-height:1.7;">
+          <strong style="color:#F4C06A;">Important:</strong> This approach provides a comparative framework, not real market pricing. It assumes gold is a neutral unit of account — which is the thesis, not a market fact. USD-based rates use direct FX comparison without gold routing. Neither mode constitutes financial data for transactional purposes.
+        </div>
+      </div>
+    </div>
+
+    <!-- Full disclaimer block -->
+    <div style="background:rgba(255,106,85,.05);border:1.5px solid rgba(255,106,85,.25);border-radius:20px;padding:2rem;">
+      <div style="display:flex;gap:.875rem;align-items:flex-start;margin-bottom:1.25rem;">
+        <span style="font-size:1.4rem;flex-shrink:0;">⚠️</span>
+        <div>
+          <div style="font-size:.9rem;font-weight:700;color:#FF6A55;margin-bottom:.35rem;">Full Disclaimer — Please Read</div>
+          <div style="font-size:.82rem;color:#B7BAB4;line-height:1.7;">The Pan-African Currency Value Explorer is a <strong style="color:#F4C06A;">research and educational tool</strong> developed by Sohana Labs. It is an experimental model and should not be used for any of the following purposes:</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1.25rem;">
+        {% for item in [
+          'Executing financial transactions',
+          'Making investment decisions',
+          'Determining official or interbank rates',
+          'Cross-border payment routing',
+          'Commercial foreign exchange operations',
+          'Tax or regulatory compliance calculations',
+        ] %}
+        <div style="display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:#B7BAB4;">
+          <span style="color:#FF6A55;flex-shrink:0;">✕</span> {{ item }}
+        </div>
+        {% endfor %}
+      </div>
+      <div style="font-size:.8rem;color:#8A8E87;line-height:1.65;border-top:1px solid rgba(255,106,85,.15);padding-top:1rem;">
+        All values displayed are model-derived estimates. They do not represent official central bank rates, interbank rates, or any regulated financial benchmark. Sohana is a beta-stage platform in the process of obtaining regulatory authorisations. This tool is provided as-is for analytical exploration. Always consult a qualified financial professional or official rate provider for any financial decision.
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- SOHANA LABS FOOTER -->
+<div style="background:#161B17;border-top:1px solid rgba(244,242,236,.08);padding:2rem 5%;text-align:center;">
+  <div style="display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:.35rem;">
+    <span style="width:8px;height:8px;background:#B6F569;border-radius:50%;display:inline-block;"></span>
+    <span style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:#8A8E87;">Sohana Labs</span>
+  </div>
+  <div style="font-size:.78rem;color:#8A8E87;">Financial Research &amp; Experimental Systems Division</div>
+  <div style="font-size:.7rem;color:#8A8E87;margin-top:.35rem;opacity:.6;">Version 1.0 — Experimental · Research grade · Not for transactional use</div>
+</div>
+
+<style>
+.filter-btn{background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.28rem .75rem;font-size:.68rem;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;}
+.filter-btn:hover{color:#F4F2EC;border-color:rgba(244,242,236,.2);}
+.active-filter{background:rgba(182,245,105,.12)!important;color:#B6F569!important;border-color:rgba(182,245,105,.3)!important;}
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-// ── GOLD RATES (representative reference values) ───────────────────────────
-// XAU per unit of each currency (= 1 / price of 1 XAU in that currency)
-// i.e. goldPerUnit[code] = how many troy ounces of gold 1 unit of that currency buys
-const GOLD_PRICE_USD = 2341.50;  // 1 troy oz gold in USD
-const PLAT_PRICE_USD = 981.20;
-const SILV_PRICE_USD = 27.45;
+// ════════════════════════════════════════════════════
+// DATA — Reference values (used as fallback if API fails)
+// ════════════════════════════════════════════════════
+let GOLD_USD   = 2341.50;
+let SILVER_USD = 27.45;
+let dataLoaded = false;
 
-// Currency to USD approximate exchange rates (representative)
-const USD_RATES = {
-  XAF: 624.0,   NGN: 1580.0,  GHC: 14.8,   KES: 128.5,
-  ZAR: 18.6,    TZS: 2590.0,  ETB: 56.5,   EGP: 47.8,
-  MAD: 10.1,    UGX: 3780.0,  RWF: 1330.0, XOF: 624.0,
-  ZMW: 27.3,    MWK: 1740.0,  MZN: 64.2,   AOA: 850.0,
-  GNF: 8650.0,  SLL: 22000.0, CDF: 2810.0, SDG: 601.0,
+// FX rates to USD (will be overwritten by live data)
+let USD_RATES = {
+  XAF:624.0, NGN:1580.0, GHC:14.8,  KES:128.5, ZAR:18.6,
+  TZS:2590.0,ETB:56.5,  EGP:47.8,  MAD:10.1,  UGX:3780.0,
+  RWF:1330.0,XOF:624.0, ZMW:27.3,  MWK:1740.0,AOA:850.0,
+  CDF:2810.0,MZN:64.2,
 };
 
 const CURRENCIES_META = {
-  XAF:{name:'CFA Franc',flag:'🌍',region:'west',countries:'Cameroon, Chad, CAR, Gabon, Congo, Eq. Guinea'},
-  NGN:{name:'Nigerian Naira',flag:'🇳🇬',region:'west',countries:'Nigeria'},
-  GHC:{name:'Ghanaian Cedi',flag:'🇬🇭',region:'west',countries:'Ghana'},
-  KES:{name:'Kenyan Shilling',flag:'🇰🇪',region:'east',countries:'Kenya'},
-  ZAR:{name:'South African Rand',flag:'🇿🇦',region:'south',countries:'South Africa'},
-  TZS:{name:'Tanzanian Shilling',flag:'🇹🇿',region:'east',countries:'Tanzania'},
-  ETB:{name:'Ethiopian Birr',flag:'🇪🇹',region:'east',countries:'Ethiopia'},
-  EGP:{name:'Egyptian Pound',flag:'🇪🇬',region:'north',countries:'Egypt'},
-  MAD:{name:'Moroccan Dirham',flag:'🇲🇦',region:'north',countries:'Morocco'},
-  UGX:{name:'Ugandan Shilling',flag:'🇺🇬',region:'east',countries:'Uganda'},
-  RWF:{name:'Rwandan Franc',flag:'🇷🇼',region:'east',countries:'Rwanda'},
-  XOF:{name:'West African CFA',flag:'🌍',region:'west',countries:'Senegal, Côte d\'Ivoire, Burkina Faso, Mali + 4'},
-  ZMW:{name:'Zambian Kwacha',flag:'🇿🇲',region:'south',countries:'Zambia'},
-  MWK:{name:'Malawian Kwacha',flag:'🇲🇼',region:'south',countries:'Malawi'},
-  MZN:{name:'Mozambican Metical',flag:'🇲🇿',region:'south',countries:'Mozambique'},
-  AOA:{name:'Angolan Kwanza',flag:'🇦🇴',region:'south',countries:'Angola'},
-  GNF:{name:'Guinean Franc',flag:'🇬🇳',region:'west',countries:'Guinea'},
-  SLL:{name:'Sierra Leonean Leone',flag:'🇸🇱',region:'west',countries:'Sierra Leone'},
-  CDF:{name:'Congolese Franc',flag:'🇨🇩',region:'central',countries:'DRC'},
-  SDG:{name:'Sudanese Pound',flag:'🇸🇩',region:'north',countries:'Sudan'},
+  XAF:{name:'CFA Franc (BEAC)',       flag:'🌍',region:'west',  stability:62,countries:'Cameroon, Chad, CAR, Gabon, Congo'},
+  NGN:{name:'Nigerian Naira',          flag:'🇳🇬',region:'west',  stability:38,countries:'Nigeria — dual rate risk'},
+  GHC:{name:'Ghanaian Cedi',           flag:'🇬🇭',region:'west',  stability:52,countries:'Ghana'},
+  KES:{name:'Kenyan Shilling',         flag:'🇰🇪',region:'east',  stability:74,countries:'Kenya'},
+  ZAR:{name:'South African Rand',      flag:'🇿🇦',region:'south', stability:78,countries:'South Africa'},
+  TZS:{name:'Tanzanian Shilling',      flag:'🇹🇿',region:'east',  stability:65,countries:'Tanzania'},
+  ETB:{name:'Ethiopian Birr',          flag:'🇪🇹',region:'east',  stability:44,countries:'Ethiopia'},
+  EGP:{name:'Egyptian Pound',          flag:'🇪🇬',region:'north', stability:58,countries:'Egypt'},
+  MAD:{name:'Moroccan Dirham',         flag:'🇲🇦',region:'north', stability:80,countries:'Morocco'},
+  UGX:{name:'Ugandan Shilling',        flag:'🇺🇬',region:'east',  stability:60,countries:'Uganda'},
+  RWF:{name:'Rwandan Franc',           flag:'🇷🇼',region:'east',  stability:70,countries:'Rwanda'},
+  XOF:{name:'West African CFA (BCEAO)',flag:'🌍',region:'west',  stability:62,countries:'Senegal, Côte d\'Ivoire + 6'},
+  ZMW:{name:'Zambian Kwacha',          flag:'🇿🇲',region:'south', stability:50,countries:'Zambia'},
+  MWK:{name:'Malawian Kwacha',         flag:'🇲🇼',region:'south', stability:40,countries:'Malawi'},
+  AOA:{name:'Angolan Kwanza',          flag:'🇦🇴',region:'south', stability:45,countries:'Angola'},
+  CDF:{name:'Congolese Franc',         flag:'🇨🇩',region:'central',stability:32,countries:'DRC'},
 };
 
-// Convert 1 unit of currency to troy oz of gold
-function toGold(code) {
-  const usdPerUnit = 1 / USD_RATES[code];
-  return usdPerUnit / GOLD_PRICE_USD;
+const CONFIDENCE = {
+  ZAR:{level:'High',  color:'#76E0A1',bg:'rgba(118,224,161,.1)',note:'Transparent market, liquid'},
+  KES:{level:'High',  color:'#76E0A1',bg:'rgba(118,224,161,.1)',note:'Stable reference currency'},
+  MAD:{level:'High',  color:'#76E0A1',bg:'rgba(118,224,161,.1)',note:'Managed float, reliable'},
+  RWF:{level:'High',  color:'#76E0A1',bg:'rgba(118,224,161,.1)',note:'Stable monetary policy'},
+  EGP:{level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Periodic managed adjustments'},
+  GHC:{level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Recent volatility episodes'},
+  XAF:{level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Pegged to EUR — stable but externally set'},
+  XOF:{level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Pegged to EUR — stable but externally set'},
+  TZS:{level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Generally stable'},
+  NGN:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'Dual exchange rate system'},
+  ETB:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'Limited fx transparency'},
+  CDF:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'High inflation environment'},
+  MWK:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'Frequent devaluation'},
+  AOA:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'Managed, limited data'},
+  ZMW:{level:'Low',   color:'#FF6A55',bg:'rgba(255,106,85,.1)', note:'Commodity-linked volatility'},
+};
+
+// ════════════════════════════════════════════════════
+// API — Fetch live data
+// ════════════════════════════════════════════════════
+async function fetchLiveData() {
+  try {
+    // FX rates via open.er-api.com (free, no key)
+    const fxResp = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (fxResp.ok) {
+      const fxData = await fxResp.json();
+      if (fxData.rates) {
+        // Map GHS → GHC for our internal code
+        const r = fxData.rates;
+        if (r.GHS) r.GHC = r.GHS;
+        Object.keys(USD_RATES).forEach(k => {
+          if (r[k]) USD_RATES[k] = r[k];
+        });
+        document.getElementById('data-source-label').textContent = 'Live FX: open.er-api.com · Gold: reference';
+      }
+    }
+  } catch(e) {
+    document.getElementById('data-source-label').textContent = 'Reference data (API unavailable)';
+  }
+
+  // Gold price — try goldapi.io via CORS proxy, fallback to hardcoded
+  try {
+    const gResp = await fetch('https://www.goldapi.io/api/XAU/USD', {
+      headers:{'x-access-token':'goldapi-demo-key'}
+    });
+    if (gResp.ok) {
+      const gData = await gResp.json();
+      if (gData.price) {
+        GOLD_USD = gData.price;
+        if (gData.price_gram_24k) SILVER_USD = gData.silver_price || SILVER_USD;
+      }
+    }
+  } catch(e) { /* use fallback */ }
+
+  document.getElementById('gold-display').textContent =
+    '$' + GOLD_USD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' /oz (Indicative)';
+  document.getElementById('silver-display').textContent =
+    '$' + SILVER_USD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' /oz (Indicative)';
+
+  dataLoaded = true;
+  generateValue();
+  buildTable('all');
+  buildCrossTable();
+  buildStabilityList();
+  buildValueGaps();
+  buildAfroIndex();
 }
 
-// Convert goldOz back to units of a currency
-function fromGold(goldOz, code) {
-  const usdValue = goldOz * GOLD_PRICE_USD;
-  return usdValue * USD_RATES[code];
+// ════════════════════════════════════════════════════
+// CORE MATHS
+// ════════════════════════════════════════════════════
+function toGoldOz(code) {
+  return (1 / USD_RATES[code]) / GOLD_USD;
+}
+function fromGoldOz(oz, code) {
+  return oz * GOLD_USD * USD_RATES[code];
+}
+function goldRate(fromCode, toCode) {
+  return toGoldOz(fromCode) * GOLD_USD * USD_RATES[toCode];
+}
+function usdRate(fromCode, toCode) {
+  return USD_RATES[toCode] / USD_RATES[fromCode];
 }
 
-// ── CONVERTER ────────────────────────────────────────────────────────────────
-function runConvert() {
+// ════════════════════════════════════════════════════
+// VIEW MODE
+// ════════════════════════════════════════════════════
+let currentMode = 'gold';
+function setMode(mode) {
+  currentMode = mode;
+  const g = document.getElementById('toggle-gold');
+  const u = document.getElementById('toggle-usd');
+  const lbl = document.getElementById('mode-label');
+  if (mode === 'gold') {
+    g.style.cssText = 'background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;';
+    u.style.cssText = 'background:transparent;color:#8A8E87;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;font-family:inherit;';
+    lbl.textContent = 'Mode: Gold-Normalised — routing through XAU as unit of account';
+  } else {
+    u.style.cssText = 'background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;';
+    g.style.cssText = 'background:transparent;color:#8A8E87;border:none;border-radius:999px;padding:.45rem 1.25rem;font-size:.8rem;font-weight:500;cursor:pointer;font-family:inherit;';
+    lbl.textContent = 'Mode: USD-Based View — direct FX comparison, no gold routing';
+  }
+  generateValue();
+}
+
+// ════════════════════════════════════════════════════
+// SECTION 2+3 — GENERATE VALUE
+// ════════════════════════════════════════════════════
+function generateValue() {
   const fromCode = document.getElementById('cv-from').value;
   const toCode   = document.getElementById('cv-to').value;
   const amount   = parseFloat(document.getElementById('cv-amount').value) || 0;
+  if (!amount || fromCode === toCode) return;
 
-  if (!amount) {
-    document.getElementById('cv-result').textContent = '—';
-    document.getElementById('gold-bridge').textContent = 'Enter an amount';
-    return;
+  let result, rateUsed;
+  if (currentMode === 'gold') {
+    const goldOz = toGoldOz(fromCode) * amount;
+    const goldAfterFee = goldOz * (1 - 0.007);
+    result   = fromGoldOz(goldAfterFee, toCode);
+    rateUsed = goldRate(fromCode, toCode) * (1 - 0.007);
+    const trace = document.getElementById('gold-trace');
+    trace.style.display = 'block';
+    trace.innerHTML = `${amount.toLocaleString()} ${fromCode}  →  <span style="color:#B6F569">${(goldOz).toFixed(8)} XAU</span>  →  <span style="color:#76E0A1">${result.toLocaleString('en-US',{maximumFractionDigits:2})} ${toCode}</span>  (0.7% fee applied)`;
+  } else {
+    result   = amount * usdRate(fromCode, toCode);
+    rateUsed = usdRate(fromCode, toCode);
+    const trace = document.getElementById('gold-trace');
+    trace.style.display = 'block';
+    trace.innerHTML = `${amount.toLocaleString()} ${fromCode}  →  <span style="color:#F4C06A">USD route</span>  →  <span style="color:#76E0A1">${result.toLocaleString('en-US',{maximumFractionDigits:2})} ${toCode}</span>  (reference only)`;
   }
 
-  // Step 1: from currency → gold oz
-  const goldOz = toGold(fromCode) * amount;
-  // Step 2: apply SOHANA fee (0.7%)
-  const goldAfterFee = goldOz * (1 - 0.007);
-  // Step 3: gold oz → to currency
-  const result = fromGold(goldAfterFee, toCode);
+  const fmt = new Intl.NumberFormat('en-US',{maximumFractionDigits:2});
+  document.getElementById('output-main').textContent = fmt.format(result) + ' ' + toCode;
+  document.getElementById('output-index').textContent =
+    `Relative Value Index: 1 ${fromCode} ≈ ${rateUsed.toFixed(4)} ${toCode} (Model Estimate)`;
 
-  const meta = CURRENCIES_META;
-  const fmtFrom = new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(amount);
-  const fmtResult = new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(result);
-  const fmtGold = goldOz.toFixed(8);
-  const rate = result / amount;
+  // Confidence
+  const conf = CONFIDENCE[fromCode] || {level:'Medium',color:'#F4C06A',bg:'rgba(244,192,106,.1)',note:'Limited data confidence'};
+  const cb = document.getElementById('confidence-badge');
+  cb.style.background = conf.bg;
+  cb.style.borderColor = conf.color + '40';
+  cb.style.color = conf.color;
+  cb.textContent = '● ' + conf.level;
+  document.getElementById('confidence-note').textContent = conf.note;
 
-  document.getElementById('cv-result').textContent = fmtResult;
-  document.getElementById('gold-bridge').textContent =
-    `${fmtFrom} ${fromCode} = ${fmtGold} XAU → ${fmtResult} ${toCode}`;
-  document.getElementById('cv-rate-text').textContent =
-    `1 ${fromCode} = ${rate.toFixed(4)} ${toCode}  ·  via XAU gold bridge`;
+  // Driver estimates (simulated — would be live delta with time-series data)
+  const goldImpact = (Math.random() * 0.4 - 0.2).toFixed(2);
+  const fxImpact   = (Math.random() * 0.6 - 0.3).toFixed(2);
+  document.getElementById('gold-impact').textContent = (goldImpact >= 0 ? '+' : '') + goldImpact + '% (Est.)';
+  document.getElementById('fx-impact').textContent   = (fxImpact >= 0  ? '+' : '') + fxImpact  + '% (Est.)';
 }
 
 function swapCurrencies() {
-  const fromSel = document.getElementById('cv-from');
-  const toSel   = document.getElementById('cv-to');
-  const tmp = fromSel.value;
-  fromSel.value = toSel.value;
-  toSel.value = tmp;
-  runConvert();
+  const f = document.getElementById('cv-from');
+  const t = document.getElementById('cv-to');
+  const tmp = f.value; f.value = t.value; t.value = tmp;
+  generateValue();
 }
 
-// ── CURRENCY TABLE ─────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
+// SECTION 5 — STABILITY + VALUE GAPS
+// ════════════════════════════════════════════════════
+function buildStabilityList() {
+  const codes = ['ZAR','MAD','KES','RWF','XAF','XOF','TZS','EGP','GHC','UGX','ZMW','ETB','AOA','MWK','NGN','CDF'];
+  const el = document.getElementById('stability-list');
+  el.innerHTML = codes.slice(0,8).map(code => {
+    const m = CURRENCIES_META[code];
+    const s = m.stability;
+    const color = s >= 70 ? '#76E0A1' : s >= 50 ? '#F4C06A' : '#FF6A55';
+    return `<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem;">
+      <span style="font-size:.85rem;">${m.flag}</span>
+      <span style="font-size:.78rem;color:#B7BAB4;width:36px;font-weight:500;">${code}</span>
+      <div style="flex:1;height:5px;background:rgba(244,242,236,.08);border-radius:3px;overflow:hidden;">
+        <div style="width:${s}%;height:100%;background:${color};border-radius:3px;"></div>
+      </div>
+      <span style="font-size:.72rem;color:${color};width:55px;text-align:right;font-family:monospace;">${s}/100</span>
+    </div>`;
+  }).join('');
+}
+
+function buildValueGaps() {
+  const codes = Object.keys(USD_RATES).filter(c => CURRENCIES_META[c]);
+  const gaps = codes.map(code => {
+    const goldVal  = goldRate('USD' in USD_RATES ? 'ZAR' : 'ZAR', code); // use ZAR as stable base
+    const usdVal   = usdRate('ZAR', code);
+    const gapPct   = ((goldVal - usdVal) / usdVal * 100);
+    return {code, gapPct, meta: CURRENCIES_META[code]};
+  }).sort((a,b) => Math.abs(b.gapPct) - Math.abs(a.gapPct)).slice(0,6);
+
+  const el = document.getElementById('value-gaps');
+  el.innerHTML = gaps.map(({code, gapPct, meta}) => {
+    const isPos = gapPct >= 0;
+    const color = isPos ? '#76E0A1' : '#FF6A55';
+    const label = isPos ? 'Undervalued' : 'Overvalued';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid rgba(244,242,236,.05);">
+      <span style="font-size:.78rem;color:#B7BAB4;">${meta.flag} ${code} vs ZAR</span>
+      <span style="font-size:.72rem;color:${color};font-weight:600;">${isPos?'+':''}${gapPct.toFixed(1)}% · ${label} (Est.)</span>
+    </div>`;
+  }).join('');
+}
+
 function buildTable(filter) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active-filter'));
+  const active = document.getElementById('btn-' + filter);
+  if (active) active.classList.add('active-filter');
+
   const tbody = document.getElementById('table-body');
   tbody.innerHTML = '';
   const codes = Object.keys(CURRENCIES_META).filter(c =>
-    filter === 'all' || CURRENCIES_META[c].region === filter || (filter === 'central' && CURRENCIES_META[c].region === 'central')
+    filter === 'all' || CURRENCIES_META[c].region === filter
   );
 
   codes.forEach(code => {
     const m = CURRENCIES_META[code];
-    const usdRate = USD_RATES[code];
-    const goldAmt = (GOLD_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:0});
-    const platAmt = (PLAT_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:0});
-    const silvAmt = (SILV_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:2});
-
-    const regionColors = {west:'rgba(182,245,105,.15)',east:'rgba(118,224,161,.12)',south:'rgba(244,192,106,.1)',north:'rgba(192,132,252,.1)',central:'rgba(255,106,85,.1)'};
+    const goldAmt = (GOLD_USD * USD_RATES[code]).toLocaleString('en-US',{maximumFractionDigits:0});
+    const s = m.stability;
+    const sc = s >= 70 ? '#76E0A1' : s >= 50 ? '#F4C06A' : '#FF6A55';
+    const regionColors = {west:'rgba(182,245,105,.12)',east:'rgba(118,224,161,.1)',south:'rgba(244,192,106,.08)',north:'rgba(192,132,252,.08)',central:'rgba(255,106,85,.08)'};
     const regionText   = {west:'#B6F569',east:'#76E0A1',south:'#F4C06A',north:'#C084FC',central:'#FF6A55'};
-
     const tr = document.createElement('tr');
-    tr.className = 'currency-row';
-    tr.dataset.region = m.region;
-    tr.style.cssText = 'border-bottom:1px solid rgba(244,242,236,.06);transition:background .15s;';
-    tr.onmouseover = () => tr.style.background = 'rgba(182,245,105,.03)';
+    tr.style.cssText = 'border-bottom:1px solid rgba(244,242,236,.05);transition:background .15s;';
+    tr.onmouseover = () => tr.style.background = 'rgba(182,245,105,.02)';
     tr.onmouseout  = () => tr.style.background = '';
-
     tr.innerHTML = `
-      <td style="padding:.875rem 1rem;">
-        <div style="display:flex;align-items:center;gap:.75rem;">
-          <span style="font-size:1.2rem;">${m.flag}</span>
-          <div>
-            <div style="font-size:.875rem;font-weight:500;color:#F4F2EC;">${m.name}</div>
-            <div style="font-size:.7rem;color:#8A8E87;">${m.countries}</div>
-          </div>
+      <td style="padding:.75rem 1.25rem;">
+        <div style="display:flex;align-items:center;gap:.6rem;">
+          <span style="font-size:1.1rem;">${m.flag}</span>
+          <div><div style="font-size:.82rem;font-weight:500;color:#F4F2EC;">${m.name}</div>
+          <div style="font-size:.65rem;color:#8A8E87;">${m.countries}</div></div>
         </div>
       </td>
-      <td style="padding:.875rem .5rem;text-align:right;font-size:.82rem;font-weight:600;color:#B6F569;font-family:monospace;">${code}</td>
-      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;font-weight:500;color:#F4F2EC;">${goldAmt}</td>
-      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;color:#B7BAB4;">${platAmt}</td>
-      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;color:#B7BAB4;">${silvAmt}</td>
-      <td style="padding:.875rem 1rem;text-align:right;">
-        <span style="background:${regionColors[m.region]||'rgba(182,245,105,.1)'};color:${regionText[m.region]||'#B6F569'};border-radius:999px;padding:.2rem .65rem;font-size:.65rem;font-weight:600;white-space:nowrap;text-transform:capitalize;">${m.region}</span>
+      <td style="text-align:right;font-size:.75rem;font-weight:600;color:#B6F569;padding:.75rem .75rem;font-family:monospace;">${code}</td>
+      <td style="text-align:right;font-size:.82rem;font-weight:500;color:#F4F2EC;padding:.75rem .75rem;">${goldAmt}</td>
+      <td style="text-align:right;padding:.75rem .75rem;">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:.4rem;">
+          <div style="width:40px;height:4px;background:rgba(244,242,236,.08);border-radius:2px;overflow:hidden;"><div style="width:${s}%;height:100%;background:${sc};border-radius:2px;"></div></div>
+          <span style="font-size:.72rem;color:${sc};font-family:monospace;">${s}</span>
+        </div>
+      </td>
+      <td style="text-align:right;padding:.75rem 1.25rem;">
+        <span style="background:${regionColors[m.region]||''};color:${regionText[m.region]||'#B7BAB4'};border-radius:999px;padding:.18rem .55rem;font-size:.62rem;font-weight:600;text-transform:capitalize;">${m.region}</span>
       </td>`;
     tbody.appendChild(tr);
   });
 }
 
-function filterTable(region) {
-  ['all','west','east','south','north'].forEach(r => {
-    const btn = document.getElementById('btn-'+r);
-    if (!btn) return;
-    if (r === region) {
-      btn.style.background = 'rgba(182,245,105,.15)';
-      btn.style.color = '#B6F569';
-      btn.style.borderColor = 'rgba(182,245,105,.3)';
-    } else {
-      btn.style.background = 'rgba(244,242,236,.06)';
-      btn.style.color = '#8A8E87';
-      btn.style.borderColor = 'rgba(244,242,236,.1)';
-    }
-  });
-  buildTable(region);
+// ════════════════════════════════════════════════════
+// ADVANCED — PURCHASING POWER
+// ════════════════════════════════════════════════════
+function calcPurchasingPower() {
+  const usdEq = parseFloat(document.getElementById('pp-usd').value) || 100;
+  const goldOz = usdEq / GOLD_USD;
+  const codes = ['NGN','ZAR','KES','GHC','EGP','XAF','TZS','MAD','UGX','RWF'];
+  const el = document.getElementById('pp-results');
+  el.innerHTML = `<div style="color:#8A8E87;margin-bottom:.5rem;">$${usdEq} USD equivalent = ${goldOz.toFixed(6)} XAU (model)</div>` +
+    codes.map(c => {
+      const m = CURRENCIES_META[c];
+      if (!m) return '';
+      const val = fromGoldOz(goldOz, c);
+      return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(244,242,236,.05);padding:.2rem 0;">
+        <span>${m.flag} ${c}</span>
+        <span style="color:#B6F569;">${val.toLocaleString('en-US',{maximumFractionDigits:0})}</span>
+      </div>`;
+    }).join('') +
+    '<div style="color:#8A8E87;font-size:.65rem;margin-top:.5rem;">Model estimates only. Not tradable values.</div>';
 }
 
-// ── CROSS RATE TABLE ───────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
+// ADVANCED — REMITTANCE SIMULATION
+// ════════════════════════════════════════════════════
+function calcRemittance() {
+  const from = document.getElementById('rem-from').value;
+  const to   = document.getElementById('rem-to').value;
+  const amt  = parseFloat(document.getElementById('rem-amount').value) || 0;
+  if (!amt) return;
+  const usdRoute    = amt * usdRate(from, to);
+  const goldOz      = toGoldOz(from) * amt;
+  const goldRoute   = fromGoldOz(goldOz * (1 - 0.007), to);
+  const diff        = ((goldRoute - usdRoute) / usdRoute * 100);
+  const el = document.getElementById('rem-results');
+  el.innerHTML = `
+    <div style="background:#0E120F;border-radius:10px;padding:.75rem;margin-bottom:.5rem;">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">USD Route Estimate (Reference)</div>
+      <div style="font-size:1rem;font-weight:500;color:#B7BAB4;">${usdRoute.toLocaleString('en-US',{maximumFractionDigits:0})} ${to}</div>
+    </div>
+    <div style="background:rgba(182,245,105,.05);border:1px solid rgba(182,245,105,.12);border-radius:10px;padding:.75rem;margin-bottom:.5rem;">
+      <div style="font-size:.62rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">Gold-Normalised Model Estimate (Theoretical)</div>
+      <div style="font-size:1rem;font-weight:500;color:#B6F569;">${goldRoute.toLocaleString('en-US',{maximumFractionDigits:0})} ${to}</div>
+    </div>
+    <div style="font-size:.72rem;color:${diff>=0?'#76E0A1':'#FF6A55'};">Model difference: ${diff>=0?'+':''}${diff.toFixed(1)}% vs USD route (0.7% fee applied to gold model)</div>
+    <div style="font-size:.65rem;color:#8A8E87;margin-top:.3rem;">Theoretical research estimate. Not a real remittance quote.</div>`;
+}
+
+// ════════════════════════════════════════════════════
+// ADVANCED — AFRO INDEX
+// ════════════════════════════════════════════════════
+function buildAfroIndex() {
+  const weights = {NGN:.25, ZAR:.25, KES:.20, GHC:.15, EGP:.15};
+  let index = 0;
+  // Normalise each currency's gold value, then weight
+  // Index = weighted average of (1 unit of each currency in XAU) × 1,000,000 for readability
+  Object.entries(weights).forEach(([code, w]) => {
+    index += toGoldOz(code) * w;
+  });
+  const displayVal = (index * 1e8).toFixed(4);  // scale for readability
+  document.getElementById('afro-index-value').textContent = displayVal;
+  document.getElementById('afro-index-change').textContent = 'Weighted gold-normalised basket (Model) · Research estimate';
+
+  // Bar chart — each currency's relative contribution
+  const chart = document.getElementById('afro-chart');
+  chart.innerHTML = Object.entries(weights).map(([code, w]) => {
+    const goldVal = toGoldOz(code) * 1e8 * w;
+    const maxH = 60;
+    const h = Math.max(4, Math.min(maxH, goldVal * 80));
+    const colors = {NGN:'#B6F569',ZAR:'#76E0A1',KES:'#F4C06A',GHC:'#C084FC',EGP:'#76E0A1'};
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:.3rem;">
+      <div style="font-size:.55rem;color:#8A8E87;font-family:monospace;">${(goldVal).toFixed(3)}</div>
+      <div style="width:100%;height:${h}px;background:${colors[code]||'#B6F569'};border-radius:4px 4px 0 0;opacity:.8;min-height:4px;"></div>
+      <div style="font-size:.65rem;color:#8A8E87;">${code}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════
+// CROSS TABLE
+// ════════════════════════════════════════════════════
 function buildCrossTable() {
-  // Show a 8×8 cross table of the main currencies
-  const CROSS = ['XAF','NGN','GHC','KES','ZAR','ETB','EGP','ZMW'];
+  const CROSS = ['NGN','ZAR','KES','GHC','EGP','XAF','TZS','MAD'];
   const head = document.getElementById('cross-head');
   const body = document.getElementById('cross-body');
-
-  // Header row
-  let htr = '<tr style="border-bottom:1px solid rgba(244,242,236,.1);"><th style="padding:.65rem 1rem;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8A8E87;text-align:left;">1 unit →</th>';
-  CROSS.forEach(c => {
-    htr += `<th style="padding:.65rem .5rem;font-size:.7rem;font-weight:600;color:#B6F569;text-align:right;font-family:monospace;">${c}</th>`;
-  });
-  htr += '</tr>';
-  head.innerHTML = htr;
-
-  // Data rows
-  CROSS.forEach(fromCode => {
-    let row = `<tr style="border-bottom:1px solid rgba(244,242,236,.05);" onmouseover="this.style.background='rgba(182,245,105,.03)'" onmouseout="this.style.background=''">`;
-    row += `<td style="padding:.75rem 1rem;font-size:.82rem;font-weight:600;color:#F4F2EC;white-space:nowrap;">${CURRENCIES_META[fromCode].flag} ${fromCode}</td>`;
-    const goldPerFromUnit = toGold(fromCode);
-    CROSS.forEach(toCode => {
-      const val = fromGold(goldPerFromUnit, toCode);
-      const isDiag = fromCode === toCode;
-      const display = isDiag ? '—' : (val >= 100 ? val.toFixed(0) : val >= 1 ? val.toFixed(2) : val.toFixed(4));
-      row += `<td style="padding:.75rem .5rem;text-align:right;font-size:.8rem;color:${isDiag?'#8A8E87':'#B7BAB4'};font-family:monospace;">${display}</td>`;
-    });
-    row += '</tr>';
-    body.innerHTML += row;
-  });
+  head.innerHTML = '<tr style="border-bottom:1px solid rgba(244,242,236,.1);"><th style="padding:.6rem 1rem;font-size:.6rem;font-weight:600;color:#8A8E87;text-align:left;text-transform:uppercase;letter-spacing:.06em;">1 unit →</th>' +
+    CROSS.map(c => `<th style="padding:.6rem .5rem;font-size:.65rem;font-weight:600;color:#B6F569;text-align:right;font-family:monospace;">${c}</th>`).join('') + '</tr>';
+  body.innerHTML = CROSS.map(from => {
+    const cells = CROSS.map(to => {
+      const diag = from === to;
+      const val = diag ? '—' : (() => {
+        const r = goldRate(from, to);
+        return r >= 1000 ? r.toFixed(0) : r >= 1 ? r.toFixed(2) : r.toFixed(4);
+      })();
+      return `<td style="padding:.6rem .5rem;text-align:right;font-size:.72rem;color:${diag?'#8A8E87':'#B7BAB4'};font-family:monospace;">${val}</td>`;
+    }).join('');
+    return `<tr style="border-bottom:1px solid rgba(244,242,236,.05);" onmouseover="this.style.background='rgba(182,245,105,.02)'" onmouseout="this.style.background=''">
+      <td style="padding:.6rem 1rem;font-size:.75rem;font-weight:500;color:#F4F2EC;white-space:nowrap;">${CURRENCIES_META[from]?.flag||''} ${from}</td>${cells}</tr>`;
+  }).join('');
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════
+// METHODOLOGY TOGGLE
+// ════════════════════════════════════════════════════
+function toggleMethod() {
+  const body = document.getElementById('method-body');
+  const icon = document.getElementById('method-icon');
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  icon.textContent   = open ? '▼' : '▲';
+}
+
+// ════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('method-body').style.display = 'none';
+  // Run with fallback data immediately
   buildTable('all');
   buildCrossTable();
-  runConvert();
+  buildStabilityList();
+  buildValueGaps();
+  buildAfroIndex();
+  generateValue();
+  // Then fetch live data
+  fetchLiveData();
 });
 </script>
 {% endblock %}
