@@ -572,82 +572,149 @@ footer { background: var(--navy-dark); padding: 64px 0 0; }
 </section>
 
 <!-- NCS SCORE -->
-<section class="section-ncs" id="ncs-score">
+<section style="background:var(--bg-2);padding:80px 0;border-top:1px solid var(--line);" id="gold-explorer">
   <div class="container">
-    <div class="ncs-inner">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;">
+
+      <!-- Left: editorial -->
       <div class="fade-up">
-        <div class="section-label">Credit identity</div>
-        <h2 class="section-title" style="margin-bottom:20px;">Your Njangi Credit Score</h2>
-        <svg id="ncsGaugeSvg" class="ncs-gauge-svg" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#ef4444"></stop>
-              <stop offset="33%" stop-color="#f59e0b"></stop>
-              <stop offset="66%" stop-color="#16a34a"></stop>
-              <stop offset="100%" stop-color="#7c3aed"></stop>
-            </linearGradient>
-          </defs>
-          <path d="M 20 160 A 140 140 0 0 1 300 160" fill="none" stroke="#e2e8f0" stroke-width="18" stroke-linecap="round"></path>
-          <path id="ncsGaugeFill" d="M 20 160 A 140 140 0 0 1 300 160" fill="none" stroke="url(#gaugeGrad)" stroke-width="18" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="167"></path>
-          <line id="ncsNeedleLine" x1="160" y1="160" x2="195" y2="55" stroke="#B6F569" stroke-width="3" stroke-linecap="round"></line>
-          <circle id="ncsNeedleTip" cx="195" cy="55" r="5" fill="#161B17"></circle>
-          <circle cx="160" cy="160" r="10" fill="#161B17"></circle>
-          <text id="ncsGaugeScore" x="160" y="145" font-size="30" font-weight="900" fill="#161B17" font-family="Inter,sans-serif" text-anchor="middle">721</text>
-          <text id="ncsGaugeTier" x="160" y="163" font-size="11" fill="#16a34a" font-family="Inter,sans-serif" text-anchor="middle">Reliable</text>
-          <text x="10" y="178" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">300</text>
-          <text x="284" y="178" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">850</text>
-        </svg>
-        <div style="margin-top:12px;">
-          <input type="range" id="ncsScoreSlider" min="300" max="850" value="721" step="1" class="calc-slider" oninput="updateNCSGauge(this.value)">
-          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);margin-top:6px;"><span>300 · Probation</span><span>850 · Exemplary</span></div>
+        <div class="section-label">Sohana Labs</div>
+        <h2 class="section-title" style="margin-bottom:16px;">
+          Pan-African Currency<br>Value Explorer
+        </h2>
+        <p style="font-size:16px;color:var(--ink-2);line-height:1.7;margin-bottom:20px;">
+          The first gold-normalised comparative model for African currencies. Explore relative values across 16 markets using gold as a neutral unit of account — not the US Dollar.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:28px;">
+          {% for label, icon in [('16 African currencies','🌍'),('Gold-indexed reference model','⚖️'),('Research-grade, not transactional','🔬')] %}
+          <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2);">
+            <span style="width:22px;height:22px;background:rgba(182,245,105,.1);border:1px solid rgba(182,245,105,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">{{ icon }}</span>
+            {{ label }}
+          </div>
+          {% endfor %}
         </div>
-        <div class="ncs-builders" style="margin-top:24px;">
-          <h4>What builds your score</h4>
-          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>On-time contributions each cycle</div>
-          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Completed circle cycles</div>
-          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Peer endorsements from members</div>
-          <div class="ncs-builder-item"><div class="ncs-builder-check">✓</div>Wallet activity and deposits</div>
-        </div>
+        <a href="/currencies" style="display:inline-flex;align-items:center;gap:8px;background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='#cef870'" onmouseout="this.style.background='#B6F569'">
+          Open the full explorer →
+        </a>
+        <div style="margin-top:12px;font-size:11px;color:var(--ink-3);">Experimental · Research-Based · Gold-Normalised</div>
       </div>
 
-      <div class="fade-up" style="transition-delay:0.15s">
-        <div class="section-label" style="margin-bottom:10px;">Unlocks</div>
-        <div class="ncs-unlocks-title">Drag the slider to explore your score</div>
-        <div class="ncs-unlocks-sub">Traditional banks can't see your savings discipline. SOHANA can — and rewards you for it.</div>
+      <!-- Right: mini tool -->
+      <div class="fade-up" style="transition-delay:.15s;">
+        <div style="background:#0E120F;border:1px solid rgba(244,242,236,.1);border-radius:24px;padding:1.5rem;position:relative;overflow:hidden;">
 
-        <div class="ncs-unlock-item locked" data-threshold="550">
-          <div class="ncs-unlock-score score-550">550</div>
-          <div class="ncs-unlock-content">
-            <h5>Emergency Loan</h5>
-            <p>Access short-term emergency credit backed by your circle history.</p>
+          <!-- Decorative glow -->
+          <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(182,245,105,.12) 0%,transparent 70%);pointer-events:none;"></div>
+
+          <!-- Gold price indicator -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;padding-bottom:.875rem;border-bottom:1px solid rgba(244,242,236,.08);">
+            <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;">Gold Reference (Indicative)</div>
+            <div style="font-size:.9rem;font-weight:500;color:#B6F569;" id="mini-gold-price">$2,341.50 /oz</div>
+          </div>
+
+          <!-- Currency selects -->
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:.5rem;align-items:end;margin-bottom:.875rem;">
+            <div>
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">Base Currency</div>
+              <select id="mini-from" onchange="miniGenerate()" style="width:100%;background:#161B17;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.5rem .75rem;font-size:.82rem;font-family:inherit;outline:none;cursor:pointer;">
+                <option value="GHC">🇬🇭 GHC</option>
+                <option value="NGN">🇳🇬 NGN</option>
+                <option value="KES">🇰🇪 KES</option>
+                <option value="XAF">🌍 XAF</option>
+                <option value="ZAR">🇿🇦 ZAR</option>
+                <option value="EGP">🇪🇬 EGP</option>
+                <option value="MAD">🇲🇦 MAD</option>
+                <option value="TZS">🇹🇿 TZS</option>
+              </select>
+              <input id="mini-amount" type="number" value="1000" min="1" oninput="miniGenerate()"
+                style="width:100%;background:#161B17;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.45rem .75rem;font-size:.82rem;font-family:inherit;outline:none;text-align:right;margin-top:.35rem;">
+            </div>
+            <div style="display:flex;justify-content:center;padding-bottom:.4rem;">
+              <button onclick="miniSwap()" style="background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.18);border-radius:50%;width:32px;height:32px;color:#B6F569;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(182,245,105,.18)'" onmouseout="this.style.background='rgba(182,245,105,.08)'">⇄</button>
+            </div>
+            <div>
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;margin-bottom:.3rem;">Comparison</div>
+              <select id="mini-to" onchange="miniGenerate()" style="width:100%;background:#161B17;border:1px solid rgba(244,242,236,.12);border-radius:10px;color:#F4F2EC;padding:.5rem .75rem;font-size:.82rem;font-family:inherit;outline:none;cursor:pointer;">
+                <option value="XAF">🌍 XAF</option>
+                <option value="GHC">🇬🇭 GHC</option>
+                <option value="NGN">🇳🇬 NGN</option>
+                <option value="KES">🇰🇪 KES</option>
+                <option value="ZAR">🇿🇦 ZAR</option>
+                <option value="EGP">🇪🇬 EGP</option>
+                <option value="MAD">🇲🇦 MAD</option>
+                <option value="RWF">🇷🇼 RWF</option>
+              </select>
+              <div id="mini-result" style="width:100%;background:rgba(182,245,105,.06);border:1px solid rgba(182,245,105,.15);border-radius:10px;color:#B6F569;padding:.45rem .75rem;font-size:.82rem;font-weight:600;text-align:right;margin-top:.35rem;min-height:34px;display:flex;align-items:center;justify-content:flex-end;">—</div>
+            </div>
+          </div>
+
+          <!-- Generate button -->
+          <button onclick="miniGenerate()" style="width:100%;background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.6rem;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;margin-bottom:.875rem;" onmouseover="this.style.background='#cef870'" onmouseout="this.style.background='#B6F569'">
+            Generate Comparative Value
+          </button>
+
+          <!-- Index + trace -->
+          <div id="mini-index" style="font-size:.68rem;color:#8A8E87;text-align:center;margin-bottom:.5rem;font-family:monospace;line-height:1.5;">Select currencies above</div>
+
+          <!-- Disclaimer -->
+          <div style="background:rgba(244,192,106,.06);border:1px solid rgba(244,192,106,.15);border-radius:8px;padding:.5rem .75rem;display:flex;gap:.5rem;align-items:flex-start;">
+            <span style="font-size:.75rem;flex-shrink:0;">⚠️</span>
+            <span style="font-size:.65rem;color:#8A8E87;line-height:1.4;">Model estimate only. Not a tradable or official rate. For research use.</span>
+          </div>
+
+          <!-- Link to full tool -->
+          <div style="text-align:center;margin-top:1rem;">
+            <a href="/currencies" style="font-size:.72rem;color:#B6F569;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;">
+              Open full explorer with advanced tools →
+            </a>
           </div>
         </div>
-        <div class="ncs-unlock-item locked" data-threshold="650">
-          <div class="ncs-unlock-score score-650">650</div>
-          <div class="ncs-unlock-content">
-            <h5>Early Payout Loan</h5>
-            <p>Receive your rotation slot ahead of schedule when you need it most.</p>
-          </div>
-        </div>
-        <div class="ncs-unlock-item locked" data-threshold="700">
-          <div class="ncs-unlock-score score-700">700</div>
-          <div class="ncs-unlock-content">
-            <h5>ROSCA-Backed Loan</h5>
-            <p>Use your active circle as collateral for larger structured credit.</p>
-          </div>
-        </div>
-        <div class="ncs-unlock-item locked" data-threshold="750">
-          <div class="ncs-unlock-score score-750">750</div>
-          <div class="ncs-unlock-content">
-            <h5>Credit Bureau Reporting</h5>
-            <p>Your NCS data exported to formal credit bureaus — building your mainstream credit file.</p>
-          </div>
-        </div>
-      </div>
       </div>
     </div>
   </div>
 </section>
+
+<script>
+// Mini gold explorer — self-contained, no dependency on currencies.html
+const MINI_GOLD = 2341.50;
+const MINI_RATES = {
+  XAF:624.0, NGN:1580.0, GHC:14.8,  KES:128.5,
+  ZAR:18.6,  TZS:2590.0, EGP:47.8,  MAD:10.1,
+  UGX:3780.0,RWF:1330.0, XOF:624.0, ZMW:27.3,
+};
+function miniToGold(code){ return (1/MINI_RATES[code])/MINI_GOLD; }
+function miniFromGold(oz,code){ return oz*MINI_GOLD*MINI_RATES[code]; }
+function miniGenerate(){
+  const f=document.getElementById('mini-from').value;
+  const t=document.getElementById('mini-to').value;
+  const a=parseFloat(document.getElementById('mini-amount').value)||0;
+  if(!a||f===t){document.getElementById('mini-result').textContent='—';return;}
+  const oz=miniToGold(f)*a;
+  const result=miniFromGold(oz*(1-0.007),t);
+  const fmt=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+  document.getElementById('mini-result').textContent=fmt.format(result);
+  const rate=(result/a).toFixed(4);
+  document.getElementById('mini-index').textContent=
+    `Relative Value Index: 1 ${f} ≈ ${rate} ${t}\nvia XAU gold bridge · 0.7% fee · Model estimate`;
+}
+function miniSwap(){
+  const f=document.getElementById('mini-from');
+  const t=document.getElementById('mini-to');
+  const tmp=f.value;f.value=t.value;t.value=tmp;
+  miniGenerate();
+}
+// Try to fetch live gold price
+fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()).then(d=>{
+  if(d.rates){
+    if(d.rates.GHS) MINI_RATES.GHC=d.rates.GHS;
+    ['XAF','NGN','KES','ZAR','TZS','EGP','MAD','UGX','RWF','XOF','ZMW'].forEach(c=>{
+      if(d.rates[c]) MINI_RATES[c]=d.rates[c];
+    });
+    miniGenerate();
+  }
+}).catch(()=>{});
+document.addEventListener('DOMContentLoaded',()=>miniGenerate());
+</script>
 
 <!-- CONTRIBUTIONS CALCULATOR -->
 <section class="section-calc" id="calculator">
