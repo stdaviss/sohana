@@ -1,51 +1,490 @@
 {% extends "page_base.html" %}
-{% block title %}Supported Currencies{% endblock %}
+{% block title %}African Gold Standard Exchange — SOHANA{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+
+<!-- ── HERO ─────────────────────────────────────────────────────────────────── -->
+<div class="page-hero" style="background:radial-gradient(1200px 700px at 60% 0%,rgba(182,245,105,.13),transparent 55%),radial-gradient(600px 400px at 0% 100%,rgba(118,224,161,.07),transparent 60%),#0E120F;padding:96px 5% 80px;overflow:hidden;position:relative;">
+  <div style="position:absolute;top:0;right:0;width:500px;height:500px;background:radial-gradient(circle,rgba(182,245,105,.06) 0%,transparent 70%);pointer-events:none;"></div>
+  <div class="container" style="position:relative;z-index:1;">
+    <div class="page-hero-label">African Finance Infrastructure</div>
+    <h1 style="font-size:clamp(2.2rem,5vw,3.8rem);font-weight:400;line-height:1.05;letter-spacing:-0.03em;margin-bottom:1.5rem;max-width:720px;">
+      The first intra-African<br>currency exchange<br><span style="color:#B6F569;">anchored to gold</span>
+    </h1>
+    <p style="font-size:1.1rem;color:#B7BAB4;max-width:560px;line-height:1.7;margin-bottom:2rem;">
+      For the first time in financial history, African currencies are priced against each other using gold — the continent's own wealth — rather than the US Dollar. SOHANA's gold-anchored exchange is a declaration of economic sovereignty.
+    </p>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+      <a href="/auth" class="btn-primary" style="background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.8rem 1.75rem;font-size:.95rem;font-weight:600;cursor:pointer;display:inline-block;">Open a wallet</a>
+      <a href="#converter" class="btn-outline-white" style="border:1px solid rgba(244,242,236,.2);color:#B7BAB4;border-radius:999px;padding:.8rem 1.5rem;font-size:.95rem;font-weight:500;display:inline-block;">Try the converter ↓</a>
+    </div>
+    <!-- live gold ticker -->
+    <div style="display:flex;gap:2.5rem;margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(244,242,236,.08);flex-wrap:wrap;">
+      <div>
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Gold (XAU/oz)</div>
+        <div style="font-size:1.4rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;" id="gold-usd">$2,341.50</div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Platinum (XPT/oz)</div>
+        <div style="font-size:1.4rem;font-weight:500;color:#76E0A1;" id="plat-usd">$981.20</div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Cobalt (t)</div>
+        <div style="font-size:1.4rem;font-weight:500;color:#B7BAB4;">$33,400</div>
+      </div>
+      <div>
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Coltan (kg)</div>
+        <div style="font-size:1.4rem;font-weight:500;color:#B7BAB4;">$82.00</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.35rem;">Rates reference</div>
+        <div style="font-size:.82rem;color:#8A8E87;">Representative • Not live data</div>
+        <div style="font-size:.72rem;color:#8A8E87;margin-top:.15rem;font-style:italic;">Live rates coming with API integration</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── WHY GOLD ──────────────────────────────────────────────────────────────── -->
+<div style="background:#161B17;border-top:1px solid rgba(244,242,236,.08);border-bottom:1px solid rgba(244,242,236,.08);padding:72px 5%;">
   <div class="container">
-    <div class="page-hero-label">Resources</div>
-    <h1>Supported Currencies & Rates</h1>
-    <p>SOHANA currently supports eight currencies with more on the way. All conversions use live exchange rates at a flat 0.7% fee.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;">
+      <div>
+        <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:1rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Why gold, not the dollar</div>
+        <h2 style="font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:400;letter-spacing:-0.025em;line-height:1.1;color:#F4F2EC;margin-bottom:1.5rem;">Africa holds <span style="color:#B6F569;">40% of the world's gold reserves</span>. Why price its currencies against someone else's paper?</h2>
+        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">The US Dollar became the world's reserve currency by political agreement in 1944 — not because it represented real wealth. African economies have been priced against a currency that has no physical backing, managed by institutions in which Africa has no meaningful vote.</p>
+        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">Gold is different. It exists in the ground — much of it African ground. The DRC alone holds an estimated $24 trillion in mineral reserves. Ghana, South Africa, Mali, Burkina Faso, and Sudan are among the world's largest gold producers. When the Ghanaian Cedi is priced against gold rather than the dollar, it is priced against something Ghana actually has.</p>
+        <p style="font-size:1rem;color:#B7BAB4;line-height:1.75;">SOHANA's gold-anchored exchange is not just a currency tool. It is a philosophical and practical argument that intra-African trade should be denominated in Africa's own wealth.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        {% for stat, val, icon in [
+          ('African gold share of world reserves','40%','⛏'),
+          ('DRC mineral reserve value','$24T','💎'),
+          ('African countries as top-10 gold producers','7','🌍'),
+          ('Intra-African trade as % of total trade','15%','📊'),
+          ('Estimated value if priced in gold','3× current','📈'),
+          ('Year USD gold standard ended','1971','🗓'),
+        ] %}
+        <div style="background:#0E120F;border:1px solid rgba(244,242,236,.08);border-radius:16px;padding:1.25rem;transition:border-color .2s;" onmouseover="this.style.borderColor='rgba(182,245,105,.3)'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)'">
+          <div style="font-size:1.5rem;margin-bottom:.5rem;">{{ icon }}</div>
+          <div style="font-size:1.4rem;font-weight:500;color:#B6F569;letter-spacing:-0.02em;margin-bottom:.3rem;">{{ val }}</div>
+          <div style="font-size:.75rem;color:#8A8E87;line-height:1.4;">{{ stat }}</div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </div>
 </div>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🇪🇺</div>
-      <h3>Euro (EUR)</h3>
-      <p>The primary currency of SOHANA and our European user base. Zero conversion fee for EUR-denominated circles and pools.</p>
+<!-- ── GOLD CONVERTER ────────────────────────────────────────────────────────── -->
+<div id="converter" style="background:#0E120F;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:3rem;">
+      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Intra-African gold converter</div>
+      <h2 style="font-size:clamp(1.8rem,3.5vw,2.6rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.75rem;">Convert between African currencies<br>using gold as the unit of account</h2>
+      <p style="font-size:1rem;color:#8A8E87;max-width:520px;margin:0 auto;">All conversions route through XAU (gold). No USD. No Euro. No intermediary colonial currency.</p>
     </div>
-    <div class="info-card">
-      <div class="icon">🇬🇧</div>
-      <h3>British Pound (GBP)</h3>
-      <p>Full wallet support for UK-based members. Withdraw via UK Faster Payments at 1.5% fee.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🇺🇸</div>
-      <h3>US Dollar (USD)</h3>
-      <p>For North American diaspora and international business. Withdraw via US ACH at 2.0% fee.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🌍</div>
-      <h3>CFA Franc (XAF), Ghanaian Cedi (GHC), Nigerian Naira (NGN)</h3>
-      <p>Our three West and Central African currencies support local mobile money withdrawals at 1.5% fee. More African currencies coming in 2026.</p>
-    </div>
-  </div>
 
-  <hr class="divider">
+    <div style="max-width:680px;margin:0 auto;">
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px;padding:2rem;">
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+        <!-- FROM -->
+        <div style="margin-bottom:1.25rem;">
+          <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">From</div>
+          <div style="display:flex;gap:.75rem;">
+            <select id="cv-from" onchange="runConvert()" style="flex:1;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;cursor:pointer;">
+              <option value="XAF">🌍 CFA Franc — XAF</option>
+              <option value="GHC" selected>🇬🇭 Ghanaian Cedi — GHC</option>
+              <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
+              <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
+              <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
+              <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
+              <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
+              <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
+              <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
+              <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
+              <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
+              <option value="XOF">🌍 West African CFA — XOF</option>
+              <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
+              <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
+              <option value="MZN">🇲🇿 Mozambican Metical — MZN</option>
+              <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
+              <option value="GNF">🇬🇳 Guinean Franc — GNF</option>
+              <option value="SLL">🇸🇱 Sierra Leonean Leone — SLL</option>
+              <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
+              <option value="SDG">🇸🇩 Sudanese Pound — SDG</option>
+            </select>
+            <input id="cv-amount" type="number" value="10000" min="1" oninput="runConvert()"
+              style="width:160px;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;text-align:right;">
+          </div>
+        </div>
+
+        <!-- GOLD BRIDGE -->
+        <div style="display:flex;align-items:center;gap:.75rem;margin:1rem 0;padding:.875rem 1rem;background:rgba(182,245,105,.05);border:1px solid rgba(182,245,105,.12);border-radius:12px;">
+          <span style="font-size:1.1rem;">⚖️</span>
+          <div style="flex:1;">
+            <div style="font-size:.72rem;color:#8A8E87;margin-bottom:.2rem;">Gold bridge (XAU/oz)</div>
+            <div style="font-size:.9rem;color:#B6F569;font-weight:500;" id="gold-bridge">Calculating…</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:.65rem;color:#8A8E87;margin-bottom:.15rem;">SOHANA fee</div>
+            <div style="font-size:.82rem;color:#76E0A1;font-weight:500;">0.7%</div>
+          </div>
+        </div>
+
+        <!-- SWAP BUTTON -->
+        <div style="text-align:center;margin:.5rem 0;">
+          <button onclick="swapCurrencies()" style="background:rgba(244,242,236,.06);border:1px solid rgba(244,242,236,.12);border-radius:50%;width:36px;height:36px;color:#B7BAB4;cursor:pointer;font-size:.9rem;transition:all .2s;" onmouseover="this.style.borderColor='rgba(182,245,105,.3)';this.style.color='#B6F569'" onmouseout="this.style.borderColor='rgba(244,242,236,.12)';this.style.color='#B7BAB4'">⇅</button>
+        </div>
+
+        <!-- TO -->
+        <div style="margin-bottom:1.5rem;">
+          <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#8A8E87;margin-bottom:.6rem;">To</div>
+          <div style="display:flex;gap:.75rem;">
+            <select id="cv-to" onchange="runConvert()" style="flex:1;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:12px;color:#F4F2EC;padding:.75rem 1rem;font-size:.95rem;font-family:inherit;outline:none;cursor:pointer;">
+              <option value="XAF" selected>🌍 CFA Franc — XAF</option>
+              <option value="GHC">🇬🇭 Ghanaian Cedi — GHC</option>
+              <option value="NGN">🇳🇬 Nigerian Naira — NGN</option>
+              <option value="KES">🇰🇪 Kenyan Shilling — KES</option>
+              <option value="ZAR">🇿🇦 South African Rand — ZAR</option>
+              <option value="TZS">🇹🇿 Tanzanian Shilling — TZS</option>
+              <option value="ETB">🇪🇹 Ethiopian Birr — ETB</option>
+              <option value="EGP">🇪🇬 Egyptian Pound — EGP</option>
+              <option value="MAD">🇲🇦 Moroccan Dirham — MAD</option>
+              <option value="UGX">🇺🇬 Ugandan Shilling — UGX</option>
+              <option value="RWF">🇷🇼 Rwandan Franc — RWF</option>
+              <option value="XOF">🌍 West African CFA — XOF</option>
+              <option value="ZMW">🇿🇲 Zambian Kwacha — ZMW</option>
+              <option value="MWK">🇲🇼 Malawian Kwacha — MWK</option>
+              <option value="MZN">🇲🇿 Mozambican Metical — MZN</option>
+              <option value="AOA">🇦🇴 Angolan Kwanza — AOA</option>
+              <option value="GNF">🇬🇳 Guinean Franc — GNF</option>
+              <option value="SLL">🇸🇱 Sierra Leonean Leone — SLL</option>
+              <option value="CDF">🇨🇩 Congolese Franc — CDF</option>
+              <option value="SDG">🇸🇩 Sudanese Pound — SDG</option>
+            </select>
+            <div id="cv-result" style="width:160px;background:#0E120F;border:1px solid rgba(182,245,105,.2);border-radius:12px;color:#B6F569;padding:.75rem 1rem;font-size:.95rem;font-weight:600;text-align:right;display:flex;align-items:center;justify-content:flex-end;letter-spacing:-0.01em;">—</div>
+          </div>
+        </div>
+
+        <!-- RESULT ROW -->
+        <div style="background:#0E120F;border-radius:12px;padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:.82rem;color:#8A8E87;" id="cv-rate-text">Select currencies to see rate</div>
+          <div style="font-size:.75rem;color:#8A8E87;">Gold-anchored · No USD bridge</div>
+        </div>
+
+        <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;text-align:center;line-height:1.5;">Representative rates using gold as unit of account. Live rates will be powered by commodity exchange data. SOHANA charges 0.7% on conversions within the platform.</p>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- ── AFRICAN CURRENCIES vs GOLD TABLE ─────────────────────────────────────── -->
+<div style="background:#161B17;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container">
+    <div style="margin-bottom:2.5rem;">
+      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>African currencies vs precious metals</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;">
+        <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">One troy ounce of gold,<br>priced in every African currency</h2>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span style="font-size:.75rem;color:#8A8E87;">Filter:</span>
+          <button onclick="filterTable('all')" id="btn-all" style="background:rgba(182,245,105,.15);color:#B6F569;border:1px solid rgba(182,245,105,.3);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">All regions</button>
+          <button onclick="filterTable('west')" id="btn-west" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">West Africa</button>
+          <button onclick="filterTable('east')" id="btn-east" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">East Africa</button>
+          <button onclick="filterTable('south')" id="btn-south" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">Southern Africa</button>
+          <button onclick="filterTable('north')" id="btn-north" style="background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.1);border-radius:999px;padding:.3rem .85rem;font-size:.75rem;cursor:pointer;font-family:inherit;">North Africa</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="width:100%;border-collapse:collapse;" id="currency-table">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(244,242,236,.1);">
+            <th style="text-align:left;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Country / Currency</th>
+            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Code</th>
+            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XAU (Gold/oz)</th>
+            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XPT (Platinum/oz)</th>
+            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem .5rem;">1 XAG (Silver/oz)</th>
+            <th style="text-align:right;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#8A8E87;padding:.75rem 1rem;">Region</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- JS-rendered -->
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;">Representative reference rates. XAU = gold troy ounce ($2,341.50), XPT = platinum troy ounce ($981.20), XAG = silver troy ounce ($27.45). Prices sourced from commodity markets; not live data during beta phase.</p>
+  </div>
+</div>
+
+<!-- ── PRECIOUS METALS & RARE EARTH STRIP ─────────────────────────────────── -->
+<div style="background:#0E120F;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container">
+    <div style="margin-bottom:2.5rem;text-align:center;">
+      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;justify-content:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Africa's mineral wealth</div>
+      <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;margin-bottom:.75rem;">The resources that should anchor our currencies</h2>
+      <p style="font-size:.95rem;color:#8A8E87;max-width:600px;margin:0 auto;">Africa holds the world's largest reserves of chromium, cobalt, manganese, and platinum-group metals. These are the materials that power the global tech economy. Their value belongs to Africa.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;">
+      {% for metal, symbol, price, unit, pct, countries, desc in [
+        ('Gold','XAU','$2,341.50','per troy oz','40% of world reserves','Ghana, South Africa, Sudan, Mali, DRC','The oldest store of value on earth. Africa produces over 600 tonnes annually yet prices its currencies against a floating dollar.'),
+        ('Platinum','XPT','$981.20','per troy oz','90% of world reserves','South Africa (overwhelmingly)','South Africa alone holds 90% of global platinum reserves — the most concentrated mineral dominance of any nation on earth.'),
+        ('Cobalt','—','$33,400','per metric tonne','70% of world reserves','DRC (65%), Zambia, Morocco','The indispensable mineral in every lithium-ion battery. The DRC produces more cobalt than the rest of the world combined.'),
+        ('Coltan','—','$82.00','per kg','80% of world reserves','DRC, Rwanda, Nigeria','Columbite-tantalite, from which tantalum is refined, is in every smartphone capacitor. Africa controls the global supply.'),
+        ('Chromium','—','$9,800','per metric tonne','44% of world reserves','South Africa, Zimbabwe, Madagascar','Essential for stainless steel. South Africa holds the largest proven chromium reserves on earth.'),
+        ('Manganese','—','$4,200','per metric tonne','26% of world reserves','South Africa, Gabon, Ghana','Critical for steel and battery cathodes. South Africa and Gabon together dominate global supply.'),
+        ('Phosphate','—','$115','per metric tonne','50% of world reserves','Morocco (overwhelmingly), Algeria, Egypt','Morocco controls 70% of global phosphate reserves — the nutrient that feeds the world. An under-priced African monopoly.'),
+        ('Rare Earths','—','$1,100–$3,200','per kg (varies)','30%+ of world deposits','DRC, South Africa, Malawi, Tanzania','Neodymium, dysprosium, and other rare earths that make wind turbines and EV motors possible are found in abundance across eastern and southern Africa.'),
+      ] %}
+      <div style="background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:20px;padding:1.5rem;transition:all .2s;cursor:default;" onmouseover="this.style.borderColor='rgba(182,245,105,.25)';this.style.background='#1C231D'" onmouseout="this.style.borderColor='rgba(244,242,236,.08)';this.style.background='#161B17'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.875rem;">
+          <div>
+            <div style="font-size:1rem;font-weight:600;color:#F4F2EC;margin-bottom:.2rem;">{{ metal }}</div>
+            <div style="font-size:.72rem;color:#8A8E87;font-family:monospace;">{{ symbol }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1rem;font-weight:500;color:#B6F569;letter-spacing:-0.01em;">{{ price }}</div>
+            <div style="font-size:.68rem;color:#8A8E87;">{{ unit }}</div>
+          </div>
+        </div>
+        <div style="background:rgba(182,245,105,.08);border:1px solid rgba(182,245,105,.15);border-radius:8px;padding:.4rem .75rem;display:inline-block;margin-bottom:.875rem;">
+          <span style="font-size:.72rem;font-weight:600;color:#B6F569;">{{ pct }}</span>
+        </div>
+        <div style="font-size:.75rem;color:#76E0A1;margin-bottom:.5rem;font-weight:500;">{{ countries }}</div>
+        <div style="font-size:.8rem;color:#8A8E87;line-height:1.55;">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── CROSS TABLE ──────────────────────────────────────────────────────────── -->
+<div style="background:#161B17;padding:80px 5%;border-bottom:1px solid rgba(244,242,236,.08);">
+  <div class="container">
+    <div style="margin-bottom:2.5rem;">
+      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:.875rem;display:flex;align-items:center;gap:8px;"><span style="width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;"></span>Gold cross-rates</div>
+      <h2 style="font-size:clamp(1.5rem,2.8vw,2.2rem);font-weight:400;letter-spacing:-0.025em;color:#F4F2EC;">How much of currency A does one unit of currency B buy — in gold terms</h2>
+    </div>
+
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table style="width:100%;border-collapse:collapse;" id="cross-table">
+        <thead id="cross-head"></thead>
+        <tbody id="cross-body"></tbody>
+      </table>
+    </div>
+    <p style="font-size:.72rem;color:#8A8E87;margin-top:1rem;">Read across rows: 1 unit of the row currency buys X units of the column currency, routed through gold. Diagonal = 1.00.</p>
+  </div>
+</div>
+
+<!-- ── DECLARATION ───────────────────────────────────────────────────────────── -->
+<div style="background:#0E120F;padding:96px 5%;">
+  <div class="container" style="max-width:800px;margin:0 auto;text-align:center;">
+    <div style="width:64px;height:64px;background:rgba(182,245,105,.12);border:1px solid rgba(182,245,105,.25);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;margin:0 auto 2rem;">⚡</div>
+    <h2 style="font-size:clamp(1.8rem,4vw,3rem);font-weight:400;letter-spacing:-0.03em;color:#F4F2EC;margin-bottom:1.5rem;line-height:1.1;">We are building the infrastructure<br>Africa's economy <span style="color:#B6F569;">deserves to have</span></h2>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">SOHANA is the first African fintech to propose and implement an intra-African currency exchange anchored to commodity wealth rather than foreign monetary policy. This is not a financial product. It is a political and economic statement.</p>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:1.25rem;">When a Kenyan shilling and a Nigerian naira can be exchanged peer-to-peer without passing through New York or London — when that exchange is priced in gold that comes from African soil — something important changes. Africa begins to price itself.</p>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;margin-bottom:2.5rem;">We are a beta platform. We are building toward this. Join us now, while the ground is still being laid.</p>
+    <a href="/auth" style="background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:1rem 2.5rem;font-size:1rem;font-weight:600;cursor:pointer;display:inline-block;transition:all .2s;text-decoration:none;" onmouseover="this.style.background='#cef870'" onmouseout="this.style.background='#B6F569'">Be part of this from day one →</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── GOLD RATES (representative reference values) ───────────────────────────
+// XAU per unit of each currency (= 1 / price of 1 XAU in that currency)
+// i.e. goldPerUnit[code] = how many troy ounces of gold 1 unit of that currency buys
+const GOLD_PRICE_USD = 2341.50;  // 1 troy oz gold in USD
+const PLAT_PRICE_USD = 981.20;
+const SILV_PRICE_USD = 27.45;
+
+// Currency to USD approximate exchange rates (representative)
+const USD_RATES = {
+  XAF: 624.0,   NGN: 1580.0,  GHC: 14.8,   KES: 128.5,
+  ZAR: 18.6,    TZS: 2590.0,  ETB: 56.5,   EGP: 47.8,
+  MAD: 10.1,    UGX: 3780.0,  RWF: 1330.0, XOF: 624.0,
+  ZMW: 27.3,    MWK: 1740.0,  MZN: 64.2,   AOA: 850.0,
+  GNF: 8650.0,  SLL: 22000.0, CDF: 2810.0, SDG: 601.0,
+};
+
+const CURRENCIES_META = {
+  XAF:{name:'CFA Franc',flag:'🌍',region:'west',countries:'Cameroon, Chad, CAR, Gabon, Congo, Eq. Guinea'},
+  NGN:{name:'Nigerian Naira',flag:'🇳🇬',region:'west',countries:'Nigeria'},
+  GHC:{name:'Ghanaian Cedi',flag:'🇬🇭',region:'west',countries:'Ghana'},
+  KES:{name:'Kenyan Shilling',flag:'🇰🇪',region:'east',countries:'Kenya'},
+  ZAR:{name:'South African Rand',flag:'🇿🇦',region:'south',countries:'South Africa'},
+  TZS:{name:'Tanzanian Shilling',flag:'🇹🇿',region:'east',countries:'Tanzania'},
+  ETB:{name:'Ethiopian Birr',flag:'🇪🇹',region:'east',countries:'Ethiopia'},
+  EGP:{name:'Egyptian Pound',flag:'🇪🇬',region:'north',countries:'Egypt'},
+  MAD:{name:'Moroccan Dirham',flag:'🇲🇦',region:'north',countries:'Morocco'},
+  UGX:{name:'Ugandan Shilling',flag:'🇺🇬',region:'east',countries:'Uganda'},
+  RWF:{name:'Rwandan Franc',flag:'🇷🇼',region:'east',countries:'Rwanda'},
+  XOF:{name:'West African CFA',flag:'🌍',region:'west',countries:'Senegal, Côte d\'Ivoire, Burkina Faso, Mali + 4'},
+  ZMW:{name:'Zambian Kwacha',flag:'🇿🇲',region:'south',countries:'Zambia'},
+  MWK:{name:'Malawian Kwacha',flag:'🇲🇼',region:'south',countries:'Malawi'},
+  MZN:{name:'Mozambican Metical',flag:'🇲🇿',region:'south',countries:'Mozambique'},
+  AOA:{name:'Angolan Kwanza',flag:'🇦🇴',region:'south',countries:'Angola'},
+  GNF:{name:'Guinean Franc',flag:'🇬🇳',region:'west',countries:'Guinea'},
+  SLL:{name:'Sierra Leonean Leone',flag:'🇸🇱',region:'west',countries:'Sierra Leone'},
+  CDF:{name:'Congolese Franc',flag:'🇨🇩',region:'central',countries:'DRC'},
+  SDG:{name:'Sudanese Pound',flag:'🇸🇩',region:'north',countries:'Sudan'},
+};
+
+// Convert 1 unit of currency to troy oz of gold
+function toGold(code) {
+  const usdPerUnit = 1 / USD_RATES[code];
+  return usdPerUnit / GOLD_PRICE_USD;
+}
+
+// Convert goldOz back to units of a currency
+function fromGold(goldOz, code) {
+  const usdValue = goldOz * GOLD_PRICE_USD;
+  return usdValue * USD_RATES[code];
+}
+
+// ── CONVERTER ────────────────────────────────────────────────────────────────
+function runConvert() {
+  const fromCode = document.getElementById('cv-from').value;
+  const toCode   = document.getElementById('cv-to').value;
+  const amount   = parseFloat(document.getElementById('cv-amount').value) || 0;
+
+  if (!amount) {
+    document.getElementById('cv-result').textContent = '—';
+    document.getElementById('gold-bridge').textContent = 'Enter an amount';
+    return;
+  }
+
+  // Step 1: from currency → gold oz
+  const goldOz = toGold(fromCode) * amount;
+  // Step 2: apply SOHANA fee (0.7%)
+  const goldAfterFee = goldOz * (1 - 0.007);
+  // Step 3: gold oz → to currency
+  const result = fromGold(goldAfterFee, toCode);
+
+  const meta = CURRENCIES_META;
+  const fmtFrom = new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(amount);
+  const fmtResult = new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(result);
+  const fmtGold = goldOz.toFixed(8);
+  const rate = result / amount;
+
+  document.getElementById('cv-result').textContent = fmtResult;
+  document.getElementById('gold-bridge').textContent =
+    `${fmtFrom} ${fromCode} = ${fmtGold} XAU → ${fmtResult} ${toCode}`;
+  document.getElementById('cv-rate-text').textContent =
+    `1 ${fromCode} = ${rate.toFixed(4)} ${toCode}  ·  via XAU gold bridge`;
+}
+
+function swapCurrencies() {
+  const fromSel = document.getElementById('cv-from');
+  const toSel   = document.getElementById('cv-to');
+  const tmp = fromSel.value;
+  fromSel.value = toSel.value;
+  toSel.value = tmp;
+  runConvert();
+}
+
+// ── CURRENCY TABLE ─────────────────────────────────────────────────────────
+function buildTable(filter) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  const codes = Object.keys(CURRENCIES_META).filter(c =>
+    filter === 'all' || CURRENCIES_META[c].region === filter || (filter === 'central' && CURRENCIES_META[c].region === 'central')
+  );
+
+  codes.forEach(code => {
+    const m = CURRENCIES_META[code];
+    const usdRate = USD_RATES[code];
+    const goldAmt = (GOLD_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:0});
+    const platAmt = (PLAT_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:0});
+    const silvAmt = (SILV_PRICE_USD * usdRate).toLocaleString('en-US',{maximumFractionDigits:2});
+
+    const regionColors = {west:'rgba(182,245,105,.15)',east:'rgba(118,224,161,.12)',south:'rgba(244,192,106,.1)',north:'rgba(192,132,252,.1)',central:'rgba(255,106,85,.1)'};
+    const regionText   = {west:'#B6F569',east:'#76E0A1',south:'#F4C06A',north:'#C084FC',central:'#FF6A55'};
+
+    const tr = document.createElement('tr');
+    tr.className = 'currency-row';
+    tr.dataset.region = m.region;
+    tr.style.cssText = 'border-bottom:1px solid rgba(244,242,236,.06);transition:background .15s;';
+    tr.onmouseover = () => tr.style.background = 'rgba(182,245,105,.03)';
+    tr.onmouseout  = () => tr.style.background = '';
+
+    tr.innerHTML = `
+      <td style="padding:.875rem 1rem;">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <span style="font-size:1.2rem;">${m.flag}</span>
+          <div>
+            <div style="font-size:.875rem;font-weight:500;color:#F4F2EC;">${m.name}</div>
+            <div style="font-size:.7rem;color:#8A8E87;">${m.countries}</div>
+          </div>
+        </div>
+      </td>
+      <td style="padding:.875rem .5rem;text-align:right;font-size:.82rem;font-weight:600;color:#B6F569;font-family:monospace;">${code}</td>
+      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;font-weight:500;color:#F4F2EC;">${goldAmt}</td>
+      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;color:#B7BAB4;">${platAmt}</td>
+      <td style="padding:.875rem .5rem;text-align:right;font-size:.875rem;color:#B7BAB4;">${silvAmt}</td>
+      <td style="padding:.875rem 1rem;text-align:right;">
+        <span style="background:${regionColors[m.region]||'rgba(182,245,105,.1)'};color:${regionText[m.region]||'#B6F569'};border-radius:999px;padding:.2rem .65rem;font-size:.65rem;font-weight:600;white-space:nowrap;text-transform:capitalize;">${m.region}</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function filterTable(region) {
+  ['all','west','east','south','north'].forEach(r => {
+    const btn = document.getElementById('btn-'+r);
+    if (!btn) return;
+    if (r === region) {
+      btn.style.background = 'rgba(182,245,105,.15)';
+      btn.style.color = '#B6F569';
+      btn.style.borderColor = 'rgba(182,245,105,.3)';
+    } else {
+      btn.style.background = 'rgba(244,242,236,.06)';
+      btn.style.color = '#8A8E87';
+      btn.style.borderColor = 'rgba(244,242,236,.1)';
+    }
+  });
+  buildTable(region);
+}
+
+// ── CROSS RATE TABLE ───────────────────────────────────────────────────────
+function buildCrossTable() {
+  // Show a 8×8 cross table of the main currencies
+  const CROSS = ['XAF','NGN','GHC','KES','ZAR','ETB','EGP','ZMW'];
+  const head = document.getElementById('cross-head');
+  const body = document.getElementById('cross-body');
+
+  // Header row
+  let htr = '<tr style="border-bottom:1px solid rgba(244,242,236,.1);"><th style="padding:.65rem 1rem;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8A8E87;text-align:left;">1 unit →</th>';
+  CROSS.forEach(c => {
+    htr += `<th style="padding:.65rem .5rem;font-size:.7rem;font-weight:600;color:#B6F569;text-align:right;font-family:monospace;">${c}</th>`;
+  });
+  htr += '</tr>';
+  head.innerHTML = htr;
+
+  // Data rows
+  CROSS.forEach(fromCode => {
+    let row = `<tr style="border-bottom:1px solid rgba(244,242,236,.05);" onmouseover="this.style.background='rgba(182,245,105,.03)'" onmouseout="this.style.background=''">`;
+    row += `<td style="padding:.75rem 1rem;font-size:.82rem;font-weight:600;color:#F4F2EC;white-space:nowrap;">${CURRENCIES_META[fromCode].flag} ${fromCode}</td>`;
+    const goldPerFromUnit = toGold(fromCode);
+    CROSS.forEach(toCode => {
+      const val = fromGold(goldPerFromUnit, toCode);
+      const isDiag = fromCode === toCode;
+      const display = isDiag ? '—' : (val >= 100 ? val.toFixed(0) : val >= 1 ? val.toFixed(2) : val.toFixed(4));
+      row += `<td style="padding:.75rem .5rem;text-align:right;font-size:.8rem;color:${isDiag?'#8A8E87':'#B7BAB4'};font-family:monospace;">${display}</td>`;
+    });
+    row += '</tr>';
+    body.innerHTML += row;
+  });
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildTable('all');
+  buildCrossTable();
+  runConvert();
+});
+</script>
 {% endblock %}
