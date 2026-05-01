@@ -7,8 +7,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=5.0">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=6.0">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -17,7 +18,7 @@
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo" onclick="location.href='/dashboard'" style="cursor:pointer;" title="Go to Dashboard">
     <div class="sidebar-logo-icon">
-      <div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div>
+      <div style="width:26px;height:26px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-weight:700;font-size:13px;letter-spacing:-0.02em;flex-shrink:0;">S</div>
     </div>
     <span class="sidebar-logo-text">SOHANA</span>
   </div>

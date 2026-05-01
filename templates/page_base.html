@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Geist',Inter,system-ui,sans-serif;color:#F4F2EC;background:#0E120F;-webkit-font-smoothing:antialiased;}
+body{font-family:'Geist','Inter',system-ui,sans-serif;color:#F4F2EC;background:#0E120F;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";}.mono{font-family:'Geist Mono',ui-monospace,monospace;font-feature-settings:"tnum";}.ital,.serif{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
 a{color:inherit;text-decoration:none;}
 
 /* NAV */
@@ -21,7 +21,7 @@ nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-fi
 .nav-links a{font-size:.875rem;color:#B7BAB4;transition:color .15s;}
 .nav-links a:hover{color:#F4F2EC;}
 .btn-signin{border:1px solid rgba(244,242,236,.2);border-radius:999px;padding:.4rem 1.1rem;font-size:.85rem;color:#B7BAB4;font-weight:500;transition:all .15s;}
-.btn-join{background:#B6F569;border:none;border-radius:999px;padding:.4rem 1.2rem;font-size:.85rem;color:#0E120F;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-join{background:#9EE493;border:none;border-radius:999px;padding:.4rem 1.2rem;font-size:.85rem;color:#0E120F;font-weight:600;cursor:pointer;transition:all .15s;}
 
 /* CONTAINER */
 .container{max-width:1200px;margin:0 auto;padding:0 5%;}
@@ -29,12 +29,12 @@ nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-fi
 /* PAGE HERO */
 .page-hero{background:radial-gradient(900px 500px at 80% 0%,rgba(182,245,105,.1),transparent 60%),#0E120F;border-bottom:1px solid rgba(244,242,236,.1);padding:80px 5% 72px;color:#F4F2EC;}
 .page-hero-label{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:#8A8E87;margin-bottom:1rem;display:inline-flex;align-items:center;gap:8px;}
-.page-hero-label::before{content:'';width:6px;height:6px;background:#B6F569;border-radius:50%;display:inline-block;}
+.page-hero-label::before{content:'';width:6px;height:6px;background:#9EE493;border-radius:50%;display:inline-block;}
 .page-hero h1{font-size:clamp(2rem,4vw,3rem);font-weight:500;line-height:1.05;letter-spacing:-0.025em;margin-bottom:1.25rem;color:#F4F2EC;}
-.page-hero h1 span{color:#B6F569;}
+.page-hero h1 span{color:#9EE493;}
 .page-hero p{font-size:1.05rem;color:#B7BAB4;max-width:560px;line-height:1.7;}
 .page-hero-cta{margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap;}
-.btn-primary{background:#B6F569;color:#0E120F;border:none;border-radius:999px;padding:.7rem 1.75rem;font-size:.95rem;font-weight:600;cursor:pointer;font-family:inherit;display:inline-block;transition:all .2s;}
+.btn-primary{background:#9EE493;color:#0E120F;border:none;border-radius:999px;padding:.7rem 1.75rem;font-size:.95rem;font-weight:600;cursor:pointer;font-family:inherit;display:inline-block;transition:all .2s;}
 .btn-outline-white{border:1px solid rgba(244,242,236,.2);color:#B7BAB4;border-radius:999px;padding:.7rem 1.5rem;font-size:.95rem;font-weight:500;display:inline-block;transition:all .2s;}
 
 /* CONTENT */
@@ -82,11 +82,7 @@ nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-fi
 
 <nav>
   <a href="/" class="nav-logo">
-    <div class="nav-logo-dots">
-      <div class="nav-dot" style="background:#B6F569;"></div>
-      <div class="nav-dot" style="background:#76E0A1;"></div>
-      <div class="nav-dot" style="background:#F4C06A;"></div>
-    </div>
+    <div style="width:26px;height:26px;border-radius:8px;background:#9EE493;display:grid;place-items:center;color:#0E120F;font-weight:700;font-size:13px;letter-spacing:-0.02em;flex-shrink:0;">S</div>
     <span class="nav-logo-text">SOHANA</span>
   </a>
   <div class="nav-links">
@@ -164,12 +160,8 @@ nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-fi
   <div class="footer-legal">
     <div style="max-width:1200px;margin:0 auto;">
       <div class="footer-legal-top">
-        <a href="/" style="display:flex;align-items:center;gap:10px;">
-          <div style="display:flex;gap:4px;">
-            <div style="width:11px;height:11px;border-radius:50%;background:#B6F569;"></div>
-            <div style="width:11px;height:11px;border-radius:50%;background:#76E0A1;"></div>
-            <div style="width:11px;height:11px;border-radius:50%;background:#F4C06A;"></div>
-          </div>
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+          <div style="width:28px;height:28px;border-radius:8px;background:#9EE493;display:grid;place-items:center;color:#0E120F;font-weight:700;font-size:14px;letter-spacing:-0.02em;flex-shrink:0;">S</div>
           <span style="font-size:18px;font-weight:700;color:#F4F2EC;letter-spacing:-.01em;">SOHANA</span>
         </a>
         <div class="footer-social">

@@ -1,66 +1,59 @@
-/* ── SOHANA Design System v2 — Dark Forest + Lime Accent ── */
+/* ── SOHANA Design System v3 — CTO Spec · Emerald palette ── */
 :root {
-  /* ── New palette from engineer design ── */
-  --bg:        #0E120F;   /* page background — near-black forest */
-  --bg-2:      #161B17;   /* card / sidebar background */
-  --bg-3:      #1C231D;   /* elevated surfaces */
-  --ink:       #F4F2EC;   /* primary text — warm cream */
-  --ink-2:     #B7BAB4;   /* secondary text */
-  --ink-3:     #8A8E87;   /* muted / labels */
-  --line:      rgba(244,242,236,.10);  /* subtle borders */
-  --line-2:    rgba(244,242,236,.18);  /* stronger borders */
-  --accent:    #B6F569;   /* lime green — primary CTA */
-  --accent-2:  #76E0A1;   /* mint — secondary accent */
-  --accent-ink:#0E120F;   /* text on accent backgrounds */
-  --warm:      #F4F2EC;   /* cream — for warm sections */
-  --warm-2:    #ECE7DA;
-  --warm-ink:  #14130F;
-  --danger:    #FF6A55;   /* coral red */
+  /* ── Core palette — Emerald (default) ── */
+  --bg:         #0E120F;
+  --bg-2:       #161B17;
+  --bg-3:       #1C231D;
+  --ink:        #F4F2EC;
+  --ink-2:      #B7BAB4;
+  --ink-3:      #8A8E87;
+  --line:       rgba(244,242,236,.10);
+  --line-2:     rgba(244,242,236,.18);
+  --accent:     #9EE493;   /* Emerald mint — CTO primary */
+  --accent-2:   #76E0A1;   /* secondary mint */
+  --accent-ink: #0E120F;   /* text on accent — always near-black */
+  --warm:       #F4F2EC;   /* cream takeover */
+  --warm-2:     #ECE7DA;
+  --warm-ink:   #14130F;
+  --danger:     #FF6A55;
 
-  /* ── Semantic aliases (keeps old template references working) ── */
-  --navy:      #161B17;   /* was #1a2b4a → now bg-2 */
-  --navy-dark: #0E120F;   /* was #14213a → now bg */
-  --navy-mid:  #1C231D;   /* was #243352 → now bg-3 */
-  --navy-lt:   #243329;   /* was #2d4068 → forest mid */
-  --blue:      #B6F569;   /* was blue → now lime accent */
-  --blue-lt:   rgba(182,245,105,.12); /* accent light tint */
-  --teal:      #76E0A1;   /* was teal → mint */
+  /* ── Semantic aliases — keeps all existing templates working ── */
+  --navy:      #161B17;
+  --navy-dark: #0E120F;
+  --navy-mid:  #1C231D;
+  --navy-lt:   #243329;
+  --blue:      #9EE493;
+  --blue-lt:   rgba(158,228,147,.12);
+  --teal:      #76E0A1;
   --teal-lt:   rgba(118,224,161,.12);
-  --green:     #76E0A1;   /* success → mint */
+  --green:     #76E0A1;
   --green-lt:  rgba(118,224,161,.12);
-  --amber:     #F4C06A;   /* warm amber — unchanged feel */
+  --amber:     #F4C06A;
   --amber-lt:  rgba(244,192,106,.12);
-  --red:       #FF6A55;   /* danger → coral */
+  --red:       #FF6A55;
   --red-lt:    rgba(255,106,85,.12);
-  --orange:    #FF8A50;   /* orange — slightly warmer */
+  --orange:    #FF8A50;
   --orange-lt: rgba(255,138,80,.12);
-  --gold:      #B6F569;   /* gold → lime (for NCS stars) */
-  --purple:    #C084FC;   /* purple — unchanged hue */
+  --gold:      #9EE493;
+  --purple:    #C084FC;
   --purple-lt: rgba(192,132,252,.12);
-  --white:     #1C231D;   /* "white" cards → dark surface */
+  --white:     #1C231D;
 
-  /* ── Grays remapped to dark theme ── */
-  --gray-50:   #0E120F;
-  --gray-100:  #161B17;
-  --gray-200:  rgba(244,242,236,.12);
-  --gray-300:  rgba(244,242,236,.20);
-  --gray-400:  #8A8E87;
-  --gray-500:  #B7BAB4;
-  --gray-600:  #B7BAB4;
-  --gray-700:  #D4D2CC;
-  --gray-800:  #F4F2EC;
-  --gray-900:  #F4F2EC;
-  --text:      #F4F2EC;
-  --text-muted:#8A8E87;
-  --border:    rgba(244,242,236,.12);
+  /* ── Grays ── */
+  --gray-50:  #0E120F; --gray-100:#161B17;
+  --gray-200: rgba(244,242,236,.12); --gray-300:rgba(244,242,236,.20);
+  --gray-400: #8A8E87; --gray-500:#B7BAB4; --gray-600:#B7BAB4;
+  --gray-700: #D4D2CC; --gray-800:#F4F2EC; --gray-900:#F4F2EC;
+  --text:     #F4F2EC; --text-muted:#8A8E87; --border:rgba(244,242,236,.12);
 
-  /* ── Geometry — softer, rounder ── */
-  --radius-sm: 8px;    /* was 6px */
-  --radius:    12px;   /* was 10px */
-  --radius-lg: 16px;   /* was 14px */
-  --radius-xl: 24px;   /* was 20px */
+  /* ── Geometry — per CTO spec ── */
+  --radius-sm: 8px;
+  --radius:    12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --card-r:    22px;   /* CTO card radius */
 
-  /* ── Shadows for dark theme ── */
+  /* ── Shadows ── */
   --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
   --shadow:    0 2px 6px rgba(0,0,0,.3),0 1px 2px rgba(0,0,0,.2);
   --shadow-md: 0 6px 16px rgba(0,0,0,.35),0 2px 4px rgba(0,0,0,.2);
@@ -72,7 +65,29 @@
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:15px;-webkit-text-size-adjust:100%}
-body{font-family:'Geist','Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;display:flex;min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  font-family:'Geist','Inter',system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.5;
+  display:flex;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:"ss01","cv11";
+}
+/* Mono utility — Geist Mono for all numbers, codes, eyebrows */
+.mono,
+[class*="mono"],
+.ncs-score,
+.stat-value,
+.calc-output .big,
+kbd{
+  font-family:'Geist Mono',ui-monospace,monospace;
+  font-feature-settings:"tnum";
+}
+/* Serif italic accent — one word per heading max */
+.ital,.serif{
+  font-family:'Instrument Serif',ui-serif,Georgia,serif;
+  font-style:italic;font-weight:400;
+}
 a{color:inherit;text-decoration:none}
 button{cursor:pointer;font-family:inherit;font-size:inherit}
 input,select,textarea{font-family:inherit;font-size:.875rem}
