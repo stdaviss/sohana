@@ -4,72 +4,84 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sohana — Save together. Build credit. Send money home.</title>
-<meta name="description" content="Sohana digitalises African savings circles — Tontines, Njangis, Esusu — with a multicurrency wallet, NCS Credit Score, and cross-border payments.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+
 <style>
-/* ── CTO Design System — Emerald palette ── */
+/* ──────────────────────────────────────────────────────────
+   SOHANA LANDING — CTO Design System v1.0
+   Palette: Emerald  |  Fonts: Geist + Geist Mono + Instrument Serif
+   ────────────────────────────────────────────────────────── */
 :root {
-  --bg:#0E120F; --bg-2:#161B17; --bg-3:#1C231D;
-  --ink:#F4F2EC; --ink-2:#B7BAB4; --ink-3:#8A8E87;
-  --line:rgba(244,242,236,.10); --line-2:rgba(244,242,236,.18);
-  --accent:#9EE493; --accent-2:#76E0A1; --accent-ink:#0E120F;
-  --warm:#F4F2EC; --warm-2:#ECE7DA; --warm-ink:#14130F;
-  --danger:#FF6A55;
+  --bg:         #0E120F;
+  --bg-2:       #161B17;
+  --ink:        #F4F2EC;
+  --ink-2:      #B7BAB4;
+  --ink-3:      #8A8E87;
+  --line:       rgba(244,242,236,.10);
+  --line-2:     rgba(244,242,236,.18);
+  --accent:     #9EE493;
+  --accent-2:   #76E0A1;
+  --accent-ink: #0E120F;
+  --warm:       #F4F2EC;
+  --warm-2:     #ECE7DA;
+  --warm-ink:   #14130F;
+  --danger:     #FF6A55;
 }
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{scroll-behavior:smooth;}
+html,body{margin:0;padding:0}
 body{
-  font-family:'Geist',ui-sans-serif,system-ui,-apple-system,Helvetica,Arial,sans-serif;
   background:var(--bg);color:var(--ink);
+  font-family:'Geist',ui-sans-serif,system-ui,-apple-system,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
   text-rendering:optimizeLegibility;
   font-feature-settings:"ss01","cv11";
   overflow-x:hidden;
 }
-.mono{font-family:'Geist Mono',ui-monospace,monospace;font-feature-settings:"tnum";}
-.ital{font-family:'Instrument Serif',ui-serif,serif;font-style:italic;font-weight:400;}
-::selection{background:var(--accent);color:var(--accent-ink);}
-a{color:inherit;text-decoration:none;}
-button{cursor:pointer;font-family:inherit;}
+.mono{font-family:'Geist Mono',ui-monospace,monospace;font-feature-settings:"tnum"}
+.ital{font-family:'Instrument Serif',ui-serif,Georgia,serif;font-style:italic;font-weight:400}
+::selection{background:var(--accent);color:var(--accent-ink)}
 
-/* CONTAINER */
-.container{max-width:1240px;margin:0 auto;padding:0 28px;}
+/* Container */
+.container{max-width:1240px;margin:0 auto;padding:0 28px}
+@media(max-width:880px){.container{padding:0 20px}}
+@media(max-width:480px){.container{padding:0 16px}}
 
-/* EYEBROW */
+/* ── EYEBROW ── */
 .eyebrow{
   font-family:'Geist Mono',monospace;font-size:11px;
-  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
-  display:inline-flex;align-items:center;gap:8px;
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);display:inline-flex;align-items:center;gap:8px;
 }
-.eyebrow::before{content:"";width:6px;height:6px;background:var(--accent);border-radius:50%;}
+.eyebrow::before{content:"";width:6px;height:6px;background:var(--accent);border-radius:50%}
 
-/* PILL */
+/* ── PILL ── */
 .pill{
   display:inline-flex;align-items:center;gap:8px;
   padding:6px 12px;border-radius:999px;
   border:1px solid var(--line-2);font-size:12px;
   color:var(--ink-2);background:rgba(244,242,236,.03);
 }
-.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(158,228,147,.2);}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px color-mix(in oklch,var(--accent) 20%,transparent)}
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:10px;
   height:48px;padding:0 22px;border-radius:999px;border:1px solid transparent;
-  font-family:inherit;font-size:15px;font-weight:500;letter-spacing:-.005em;
-  cursor:pointer;transition:transform .15s ease,background .15s ease,border-color .15s ease;
+  font-family:inherit;font-size:15px;font-weight:500;
+  letter-spacing:-0.005em;cursor:pointer;
+  transition:transform .15s,background .15s,color .15s,border-color .15s;
   white-space:nowrap;
 }
-.btn-primary{background:var(--accent);color:var(--accent-ink);}
-.btn-primary:hover{transform:translateY(-1px);}
-.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-2);}
-.btn-ghost:hover{border-color:var(--ink-2);}
-.btn-sm{height:36px;padding:0 14px;font-size:13px;}
-button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-2)}
+.btn-ghost:hover{border-color:var(--ink-2)}
+.btn-sm{height:36px;padding:0 14px;font-size:13px}
 
-/* NAV */
+/* ── NAV ── */
 .nav{
   position:sticky;top:0;z-index:100;
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
@@ -80,16 +92,21 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   height:68px;display:flex;align-items:center;
   justify-content:space-between;gap:20px;
 }
-.brand{display:inline-flex;align-items:center;gap:10px;color:var(--ink);font-weight:600;letter-spacing:-.01em;}
+.brand{
+  display:inline-flex;align-items:center;gap:10px;
+  color:var(--ink);text-decoration:none;font-weight:600;
+  letter-spacing:-0.01em;
+}
 .brand-mark{
   width:26px;height:26px;border-radius:8px;
   background:var(--accent);display:grid;place-items:center;
-  color:var(--accent-ink);font-weight:700;font-size:13px;letter-spacing:-.02em;
+  color:var(--accent-ink);font-weight:700;font-size:13px;
+  letter-spacing:-0.02em;flex-shrink:0;
 }
-.nav-links{display:flex;gap:28px;align-items:center;}
-.nav-links a{color:var(--ink-2);font-size:14px;transition:color .15s;}
-.nav-links a:hover{color:var(--ink);}
-.nav-actions{display:flex;align-items:center;gap:10px;}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:var(--ink-2);text-decoration:none;font-size:14px;transition:color .15s}
+.nav-links a:hover{color:var(--ink)}
+.nav-actions{display:flex;align-items:center;gap:10px}
 .lang-toggle{
   display:inline-flex;align-items:center;
   border:1px solid var(--line-2);border-radius:999px;padding:3px;
@@ -101,74 +118,96 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   color:var(--ink-3);padding:4px 10px;border-radius:999px;
   cursor:pointer;font:inherit;letter-spacing:.04em;transition:all .15s;
 }
-.lang-toggle button.on{background:var(--ink);color:var(--bg);}
-.nav-burger{display:none;appearance:none;border:1px solid var(--line-2);background:transparent;color:var(--ink);border-radius:8px;width:36px;height:36px;align-items:center;justify-content:center;cursor:pointer;}
+.lang-toggle button.on{background:var(--ink);color:var(--bg)}
 
-/* NAV DRAWER (mobile) */
-.nav-drawer{
-  display:none;position:fixed;inset:0;z-index:200;
+/* Hamburger (mobile) */
+.nav-burger{
+  display:none;appearance:none;border:1px solid var(--line-2);
+  background:transparent;color:var(--ink);border-radius:8px;
+  width:38px;height:38px;cursor:pointer;
+  align-items:center;justify-content:center;
 }
-.nav-drawer.open{display:block;}
-.nav-drawer-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);}
+@media(max-width:980px){
+  .nav-links{display:none}
+  .nav-burger{display:flex}
+  .lang-toggle{display:none}
+  .nav-actions .btn-ghost{display:none}
+}
+
+/* Mobile drawer */
+.nav-drawer{
+  position:fixed;inset:0;z-index:200;display:none;
+}
+.nav-drawer.open{display:block}
+.nav-drawer-backdrop{
+  position:absolute;inset:0;
+  background:color-mix(in oklch,var(--bg) 70%,transparent);
+  backdrop-filter:blur(4px);
+}
 .nav-drawer-panel{
-  position:absolute;top:0;right:0;bottom:0;width:min(320px,90vw);
-  background:color-mix(in oklch,var(--bg) 95%,var(--accent));
-  border-left:1px solid var(--line);
-  padding:24px;display:flex;flex-direction:column;gap:32px;
+  position:absolute;top:0;right:0;bottom:0;
+  width:min(320px,90vw);
+  background:var(--bg-2);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;padding:24px;gap:0;
   overflow-y:auto;
 }
-.nav-drawer-head{display:flex;justify-content:space-between;align-items:center;}
-.nav-drawer-links{display:flex;flex-direction:column;gap:4px;}
-.nav-drawer-links a{display:block;padding:12px 0;color:var(--ink-2);font-size:17px;border-bottom:1px solid var(--line);}
-.nav-drawer-links a:hover{color:var(--ink);}
-.nav-drawer-cta{margin-top:auto;}
+.nav-drawer-close{
+  appearance:none;border:1px solid var(--line-2);background:transparent;
+  color:var(--ink-2);border-radius:8px;width:36px;height:36px;
+  cursor:pointer;align-self:flex-end;display:flex;align-items:center;justify-content:center;
+  margin-bottom:24px;
+}
+.nav-drawer a{
+  display:block;padding:14px 0;color:var(--ink-2);text-decoration:none;
+  font-size:16px;border-bottom:1px solid var(--line);transition:color .15s;
+}
+.nav-drawer a:hover{color:var(--ink)}
+.nav-drawer-bottom{margin-top:auto;padding-top:24px;display:flex;flex-direction:column;gap:10px}
 
-/* HERO */
+/* ── HERO ── */
 .hero{
-  position:relative;overflow:hidden;
-  padding:64px 0 100px;
+  position:relative;overflow:hidden;padding:64px 0 100px;
   background:
     radial-gradient(1200px 600px at 80% -10%,color-mix(in oklch,var(--accent) 14%,transparent) 0%,transparent 60%),
     radial-gradient(900px 500px at 0% 0%,color-mix(in oklch,var(--accent-2) 10%,transparent) 0%,transparent 55%);
 }
 .hero-grid{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,460px);
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);
   gap:60px;align-items:center;
 }
 h1.display{
-  font-weight:500;font-size:clamp(44px,6.4vw,84px);
-  line-height:.98;letter-spacing:-.035em;
+  font-weight:500;
+  font-size:clamp(44px,6.4vw,84px);
+  line-height:.98;letter-spacing:-0.035em;
   margin:22px 0 28px;text-wrap:balance;
 }
-h1.display .accent-word{color:var(--accent);}
+h1.display .accent{color:var(--accent)}
+h1.display .ital{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;letter-spacing:-0.02em}
 .lead{
   font-size:clamp(16px,1.3vw,18px);line-height:1.55;
   color:var(--ink-2);max-width:520px;margin-bottom:32px;
 }
-.hero-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-.hero-cta .micro{font-size:12px;color:var(--ink-3);margin-left:6px;}
-
-/* AVATAR COUNTER */
+.hero-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.hero-cta .micro{font-size:12px;color:var(--ink-3);margin-left:6px}
 .waitlist-counter{
   margin-top:36px;display:inline-flex;align-items:center;gap:14px;
   padding:10px 16px 10px 12px;
   background:rgba(244,242,236,.04);border:1px solid var(--line);border-radius:999px;
 }
-.avatars{display:flex;}
+.avatars{display:flex}
 .avatars span{
-  width:28px;height:28px;border-radius:50%;
-  border:2px solid var(--bg);margin-left:-8px;display:inline-block;
+  width:28px;height:28px;border-radius:50%;border:2px solid var(--bg);
+  margin-left:-8px;display:inline-block;
 }
-.avatars span:first-child{margin-left:0;background:linear-gradient(135deg,#E8B894,#7B5239);}
-.avatars span:nth-child(2){background:linear-gradient(135deg,#BD8C5C,#4D3320);}
-.avatars span:nth-child(3){background:linear-gradient(135deg,#D9A576,#6B4628);}
-.avatars span:nth-child(4){background:linear-gradient(135deg,#C7A87A,#5B4632);}
-.waitlist-counter .num{font-family:'Geist Mono',monospace;font-weight:500;color:var(--ink);}
-.waitlist-counter .lbl{font-size:13px;color:var(--ink-2);}
+.avatars span:first-child{margin-left:0;background:linear-gradient(135deg,#E8B894,#7B5239)}
+.avatars span:nth-child(2){background:linear-gradient(135deg,#BD8C5C,#4D3320)}
+.avatars span:nth-child(3){background:linear-gradient(135deg,#D9A576,#6B4628)}
+.avatars span:nth-child(4){background:linear-gradient(135deg,#F1C39E,#8E5E3D)}
+.waitlist-counter .wc-num{font-family:'Geist Mono',monospace;font-weight:500;color:var(--ink)}
+.waitlist-counter .wc-lbl{font-size:13px;color:var(--ink-2)}
 
-/* PHONE MOCK */
-.phone-wrap{position:relative;display:flex;justify-content:center;}
+/* ── PHONE MOCK ── */
+.phone-wrap{position:relative;display:flex;justify-content:center}
 .phone{
   width:320px;aspect-ratio:9/19;
   background:linear-gradient(180deg,#1a1f1b,#0e120f);
@@ -186,96 +225,114 @@ h1.display .accent-word{color:var(--accent);}
   color:var(--ink);padding:50px 18px 18px;
   display:flex;flex-direction:column;gap:14px;font-size:12px;
 }
-.ps-row{display:flex;align-items:center;justify-content:space-between;}
-.ps-greet{color:var(--ink-3);font-size:11px;}
-.ps-name{font-size:14px;font-weight:500;}
+.ps-row{display:flex;align-items:center;justify-content:space-between}
+.ps-greet{color:var(--ink-3);font-size:11px}
+.ps-name{font-size:14px;font-weight:500}
 .ps-balance-card{
   background:linear-gradient(135deg,color-mix(in oklch,var(--accent) 90%,black),color-mix(in oklch,var(--accent) 60%,black));
-  color:var(--accent-ink);border-radius:18px;padding:16px;
-  position:relative;overflow:hidden;
+  color:var(--accent-ink);border-radius:18px;padding:16px;position:relative;overflow:hidden;
 }
 .ps-balance-card::after{
   content:"";position:absolute;right:-20px;top:-20px;
   width:120px;height:120px;border-radius:50%;
   background:rgba(255,255,255,.18);filter:blur(6px);
 }
-.ps-balance-card .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;}
-.ps-balance-card .amt{font-family:'Geist Mono',monospace;font-size:28px;font-weight:600;letter-spacing:-.02em;margin-top:4px;}
-.ps-balance-card .sub{font-size:11px;opacity:.8;margin-top:6px;}
-.ps-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.ps-balance-card .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.7}
+.ps-balance-card .amt{font-size:28px;font-weight:600;letter-spacing:-0.02em;margin-top:4px;font-family:'Geist Mono',monospace}
+.ps-balance-card .sub{font-size:11px;opacity:.8;margin-top:6px}
+.ps-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .ps-quick button{
   appearance:none;border:0;background:rgba(255,255,255,.05);
   color:var(--ink);padding:10px 6px;border-radius:12px;
   font:inherit;font-size:10px;cursor:pointer;
   display:flex;flex-direction:column;align-items:center;gap:6px;
 }
-.ps-quick .ic{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;}
-.ps-section-title{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;}
-.ps-circle{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;}
-.ps-circle .top{display:flex;justify-content:space-between;align-items:center;}
-.ps-circle .nm{font-weight:500;font-size:13px;}
-.ps-circle .badge{font-family:'Geist Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;background:color-mix(in oklch,var(--accent) 15%,transparent);color:var(--accent);}
-.ps-circle .bar-track{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;}
-.ps-circle .bar-fill{height:100%;background:var(--accent);border-radius:2px;}
-.ps-circle .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3);}
+.ps-quick .ic{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center}
+.ps-section-title{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.08em;
+}
+.ps-circle{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;
+}
+.ps-circle .top{display:flex;justify-content:space-between;align-items:center}
+.ps-circle .nm{font-weight:500;font-size:13px}
+.ps-circle .badge{
+  font-family:'Geist Mono',monospace;font-size:10px;
+  padding:2px 6px;border-radius:4px;
+  background:color-mix(in oklch,var(--accent) 15%,transparent);color:var(--accent);
+}
+.ps-circle .progress{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
+.ps-circle .progress i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.ps-circle .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-3)}
 
-/* TRUST BAND */
-.trust-band{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:28px 0;background:var(--bg-2);}
-.trust-row{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;}
-.trust-label{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase;}
-.partners{display:flex;gap:36px;align-items:center;flex-wrap:wrap;}
-.partner{color:var(--ink-2);font-weight:500;opacity:.7;font-size:16px;}
-.partner.script{font-family:'Instrument Serif',serif;font-style:italic;font-size:22px;}
-.partner.mono{font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.04em;}
+/* ── TRUST BAND ── */
+.trust-band{
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:28px 0;background:var(--bg-2);
+}
+.trust-row{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.trust-label{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.14em;text-transform:uppercase}
+.partners{display:flex;gap:36px;align-items:center;flex-wrap:wrap}
+.partner{color:var(--ink-2);font-weight:500;opacity:.7;font-size:16px}
+.partner.mono{font-family:'Geist Mono',monospace;font-size:13px;letter-spacing:.04em}
+.partner.script{font-family:'Instrument Serif',serif;font-style:italic;font-size:22px}
 
-/* SECTIONS */
-section{padding:96px 0;position:relative;}
-.section-head{display:flex;flex-direction:column;gap:14px;max-width:720px;margin-bottom:56px;}
+/* ── SECTIONS ── */
+section{padding:96px 0;position:relative}
+.section-head{display:flex;flex-direction:column;gap:14px;max-width:720px;margin-bottom:56px}
 h2{
   font-size:clamp(32px,4vw,52px);font-weight:500;
-  line-height:1.02;letter-spacing:-.025em;
-  margin:0;text-wrap:balance;
+  line-height:1.02;letter-spacing:-0.025em;margin:0;text-wrap:balance;
 }
-.sub-lead{color:var(--ink-2);font-size:17px;line-height:1.55;max-width:560px;}
+h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400}
+.sub-lead{color:var(--ink-2);font-size:17px;line-height:1.55;max-width:560px}
 
-/* FEATURE GRID — 12-col */
-.feature-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
-.fcard{
+/* ── FEATURE GRID ── */
+.feature-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.card{
   background:rgba(244,242,236,.03);border:1px solid var(--line);
   border-radius:22px;padding:28px;position:relative;overflow:hidden;
-  transition:border-color .2s ease;
+  transition:border-color .2s;
 }
-.fcard:hover{border-color:var(--line-2);}
-.fcard .card-num{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.12em;}
-.fcard h3{font-size:22px;font-weight:500;margin:18px 0 10px;letter-spacing:-.01em;}
-.fcard p{font-size:14px;color:var(--ink-2);line-height:1.55;margin:0;}
-.col-6{grid-column:span 6;}.col-4{grid-column:span 4;}.col-8{grid-column:span 8;}
+.card:hover{border-color:var(--line-2)}
+.card .num{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.12em}
+.card h3{font-size:22px;font-weight:500;margin:18px 0 10px;letter-spacing:-0.01em}
+.card p{font-size:14px;color:var(--ink-2);line-height:1.55;margin:0}
+.col-6{grid-column:span 6}.col-4{grid-column:span 4}.col-8{grid-column:span 8}.col-12{grid-column:span 12}
 .icon-tile{
   width:44px;height:44px;border-radius:12px;
   background:color-mix(in oklch,var(--accent) 16%,transparent);
   border:1px solid color-mix(in oklch,var(--accent) 30%,transparent);
   color:var(--accent);display:grid;place-items:center;
 }
-.icon-tile svg{width:20px;height:20px;}
+.icon-tile svg{width:20px;height:20px}
 
-/* NCS SECTION */
-.ncs-section{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
-.ncs-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:60px;align-items:start;}
-.ncs-widget{background:var(--bg);border:1px solid var(--line-2);border-radius:28px;padding:36px;}
-.ncs-score{font-size:72px;font-weight:500;letter-spacing:-.04em;line-height:1;color:var(--ink);}
-.ncs-score .out{color:var(--ink-3);font-size:22px;font-weight:400;}
-.ncs-rank{color:var(--accent);font-size:14px;letter-spacing:.04em;margin-top:6px;}
-.ncs-factors{margin-top:28px;display:flex;flex-direction:column;gap:18px;}
-.factor{display:flex;flex-direction:column;gap:8px;}
-.factor .head{display:flex;justify-content:space-between;font-size:13px;}
-.factor .head .v{font-family:'Geist Mono',monospace;color:var(--ink);}
-.factor .head .l{color:var(--ink-2);}
+/* ── NCS SECTION ── */
+.ncs-section{background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ncs-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:60px;align-items:center}
+.ncs-widget{background:var(--bg);border:1px solid var(--line-2);border-radius:28px;padding:36px}
+.ncs-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.ncs-gauge{position:relative;width:100%;max-width:380px}
+.ncs-readout{text-align:center}
+.ncs-score-big{
+  font-family:'Geist',sans-serif;font-size:72px;font-weight:500;
+  letter-spacing:-0.04em;line-height:1;color:var(--ink);
+}
+.ncs-score-big .out{color:var(--ink-3);font-size:22px;font-weight:400}
+.ncs-rank{font-size:14px;letter-spacing:.04em;margin-top:6px}
+.ncs-factors{margin-top:28px;display:flex;flex-direction:column;gap:18px}
+.factor{display:flex;flex-direction:column;gap:8px}
+.factor .fhead{display:flex;justify-content:space-between;font-size:13px}
+.factor .fval{font-family:'Geist Mono',monospace;color:var(--ink)}
+.factor .flbl{color:var(--ink-2)}
 .factor input[type="range"]{
   appearance:none;-webkit-appearance:none;
   width:100%;height:6px;border-radius:3px;
   background:rgba(255,255,255,.08);outline:none;cursor:grab;
 }
-.factor input[type="range"]:active{cursor:grabbing;}
+.factor input[type="range"]:active{cursor:grabbing}
 .factor input[type="range"]::-webkit-slider-thumb{
   -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
   background:var(--accent);border:3px solid var(--bg);
@@ -283,19 +340,19 @@ h2{
 }
 .factor input[type="range"]::-moz-range-thumb{
   width:18px;height:18px;border-radius:50%;
-  background:var(--accent);border:3px solid var(--bg);cursor:grab;
+  background:var(--accent);border:3px solid var(--bg);
 }
 
-/* CALCULATOR */
-.calc-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:60px;align-items:stretch;}
+/* ── CALCULATOR ── */
+.calc-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:60px;align-items:stretch}
 .calc-controls{
   background:rgba(244,242,236,.03);border:1px solid var(--line);
   border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:24px;
 }
-.calc-row{display:flex;flex-direction:column;gap:10px;}
-.calc-row .head{display:flex;justify-content:space-between;align-items:baseline;}
-.calc-row .lbl{font-size:14px;color:var(--ink-2);}
-.calc-row .val{font-family:'Geist Mono',monospace;font-weight:500;color:var(--ink);font-size:16px;}
+.calc-row{display:flex;flex-direction:column;gap:10px}
+.calc-row .chead{display:flex;justify-content:space-between;align-items:baseline}
+.calc-row .clbl{font-size:14px;color:var(--ink-2)}
+.calc-row .cval{font-family:'Geist Mono',monospace;font-weight:500;color:var(--ink);font-size:16px}
 .calc-row input[type="range"]{
   appearance:none;-webkit-appearance:none;
   width:100%;height:6px;border-radius:3px;
@@ -303,21 +360,18 @@ h2{
 }
 .calc-row input[type="range"]::-webkit-slider-thumb{
   -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
-  background:var(--accent);border:3px solid var(--bg-2);
-  box-shadow:0 0 0 1px var(--accent);
+  background:var(--accent);border:3px solid var(--bg-2);box-shadow:0 0 0 1px var(--accent);
 }
 .calc-row input[type="range"]::-moz-range-thumb{
-  width:20px;height:20px;border-radius:50%;
-  background:var(--accent);border:3px solid var(--bg-2);
+  width:20px;height:20px;border-radius:50%;background:var(--accent);border:3px solid var(--bg-2);
 }
-.currency-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.currency-tabs{display:flex;gap:6px;flex-wrap:wrap}
 .currency-tabs button{
   appearance:none;border:1px solid var(--line);background:transparent;color:var(--ink-2);
   padding:6px 12px;border-radius:999px;cursor:pointer;
-  font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.04em;
-  transition:all .15s ease;
+  font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.04em;transition:all .15s;
 }
-.currency-tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+.currency-tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .calc-output{
   background:linear-gradient(180deg,rgba(244,242,236,.04),transparent);
   border:1px solid var(--line);border-radius:24px;padding:32px;
@@ -329,19 +383,17 @@ h2{
   background:radial-gradient(400px 200px at 80% 0%,color-mix(in oklch,var(--accent) 18%,transparent),transparent 60%);
   pointer-events:none;
 }
-.calc-output .blk{position:relative;z-index:1;}
-.calc-output .label{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em;}
+.calc-output .blk{position:relative;z-index:1}
+.calc-output .clabel{font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.12em}
 .calc-output .big{
-  font-family:'Geist',sans-serif;
-  font-size:clamp(48px,5vw,68px);font-weight:500;
-  letter-spacing:-.03em;line-height:1;margin-top:8px;color:var(--ink);
-  font-feature-settings:"tnum";
+  font-size:clamp(48px,5vw,68px);font-weight:500;letter-spacing:-0.03em;
+  line-height:1;margin-top:8px;color:var(--ink);font-feature-settings:"tnum";
 }
-.calc-output .big .cur{color:var(--accent);}
-.calc-meta-row{display:flex;gap:24px;flex-wrap:wrap;}
-.calc-meta{display:flex;flex-direction:column;gap:4px;}
-.calc-meta .v{font-family:'Geist Mono',monospace;font-size:18px;color:var(--ink);}
-.calc-meta .l{font-size:12px;color:var(--ink-3);}
+.calc-output .big .cur{color:var(--accent)}
+.calc-meta-row{display:flex;gap:24px;flex-wrap:wrap}
+.calc-meta{display:flex;flex-direction:column;gap:4px}
+.calc-meta .v{font-family:'Geist Mono',monospace;font-size:18px;color:var(--ink)}
+.calc-meta .l{font-size:12px;color:var(--ink-3)}
 .payout-bar{
   height:36px;border-radius:10px;background:rgba(255,255,255,.05);
   overflow:hidden;display:flex;border:1px solid var(--line);
@@ -350,71 +402,76 @@ h2{
   display:block;height:100%;border-right:1px solid var(--bg);
   background:linear-gradient(180deg,color-mix(in oklch,var(--accent) 70%,black),color-mix(in oklch,var(--accent) 50%,black));
 }
-.payout-bar i:last-child{border-right:0;}
-.payout-bar i.you{background:var(--accent);}
+.payout-bar i:last-child{border-right:0}
+.payout-bar i.you{background:var(--accent)}
 
-/* STORIES — cream takeover */
-.bg-warm{background:var(--warm);color:var(--warm-ink);border-top:1px solid color-mix(in oklch,var(--warm) 80%,black);}
-.bg-warm h2{color:var(--warm-ink);}
-.bg-warm .sub-lead{color:rgba(20,19,15,.6);}
-.bg-warm .eyebrow{color:rgba(20,19,15,.55);}
-.bg-warm .eyebrow::before{background:color-mix(in oklch,var(--accent) 70%,black);}
-.stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-.story{border-radius:22px;overflow:hidden;background:rgba(20,19,15,.03);border:1px solid rgba(20,19,15,.08);display:flex;flex-direction:column;}
+/* ── STORIES (cream takeover) ── */
+.bg-warm{background:var(--warm);color:var(--warm-ink);border-top:1px solid color-mix(in oklch,var(--warm) 80%,black)}
+.bg-warm h2{color:var(--warm-ink)}
+.bg-warm .sub-lead{color:rgba(20,19,15,.6)}
+.bg-warm .eyebrow{color:rgba(20,19,15,.55)}
+.bg-warm .eyebrow::before{background:rgba(20,19,15,.4)}
+.stories-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.story{border-radius:22px;overflow:hidden;background:rgba(244,242,236,.03);border:1px solid var(--line);display:flex;flex-direction:column}
+.bg-warm .story{background:rgba(20,19,15,.03);border-color:rgba(20,19,15,.08)}
 .story-img{
   aspect-ratio:4/3;
-  background:repeating-linear-gradient(135deg,rgba(20,19,15,.06) 0 8px,rgba(20,19,15,.02) 8px 16px),
-             linear-gradient(135deg,color-mix(in oklch,var(--accent) 30%,var(--warm)),var(--warm-2));
+  background:repeating-linear-gradient(135deg,rgba(244,242,236,.06) 0 8px,rgba(244,242,236,.02) 8px 16px),
+             linear-gradient(135deg,color-mix(in oklch,var(--accent) 30%,var(--bg)),var(--bg-2));
   position:relative;display:grid;place-items:center;
 }
-.story-img .ph-tag{
-  font-family:'Geist Mono',monospace;font-size:11px;color:rgba(20,19,15,.6);letter-spacing:.06em;
-  padding:4px 10px;border-radius:4px;background:rgba(20,19,15,.12);border:1px solid rgba(20,19,15,.15);
+.bg-warm .story-img{
+  background:repeating-linear-gradient(135deg,rgba(20,19,15,.05) 0 8px,rgba(20,19,15,.02) 8px 16px),
+             linear-gradient(135deg,color-mix(in oklch,var(--accent) 25%,var(--warm)),var(--warm-2));
 }
-.story-body{padding:24px;display:flex;flex-direction:column;gap:12px;flex:1;}
-.story .quote{font-size:17px;line-height:1.4;letter-spacing:-.005em;color:var(--warm-ink);}
-.story .who{display:flex;flex-direction:column;gap:2px;margin-top:auto;}
-.story .who .nm{font-size:13px;color:var(--warm-ink);font-weight:500;}
-.story .who .role{font-size:12px;color:rgba(20,19,15,.55);}
-.story .flag{font-family:'Geist Mono',monospace;font-size:11px;color:rgba(20,19,15,.45);letter-spacing:.04em;}
-
-/* STATS BAND — green takeover */
-.stats-band{background:var(--accent);color:var(--accent-ink);padding:80px 0;}
-.stats-band .container{display:flex;flex-direction:column;gap:32px;}
-.stats-band .pill{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1);color:var(--accent-ink);}
-.stats-band .pill .dot{background:var(--accent-ink);box-shadow:none;}
-.stats-band h2{color:var(--accent-ink);font-size:clamp(28px,3.5vw,44px);}
-.stats-band p{color:rgba(14,18,15,.7);max-width:540px;font-size:16px;line-height:1.55;margin:0;}
-.stats-row{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
-  margin-top:24px;border-top:1px solid rgba(0,0,0,.18);padding-top:32px;
+.ph-tag{
+  font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-2);
+  letter-spacing:.06em;padding:4px 10px;border-radius:4px;
+  background:rgba(0,0,0,.45);border:1px solid var(--line-2);
 }
-.stat .v{font-family:'Geist',sans-serif;font-size:clamp(40px,5vw,64px);font-weight:500;letter-spacing:-.03em;line-height:1;}
-.stat .l{font-size:13px;color:rgba(14,18,15,.65);margin-top:8px;}
+.story-body{padding:24px;display:flex;flex-direction:column;gap:12px;flex:1}
+.story .quote{font-size:17px;line-height:1.4;letter-spacing:-0.005em;color:var(--ink)}
+.bg-warm .story .quote{color:var(--warm-ink)}
+.story .who{display:flex;flex-direction:column;gap:2px;margin-top:auto}
+.story .who .nm{font-size:13px;font-weight:500}
+.story .who .role{font-size:12px;color:var(--ink-3)}
+.bg-warm .story .who .role{color:rgba(20,19,15,.5)}
+.story .flag{font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);letter-spacing:.04em}
 
-/* STEPS */
-.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+/* ── STATS BAND (green takeover) ── */
+.stats-band{background:var(--accent);color:var(--accent-ink);padding:80px 0}
+.stats-band .sbc{display:flex;flex-direction:column;gap:32px}
+.stats-band .pill{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.1);color:var(--accent-ink)}
+.stats-band .pill .dot{background:var(--accent-ink);box-shadow:none}
+.stats-band h2{color:var(--accent-ink)}
+.stats-band p{color:rgba(14,18,15,.7);max-width:540px;font-size:16px;line-height:1.55;margin:0}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:24px;border-top:1px solid rgba(0,0,0,.18);padding-top:32px}
+.stat .sv{font-size:clamp(40px,5vw,64px);font-weight:500;letter-spacing:-0.03em;line-height:1;font-family:'Geist Mono',monospace}
+.stat .sl{font-size:13px;color:rgba(14,18,15,.65);margin-top:8px}
+
+/* ── STEPS ── */
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .step{
   background:rgba(244,242,236,.03);border:1px solid var(--line);
-  border-radius:22px;padding:28px;
-  display:flex;flex-direction:column;gap:16px;min-height:240px;
+  border-radius:22px;padding:28px;display:flex;flex-direction:column;
+  gap:16px;min-height:240px;position:relative;
 }
 .step-num{
   width:40px;height:40px;border-radius:12px;
-  background:color-mix(in oklch,var(--accent) 18%,transparent);
-  color:var(--accent);display:grid;place-items:center;
+  background:color-mix(in oklch,var(--accent) 18%,transparent);color:var(--accent);
+  display:grid;place-items:center;
   font-family:'Geist Mono',monospace;font-weight:500;font-size:14px;letter-spacing:.04em;
   border:1px solid color-mix(in oklch,var(--accent) 35%,transparent);
 }
-.step h3{font-size:20px;font-weight:500;margin:0;letter-spacing:-.01em;}
-.step p{color:var(--ink-2);font-size:14px;line-height:1.55;margin:0;}
+.step h3{font-size:20px;font-weight:500;margin:0;letter-spacing:-0.01em}
+.step p{color:var(--ink-2);font-size:14px;line-height:1.55;margin:0}
 
-/* APP PROMO */
+/* ── APP PROMO ── */
 .app-promo{
   background:linear-gradient(135deg,var(--bg-2),var(--bg));
   border:1px solid var(--line);border-radius:32px;padding:56px;
-  display:grid;grid-template-columns:1fr 360px;gap:40px;
-  align-items:center;overflow:hidden;position:relative;
+  display:grid;grid-template-columns:1fr 360px;gap:40px;align-items:center;
+  overflow:hidden;position:relative;
 }
 .app-promo::after{
   content:"";position:absolute;right:-100px;top:-100px;
@@ -423,94 +480,99 @@ h2{
   pointer-events:none;
 }
 
-/* WAITLIST CTA — green block */
+/* ── WAITLIST CTA (green takeover) ── */
 .waitlist-cta{
   background:var(--accent);color:var(--accent-ink);
   border-radius:28px;padding:64px;
   display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
   position:relative;overflow:hidden;
 }
-.waitlist-cta h2{color:var(--accent-ink);}
+.waitlist-cta h2{color:var(--accent-ink)}
 .waitlist-form{
   display:flex;gap:8px;align-items:center;
-  background:var(--accent-ink);padding:6px;border-radius:999px;
+  background:var(--accent-ink);color:var(--ink);
+  padding:6px;border-radius:999px;
 }
 .waitlist-form input{
   flex:1;appearance:none;border:0;background:transparent;
   color:var(--ink);padding:0 18px;height:44px;font:inherit;outline:none;
 }
-.waitlist-form input::placeholder{color:var(--ink-3);}
-.waitlist-form .btn-primary{height:44px;background:var(--accent);color:var(--accent-ink);}
+.waitlist-form input::placeholder{color:var(--ink-3)}
+.waitlist-form .btn-primary{height:44px}
 
-/* FOOTER */
-footer{padding:80px 0 40px;}
-.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:40px;}
-.foot-col h4{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);margin:0 0 16px;font-weight:500;}
-.foot-col a{display:block;color:var(--ink-2);font-size:14px;padding:6px 0;transition:color .15s;}
-.foot-col a:hover{color:var(--ink);}
-.foot-socials{display:flex;gap:8px;margin-top:4px;}
+/* ── FOOTER ── */
+footer{padding:80px 0 40px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:40px}
+.foot-col h4{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);margin:0 0 16px;font-weight:500;font-family:'Geist Mono',monospace}
+.foot-col a{display:block;color:var(--ink-2);text-decoration:none;font-size:14px;padding:6px 0;transition:color .15s}
+.foot-col a:hover{color:var(--ink)}
+.foot-socials{display:flex;gap:8px;margin-top:16px}
 .foot-socials a{
-  width:32px;height:32px;border-radius:50%;
-  border:1px solid var(--line-2);display:grid;place-items:center;
-  font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-3);
-  transition:all .15s;
+  width:32px;height:32px;border-radius:50%;border:1px solid var(--line-2);
+  display:grid;place-items:center;text-align:center;
+  font-size:11px;font-family:'Geist Mono',monospace;color:var(--ink-2);
+  text-decoration:none;transition:all .15s;
 }
-.foot-socials a:hover{border-color:var(--ink-2);color:var(--ink);}
+.foot-socials a:hover{border-color:var(--ink);color:var(--ink)}
 .foot-bottom{
   margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
   display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
   font-size:12px;color:var(--ink-3);
 }
-.legal{max-width:720px;line-height:1.6;}
+.legal{max-width:720px;line-height:1.6}
 
-/* ── MOBILE BREAKPOINTS ─────────────────────────── */
+/* ── RESPONSIVE ── */
 @media(max-width:980px){
-  .hero-grid,.ncs-grid,.calc-grid,.app-promo{grid-template-columns:1fr;gap:40px;}
-  .app-promo{padding:40px 28px;}
-  .waitlist-cta{grid-template-columns:1fr;padding:40px;}
-  .nav-links,.nav-actions .lang-toggle,.nav-actions .btn-ghost{display:none;}
-  .nav-burger{display:flex;}
+  .hero-grid{grid-template-columns:1fr;gap:40px}
+  .ncs-grid{grid-template-columns:1fr}
+  .calc-grid{grid-template-columns:1fr}
+  .app-promo{grid-template-columns:1fr;padding:40px}
+  .phone-wrap{justify-content:center}
+  .phone{width:280px}
+  section{padding:72px 0}
 }
 @media(max-width:880px){
-  section{padding:56px 0;}
-  .container{padding:0 20px;}
-  .section-head{margin-bottom:32px;}
-  .col-6,.col-4,.col-8{grid-column:span 12;}
-  .stories-grid,.steps-grid{grid-template-columns:1fr;}
-  .stats-row{grid-template-columns:repeat(2,1fr);}
-  .foot-grid{grid-template-columns:1fr 1fr;}
+  .col-6,.col-4,.col-8{grid-column:span 12}
+  .stories-grid{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .steps-grid{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr 1fr}
+  .waitlist-cta{grid-template-columns:1fr;padding:40px}
+  section{padding:56px 0}
 }
-@media(max-width:600px){
-  section{padding:44px 0;}
-  .container{padding:0 16px;}
-  h1.display{font-size:clamp(36px,10vw,44px);}
-  h2{font-size:clamp(28px,7vw,36px);}
-  .phone{width:260px;}
-  .stat .v{font-size:36px;}
-  .waitlist-form{flex-direction:column;border-radius:16px;padding:12px;}
-  .waitlist-form input{width:100%;padding:0 12px;}
-  .waitlist-form .btn-primary{width:100%;height:48px;}
+@media(max-width:480px){
+  .phone{width:240px}
+  h1.display{font-size:clamp(36px,8vw,48px)}
+  .waitlist-cta{padding:28px}
+  .app-promo{padding:28px}
+  section{padding:44px 0}
+}
+
+button:focus-visible,a:focus-visible,input:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ════════════════════════════════════════════════════════
+     NAV
+════════════════════════════════════════════════════════ -->
 <nav class="nav">
   <div class="container nav-row">
     <a href="/" class="brand">
       <span class="brand-mark">S</span>
-      Sohana
+      <span>Sohana</span>
     </a>
     <div class="nav-links">
       <a href="#circles">Circles</a>
       <a href="#credit">NCS Credit</a>
-      <a href="#wallet">Wallet</a>
+      <a href="#calculator">Calculator</a>
       <a href="#stories">Community</a>
-      <a href="/about">Company</a>
+      <a href="#company">Company</a>
     </div>
     <div class="nav-actions">
-      <div class="lang-toggle">
+      <div class="lang-toggle" role="group" aria-label="Language">
         <button class="on" id="lang-en" onclick="setLang('EN')">EN</button>
         <button id="lang-fr" onclick="setLang('FR')">FR</button>
       </div>
@@ -525,58 +587,55 @@ footer{padding:80px 0 40px;}
   </div>
 </nav>
 
-<!-- MOBILE DRAWER -->
+<!-- Mobile drawer -->
 <div class="nav-drawer" id="nav-drawer">
   <div class="nav-drawer-backdrop" onclick="closeDrawer()"></div>
   <div class="nav-drawer-panel">
-    <div class="nav-drawer-head">
-      <a href="/" class="brand"><span class="brand-mark">S</span>Sohana</a>
-      <button onclick="closeDrawer()" style="appearance:none;border:0;background:transparent;color:var(--ink-2);font-size:1.25rem;cursor:pointer;">✕</button>
-    </div>
-    <div class="lang-toggle" style="align-self:flex-start;">
-      <button class="on" onclick="setLang('EN')">EN</button>
-      <button onclick="setLang('FR')">FR</button>
-    </div>
-    <div class="nav-drawer-links">
-      <a href="#circles" onclick="closeDrawer()">Circles</a>
-      <a href="#credit" onclick="closeDrawer()">NCS Credit</a>
-      <a href="#wallet" onclick="closeDrawer()">Wallet</a>
-      <a href="#stories" onclick="closeDrawer()">Community</a>
-      <a href="/about" onclick="closeDrawer()">Company</a>
-    </div>
-    <div class="nav-drawer-cta" style="display:flex;flex-direction:column;gap:10px;">
-      <a href="/auth" class="btn btn-ghost" style="width:100%;justify-content:center;">Sign in</a>
-      <a href="/auth" class="btn btn-primary" style="width:100%;justify-content:center;">Join the waitlist</a>
+    <button class="nav-drawer-close" onclick="closeDrawer()">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <a href="#circles" onclick="closeDrawer()">Circles</a>
+    <a href="#credit" onclick="closeDrawer()">NCS Credit</a>
+    <a href="#calculator" onclick="closeDrawer()">Calculator</a>
+    <a href="#stories" onclick="closeDrawer()">Community</a>
+    <a href="#company" onclick="closeDrawer()">Company</a>
+    <div class="nav-drawer-bottom">
+      <div class="lang-toggle" style="align-self:flex-start">
+        <button class="on" id="dlang-en" onclick="setLang('EN')">EN</button>
+        <button id="dlang-fr" onclick="setLang('FR')">FR</button>
+      </div>
+      <a href="/auth" class="btn btn-ghost" style="justify-content:center">Sign in</a>
+      <a href="/auth" class="btn btn-primary" style="justify-content:center">Join waitlist →</a>
     </div>
   </div>
 </div>
 
-<!-- HERO -->
+<!-- ════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════ -->
 <header class="hero">
   <div class="container hero-grid">
     <div>
       <span class="pill"><span class="dot"></span>Regulated · launching Q3 2026 · #12,438 in line</span>
-      <h1 class="display">
-        Save together.<br>
-        Build <span class="accent-word">credit.</span><br>
-        Send money <span class="ital">home.</span>
+      <h1 class="display" id="hero-h1">
+        Save together.<br>Build <span class="accent">credit</span>.<br>Send money <span class="ital">home</span>.
       </h1>
-      <p class="lead">Sohana brings your savings circle online — with the NCS credit score that opens doors banks can't.</p>
+      <p class="lead" id="hero-lead">SOHANA brings your savings circle online — with the NCS credit score that opens doors banks can't.</p>
       <div class="hero-cta">
         <a href="/auth" class="btn btn-primary">
           Join the waitlist
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>
         <a href="#circles" class="btn btn-ghost">See how it works</a>
-        <span class="micro mono">No card · 60-second sign-up</span>
+        <span class="micro mono" style="font-size:12px;color:var(--ink-3);margin-left:6px">No card · 60-second sign-up</span>
       </div>
       <div class="waitlist-counter">
         <div class="avatars">
           <span></span><span></span><span></span><span></span>
         </div>
         <div>
-          <div class="num">12,438+ <span class="lbl mono" style="margin-left:6px;color:var(--ink-3);">already in line</span></div>
-          <div class="lbl">from 14 countries across France, UK, Canada, Cameroon, Nigeria, Ghana, Côte d'Ivoire, Rwanda</div>
+          <div class="wc-num">12,438+ <span class="wc-lbl mono" style="margin-left:6px;color:var(--ink-3);font-size:13px">already in line</span></div>
+          <div class="wc-lbl">from 14 countries · France, UK, Canada, Cameroon, Nigeria, Ghana, Rwanda</div>
         </div>
       </div>
     </div>
@@ -590,8 +649,11 @@ footer{padding:80px 0 40px;}
               <div class="ps-greet">Sanu yelo,</div>
               <div class="ps-name">Aïcha M.</div>
             </div>
-            <div style="display:flex;gap:8px;">
-              <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;">
+            <div style="display:flex;gap:8px">
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22a10 10 0 100-20 10 10 0 000 20z"/></svg>
+              </div>
+              <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 17h5l-2-2v-5a6 6 0 10-12 0v5l-2 2h5"/><path d="M10 21a2 2 0 004 0"/></svg>
               </div>
             </div>
@@ -607,21 +669,15 @@ footer{padding:80px 0 40px;}
             <button><span class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7 17l-4-4 4-4M17 7l4 4-4 4M3 13h18"/></svg></span>Swap</button>
             <button><span class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg></span>Save</button>
           </div>
-          <div class="ps-section-title"><span>My circles</span><span style="color:var(--accent);">3 active</span></div>
+          <div class="ps-section-title"><span>My circles</span><span style="color:var(--accent)">3 active</span></div>
           <div class="ps-circle">
-            <div class="top">
-              <div><div class="nm">Maman's Tontine</div><div class="meta" style="font-size:10px;color:var(--ink-3);">12 members · monthly · €200</div></div>
-              <div class="badge">YOU R.5</div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:42%;"></div></div>
+            <div class="top"><div><div class="nm">Maman's Tontine</div><div class="meta" style="font-size:10px;color:var(--ink-3)">12 members · monthly · €200</div></div><div class="badge">YOU R.5</div></div>
+            <div class="progress"><i style="width:42%"></i></div>
             <div class="meta"><span>5 of 12 paid out</span><span class="mono">€2,400 next</span></div>
           </div>
           <div class="ps-circle">
-            <div class="top">
-              <div><div class="nm">Yaoundé Sisters</div><div class="meta" style="font-size:10px;color:var(--ink-3);">8 members · weekly · 50,000 XAF</div></div>
-              <div class="badge" style="background:rgba(255,255,255,.06);color:var(--ink-2);">R.2</div>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:25%;"></div></div>
+            <div class="top"><div><div class="nm">Yaoundé Sisters</div><div class="meta" style="font-size:10px;color:var(--ink-3)">8 members · weekly · 50,000 XAF</div></div><div class="badge" style="background:rgba(255,255,255,.06);color:var(--ink-2)">R.2</div></div>
+            <div class="progress"><i style="width:25%"></i></div>
             <div class="meta"><span>2 of 8 paid out</span><span class="mono">€610 next</span></div>
           </div>
         </div>
@@ -630,7 +686,9 @@ footer{padding:80px 0 40px;}
   </div>
 </header>
 
-<!-- TRUST BAND -->
+<!-- ════════════════════════════════════════════════════════
+     TRUST BAND
+════════════════════════════════════════════════════════ -->
 <div class="trust-band">
   <div class="container trust-row">
     <div class="trust-label">Regulated &amp; partnered with</div>
@@ -645,7 +703,9 @@ footer{padding:80px 0 40px;}
   </div>
 </div>
 
-<!-- FEATURES — 12-col -->
+<!-- ════════════════════════════════════════════════════════
+     FEATURES — CIRCLES
+════════════════════════════════════════════════════════ -->
 <section id="circles">
   <div class="container">
     <div class="section-head">
@@ -654,210 +714,180 @@ footer{padding:80px 0 40px;}
       <p class="sub-lead">Run weekly, biweekly or monthly circles in any of eight currencies. Transparent contributions, automated payouts, and full organiser controls — without a WhatsApp ledger in sight.</p>
     </div>
     <div class="feature-grid">
-      <div class="fcard col-6">
-        <div class="card-num">A · ORGANISER</div>
-        <div class="icon-tile" style="margin:18px 0 0;">
+      <div class="card col-6">
+        <div class="num">A · ORGANISER</div>
+        <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><path d="M15 20c0-2.5 2-4 4-4s4 1.5 4 4"/></svg>
         </div>
         <h3>Organiser controls, not group-chat chaos</h3>
-        <p>Invite members by Hanatag, set contribution rules, freeze a defaulter, rotate the payout slot — Sohana enforces what your circle agreed at the start.</p>
+        <p>Invite members by Hanatag, set the contribution rules, freeze a defaulter, rotate the payout slot — Sohana enforces what your circle agreed at the start.</p>
       </div>
-      <div class="fcard col-6">
-        <div class="card-num">B · TRANSPARENT FUNDS</div>
-        <div class="icon-tile" style="margin:18px 0 0;">
+      <div class="card col-6">
+        <div class="num">B · TRANSPARENT FUNDS</div>
+        <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 16h3"/></svg>
         </div>
         <h3>Funds held in regulated escrow</h3>
         <p>Every contribution sits in a segregated, ringfenced account. Members see balances live; payouts auto-release on schedule with full audit trail.</p>
       </div>
-      <div class="fcard col-4">
-        <div class="card-num">C · FLEXIBLE</div>
-        <div class="icon-tile" style="margin:18px 0 0;">
+      <div class="card col-4">
+        <div class="num">C · FLEXIBLE</div>
+        <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         </div>
         <h3>Weekly, biweekly, monthly</h3>
-        <p>Run circles however your community does. 3 to 50 members. €20 to €5,000 contributions.</p>
+        <p>Run circles however your community runs them. 3 to 50 members. €20 to €5,000 contributions.</p>
       </div>
-      <div class="fcard col-4">
-        <div class="card-num">D · RECOVERY</div>
-        <div class="icon-tile" style="margin:18px 0 0;">
+      <div class="card col-4">
+        <div class="num">D · RECOVERY</div>
+        <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1015-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
         </div>
         <h3>Missed-contribution buffer</h3>
-        <p>Optional shared buffer covers a missed round so payouts never stall. Repaid automatically from the next contribution.</p>
+        <p>Optional shared buffer pool covers a missed round so payouts never stall. Repaid from the member's next contribution, automatically.</p>
       </div>
-      <div class="fcard col-4">
-        <div class="card-num">E · MULTI-CIRCLE</div>
-        <div class="icon-tile" style="margin:18px 0 0;">
+      <div class="card col-4">
+        <div class="num">E · MULTI-CIRCLE</div>
+        <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="5"/><circle cx="16" cy="15" r="5"/></svg>
         </div>
         <h3>Run as many as you want</h3>
-        <p>Family savings, work chama, holiday fund. Each circle has its own rules, members, and currency.</p>
+        <p>Family savings, work chama, holiday fund, baby fund. Each circle has its own rules, members and currency.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- NCS GAUGE — interactive -->
+<!-- ════════════════════════════════════════════════════════
+     NCS GAUGE — interactive
+════════════════════════════════════════════════════════ -->
 <section id="credit" class="ncs-section">
   <div class="container ncs-grid">
     <div>
       <span class="eyebrow">02 · Njangi Credit Score</span>
-      <h2 style="margin-top:14px;">A credit score built from <span class="ital">how you save</span>, not whether a bank let you borrow.</h2>
-      <p class="sub-lead" style="margin-top:16px;">NCS is a 300–850 behavioural score derived from your real contribution history. Drag the factors to see how each one moves the dial — and where you'd start.</p>
-      <div style="display:flex;flex-direction:column;gap:14px;margin-top:28px;">
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px;">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+      <h2 style="margin-top:14px">A credit score built from <span class="ital">how you save</span>, not whether a bank let you borrow.</h2>
+      <p class="sub-lead" style="margin-top:16px">NCS is a 300–850 behavioural score derived from your real contribution history across Sohana circles. Drag the factors to see how each one moves the dial — and where you'd start.</p>
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:28px">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
           </div>
-          <div>
-            <div style="font-weight:500;color:var(--ink);margin-bottom:4px;">Built from on-time contributions</div>
-            <div style="color:var(--ink-2);font-size:14px;line-height:1.55;">Every round you complete is a positive datapoint, weighted by tenure and circle size.</div>
-          </div>
+          <div><div style="font-weight:500;color:var(--ink);margin-bottom:4px">Built from on-time contributions</div><div style="color:var(--ink-2);font-size:14px;line-height:1.55">Every round you complete is a positive datapoint, weighted by tenure and circle size.</div></div>
         </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px;">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
           </div>
-          <div>
-            <div style="font-weight:500;color:var(--ink);margin-bottom:4px;">Portable across borders</div>
-            <div style="color:var(--ink-2);font-size:14px;line-height:1.55;">Use your NCS to access partner credit products in France, UK, Canada, and Africa.</div>
-          </div>
+          <div><div style="font-weight:500;color:var(--ink);margin-bottom:4px">Portable across borders</div><div style="color:var(--ink-2);font-size:14px;line-height:1.55">Use your NCS to access partner credit products in France, UK, Canada and partner African markets.</div></div>
         </div>
-        <div style="display:flex;gap:14px;align-items:flex-start;">
-          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px;">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex-shrink:0;margin-top:2px">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg>
           </div>
-          <div>
-            <div style="font-weight:500;color:var(--ink);margin-bottom:4px;">You see the math</div>
-            <div style="color:var(--ink-2);font-size:14px;line-height:1.55;">No black box. Every factor and weight is visible — drag the sliders, watch the score update live.</div>
-          </div>
+          <div><div style="font-weight:500;color:var(--ink);margin-bottom:4px">You see the math</div><div style="color:var(--ink-2);font-size:14px;line-height:1.55">No black box. Every factor and weight is visible — drag the sliders, watch the score.</div></div>
         </div>
       </div>
     </div>
-
     <!-- NCS Widget -->
     <div class="ncs-widget">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:20px;">
-        <div style="width:100%;max-width:380px;">
-          <svg id="ncs-svg" viewBox="0 0 320 200" width="100%" style="display:block;">
+      <div class="ncs-gauge-wrap">
+        <div class="ncs-gauge" style="max-width:380px;width:100%">
+          <svg id="ncs-svg" viewBox="0 0 320 200" width="100%" style="display:block">
             <defs>
               <linearGradient id="ncsGrad" x1="0" x2="1" y1="0" y2="0">
                 <stop offset="0" stop-color="#E89E72"/>
                 <stop offset="0.4" stop-color="#E2C16B"/>
-                <stop offset="0.7" stop-color="#76E0A1"/>
-                <stop offset="1" stop-color="#9EE493"/>
+                <stop offset="0.7" stop-color="var(--accent-2)"/>
+                <stop offset="1" stop-color="var(--accent)"/>
               </linearGradient>
             </defs>
+            <!-- track -->
             <path id="ncs-track" stroke="rgba(255,255,255,0.08)" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <!-- fill -->
             <path id="ncs-fill" stroke="url(#ncsGrad)" stroke-width="14" fill="none" stroke-linecap="round"/>
+            <!-- labels -->
             <text x="14" y="188" font-family="Geist Mono" font-size="11" fill="rgba(255,255,255,0.45)">300</text>
             <text x="278" y="188" font-family="Geist Mono" font-size="11" fill="rgba(255,255,255,0.45)">850</text>
-            <circle id="ncs-indicator" r="9" fill="var(--bg)" stroke="var(--accent)" stroke-width="3"/>
+            <!-- indicator dot -->
+            <circle id="ncs-dot" r="9" fill="var(--bg)" stroke="var(--accent)" stroke-width="3"/>
           </svg>
-          <div style="text-align:center;margin-top:-28px;">
-            <div class="ncs-score"><span id="ncs-val">721</span><span class="out"> / 850</span></div>
-            <div class="ncs-rank" id="ncs-rank">● Solid</div>
+          <div class="ncs-readout" style="margin-top:-28px">
+            <div class="ncs-score-big"><span id="ncs-score-val">721</span><span class="out"> / 850</span></div>
+            <div class="ncs-rank" id="ncs-rank" style="color:var(--accent)">● Reliable</div>
           </div>
         </div>
       </div>
-      <div class="ncs-factors">
-        <div class="factor">
-          <div class="head"><span class="l">Contribution consistency <span class="mono" style="color:var(--ink-3);margin-left:8px;">·35%</span></span><span class="v" id="fv-consistency">92</span></div>
-          <input type="range" min="0" max="100" value="92" oninput="updateFactor('consistency',this.value)">
-        </div>
-        <div class="factor">
-          <div class="head"><span class="l">Active circles <span class="mono" style="color:var(--ink-3);margin-left:8px;">·20%</span></span><span class="v" id="fv-circles">75</span></div>
-          <input type="range" min="0" max="100" value="75" oninput="updateFactor('circles',this.value)">
-        </div>
-        <div class="factor">
-          <div class="head"><span class="l">Tenure on Sohana <span class="mono" style="color:var(--ink-3);margin-left:8px;">·15%</span></span><span class="v" id="fv-tenure">60</span></div>
-          <input type="range" min="0" max="100" value="60" oninput="updateFactor('tenure',this.value)">
-        </div>
-        <div class="factor">
-          <div class="head"><span class="l">Organiser reputation <span class="mono" style="color:var(--ink-3);margin-left:8px;">·15%</span></span><span class="v" id="fv-organiser">80</span></div>
-          <input type="range" min="0" max="100" value="80" oninput="updateFactor('organiser',this.value)">
-        </div>
-        <div class="factor">
-          <div class="head"><span class="l">Cross-circle diversity <span class="mono" style="color:var(--ink-3);margin-left:8px;">·15%</span></span><span class="v" id="fv-diversity">55</span></div>
-          <input type="range" min="0" max="100" value="55" oninput="updateFactor('diversity',this.value)">
-        </div>
-      </div>
+      <div class="ncs-factors" id="ncs-factors"></div>
     </div>
   </div>
 </section>
 
-<!-- ROSCA CALCULATOR -->
-<section id="wallet">
+<!-- ════════════════════════════════════════════════════════
+     ROSCA CALCULATOR — interactive
+════════════════════════════════════════════════════════ -->
+<section id="calculator">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">03 · Try the math</span>
-      <h2>See what your savings circle <span class="ital">could do.</span></h2>
-      <p class="sub-lead">Pick the size, contribution, and cadence. Sohana shows you the payout in any of our eight supported currencies — and where you'd land in the rotation.</p>
+      <h2>See what your savings circle <span class="ital">could do</span>.</h2>
+      <p class="sub-lead">Pick the size, the contribution and the cadence. Sohana shows you the payout in any of our eight supported currencies — and where you'd land in the rotation.</p>
     </div>
     <div class="calc-grid">
       <div class="calc-controls">
         <div class="calc-row">
-          <div class="head"><span class="lbl">Currency</span></div>
-          <div class="currency-tabs" id="calc-currency-tabs">
-            <button class="on" onclick="setCur(0)">EUR</button>
-            <button onclick="setCur(1)">GBP</button>
-            <button onclick="setCur(2)">USD</button>
-            <button onclick="setCur(3)">CAD</button>
-            <button onclick="setCur(4)">XAF</button>
-            <button onclick="setCur(5)">GHC</button>
-            <button onclick="setCur(6)">NGN</button>
-            <button onclick="setCur(7)">ZAR</button>
+          <div class="chead"><span class="clbl">Currency</span></div>
+          <div class="currency-tabs" id="calc-cur-tabs"></div>
+        </div>
+        <div class="calc-row">
+          <div class="chead"><span class="clbl">Circle members</span><span class="cval" id="calc-members-val">12</span></div>
+          <input type="range" min="3" max="24" value="12" id="calc-members" oninput="updateCalc()">
+        </div>
+        <div class="calc-row">
+          <div class="chead"><span class="clbl">Contribution per round</span><span class="cval" id="calc-contrib-val">€200</span></div>
+          <input type="range" min="20" max="1000" step="10" value="200" id="calc-contrib" oninput="updateCalc()">
+        </div>
+        <div class="calc-row">
+          <div class="chead"><span class="clbl">Frequency</span></div>
+          <div class="currency-tabs" id="calc-freq-tabs">
+            <button onclick="setFreq('weekly')" id="freq-weekly">weekly</button>
+            <button onclick="setFreq('biweekly')" id="freq-biweekly">biweekly</button>
+            <button class="on" onclick="setFreq('monthly')" id="freq-monthly">monthly</button>
           </div>
         </div>
-        <div class="calc-row">
-          <div class="head"><span class="lbl">Circle members</span><span class="val" id="calc-members-val">12</span></div>
-          <input type="range" min="3" max="24" value="12" oninput="setMembers(this.value)">
-        </div>
-        <div class="calc-row">
-          <div class="head"><span class="lbl">Contribution per round</span><span class="val" id="calc-contrib-val">€200</span></div>
-          <input type="range" min="20" max="1000" step="10" value="200" oninput="setContrib(this.value)">
-        </div>
-        <div class="calc-row">
-          <div class="head"><span class="lbl">Frequency</span></div>
-          <div class="currency-tabs">
-            <button class="on" id="freq-weekly" onclick="setFreq('weekly')">weekly</button>
-            <button id="freq-biweekly" onclick="setFreq('biweekly')">biweekly</button>
-            <button id="freq-monthly" onclick="setFreq('monthly')">monthly</button>
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
-          <div style="font-size:13px;color:var(--ink-2);">Payout schedule</div>
-          <div class="payout-bar" id="payout-bar"></div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);font-family:'Geist Mono',monospace;">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <div style="font-size:13px;color:var(--ink-2)">Payout schedule</div>
+          <div class="payout-bar" id="calc-bar" aria-hidden="true"></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3);font-family:'Geist Mono',monospace">
             <span>Round 1</span>
-            <span style="color:var(--accent);" id="payout-label">● Your payout · Round 5</span>
-            <span id="payout-last">Round 12</span>
+            <span style="color:var(--accent)" id="calc-your-slot">● Your payout · Round 5</span>
+            <span id="calc-last-round">Round 12</span>
           </div>
         </div>
       </div>
       <div class="calc-output">
         <div class="blk">
-          <div class="label">Your payout</div>
+          <div class="clabel">Your payout</div>
           <div class="big"><span class="cur" id="calc-sym">€</span><span id="calc-payout">2,400</span></div>
-          <div style="color:var(--ink-2);font-size:13px;margin-top:10px;" id="calc-round-info">on round <span class="mono" style="color:var(--ink);">5</span> of <span class="mono" style="color:var(--ink);">12</span>, monthly.</div>
+          <div style="color:var(--ink-2);font-size:13px;margin-top:10px" id="calc-desc">on round 5 of 12, monthly.</div>
         </div>
         <div class="blk calc-meta-row">
-          <div class="calc-meta"><div class="v mono" id="calc-pool">€28,800</div><div class="l">Total cycle pool</div></div>
-          <div class="calc-meta"><div class="v mono" id="calc-cycle">12 months</div><div class="l">Cycle length</div></div>
+          <div class="calc-meta"><div class="v mono" id="calc-total-pool">€28,800</div><div class="l">Total cycle pool</div></div>
+          <div class="calc-meta"><div class="v mono" id="calc-cycle-len">12 months</div><div class="l">Cycle length</div></div>
           <div class="calc-meta"><div class="v mono">0%</div><div class="l">Interest paid</div></div>
         </div>
-        <div class="blk" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div class="blk" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <a href="/auth" class="btn btn-primary btn-sm">Start a circle</a>
-          <span style="font-size:12px;color:var(--ink-3);">or join an existing one in your community</span>
+          <span style="font-size:12px;color:var(--ink-3)">or join an existing one in your community</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- STORIES — cream takeover -->
-<section class="bg-warm" id="stories">
+<!-- ════════════════════════════════════════════════════════
+     STORIES — cream takeover
+════════════════════════════════════════════════════════ -->
+<section id="stories" class="bg-warm">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">04 · Stories</span>
@@ -868,108 +898,83 @@ footer{padding:80px 0 40px;}
         <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 01</span></div>
         <div class="story-body">
           <div class="quote">"My njangi paid for my mother's surgery in Bamenda. I want my daughter to grow up knowing this is how we take care of each other."</div>
-          <div class="who">
-            <span class="nm">Aïcha M.</span>
-            <span class="role">Brussels → Yaoundé</span>
-            <span class="flag mono">BE · CM</span>
-          </div>
+          <div class="who"><span class="nm">Aïcha M.</span><span class="role">Brussels → Yaoundé</span><span class="flag">BE · CM</span></div>
         </div>
       </article>
       <article class="story">
         <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 02</span></div>
         <div class="story-body">
           <div class="quote">"We're 14 women, all nurses. Every Friday we contribute, every fortnight someone collects. With Sohana the ledger finally stopped causing fights."</div>
-          <div class="who">
-            <span class="nm">Adwoa B.</span>
-            <span class="role">London → Accra</span>
-            <span class="flag mono">UK · GH</span>
-          </div>
+          <div class="who"><span class="nm">Adwoa B.</span><span class="role">London → Accra</span><span class="flag">UK · GH</span></div>
         </div>
       </article>
       <article class="story">
         <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 03</span></div>
         <div class="story-body">
           <div class="quote">"I run six tandas at once for friends back home. Sohana let me organise without spreadsheets and without sending money through three banks."</div>
-          <div class="who">
-            <span class="nm">Fatou D.</span>
-            <span class="role">Montréal → Abidjan</span>
-            <span class="flag mono">CA · CI</span>
-          </div>
+          <div class="who"><span class="nm">Fatou D.</span><span class="role">Montréal → Abidjan</span><span class="flag">CA · CI</span></div>
         </div>
       </article>
     </div>
   </div>
 </section>
 
-<!-- STATS BAND — green takeover -->
-<section class="stats-band">
-  <div class="container">
+<!-- ════════════════════════════════════════════════════════
+     STATS BAND — green takeover
+════════════════════════════════════════════════════════ -->
+<div class="stats-band">
+  <div class="container sbc">
     <span class="pill"><span class="dot"></span>Pilot data · 2,400 circles, Q1 2026</span>
-    <h2 style="max-width:760px;">13.2% completion-rate uplift across all Sohana circles vs. informal baseline.</h2>
+    <h2 style="max-width:760px">13.2% completion-rate uplift across all Sohana circles vs. informal baseline.</h2>
     <p>From our closed pilot across France and Cameroon. Numbers we'll keep publishing as we scale.</p>
     <div class="stats-row">
-      <div class="stat"><div class="v mono">+13.2%</div><div class="l">Completion rate uplift</div></div>
-      <div class="stat"><div class="v mono">96.4%</div><div class="l">On-time contributions</div></div>
-      <div class="stat"><div class="v mono">€1.8M</div><div class="l">Saved by pilot members</div></div>
-      <div class="stat"><div class="v mono">0</div><div class="l">Defaults absorbed by buffer</div></div>
+      <div class="stat"><div class="sv">+13.2%</div><div class="sl">Completion rate uplift</div></div>
+      <div class="stat"><div class="sv">96.4%</div><div class="sl">On-time contributions</div></div>
+      <div class="stat"><div class="sv">€1.8M</div><div class="sl">Saved by pilot members</div></div>
+      <div class="stat"><div class="sv">0</div><div class="sl">Defaults absorbed by buffer</div></div>
     </div>
   </div>
-</section>
+</div>
 
-<!-- STEPS -->
+<!-- ════════════════════════════════════════════════════════
+     STEPS
+════════════════════════════════════════════════════════ -->
 <section>
   <div class="container">
-    <div class="section-head" style="align-items:center;text-align:center;margin:0 auto 56px;">
+    <div class="section-head" style="align-items:center;text-align:center;margin:0 auto 56px">
       <span class="eyebrow">05 · Get started</span>
-      <h2 style="text-align:center;">Up and saving in <span class="ital">three steps.</span></h2>
+      <h2 style="text-align:center">Up and saving in <span class="ital">three steps</span>.</h2>
     </div>
     <div class="steps-grid">
-      <div class="step">
-        <div class="step-num">01</div>
-        <h3>Claim your Hanatag</h3>
-        <p>Pick a handle like @aicha.han. It travels with you across all eight currencies — your account number, simplified.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <h3>Spin up a circle (or join one)</h3>
-        <p>Invite by Hanatag, phone or email. Set members, contribution, frequency, payout order. Or accept an invite from your aunty.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <h3>Save, payout, build NCS</h3>
-        <p>Funds release on schedule. Every on-time round builds your Njangi Credit Score and unlocks credit products.</p>
-      </div>
+      <div class="step"><div class="step-num">01</div><h3>Claim your Hanatag</h3><p>Pick a handle like @aicha.han. It travels with you across all eight currencies — your account number, simplified.</p></div>
+      <div class="step"><div class="step-num">02</div><h3>Spin up a circle (or join one)</h3><p>Invite by Hanatag, phone or email. Set members, contribution, frequency, payout order. Or accept an invite from your aunty.</p></div>
+      <div class="step"><div class="step-num">03</div><h3>Save, payout, build NCS</h3><p>Funds release on schedule. Every on-time round builds your Njangi Credit Score and unlocks credit products.</p></div>
     </div>
   </div>
 </section>
 
-<!-- APP PROMO -->
-<section style="padding-top:0;">
+<!-- ════════════════════════════════════════════════════════
+     APP PROMO
+════════════════════════════════════════════════════════ -->
+<section style="padding-top:0">
   <div class="container">
     <div class="app-promo">
-      <div style="position:relative;z-index:1;">
-        <span class="eyebrow" style="margin-bottom:16px;">06 · Sohana on iOS &amp; Android</span>
-        <h2 style="margin-top:16px;">Built for the phone in your pocket.</h2>
-        <p class="sub-lead" style="margin-top:16px;">Send to a Hanatag in seconds. Run the family tontine on the bus. Track your NCS climb. We start invite-only on iOS and Android in Q3 2026.</p>
-        <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap;">
-          <a href="/auth" class="btn btn-primary">
-            Join the waitlist
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </a>
-          <a href="/about" class="btn btn-ghost">Learn about us</a>
+      <div>
+        <span class="eyebrow" style="margin-bottom:16px">06 · Sohana on iOS &amp; Android</span>
+        <h2 style="margin-top:16px">Built for the phone in your pocket.</h2>
+        <p class="sub-lead" style="margin-top:16px">Send to a Hanatag in seconds. Run the family tontine on the bus. Track your NCS climb. We start invite-only on iOS and Android in Q3 2026.</p>
+        <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap">
+          <a href="/auth" class="btn btn-primary">Join the waitlist <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+          <a href="/about" class="btn btn-ghost">Read our story</a>
         </div>
       </div>
-      <!-- mini phone -->
-      <div class="phone-wrap" style="position:relative;z-index:1;">
-        <div class="phone" style="width:260px;">
-          <div class="phone-screen" style="padding:44px 14px 14px;gap:10px;">
-            <div class="ps-row"><div><div class="ps-greet">Good morning,</div><div class="ps-name">Amara K.</div></div></div>
-            <div class="ps-balance-card"><div class="lbl">NCS Score</div><div class="amt" style="font-size:20px;">721 <span style="font-size:13px;opacity:.7;">/ 850</span></div><div class="sub">Reliable · +12 this month</div></div>
+      <div class="phone-wrap">
+        <div class="phone" style="width:260px">
+          <div class="phone-screen">
+            <div class="ps-row"><div><div class="ps-greet">Good morning,</div><div class="ps-name">Kwame A.</div></div></div>
+            <div class="ps-balance-card"><div class="lbl">NCS Score</div><div class="amt" style="font-size:42px">721</div><div class="sub">Reliable · +8 this week</div></div>
             <div class="ps-section-title"><span>Recent activity</span></div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <div style="display:flex;justify-content:space-between;font-size:11px;padding:8px;background:rgba(255,255,255,.04);border-radius:10px;"><span style="color:var(--ink-2);">Maman's Tontine</span><span style="color:var(--accent);">+€200</span></div>
-              <div style="display:flex;justify-content:space-between;font-size:11px;padding:8px;background:rgba(255,255,255,.04);border-radius:10px;"><span style="color:var(--ink-2);">Sent to @kwame</span><span style="color:var(--ink-3);">−€50</span></div>
-            </div>
+            <div class="ps-circle"><div class="top"><div class="nm">London Chama</div><div class="badge">PAID ✓</div></div><div class="progress"><i style="width:67%"></i></div><div class="meta"><span>8 of 12 rounds</span><span class="mono">£1,600 next</span></div></div>
           </div>
         </div>
       </div>
@@ -977,242 +982,225 @@ footer{padding:80px 0 40px;}
   </div>
 </section>
 
-<!-- WAITLIST CTA — green block -->
-<section style="padding-top:0;">
+<!-- ════════════════════════════════════════════════════════
+     WAITLIST CTA — green takeover
+════════════════════════════════════════════════════════ -->
+<section style="padding-top:0">
   <div class="container">
     <div class="waitlist-cta">
       <div>
         <h2>Be first when we launch.</h2>
-        <p style="color:rgba(14,18,15,.7);font-size:17px;line-height:1.55;margin-top:16px;max-width:460px;">Early users get priority Hanatag handles, founder-circle status, and free outbound transfers for the first 12 months.</p>
+        <p style="color:rgba(14,18,15,.7);font-size:17px;line-height:1.55;margin-top:16px;max-width:460px">Early users get priority Hanatag handles, founder-circle status, and free outbound transfers for the first 12 months.</p>
       </div>
       <div>
-        <form class="waitlist-form" id="waitlist-form">
+        <form class="waitlist-form" onsubmit="handleWaitlist(event)">
           <input type="email" placeholder="you@email.com" id="waitlist-email" required>
-          <button type="submit" class="btn btn-primary">
-            Join waitlist
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </button>
+          <button type="submit" class="btn btn-primary">Join waitlist <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
         </form>
-        <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;color:rgba(14,18,15,.7);font-family:'Geist Mono',monospace;">
+        <div id="waitlist-success" style="display:none;margin-top:12px;font-size:14px;font-weight:600">✓ You're on the list. We'll be in touch.</div>
+        <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;color:rgba(14,18,15,.7);font-family:'Geist Mono',monospace">
           <span>● 12,438 in line</span>
           <span>● 14 countries</span>
           <span>● Q3 2026 launch</span>
         </div>
-        <div id="waitlist-success" style="display:none;margin-top:12px;padding:12px 16px;background:rgba(0,0,0,.12);border-radius:12px;color:rgba(14,18,15,.8);font-size:14px;">✓ You're on the list! We'll be in touch soon.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
+<!-- ════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════ -->
 <footer id="company">
   <div class="container">
     <div class="foot-grid">
       <div class="foot-col">
-        <a href="/" class="brand" style="margin-bottom:16px;display:inline-flex;">
-          <span class="brand-mark">S</span>&nbsp; Sohana
-        </a>
-        <p style="color:var(--ink-2);font-size:14px;line-height:1.55;max-width:260px;margin:12px 0 16px;">The savings, credit and transfer infrastructure of the African diaspora. Built in Paris, Yaoundé, London, Montréal.</p>
+        <a href="/" class="brand" style="margin-bottom:16px"><span class="brand-mark">S</span><span>Sohana</span></a>
+        <p style="color:var(--ink-2);font-size:14px;line-height:1.55;max-width:260px;margin:12px 0 16px">The savings, credit and transfer infrastructure of the African diaspora. Built in Paris, Yaoundé, London, Montréal.</p>
         <div class="foot-socials">
           <a href="#">X</a><a href="#">IG</a><a href="#">LI</a><a href="#">TT</a>
         </div>
       </div>
       <div class="foot-col">
         <h4>Product</h4>
-        <a href="/njangi">Circles</a>
-        <a href="/ncs-page">NCS Credit</a>
-        <a href="/wallet-page">Wallet</a>
-        <a href="/hanapay">Hanatag</a>
-        <a href="/how-it-works">How it works</a>
+        <a href="/njangi">Circles</a><a href="/ncs-page">NCS Credit</a><a href="/wallet-page">Wallet</a><a href="/hanapay">Hanatag</a><a href="/how-it-works">Send money</a>
       </div>
       <div class="foot-col">
         <h4>Markets</h4>
-        <a href="#">France</a>
-        <a href="#">United Kingdom</a>
-        <a href="#">Belgium</a>
-        <a href="#">Canada</a>
-        <a href="#">Cameroon · Ghana · Nigeria</a>
-        <a href="#">Rwanda · Côte d'Ivoire · ZA</a>
+        <a href="#">France</a><a href="#">United Kingdom</a><a href="#">Belgium</a><a href="#">Canada</a><a href="#">Cameroon · Ghana · Nigeria</a><a href="#">Rwanda · Côte d'Ivoire · ZA</a>
       </div>
       <div class="foot-col">
         <h4>Company</h4>
-        <a href="/about">About</a>
-        <a href="/careers">Careers</a>
-        <a href="/press">Press</a>
-        <a href="/blog">Blog</a>
-        <a href="/contact">Contact</a>
-        <a href="/mission">Our mission</a>
+        <a href="/about">About</a><a href="/careers">Careers</a><a href="/press">Press</a><a href="/blog">Blog</a><a href="/contact">Contact</a>
       </div>
       <div class="foot-col">
         <h4>Legal</h4>
-        <a href="/terms">Terms</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/cookies">Cookies</a>
-        <a href="/complaints">Complaints</a>
-        <a href="/accessibility">Accessibility</a>
+        <a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/cookies">Cookies</a><a href="/complaints">Complaints</a><a href="/accessibility">Accessibility</a>
       </div>
     </div>
     <div class="foot-bottom">
-      <div class="legal">
-        © 2026 Sohana SAS. Sohana is a beta-stage financial technology platform currently in the process of obtaining regulatory authorisations. Recipient of the Tony Elumelu Foundation Entrepreneurship Award (TEF Cohort 2026). Funds are not held directly — all user balances are in segregated accounts at licensed partner institutions. Sohana is not a bank. The Njangi Credit Score (NCS) is a behavioural score based on contribution history and is not a regulated credit bureau score. All platform activity during the beta phase is for testing purposes only.
-      </div>
-      <div style="display:flex;gap:14px;align-items:center;font-family:'Geist Mono',monospace;">
-        <span>v1.0 · 2026</span>
-        <span style="color:var(--accent);">● All systems normal</span>
-      </div>
+      <div class="legal">© 2026 Sohana SAS. SOHANA is an award-winning financial technology platform — Tony Elumelu Foundation Entrepreneurship Award (TEF Cohort 2026). Currently in beta and in the process of obtaining regulatory authorisations including ACPR (France) and FCA (UK). Funds are not held by Sohana during beta. The Njangi Credit Score is a behavioural score based on contribution history — not a regulated credit bureau score. All platform activity is for demonstration and research purposes during the beta phase.</div>
+      <div style="display:flex;gap:14px;align-items:center;font-family:'Geist Mono',monospace"><span>v5.1 · 2026</span><span style="color:var(--accent)">● All systems normal</span></div>
     </div>
   </div>
 </footer>
 
+<!-- ════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════ -->
 <script>
-// ── LANGUAGE TOGGLE ──────────────────────────────────
-function setLang(l){
-  document.querySelectorAll('.lang-toggle button').forEach(b=>{
-    b.classList.toggle('on', b.textContent===l);
-  });
-}
-
-// ── MOBILE DRAWER ────────────────────────────────────
-function openDrawer(){document.getElementById('nav-drawer').classList.add('open');document.body.style.overflow='hidden';}
-function closeDrawer(){document.getElementById('nav-drawer').classList.remove('open');document.body.style.overflow='';}
-
-// ── NCS GAUGE ────────────────────────────────────────
-const NCS_FACTORS = {
-  consistency:{weight:35,val:92},
-  circles:    {weight:20,val:75},
-  tenure:     {weight:15,val:60},
-  organiser:  {weight:15,val:80},
-  diversity:  {weight:15,val:55},
-};
-function ncsScore(){
-  const tot=Object.values(NCS_FACTORS).reduce((a,f)=>a+(f.val/100)*f.weight,0);
-  return Math.round(300+(850-300)*(tot/100));
-}
-function polar(deg,r,cx,cy){
-  const rad=deg*Math.PI/180;
-  return [cx+r*Math.cos(rad),cy-r*Math.sin(rad)];
-}
-function renderGauge(){
-  const sc=ncsScore();
-  const r=130,cx=160,cy=160;
-  const pct=(sc-300)/550;
-  const ts=polar(180,r,cx,cy),te=polar(0,r,cx,cy);
-  const trackPath=`M ${ts[0]} ${ts[1]} A ${r} ${r} 0 0 1 ${te[0]} ${te[1]}`;
-  const fa=180-pct*180;
-  const fp=polar(fa,r,cx,cy);
-  const fl=(180-fa)>180?1:0;
-  const fillPath=`M ${ts[0]} ${ts[1]} A ${r} ${r} 0 ${fl} 1 ${fp[0]} ${fp[1]}`;
-  document.getElementById('ncs-track').setAttribute('d',trackPath);
-  document.getElementById('ncs-fill').setAttribute('d',fillPath);
-  document.getElementById('ncs-indicator').setAttribute('cx',fp[0]);
-  document.getElementById('ncs-indicator').setAttribute('cy',fp[1]);
-  document.getElementById('ncs-val').textContent=sc;
-  const rank=sc>=800?'● Exceptional':sc>=740?'● Very strong':sc>=670?'● Solid':sc>=580?'● Building':'● Starting';
-  document.getElementById('ncs-rank').textContent=rank;
-}
-function updateFactor(key,v){
-  NCS_FACTORS[key].val=+v;
-  document.getElementById('fv-'+key).textContent=v;
-  renderGauge();
-}
-renderGauge();
-
-// ── ROSCA CALCULATOR ─────────────────────────────────
-const CURRENCIES=[
-  {code:'EUR',sym:'€',rate:1},
-  {code:'GBP',sym:'£',rate:.85},
-  {code:'USD',sym:'$',rate:1.08},
-  {code:'CAD',sym:'C$',rate:1.46},
-  {code:'XAF',sym:'FCFA',rate:656},
-  {code:'GHC',sym:'₵',rate:16},
-  {code:'NGN',sym:'₦',rate:1700},
-  {code:'ZAR',sym:'R',rate:19.8},
-];
-let curIdx=0,members=12,contrib=200,freq='monthly';
-
-function fmt(n,cur){
-  return (cur.code==='XAF'||cur.code==='NGN')?Math.round(n).toLocaleString():
-    n.toLocaleString('en-US',{maximumFractionDigits:0});
-}
-function updateCalc(){
-  const cur=CURRENCIES[curIdx];
-  const payout=members*contrib*cur.rate;
-  const pool=members*members*contrib*cur.rate;
-  const youSlot=Math.min(4,members-1);
-  const cl=freq==='weekly'?`${members} weeks`:freq==='biweekly'?`${members*2} weeks`:`${members} months`;
-
-  document.getElementById('calc-sym').textContent=cur.sym;
-  document.getElementById('calc-payout').textContent=fmt(payout,cur);
-  document.getElementById('calc-pool').textContent=cur.sym+fmt(pool,cur);
-  document.getElementById('calc-cycle').textContent=cl;
-  document.getElementById('calc-round-info').innerHTML=
-    `on round <span class="mono" style="color:var(--ink);">${youSlot+1}</span> of <span class="mono" style="color:var(--ink);">${members}</span>, ${freq}.`;
-  document.getElementById('payout-label').textContent=`● Your payout · Round ${youSlot+1}`;
-  document.getElementById('payout-last').textContent=`Round ${members}`;
-
-  // Payout bar
-  const bar=document.getElementById('payout-bar');
-  bar.innerHTML=Array.from({length:members},(_,i)=>
-    `<i class="${i===youSlot?'you':''}" style="flex:1 1 auto;"></i>`
-  ).join('');
-
-  // Slider fill
-  document.querySelectorAll('.calc-row input[type="range"]').forEach(sl=>{
-    const pct=((sl.value-sl.min)/(sl.max-sl.min))*100;
-    sl.style.background=`linear-gradient(to right,var(--accent) ${pct}%,rgba(255,255,255,.08) ${pct}%)`;
-  });
-}
-function setCur(i){
-  curIdx=i;
-  document.querySelectorAll('#calc-currency-tabs button').forEach((b,j)=>b.classList.toggle('on',j===i));
-  updateCalc();
-}
-function setMembers(v){
-  members=+v;document.getElementById('calc-members-val').textContent=v;updateCalc();
-}
-function setContrib(v){
-  contrib=+v;
-  const cur=CURRENCIES[curIdx];
-  document.getElementById('calc-contrib-val').textContent=cur.sym+fmt(+v*cur.rate,cur);
-  updateCalc();
-}
-function setFreq(f){
-  freq=f;
-  document.querySelectorAll('.currency-tabs button[id^="freq-"]').forEach(b=>b.classList.toggle('on',b.id===`freq-${f}`));
-  updateCalc();
-}
-updateCalc();
-
-// Slider fill on NCS factors too
-document.querySelectorAll('.factor input[type="range"]').forEach(sl=>{
-  function refreshFill(){
-    const pct=((sl.value-sl.min)/(sl.max-sl.min))*100;
-    sl.style.background=`linear-gradient(to right,var(--accent) ${pct}%,rgba(255,255,255,.08) ${pct}%)`;
+// ── LANG TOGGLE ──────────────────────────────────────────
+const COPY = {
+  EN: {
+    h1: 'Save together.<br>Build <span class="accent">credit</span>.<br>Send money <span class="ital">home</span>.',
+    lead: 'SOHANA brings your savings circle online — with the NCS credit score that opens doors banks can\'t.',
+  },
+  FR: {
+    h1: 'Épargnez ensemble.<br>Construisez du <span class="accent">crédit</span>.<br>Envoyez de l\'argent au <span class="ital">pays</span>.',
+    lead: 'SOHANA digitalise votre tontine — avec le score NCS qui ouvre des portes que les banques ne voient pas.',
   }
-  sl.addEventListener('input',refreshFill);
-  refreshFill();
-});
+};
+function setLang(l) {
+  ['en','fr'].forEach(x => {
+    document.getElementById('lang-'+x)?.classList.toggle('on', x===l.toLowerCase());
+    document.getElementById('dlang-'+x)?.classList.toggle('on', x===l.toLowerCase());
+  });
+  const c = COPY[l];
+  if (c) {
+    document.getElementById('hero-h1').innerHTML = c.h1;
+    document.getElementById('hero-lead').textContent = c.lead;
+  }
+}
 
-// ── WAITLIST FORM ─────────────────────────────────────
-document.getElementById('waitlist-form').addEventListener('submit',function(e){
+// ── NAV DRAWER ───────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('nav-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  document.getElementById('nav-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ── NCS GAUGE ────────────────────────────────────────────
+const NCS_FACTORS = [
+  { key:'consistency', label:'Contribution consistency', weight:35, def:92 },
+  { key:'circles',     label:'Active circles',           weight:20, def:75 },
+  { key:'tenure',      label:'Tenure on Sohana',         weight:15, def:60 },
+  { key:'organiser',   label:'Organiser reputation',     weight:15, def:80 },
+  { key:'diversity',   label:'Cross-circle diversity',   weight:15, def:55 },
+];
+const ncsVals = Object.fromEntries(NCS_FACTORS.map(f => [f.key, f.def]));
+
+function computeNCS() {
+  const total = NCS_FACTORS.reduce((a,f) => a + (ncsVals[f.key]/100)*f.weight, 0);
+  return Math.round(300 + 550 * (total/100));
+}
+
+function polar(deg, r, cx, cy) {
+  const rad = deg * Math.PI / 180;
+  return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+}
+
+function drawGauge(score) {
+  const r=130, cx=160, cy=160;
+  const pct = (score-300)/550;
+  const [ts0,ts1] = polar(180,r,cx,cy);
+  const [te0,te1] = polar(0,r,cx,cy);
+  const trackPath = `M ${ts0} ${ts1} A ${r} ${r} 0 0 1 ${te0} ${te1}`;
+  document.getElementById('ncs-track').setAttribute('d', trackPath);
+  const fillAngle = 180 - pct*180;
+  const [fp0,fp1] = polar(fillAngle,r,cx,cy);
+  const large = (180-fillAngle)>180?1:0;
+  const fillPath = `M ${ts0} ${ts1} A ${r} ${r} 0 ${large} 1 ${fp0} ${fp1}`;
+  document.getElementById('ncs-fill').setAttribute('d', fillPath);
+  document.getElementById('ncs-dot').setAttribute('cx', fp0);
+  document.getElementById('ncs-dot').setAttribute('cy', fp1);
+  document.getElementById('ncs-score-val').textContent = score;
+  const rank = score>=800?'Exceptional':score>=740?'Very strong':score>=670?'Solid':score>=580?'Building':'Starting';
+  const col  = score>=670?'var(--accent)':score>=580?'#E2C16B':'#E89E72';
+  const el   = document.getElementById('ncs-rank');
+  el.textContent = '● ' + rank;
+  el.style.color = col;
+}
+
+function buildNCSFactors() {
+  const el = document.getElementById('ncs-factors');
+  el.innerHTML = NCS_FACTORS.map(f => `
+    <div class="factor">
+      <div class="fhead">
+        <span class="flbl">${f.label}<span class="mono" style="color:var(--ink-3);margin-left:8px">·${f.weight}%</span></span>
+        <span class="fval" id="nf-val-${f.key}">${ncsVals[f.key]}</span>
+      </div>
+      <input type="range" min="0" max="100" value="${f.def}"
+        oninput="ncsVals['${f.key}']=+this.value;document.getElementById('nf-val-${f.key}').textContent=this.value;drawGauge(computeNCS())">
+    </div>`).join('');
+  drawGauge(computeNCS());
+}
+
+// ── ROSCA CALCULATOR ─────────────────────────────────────
+const CURRENCIES = [
+  {code:'EUR',sym:'€',rate:1},{code:'GBP',sym:'£',rate:.85},
+  {code:'USD',sym:'$',rate:1.08},{code:'CAD',sym:'C$',rate:1.46},
+  {code:'XAF',sym:'FCFA',rate:656},{code:'GHC',sym:'₵',rate:16},
+  {code:'NGN',sym:'₦',rate:1700},{code:'ZAR',sym:'R',rate:19.8},
+];
+let curIdx=0, calcFreq='monthly';
+
+function buildCurTabs() {
+  const el = document.getElementById('calc-cur-tabs');
+  el.innerHTML = CURRENCIES.map((c,i) => `<button class="${i===curIdx?'on':''}" onclick="setCur(${i})">${c.code}</button>`).join('');
+}
+function setCur(i) { curIdx=i; buildCurTabs(); updateCalc(); }
+function setFreq(f) {
+  calcFreq=f;
+  ['weekly','biweekly','monthly'].forEach(x => document.getElementById('freq-'+x)?.classList.toggle('on',x===f));
+  updateCalc();
+}
+function fmtN(n, cur) {
+  return cur.code==='XAF'||cur.code==='NGN'
+    ? Math.round(n).toLocaleString('en-US')
+    : n.toLocaleString('en-US',{maximumFractionDigits:0});
+}
+function updateCalc() {
+  const members = +document.getElementById('calc-members').value;
+  const contrib = +document.getElementById('calc-contrib').value;
+  const cur = CURRENCIES[curIdx];
+  const payout = members * contrib * cur.rate;
+  const total  = payout * members;
+  const youSlot = Math.min(4, members-1);
+  const cycleLabel = calcFreq==='weekly' ? `${members} weeks` : calcFreq==='biweekly' ? `${members*2} weeks` : `${members} months`;
+
+  document.getElementById('calc-members-val').textContent = members;
+  document.getElementById('calc-contrib-val').textContent = cur.sym + fmtN(contrib*cur.rate, cur);
+  document.getElementById('calc-sym').textContent  = cur.sym;
+  document.getElementById('calc-payout').textContent = fmtN(payout, cur);
+  document.getElementById('calc-desc').textContent   = `on round ${youSlot+1} of ${members}, ${calcFreq}.`;
+  document.getElementById('calc-total-pool').textContent = cur.sym + fmtN(total, cur);
+  document.getElementById('calc-cycle-len').textContent  = cycleLabel;
+  document.getElementById('calc-your-slot').textContent  = `● Your payout · Round ${youSlot+1}`;
+  document.getElementById('calc-last-round').textContent = `Round ${members}`;
+
+  const bar = document.getElementById('calc-bar');
+  bar.innerHTML = Array.from({length:members},(_,i) =>
+    `<i class="${i===youSlot?'you':''}" style="flex:1 1 auto"></i>`).join('');
+}
+
+// ── WAITLIST FORM ─────────────────────────────────────────
+function handleWaitlist(e) {
   e.preventDefault();
-  const email=document.getElementById('waitlist-email').value;
-  if(!email)return;
-  fetch('/api/waitlist',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({email})
-  }).catch(()=>{});
-  this.style.display='none';
-  document.getElementById('waitlist-success').style.display='block';
-});
+  const email = document.getElementById('waitlist-email').value;
+  fetch('/api/waitlist', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
+    .catch(()=>{});
+  e.target.style.display = 'none';
+  document.getElementById('waitlist-success').style.display = 'block';
+}
 
-// ── FADE UP ANIMATION ─────────────────────────────────
-const obs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.style.opacity='1';});
-},{threshold:.1});
-document.querySelectorAll('.fcard,.step,.story').forEach(el=>{
-  el.style.opacity='0';el.style.transition='opacity .5s ease';
-  obs.observe(el);
+// ── INIT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildNCSFactors();
+  buildCurTabs();
+  updateCalc();
 });
 </script>
 </body>
