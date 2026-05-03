@@ -73,6 +73,175 @@ FROZEN_WITHDRAW_MSG = (
     "or visit the Help Centre to resolve this."
 )
 
+@app.route("/kyc")
+@auth.login_required
+def kyc_page():
+    user = auth.get_current_user()
+    subs = fetchall(
+        "SELECT * FROM kyc_submissions WHERE user_id=? ORDER BY submitted_at DESC LIMIT 10",
+        (user["id"],)
+    )
+    return render_template("kyc.html", user=user, submissions=subs)
+
+
+# ── KYC API ───────────────────────────────────────────────────────────────────
+
+KYC_APPROVE_ROLES = {"ceo", "cco", "cfo"}
+
+@app.route("/api/kyc/submit", methods=["POST"])
+@auth.login_required
+def api_kyc_submit():
+    d    = request.json or {}
+    uid  = session["user_id"]
+    level = d.get("level", "")
+    if level not in ("id", "address", "funds"):
+        return jsonify({"error": "Invalid KYC level. Must be id, address, or funds."}), 400
+    # Prevent duplicate pending submission for same level
+    existing = fetchone(
+        "SELECT id FROM kyc_submissions WHERE user_id=? AND level=? AND status='pending'",
+        (uid, level)
+    )
+    if existing:
+        return jsonify({"error": "You already have a pending submission for this level."}), 400
+    sid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO kyc_submissions(id,user_id,level,doc_type_id,doc_type_addr,doc_type_funds,notes)
+               VALUES(?,?,?,?,?,?,?)""",
+            (sid, uid, level,
+             d.get("doc_type_id") or None,
+             d.get("doc_type_addr") or None,
+             d.get("doc_type_funds") or None,
+             d.get("notes") or None)
+        )
+        # Mark user kyc_status as pending if not already verified
+        user = fetchone("SELECT kyc_status FROM users WHERE id=?", (uid,))
+        if user and user["kyc_status"] not in ("verified",):
+            db.execute("UPDATE users SET kyc_status='pending' WHERE id=?", (uid,))
+    push_notification(uid,
+        "KYC submission received ✓",
+        "We've received your documents and will review them within 1–2 business days.",
+        "info", "/kyc")
+    return jsonify({"ok": True, "submission_id": sid})
+
+
+@app.route("/api/admin/kyc/<submission_id>/approve", methods=["POST"])
+@admin_required
+def api_admin_kyc_approve(submission_id):
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in KYC_APPROVE_ROLES:
+        return jsonify({"error": "Only CEO, CCO, or CFO can approve KYC submissions."}), 403
+    sub = fetchone("SELECT * FROM kyc_submissions WHERE id=?", (submission_id,))
+    if not sub:
+        return jsonify({"error": "Submission not found."}), 404
+    if sub["status"] != "pending":
+        return jsonify({"error": f"Submission is already {sub['status']}."}), 400
+    # Determine new kyc_level based on submission level
+    level_map = {"id": "id_verified", "address": "id_verified", "funds": "full"}
+    new_level = level_map.get(sub["level"], "id_verified")
+    with get_db() as db:
+        db.execute(
+            """UPDATE kyc_submissions SET status='approved', reviewed_by=?, reviewed_at=datetime('now')
+               WHERE id=?""",
+            (session["user_id"], submission_id)
+        )
+        db.execute(
+            "UPDATE users SET kyc_level=?, kyc_status='verified' WHERE id=?",
+            (new_level, sub["user_id"])
+        )
+    push_notification(sub["user_id"],
+        "Identity verified ✓",
+        "Your KYC documents have been approved. You now have access to higher limits.",
+        "success", "/kyc")
+    return jsonify({"ok": True, "new_kyc_level": new_level})
+
+
+@app.route("/api/admin/kyc/<submission_id>/reject", methods=["POST"])
+@admin_required
+def api_admin_kyc_reject(submission_id):
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in KYC_APPROVE_ROLES:
+        return jsonify({"error": "Only CEO, CCO, or CFO can reject KYC submissions."}), 403
+    d = request.json or {}
+    note = d.get("note", "").strip()
+    if not note:
+        return jsonify({"error": "A rejection reason is required."}), 400
+    sub = fetchone("SELECT * FROM kyc_submissions WHERE id=?", (submission_id,))
+    if not sub:
+        return jsonify({"error": "Submission not found."}), 404
+    if sub["status"] != "pending":
+        return jsonify({"error": f"Submission is already {sub['status']}."}), 400
+    with get_db() as db:
+        db.execute(
+            """UPDATE kyc_submissions SET status='rejected', reviewed_by=?, reviewed_at=datetime('now'),
+               rejection_note=? WHERE id=?""",
+            (session["user_id"], note, submission_id)
+        )
+        db.execute("UPDATE users SET kyc_status='rejected' WHERE id=?", (sub["user_id"],))
+    push_notification(sub["user_id"],
+        "KYC review update",
+        f"Your document submission was not approved. Reason: {note}. Please resubmit with the correct documents.",
+        "danger", "/kyc")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/admin/kyc/manual-approve", methods=["POST"])
+@admin_required
+def api_admin_kyc_manual_approve():
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in KYC_APPROVE_ROLES:
+        return jsonify({"error": "Only CEO, CCO, or CFO can manually approve KYC."}), 403
+    d         = request.json or {}
+    target_id = d.get("user_id", "").strip()
+    kyc_level = d.get("kyc_level", "id_verified")
+    if kyc_level not in ("id_verified", "full"):
+        return jsonify({"error": "kyc_level must be id_verified or full."}), 400
+    if not target_id:
+        return jsonify({"error": "user_id required."}), 400
+    target = fetchone("SELECT id, full_name FROM users WHERE id=?", (target_id,))
+    if not target:
+        return jsonify({"error": "User not found."}), 404
+    with get_db() as db:
+        db.execute(
+            "UPDATE users SET kyc_level=?, kyc_status='verified' WHERE id=?",
+            (kyc_level, target_id)
+        )
+    push_notification(target_id,
+        "Identity manually verified ✓",
+        "Your account has been verified by our team. You now have full platform access.",
+        "success", "/kyc")
+    return jsonify({"ok": True, "user_name": target["full_name"], "kyc_level": kyc_level})
+
+
+# ── ADMIN KYC PANEL ───────────────────────────────────────────────────────────
+
+@app.route("/admin/kyc")
+@admin_required
+def admin_kyc_panel():
+    user = auth.get_current_user()
+    actor_role = user.get("admin_role", "")
+    if actor_role not in KYC_APPROVE_ROLES:
+        return redirect(url_for("admin_home"))
+    pending   = fetchall(
+        """SELECT ks.*, u.full_name, u.phone, u.email, u.hanatag
+           FROM kyc_submissions ks JOIN users u ON u.id=ks.user_id
+           WHERE ks.status='pending' ORDER BY ks.submitted_at ASC"""
+    )
+    reviewed  = fetchall(
+        """SELECT ks.*, u.full_name, u.phone, a.full_name as reviewer_name
+           FROM kyc_submissions ks JOIN users u ON u.id=ks.user_id
+           LEFT JOIN users a ON a.id=ks.reviewed_by
+           WHERE ks.status IN ('approved','rejected')
+           ORDER BY ks.reviewed_at DESC LIMIT 50"""
+    )
+    all_users = fetchall(
+        """SELECT id, full_name, phone, email, hanatag, kyc_level, kyc_status, created_at
+           FROM users WHERE is_admin=0 ORDER BY created_at DESC LIMIT 200"""
+    )
+    return render_template("admin_kyc.html", user=user, actor_role=actor_role,
+                           pending=pending, reviewed=reviewed, all_users=all_users)
+
+
 # ── PUBLIC PAGES ─────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -269,6 +438,7 @@ def admin_home():
     role = u["admin_role"] if u else "operations"
     routes = {
         "ceo":        "admin_executive",
+        "cfo":        "admin_executive",
         "cto":        "admin_engineering",
         "cco":        "admin_compliance",
         "operations": "admin_operations",
@@ -460,9 +630,36 @@ def admin_blog():
 @app.route("/api/auth/register", methods=["POST"])
 def api_register():
     d = request.json or {}
+    # Support both full_name (legacy) and first_name+last_name (new spec)
+    first = d.get("first_name", "").strip()
+    last  = d.get("last_name", "").strip()
+    full  = d.get("full_name", "").strip() or f"{first} {last}".strip()
+    dob   = d.get("date_of_birth", "")
+    # Basic age check (must be 18+)
+    if dob:
+        try:
+            from datetime import date
+            bdate = date.fromisoformat(dob)
+            age = (date.today() - bdate).days // 365
+            if age < 18:
+                return jsonify({"error": "You must be at least 18 years old to register."}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid date of birth format. Use YYYY-MM-DD."}), 400
     try:
-        uid = auth.register_user(d.get("phone",""), d.get("full_name",""), d.get("password",""),
-                                 email=d.get("email"), country=d.get("country","RW"))
+        uid = auth.register_user(
+            phone           = d.get("phone", ""),
+            full_name       = full,
+            password        = d.get("password", ""),
+            email           = d.get("email") or None,
+            country         = d.get("country", "RW"),
+            first_name      = first or None,
+            last_name       = last or None,
+            gender          = d.get("gender") or None,
+            date_of_birth   = dob or None,
+            nationality     = d.get("nationality") or None,
+            occupation      = d.get("occupation") or None,
+            source_of_funds = d.get("source_of_funds") or None,
+        )
         session["user_id"] = uid
         push_notification(uid, "Welcome to SOHANA! 🎉", "Your account is ready. Start by joining a circle.", "success", "/circles")
         return jsonify({"ok": True, "user_id": uid})
@@ -1665,16 +1862,17 @@ def _seed_all():
         ("+44795000001","Kwame Asante",  "demo123","GB",560,0,None),
         ("+33611000003","Fatou Diallo",  "demo123","FR",390,0,None),
     ]
-    # Admin users — 7 roles + CEO super admin
+    # Admin users — 9 roles matching handover spec
     admin_users = [
-        ("+00000000001","Kwame Mensah",    "Admin@2024","CM",800,1,"ceo"),
-        ("+00000000002","Kojo Agyeman",    "Admin@2024","GH",800,1,"cto"),
-        ("+00000000003","Akosua Mensah",   "Admin@2024","GH",800,1,"cco"),
-        ("+00000000004","Daniel Owusu",    "Admin@2024","GH",800,1,"fraud"),
-        ("+00000000005","Philip Mensah",   "Admin@2024","GH",800,1,"credit"),
-        ("+00000000006","Samuel Mensah",   "Admin@2024","GH",800,1,"operations"),
-        ("+00000000007","Ama Boateng",     "Admin@2024","GH",800,1,"compliance"),
-        ("+00000000008","Emmanuel Asante", "Admin@2024","GH",800,1,"business"),
+        ("+00000000001", "Kwame Mensah",   "Admin@2024", "CM", 800, 1, "ceo"),
+        ("+00000000002", "Kojo Agyeman",   "Admin@2024", "GH", 800, 1, "cto"),
+        ("+00000000003", "Akosua Mensah",  "Admin@2024", "GH", 800, 1, "cco"),
+        ("+00000000004", "Ama Boateng",    "Admin@2024", "GH", 800, 1, "cfo"),
+        ("+00000000005", "Kofi Adu",       "Admin@2024", "GH", 800, 1, "fraud"),
+        ("+00000000006", "Yaw Darko",      "Admin@2024", "GH", 800, 1, "credit"),
+        ("+00000000007", "Abena Frimpong", "Admin@2024", "GH", 800, 1, "operations"),
+        ("+00000000008", "Efua Mensah",    "Admin@2024", "GH", 800, 1, "compliance"),
+        ("+00000000009", "Kwesi Antwi",    "Admin@2024", "GH", 800, 1, "business"),
     ]
 
     uids = []

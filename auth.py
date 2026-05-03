@@ -16,7 +16,10 @@ def verify_password(password, stored):
     except Exception:
         return False
 
-def register_user(phone, full_name, password, email=None, country="RW"):
+def register_user(phone, full_name, password, email=None, country="RW",
+                  first_name=None, last_name=None, gender=None,
+                  date_of_birth=None, nationality=None, occupation=None,
+                  source_of_funds=None):
     existing = fetchone("SELECT id FROM users WHERE phone=?", (phone,))
     if existing:
         raise ValueError("Phone number already registered")
@@ -25,8 +28,12 @@ def register_user(phone, full_name, password, email=None, country="RW"):
     pw  = hash_password(password)
     with get_db() as db:
         db.execute(
-            "INSERT INTO users(id,phone,email,full_name,password_hash,country) VALUES(?,?,?,?,?,?)",
-            (uid, phone, email, full_name, pw, country)
+            """INSERT INTO users(id,phone,email,full_name,password_hash,country,
+               first_name,last_name,gender,date_of_birth,nationality,occupation,source_of_funds)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (uid, phone, email, full_name, pw, country,
+             first_name, last_name, gender, date_of_birth,
+             nationality, occupation, source_of_funds)
         )
         db.execute("INSERT INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,1)", (wid, uid, "EUR"))
     return uid
@@ -62,7 +69,12 @@ def get_current_user():
     if "user_id" not in session:
         return None
     row = fetchone(
-        "SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,ncs_score,ncs_tier,kyc_level,is_admin,admin_role,notif_email,notif_push,notif_sms,freeze_deposits,freeze_withdrawals,freeze_reason,created_at FROM users WHERE id=?",
+        """SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,
+                  ncs_score,ncs_tier,kyc_level,kyc_status,
+                  first_name,last_name,gender,date_of_birth,nationality,occupation,source_of_funds,
+                  is_admin,admin_role,notif_email,notif_push,notif_sms,
+                  freeze_deposits,freeze_withdrawals,freeze_reason,created_at
+           FROM users WHERE id=?""",
         (session["user_id"],)
     )
     return dict(row) if row else None
