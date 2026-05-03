@@ -1,350 +1,615 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sign in — SOHANA</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=6.0">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-/* Loading overlay */
-#login-overlay {
-  display:none;position:fixed;inset:0;z-index:9999;
-  background:linear-gradient(135deg,#14213a 0%,#1a2b4a 60%,#1e3a5f 100%);
-  flex-direction:column;align-items:center;justify-content:center;gap:1.25rem;
-}
-.dot-row { display:flex;gap:6px;align-items:center; }
-.pulse-dot {
-  width:10px;height:10px;border-radius:50%;background:#60a5fa;
-  animation:pulse 1.2s ease-in-out infinite;
-}
-.pulse-dot:nth-child(2){animation-delay:.2s;}
-.pulse-dot:nth-child(3){animation-delay:.4s;}
-@keyframes pulse{0%,80%,100%{transform:scale(.5);opacity:.3;}40%{transform:scale(1);opacity:1;}}
-
-/* Email autosuggest */
-#email-suggest {
-  position:fixed;background:#fff;border:1px solid #e2e8f0;
-  border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);
-  overflow:hidden;z-index:200;display:none;
-}
-#email-suggest div {
-  padding:.55rem 1rem;font-size:.85rem;color:#334155;cursor:pointer;
-  border-bottom:1px solid #f1f5f9;
-}
-#email-suggest div:last-child{border-bottom:none;}
-#email-suggest div:hover{background:#eff6ff;color:#2563eb;}
-
-/* Alert box */
-#alert-box {
-  display:none;padding:.65rem .875rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;
-  background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;
-}
+:root{--bg:#0E120F;--bg-2:#161B17;--bg-3:#1C231D;--ink:#F4F2EC;--ink-2:#B7BAB4;--ink-3:#8A8E87;--accent:#9EE493;--accent-2:#76E0A1;--accent-ink:#0E120F;--line:rgba(244,242,236,.10);--line-2:rgba(244,242,236,.18);--danger:#FF6A55;--danger-lt:rgba(255,106,85,.12);--radius:8px;--radius-lg:16px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+.kente{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.kente svg{width:100%;height:100%;opacity:.04}
+.auth-nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:.875rem 2rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--ink);font-weight:700;font-size:.975rem;letter-spacing:-.02em}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px;display:grid;place-items:center;letter-spacing:-.02em;flex-shrink:0}
+.nav-tag{font-size:.72rem;color:var(--ink-3);font-family:'Geist Mono',monospace;display:flex;align-items:center;gap:.35rem}
+.nav-tag::before{content:'🔒';font-size:.68rem}
+.auth-wrap{position:relative;z-index:5;flex:1;display:flex;align-items:flex-start;justify-content:center;gap:3rem;padding:2.5rem 1rem 4rem}
+.auth-copy{display:none;flex-direction:column;gap:1.75rem;max-width:320px;padding-top:2.5rem}
+@media(min-width:880px){.auth-copy{display:flex}}
+.auth-copy h1{font-size:1.9rem;font-weight:700;line-height:1.15;letter-spacing:-.03em}
+.auth-copy h1 em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--accent)}
+.auth-copy p{font-size:.875rem;color:var(--ink-2);line-height:1.65}
+.trust-list{display:flex;flex-direction:column;gap:.6rem}
+.trust-item{display:flex;align-items:center;gap:.55rem;font-size:.8rem;color:var(--ink-2)}
+.trust-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.auth-card{width:100%;max-width:460px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-lg);box-shadow:0 24px 64px rgba(0,0,0,.45);overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tab{flex:1;padding:.8rem;background:none;border:none;border-bottom:2.5px solid transparent;font-family:inherit;font-size:.875rem;font-weight:500;color:var(--ink-3);cursor:pointer;transition:all .15s}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.form-body{padding:1.375rem 1.5rem}
+.field{margin-bottom:.9rem}
+.field label{display:block;font-size:.775rem;font-weight:500;color:var(--ink-2);margin-bottom:.3rem}
+.field label .opt{color:var(--ink-3);font-weight:400}
+.form-input{width:100%;padding:.575rem .875rem;border:1.5px solid var(--line-2);border-radius:var(--radius);font-size:.875rem;font-family:inherit;background:var(--bg-3);color:var(--ink);transition:border-color .15s,box-shadow .15s;outline:none;-webkit-appearance:none;appearance:none}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.form-input::placeholder{color:var(--ink-3)}
+select.form-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238A8E87' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .75rem center;padding-right:2.2rem}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.step-wrap{padding:.875rem 1.5rem .2rem}
+.step-bar{display:flex;align-items:center;gap:.5rem}
+.step-node{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.7rem;font-weight:600;font-family:'Geist Mono',monospace;border:1.5px solid var(--line-2);color:var(--ink-3);transition:all .2s;flex-shrink:0}
+.step-node.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.step-node.done{background:rgba(158,228,147,.15);border-color:var(--accent);color:var(--accent)}
+.step-line{flex:1;height:1px;background:var(--line-2);transition:background .2s}
+.step-line.done{background:var(--accent);opacity:.35}
+.step-labels{display:flex;justify-content:space-between;margin-top:.35rem;font-size:.65rem;font-family:'Geist Mono',monospace;color:var(--ink-3)}
+.step-labels span{width:26px;text-align:center}
+.pw-track{height:3px;background:var(--line);border-radius:99px;margin-top:.4rem;overflow:hidden}
+.pw-fill{height:100%;width:0%;border-radius:99px;transition:width .25s,background .25s}
+.pw-hint{font-size:.7rem;color:var(--ink-3);margin-top:.3rem;font-family:'Geist Mono',monospace}
+.alert{display:none;padding:.6rem .85rem;border-radius:var(--radius);font-size:.82rem;margin-bottom:.875rem;background:var(--danger-lt);color:var(--danger);border:1px solid rgba(255,106,85,.22);line-height:1.4}
+.alert.on{display:block}
+.kyc-box{background:rgba(158,228,147,.07);border:1px solid rgba(158,228,147,.2);border-radius:var(--radius);padding:.7rem .9rem;font-size:.78rem;color:var(--ink-2);line-height:1.55;margin-bottom:.875rem}
+.kyc-box strong{color:var(--accent)}
+.chk-row{display:flex;align-items:flex-start;gap:.55rem;margin-bottom:.7rem;font-size:.78rem;color:var(--ink-2);line-height:1.5}
+.chk-row input[type=checkbox]{margin-top:.15rem;accent-color:var(--accent);flex-shrink:0;width:14px;height:14px;cursor:pointer}
+.chk-row a{color:var(--accent);text-decoration:none}
+.chk-row a:hover{text-decoration:underline}
+.btn-primary{width:100%;padding:.7rem;background:var(--accent);color:var(--accent-ink);border:none;border-radius:999px;font-family:inherit;font-size:.875rem;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.btn-primary:hover{background:#cef870;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-ghost{padding:.68rem 1.2rem;background:none;border:1.5px solid var(--line-2);border-radius:999px;font-family:inherit;font-size:.85rem;font-weight:500;color:var(--ink-2);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-ghost:hover{border-color:var(--line);color:var(--ink)}
+.step-nav{display:flex;gap:.65rem;margin-top:.25rem}
+.step-nav .btn-primary{flex:1}
+.badges{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:center;padding:.875rem 1.5rem;border-top:1px solid var(--line)}
+.badge{display:flex;align-items:center;gap:.3rem;font-size:.67rem;color:var(--ink-3);font-family:'Geist Mono',monospace;background:var(--bg-3);border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
+.badge-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);flex-shrink:0}
+#overlay{display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:1.2rem}
+#overlay.on{display:flex}
+.pulse-row{display:flex;gap:5px}
+.p{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pu 1.2s ease-in-out infinite}
+.p:nth-child(2){animation-delay:.2s}.p:nth-child(3){animation-delay:.4s}
+@keyframes pu{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+#ov-name{font-size:1.55rem;font-weight:700;letter-spacing:-.03em}
+#ov-msg{font-size:.82rem;color:var(--ink-3);font-family:'Geist Mono',monospace}
+.auth-footer{position:relative;z-index:5;border-top:1px solid var(--line);padding:1.1rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+.foot-copy{font-size:.7rem;color:var(--ink-3);font-family:'Geist Mono',monospace}
+.foot-links{display:flex;gap:1.1rem;flex-wrap:wrap}
+.foot-links a{font-size:.7rem;color:var(--ink-3);text-decoration:none;transition:color .15s}
+.foot-links a:hover{color:var(--ink-2)}
+.es-box{position:fixed;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius);box-shadow:0 8px 28px rgba(0,0,0,.45);overflow:hidden;z-index:400}
+.es-box div{padding:.475rem .875rem;font-size:.825rem;color:var(--ink-2);cursor:pointer;border-bottom:1px solid var(--line);transition:background .1s}
+.es-box div:last-child{border-bottom:none}
+.es-box div:hover{background:var(--bg-3);color:var(--ink)}
+.es-box strong{color:var(--accent);font-weight:600}
+.link{color:var(--accent);cursor:pointer;font-size:.8rem;text-decoration:none}
+.link:hover{text-decoration:underline}
 </style>
 </head>
-<body style="background:linear-gradient(135deg,#14213a 0%,#1a2b4a 60%,#1e3a5f 100%);min-height:100vh;display:flex;flex-direction:column;font-family:Inter,system-ui,sans-serif;">
+<body>
 
-<!-- Nav -->
-<nav style="padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;">
-  <a href="/" style="display:flex;align-items:center;gap:.6rem;color:#fff;font-weight:800;font-size:1.05rem;text-decoration:none;">
-    <div style="display:flex;gap:3px;">
-      <div style="width:9px;height:9px;border-radius:50%;background:#60a5fa;"></div>
-      <div style="width:9px;height:9px;border-radius:50%;background:#34d399;"></div>
-      <div style="width:9px;height:9px;border-radius:50%;background:#f59e0b;"></div>
-    </div>
-    SOHANA
-  </a>
-  <span style="font-size:.8rem;color:rgba(255,255,255,.45);">Secure platform</span>
+<div class="kente" aria-hidden="true">
+  <svg viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="k1" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <rect x="0" y="0"  width="40" height="8"  fill="#9EE493"/>
+        <rect x="0" y="16" width="40" height="8"  fill="#76E0A1"/>
+        <rect x="0" y="32" width="40" height="8"  fill="#9EE493"/>
+        <rect x="0"  y="0" width="8"  height="40" fill="#F4F2EC" opacity=".25"/>
+        <rect x="16" y="0" width="8"  height="40" fill="#F4F2EC" opacity=".1"/>
+        <rect x="32" y="0" width="8"  height="40" fill="#F4F2EC" opacity=".25"/>
+        <polygon points="20,10 28,18 20,26 12,18" fill="#0E120F" opacity=".55"/>
+      </pattern>
+    </defs>
+    <rect width="400" height="400" fill="url(#k1)"/>
+  </svg>
+</div>
+
+<nav class="auth-nav">
+  <a href="/" class="brand"><span class="brand-mark">S</span>SOHANA</a>
+  <span class="nav-tag">Secure &amp; encrypted</span>
 </nav>
 
-<!-- Card -->
-<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;">
-  <div style="width:100%;max-width:420px;">
-    <div style="text-align:center;margin-bottom:1.75rem;">
-      <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin-bottom:.4rem;">Welcome to SOHANA</h1>
-      <p style="color:rgba(255,255,255,.55);font-size:.875rem;">Your community savings platform</p>
+<div class="auth-wrap">
+
+  <div class="auth-copy">
+    <div>
+      <h1>Your community,<br><em>your</em> credit.</h1>
+      <p style="margin-top:.8rem">Join the African diaspora building financial identity through savings circles — Njangi, Tontine, Esusu, Chama.</p>
+    </div>
+    <div class="trust-list">
+      <div class="trust-item"><div class="trust-dot"></div>Regulated under ACPR (France) &amp; FCA (UK)</div>
+      <div class="trust-item"><div class="trust-dot"></div>256-bit SSL on all transactions</div>
+      <div class="trust-item"><div class="trust-dot"></div>Funds segregated — never mixed with operations</div>
+      <div class="trust-item"><div class="trust-dot"></div>Full AML/KYC compliance</div>
+      <div class="trust-item"><div class="trust-dot"></div>Free to join during beta</div>
+    </div>
+  </div>
+
+  <div class="auth-card">
+    <div class="tabs">
+      <button class="tab on" id="tab-login"    onclick="switchTab('login')">Sign in</button>
+      <button class="tab"    id="tab-register" onclick="switchTab('register')">Create account</button>
     </div>
 
-    <div style="background:#fff;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div id="panel-login">
+      <div class="form-body">
+        <div class="alert" id="al-login"></div>
+        <div class="field">
+          <label>Email or phone number</label>
+          <input id="l-id" class="form-input" type="text" placeholder="+33611000001 or you@email.com" autocomplete="username" oninput="suggestEmail(this,'es-login')" onkeydown="if(event.key==='Enter')doLogin()">
+          <div id="es-login" class="es-box" style="display:none"></div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input id="l-pass" class="form-input" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign in</button>
+        <p style="text-align:center;font-size:.78rem;color:var(--ink-3);margin-top:.875rem">No account? <a class="link" onclick="switchTab('register')">Create one free →</a></p>
+      </div>
+      <div class="badges">
+        <div class="badge"><div class="badge-dot"></div>256-bit SSL</div>
+        <div class="badge"><div class="badge-dot"></div>AML/KYC</div>
+        <div class="badge"><div class="badge-dot"></div>Funds segregated</div>
+        <div class="badge"><div class="badge-dot"></div>ACPR supervised</div>
+      </div>
+    </div>
 
-      <!-- Tabs -->
-      <div style="display:flex;border-bottom:1px solid #e2e8f0;">
-        <button id="tab-login" onclick="switchTab('login')"
-          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:600;
-                 border-bottom:3px solid #2563eb;color:#2563eb;cursor:pointer;border-radius:20px 0 0 0;font-family:inherit;">
-          Sign in
-        </button>
-        <button id="tab-register" onclick="switchTab('register')"
-          style="flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;font-weight:500;
-                 border-bottom:3px solid transparent;color:#64748b;cursor:pointer;border-radius:0 20px 0 0;font-family:inherit;">
-          Create account
-        </button>
+    <div id="panel-register" style="display:none">
+      <div class="step-wrap">
+        <div class="step-bar">
+          <div class="step-node active" id="sn1">1</div>
+          <div class="step-line" id="sl1"></div>
+          <div class="step-node" id="sn2">2</div>
+          <div class="step-line" id="sl2"></div>
+          <div class="step-node" id="sn3">3</div>
+        </div>
+        <div class="step-labels"><span>Identity</span><span>Contact</span><span>Security</span></div>
       </div>
 
-      <div style="padding:1.5rem;">
-        <div id="alert-box"></div>
+      <div class="form-body">
+        <div class="alert" id="al-register"></div>
 
-        <!-- ── LOGIN FORM ── -->
-        <div id="form-login">
-          <div style="margin-bottom:.875rem;position:relative;">
-            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Email or phone number</label>
-            <input id="l-id" type="text" placeholder="yourname@gmail.com or +336XXXXXXXX"
-              autocomplete="username"
-              oninput="suggestEmail(this)"
-              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color .15s;"
-              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-            <div id="email-suggest"></div>
+        <div id="step1">
+          <div class="grid-2">
+            <div class="field"><label>First name</label><input id="r-first" class="form-input" type="text" placeholder="Marie" autocomplete="given-name"></div>
+            <div class="field"><label>Last name</label><input id="r-last" class="form-input" type="text" placeholder="Ngono" autocomplete="family-name"></div>
           </div>
-          <div style="margin-bottom:.875rem;">
-            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Password</label>
-            <input id="l-pass" type="password" placeholder="••••••••"
-              autocomplete="current-password"
-              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;transition:border-color .15s;"
-              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
-              onkeydown="if(event.key==='Enter')doLogin()">
-          </div>
-          <button id="btn-login" onclick="doLogin()"
-            style="width:100%;padding:.65rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;margin-top:.25rem;"
-            onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
-            Sign in
-          </button>
-          <p style="text-align:center;font-size:.8rem;color:#64748b;margin-top:.875rem;margin-bottom:0;">
-            Don't have an account?
-            <a onclick="switchTab('register')" style="color:#2563eb;cursor:pointer;font-weight:500;">Create one free</a>
-          </p>
-        </div>
-
-        <!-- ── REGISTER FORM ── -->
-        <div id="form-register" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.875rem;">
-            <div>
-              <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Full name</label>
-              <input id="r-name" type="text" placeholder="Maria Ngono"
-                style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
-                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-            </div>
-            <div>
-              <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Country</label>
-              <select id="r-country"
-                style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;background:#fff;">
-                <option value="FR">France</option>
-                <option value="RW">Rwanda</option>
-                <option value="CM">Cameroon</option>
-                <option value="KE">Kenya</option>
-                <option value="NG">Nigeria</option>
-                <option value="GB">United Kingdom</option>
-                <option value="US">United States</option>
-                <option value="BE">Belgium</option>
-                <option value="CI">Côte d'Ivoire</option>
-                <option value="SN">Senegal</option>
-                <option value="GH">Ghana</option>
-                <option value="ZA">South Africa</option>
+          <div class="grid-2">
+            <div class="field"><label>Gender</label>
+              <select id="r-gender" class="form-input">
+                <option value="">Select…</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="non_binary">Non-binary</option>
+                <option value="prefer_not">Prefer not to say</option>
               </select>
             </div>
+            <div class="field"><label>Date of birth</label><input id="r-dob" class="form-input" type="date" autocomplete="bday"></div>
           </div>
-          <div style="margin-bottom:.875rem;">
-            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Phone number</label>
-            <input id="r-phone" type="tel" placeholder="+336XXXXXXXX"
-              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
-              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <div class="field"><label>Country of residence</label><select id="r-country" class="form-input"></select></div>
+          <div class="field"><label>Nationality</label><select id="r-nationality" class="form-input"></select></div>
+          <div class="field"><label>Occupation</label>
+            <select id="r-occupation" class="form-input">
+              <option value="">Select…</option>
+              <option value="employed">Employed (full-time)</option>
+              <option value="part_time">Employed (part-time)</option>
+              <option value="self_employed">Self-employed / Freelance</option>
+              <option value="business_owner">Business owner</option>
+              <option value="student">Student</option>
+              <option value="retired">Retired</option>
+              <option value="unemployed">Unemployed / Seeking work</option>
+              <option value="homemaker">Homemaker</option>
+              <option value="other">Other</option>
+            </select>
           </div>
-          <div style="margin-bottom:.875rem;">
-            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Email <span style="color:#94a3b8;font-weight:400;">(optional)</span></label>
-            <input id="r-email" type="email" placeholder="yourname@gmail.com"
-              oninput="suggestEmailReg(this)"
-              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
-              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-            <div id="email-suggest-reg" style="position:fixed;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);overflow:hidden;z-index:200;display:none;"></div>
-          </div>
-          <div style="margin-bottom:.875rem;">
-            <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:#334155;">Password</label>
-            <input id="r-pass" type="password" placeholder="At least 8 characters"
-              style="width:100%;padding:.5rem .8rem;border:1.5px solid #e2e8f0;border-radius:6px;font-size:.875rem;font-family:inherit;box-sizing:border-box;outline:none;"
-              onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
-              onkeydown="if(event.key==='Enter')doRegister()">
-          </div>
-          <button id="btn-register" onclick="doRegister()"
-            style="width:100%;padding:.65rem;background:#ea580c;color:#fff;border:none;border-radius:6px;font-size:.9rem;font-weight:600;font-family:inherit;cursor:pointer;transition:background .15s;"
-            onmouseover="this.style.background='#c2410c'" onmouseout="this.style.background='#ea580c'">
-            Create account
-          </button>
-          <p style="text-align:center;font-size:.75rem;color:#94a3b8;margin-top:.875rem;margin-bottom:0;">
-            By creating an account you agree to our terms of service.
-          </p>
+          <div class="step-nav"><button class="btn-primary" onclick="goStep(2)">Continue →</button></div>
         </div>
+
+        <div id="step2" style="display:none">
+          <div class="field"><label>Phone number</label><input id="r-phone" class="form-input" type="tel" placeholder="+33 6 11 00 00 01" autocomplete="tel"></div>
+          <div class="field">
+            <label>Email <span class="opt">(optional)</span></label>
+            <input id="r-email" class="form-input" type="email" placeholder="you@email.com" autocomplete="email" oninput="suggestEmail(this,'es-reg')">
+            <div id="es-reg" class="es-box" style="display:none"></div>
+          </div>
+          <div class="field"><label>Preferred currency</label>
+            <select id="r-currency" class="form-input">
+              <option value="EUR">🇪🇺  Euro (EUR)</option>
+              <option value="GBP">🇬🇧  British Pound (GBP)</option>
+              <option value="USD">🇺🇸  US Dollar (USD)</option>
+              <option value="CAD">🇨🇦  Canadian Dollar (CAD)</option>
+              <option value="XAF">🌍  CFA Franc (XAF)</option>
+              <option value="GHC">🇬🇭  Ghanaian Cedi (GHC)</option>
+              <option value="NGN">🇳🇬  Nigerian Naira (NGN)</option>
+              <option value="ZAR">🇿🇦  South African Rand (ZAR)</option>
+            </select>
+          </div>
+          <div class="field"><label>Source of funds <span class="opt">(AML requirement)</span></label>
+            <select id="r-funds" class="form-input">
+              <option value="">Select…</option>
+              <option value="salary">Salary / Employment income</option>
+              <option value="business">Business income</option>
+              <option value="savings">Personal savings</option>
+              <option value="investment">Investment returns</option>
+              <option value="pension">Pension / Retirement income</option>
+              <option value="rental">Rental income</option>
+              <option value="gift">Gift or inheritance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="step-nav">
+            <button class="btn-ghost" onclick="goStep(1)">← Back</button>
+            <button class="btn-primary" onclick="goStep(3)">Continue →</button>
+          </div>
+        </div>
+
+        <div id="step3" style="display:none">
+          <div class="field">
+            <label>Create a password</label>
+            <input id="r-pass" class="form-input" type="password" placeholder="At least 8 characters" autocomplete="new-password" oninput="checkPw(this.value)">
+            <div class="pw-track"><div class="pw-fill" id="pw-fill"></div></div>
+            <div class="pw-hint" id="pw-hint">Enter a password to see strength</div>
+          </div>
+          <div class="field">
+            <label>Confirm password</label>
+            <input id="r-pass2" class="form-input" type="password" placeholder="Repeat your password" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()">
+          </div>
+
+          <div class="kyc-box">
+            <strong>Identity verification (KYC)</strong><br>
+            SOHANA is a regulated financial platform. After registration you will be asked to verify your identity before sending or receiving funds. This is required under ACPR, FCA and FINTRAC regulations. Documents are reviewed within 1–2 business days.
+          </div>
+
+          <div class="chk-row">
+            <input type="checkbox" id="chk-terms">
+            <label for="chk-terms">I agree to SOHANA's <a href="/terms" target="_blank">Terms of Service</a> and <a href="/privacy" target="_blank">Privacy Policy</a></label>
+          </div>
+          <div class="chk-row">
+            <input type="checkbox" id="chk-aml">
+            <label for="chk-aml">I confirm that the information I have provided is accurate and that funds I use on this platform are from legitimate sources, in accordance with anti-money laundering regulations.</label>
+          </div>
+
+          <div class="step-nav">
+            <button class="btn-ghost" onclick="goStep(2)">← Back</button>
+            <button class="btn-primary" id="btn-register" onclick="doRegister()">Create account</button>
+          </div>
+
+          <p style="text-align:center;font-size:.75rem;color:var(--ink-3);margin-top:.875rem">Already registered? <a class="link" onclick="switchTab('login')">Sign in</a></p>
+        </div>
+
+      </div>
+
+      <div class="badges">
+        <div class="badge"><div class="badge-dot"></div>256-bit SSL</div>
+        <div class="badge"><div class="badge-dot"></div>AML/KYC</div>
+        <div class="badge"><div class="badge-dot"></div>Funds segregated</div>
+        <div class="badge"><div class="badge-dot"></div>ACPR supervised</div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- Loading overlay -->
-<div id="login-overlay">
-  <div style="display:flex;gap:5px;">
-    <div style="width:12px;height:12px;border-radius:50%;background:#60a5fa;"></div>
-    <div style="width:12px;height:12px;border-radius:50%;background:#34d399;"></div>
-    <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div>
-  </div>
-  <div style="color:#fff;font-size:1.6rem;font-weight:800;letter-spacing:-.01em;">SOHANA</div>
-  <div class="dot-row">
-    <div class="pulse-dot"></div><div class="pulse-dot"></div><div class="pulse-dot"></div>
-  </div>
-  <div id="overlay-msg" style="color:rgba(255,255,255,.65);font-size:.9rem;">Signing you in…</div>
+<div id="overlay">
+  <div class="pulse-row"><div class="p"></div><div class="p"></div><div class="p"></div></div>
+  <div id="ov-name">SOHANA</div>
+  <div id="ov-msg">Signing you in…</div>
 </div>
+
+<footer class="auth-footer">
+  <span class="foot-copy">© 2026 Sohana SAS · Beta platform</span>
+  <nav class="foot-links">
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="/cookies">Cookies</a>
+    <a href="/complaints">Complaints</a>
+    <a href="/contact">Contact</a>
+    <a href="/help">Help</a>
+  </nav>
+</footer>
 
 <script>
-/* ── HELPERS ── */
-function showAlert(msg) {
-  const el = document.getElementById('alert-box');
-  el.style.display = 'block';
-  el.textContent   = msg;
-}
-function hideAlert() { document.getElementById('alert-box').style.display = 'none'; }
+const ALL_COUNTRIES = [
+["AF","Afghanistan"],["AL","Albania"],["DZ","Algeria"],["AD","Andorra"],["AO","Angola"],
+["AG","Antigua and Barbuda"],["AR","Argentina"],["AM","Armenia"],["AU","Australia"],["AT","Austria"],
+["AZ","Azerbaijan"],["BS","Bahamas"],["BH","Bahrain"],["BD","Bangladesh"],["BB","Barbados"],
+["BY","Belarus"],["BE","Belgium"],["BZ","Belize"],["BJ","Benin"],["BT","Bhutan"],
+["BO","Bolivia"],["BA","Bosnia and Herzegovina"],["BW","Botswana"],["BR","Brazil"],["BN","Brunei"],
+["BG","Bulgaria"],["BF","Burkina Faso"],["BI","Burundi"],["CV","Cabo Verde"],["KH","Cambodia"],
+["CM","Cameroon"],["CA","Canada"],["CF","Central African Republic"],["TD","Chad"],["CL","Chile"],
+["CN","China"],["CO","Colombia"],["KM","Comoros"],["CG","Congo"],["CD","Congo (DRC)"],
+["CR","Costa Rica"],["CI","Côte d'Ivoire"],["HR","Croatia"],["CU","Cuba"],["CY","Cyprus"],
+["CZ","Czechia"],["DK","Denmark"],["DJ","Djibouti"],["DM","Dominica"],["DO","Dominican Republic"],
+["EC","Ecuador"],["EG","Egypt"],["SV","El Salvador"],["GQ","Equatorial Guinea"],["ER","Eritrea"],
+["EE","Estonia"],["SZ","Eswatini"],["ET","Ethiopia"],["FJ","Fiji"],["FI","Finland"],
+["FR","France"],["GA","Gabon"],["GM","Gambia"],["GE","Georgia"],["DE","Germany"],
+["GH","Ghana"],["GR","Greece"],["GD","Grenada"],["GT","Guatemala"],["GN","Guinea"],
+["GW","Guinea-Bissau"],["GY","Guyana"],["HT","Haiti"],["HN","Honduras"],["HU","Hungary"],
+["IS","Iceland"],["IN","India"],["ID","Indonesia"],["IR","Iran"],["IQ","Iraq"],
+["IE","Ireland"],["IL","Israel"],["IT","Italy"],["JM","Jamaica"],["JP","Japan"],
+["JO","Jordan"],["KZ","Kazakhstan"],["KE","Kenya"],["KI","Kiribati"],["KW","Kuwait"],
+["KG","Kyrgyzstan"],["LA","Laos"],["LV","Latvia"],["LB","Lebanon"],["LS","Lesotho"],
+["LR","Liberia"],["LY","Libya"],["LI","Liechtenstein"],["LT","Lithuania"],["LU","Luxembourg"],
+["MG","Madagascar"],["MW","Malawi"],["MY","Malaysia"],["MV","Maldives"],["ML","Mali"],
+["MT","Malta"],["MH","Marshall Islands"],["MR","Mauritania"],["MU","Mauritius"],["MX","Mexico"],
+["FM","Micronesia"],["MD","Moldova"],["MC","Monaco"],["MN","Mongolia"],["ME","Montenegro"],
+["MA","Morocco"],["MZ","Mozambique"],["MM","Myanmar"],
+["NA","Namibia"],["NR","Nauru"],["NP","Nepal"],["NL","Netherlands"],["NZ","New Zealand"],
+["NI","Nicaragua"],["NE","Niger"],["NG","Nigeria"],["KP","North Korea"],["MK","North Macedonia"],
+["NO","Norway"],["OM","Oman"],["PK","Pakistan"],["PW","Palau"],["PA","Panama"],
+["PG","Papua New Guinea"],["PY","Paraguay"],["PE","Peru"],["PH","Philippines"],["PL","Poland"],
+["PT","Portugal"],["QA","Qatar"],["RO","Romania"],["RU","Russia"],["RW","Rwanda"],
+["KN","Saint Kitts and Nevis"],["LC","Saint Lucia"],["VC","Saint Vincent and the Grenadines"],
+["WS","Samoa"],["SM","San Marino"],["ST","São Tomé and Príncipe"],["SA","Saudi Arabia"],
+["SN","Senegal"],["RS","Serbia"],["SC","Seychelles"],["SL","Sierra Leone"],["SG","Singapore"],
+["SK","Slovakia"],["SI","Slovenia"],["SB","Solomon Islands"],["SO","Somalia"],["ZA","South Africa"],
+["KR","South Korea"],["SS","South Sudan"],["ES","Spain"],["LK","Sri Lanka"],["SD","Sudan"],
+["SR","Suriname"],["SE","Sweden"],["CH","Switzerland"],["SY","Syria"],["TW","Taiwan"],
+["TJ","Tajikistan"],["TZ","Tanzania"],["TH","Thailand"],["TL","Timor-Leste"],["TG","Togo"],
+["TO","Tonga"],["TT","Trinidad and Tobago"],["TN","Tunisia"],["TR","Türkiye"],["TM","Turkmenistan"],
+["TV","Tuvalu"],["UG","Uganda"],["UA","Ukraine"],["AE","United Arab Emirates"],["GB","United Kingdom"],
+["US","United States"],["UY","Uruguay"],["UZ","Uzbekistan"],["VU","Vanuatu"],["VA","Vatican City"],
+["VE","Venezuela"],["VN","Vietnam"],["YE","Yemen"],["ZM","Zambia"],["ZW","Zimbabwe"]
+];
 
-function setLoading(btn, loading) {
+const EMAIL_DOMAINS = ['gmail.com','yahoo.com','outlook.com','hotmail.com','icloud.com','live.com','protonmail.com','orange.fr','sfr.fr','yahoo.fr','hotmail.fr','gmx.com','aol.com','wanadoo.fr','laposte.net'];
+
+/* ── INIT: populate country dropdowns + DOB max ── */
+document.addEventListener('DOMContentLoaded', function() {
+  const country  = document.getElementById('r-country');
+  const national = document.getElementById('r-nationality');
+  const opts = '<option value="">Select…</option>' +
+    ALL_COUNTRIES.map(function(c){
+      return '<option value="'+c[0]+'">'+c[1]+'</option>';
+    }).join('');
+  country.innerHTML  = opts;
+  national.innerHTML = opts;
+  /* DOB: max = today minus 18 years */
+  const today = new Date();
+  const maxDob = new Date(today.getFullYear()-18, today.getMonth(), today.getDate());
+  document.getElementById('r-dob').setAttribute('max', maxDob.toISOString().slice(0,10));
+});
+
+/* ── ALERT helpers ── */
+function showAlert(panel, msg) {
+  const el = document.getElementById('al-' + panel);
+  el.textContent = msg;
+  el.classList.add('on');
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function hideAlert(panel) {
+  const el = document.getElementById('al-' + panel);
+  el.classList.remove('on');
+}
+
+/* ── BUTTON loading state ── */
+function setBtnLoading(btn, loading) {
   if (loading) {
     btn._txt = btn.textContent;
     btn.textContent = 'Please wait…';
     btn.disabled = true;
-    btn.style.opacity = '.7';
   } else {
-    btn.textContent = btn._txt;
+    btn.textContent = btn._txt || btn.textContent;
     btn.disabled = false;
-    btn.style.opacity = '1';
   }
 }
 
-/* ── TABS ── */
+/* ── TAB switching ── */
 function switchTab(tab) {
-  hideAlert();
-  document.getElementById('email-suggest').style.display = 'none';
+  hideAlert('login'); hideAlert('register');
   const isLogin = (tab === 'login');
-  document.getElementById('form-login').style.display    = isLogin ? 'block' : 'none';
-  document.getElementById('form-register').style.display = isLogin ? 'none'  : 'block';
-  document.getElementById('tab-login').style.cssText =
-    `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;
-     font-weight:${isLogin?'600':'500'};font-family:inherit;cursor:pointer;
-     border-bottom:3px solid ${isLogin?'#2563eb':'transparent'};
-     color:${isLogin?'#2563eb':'#64748b'};border-radius:20px 0 0 0;`;
-  document.getElementById('tab-register').style.cssText =
-    `flex:1;padding:.8rem;background:none;border:none;font-size:.9rem;
-     font-weight:${isLogin?'500':'600'};font-family:inherit;cursor:pointer;
-     border-bottom:3px solid ${isLogin?'transparent':'#2563eb'};
-     color:${isLogin?'#64748b':'#2563eb'};border-radius:0 20px 0 0;`;
+  document.getElementById('tab-login').classList.toggle('on', isLogin);
+  document.getElementById('tab-register').classList.toggle('on', !isLogin);
+  document.getElementById('panel-login').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('panel-register').style.display = isLogin ? 'none'  : 'block';
+  if (!isLogin) goStep(1);
+}
+
+/* ── 3-STEP WIZARD ── */
+function goStep(n) {
+  hideAlert('register');
+  /* Validate before advancing */
+  if (n === 2 && !validateStep1()) return;
+  if (n === 3 && !validateStep2()) return;
+  /* Show/hide panels */
+  document.getElementById('step1').style.display = (n === 1) ? 'block' : 'none';
+  document.getElementById('step2').style.display = (n === 2) ? 'block' : 'none';
+  document.getElementById('step3').style.display = (n === 3) ? 'block' : 'none';
+  /* Update step nodes */
+  for (let i = 1; i <= 3; i++) {
+    const node = document.getElementById('sn' + i);
+    node.classList.remove('active', 'done');
+    if (i < n)       node.classList.add('done');
+    else if (i === n) node.classList.add('active');
+  }
+  /* Update step lines */
+  document.getElementById('sl1').classList.toggle('done', n >= 2);
+  document.getElementById('sl2').classList.toggle('done', n >= 3);
+  /* Scroll to top of card */
+  document.querySelector('.auth-card').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function validateStep1() {
+  const first  = document.getElementById('r-first').value.trim();
+  const last   = document.getElementById('r-last').value.trim();
+  const gender = document.getElementById('r-gender').value;
+  const dob    = document.getElementById('r-dob').value;
+  const ctry   = document.getElementById('r-country').value;
+  const nat    = document.getElementById('r-nationality').value;
+  const occ    = document.getElementById('r-occupation').value;
+  if (!first)  { showAlert('register', 'Please enter your first name.'); return false; }
+  if (!last)   { showAlert('register', 'Please enter your last name.');  return false; }
+  if (!gender) { showAlert('register', 'Please select your gender.');     return false; }
+  if (!dob)    { showAlert('register', 'Please enter your date of birth.'); return false; }
+  /* Check 18+ */
+  const bd  = new Date(dob);
+  const now = new Date();
+  const age = (now - bd) / (365.25 * 24 * 3600 * 1000);
+  if (age < 18) { showAlert('register', 'You must be at least 18 years old to register.'); return false; }
+  if (age > 120){ showAlert('register', 'Please enter a valid date of birth.'); return false; }
+  if (!ctry)   { showAlert('register', 'Please select your country of residence.'); return false; }
+  if (!nat)    { showAlert('register', 'Please select your nationality.'); return false; }
+  if (!occ)    { showAlert('register', 'Please select your occupation.'); return false; }
+  return true;
+}
+
+function validateStep2() {
+  const phone = document.getElementById('r-phone').value.trim();
+  const funds = document.getElementById('r-funds').value;
+  if (!phone)               { showAlert('register', 'Please enter your phone number.'); return false; }
+  if (!phone.startsWith('+')){ showAlert('register', 'Phone must include country code (e.g. +33611000001).'); return false; }
+  if (phone.replace(/\D/g,'').length < 8) { showAlert('register', 'Please enter a valid phone number.'); return false; }
+  if (!funds)               { showAlert('register', 'Please select your source of funds (AML requirement).'); return false; }
+  return true;
+}
+
+/* ── PASSWORD STRENGTH ── */
+function checkPw(val) {
+  const fill = document.getElementById('pw-fill');
+  const hint = document.getElementById('pw-hint');
+  if (!val) { fill.style.width = '0%'; hint.textContent = 'Enter a password to see strength'; return; }
+  let score = 0;
+  if (val.length >= 8)  score++;
+  if (val.length >= 12) score++;
+  if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
+  if (/[0-9]/.test(val)) score++;
+  if (/[^A-Za-z0-9]/.test(val)) score++;
+  const levels = [
+    {w:'20%', c:'#FF6A55', t:'Very weak'},
+    {w:'40%', c:'#FF8A50', t:'Weak'},
+    {w:'60%', c:'#F0C040', t:'Fair'},
+    {w:'80%', c:'#9EE493', t:'Strong'},
+    {w:'100%', c:'#76E0A1', t:'Excellent'}
+  ];
+  const level = levels[Math.min(score, 5) - 1] || levels[0];
+  fill.style.width      = level.w;
+  fill.style.background = level.c;
+  hint.textContent      = level.t + (val.length < 8 ? ' — minimum 8 characters' : '');
 }
 
 /* ── EMAIL AUTOSUGGEST ── */
-const DOMAINS = [
-  'gmail.com','yahoo.com','outlook.com','hotmail.com','icloud.com',
-  'live.com','protonmail.com','orange.fr','sfr.fr','yahoo.fr',
-  'hotmail.fr','gmx.com','aol.com','mail.com','zoho.com'
-];
 let suggestTimer = null;
-
-function buildSuggestBox(boxId, input, value) {
+function suggestEmail(input, boxId) {
+  clearTimeout(suggestTimer);
+  suggestTimer = setTimeout(function(){ buildSuggest(input, boxId); }, 100);
+}
+function buildSuggest(input, boxId) {
   const box = document.getElementById(boxId);
-  const at  = value.indexOf('@');
+  const v   = input.value;
+  const at  = v.indexOf('@');
   if (at < 1) { box.style.display = 'none'; return; }
-  const prefix = value.slice(0, at + 1);
-  const typed  = value.slice(at + 1);
-  const matches = DOMAINS.filter(d => d.startsWith(typed));
+  const prefix = v.slice(0, at + 1);
+  const typed  = v.slice(at + 1);
+  const matches = EMAIL_DOMAINS.filter(function(d){ return d.startsWith(typed); });
   if (!matches.length || typed === matches[0]) { box.style.display = 'none'; return; }
-  box.innerHTML = matches.slice(0, 6).map(d =>
-    `<div onclick="pickDomain('${boxId}','${input.id}','${prefix}${d}')">${prefix}<strong>${typed}</strong>${d.slice(typed.length)}</div>`
-  ).join('');
-  const rect = input.getBoundingClientRect();
-  box.style.cssText = `display:block;position:fixed;top:${rect.bottom+3}px;left:${rect.left}px;width:${rect.width}px;
-    background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);overflow:hidden;z-index:200;`;
-}
-
-function suggestEmail(input) {
-  clearTimeout(suggestTimer);
-  suggestTimer = setTimeout(() => buildSuggestBox('email-suggest', input, input.value), 120);
-}
-function suggestEmailReg(input) {
-  clearTimeout(suggestTimer);
-  suggestTimer = setTimeout(() => buildSuggestBox('email-suggest-reg', input, input.value), 120);
+  box.innerHTML = matches.slice(0, 5).map(function(d){
+    return '<div onclick="pickDomain(\'' + boxId + '\',\'' + input.id + '\',\'' + prefix + d + '\')">' +
+           prefix + '<strong>' + typed + '</strong>' + d.slice(typed.length) + '</div>';
+  }).join('');
+  const r = input.getBoundingClientRect();
+  box.style.top   = (r.bottom + 3) + 'px';
+  box.style.left  = r.left + 'px';
+  box.style.width = r.width + 'px';
+  box.style.display = 'block';
 }
 function pickDomain(boxId, inputId, full) {
   document.getElementById(inputId).value = full;
   document.getElementById(boxId).style.display = 'none';
-  // Move focus to password field
-  const next = inputId === 'l-id' ? 'l-pass' : 'r-pass';
-  const nextEl = document.getElementById(next);
-  if (nextEl) nextEl.focus();
 }
-document.addEventListener('click', e => {
-  if (!e.target.closest('#email-suggest') && e.target.id !== 'l-id')
-    document.getElementById('email-suggest').style.display = 'none';
-  if (!e.target.closest('#email-suggest-reg') && e.target.id !== 'r-email')
-    document.getElementById('email-suggest-reg').style.display = 'none';
+document.addEventListener('click', function(e) {
+  ['es-login','es-reg'].forEach(function(id){
+    const b = document.getElementById(id);
+    if (b && !e.target.closest('#' + id) && e.target.id !== 'l-id' && e.target.id !== 'r-email') {
+      b.style.display = 'none';
+    }
+  });
 });
 
 /* ── LOADING OVERLAY ── */
 function showOverlay(name) {
-  const ov  = document.getElementById('login-overlay');
-  const msg = document.getElementById('overlay-msg');
-  ov.style.display = 'flex';
-  setTimeout(() => { msg.textContent = 'Loading your dashboard…'; }, 1000);
-  setTimeout(() => { msg.textContent = 'Welcome' + (name ? ', ' + name.split(' ')[0] : '') + '! 👋'; }, 2200);
-  setTimeout(() => { window.location.href = '/dashboard'; }, 3000);
+  const ov  = document.getElementById('overlay');
+  const msg = document.getElementById('ov-msg');
+  ov.classList.add('on');
+  setTimeout(function(){ msg.textContent = 'Loading your dashboard…'; }, 1100);
+  setTimeout(function(){ msg.textContent = 'Welcome' + (name ? ', ' + name.split(' ')[0] : '') + '!'; }, 2200);
+  setTimeout(function(){ window.location.href = '/dashboard'; }, 2900);
 }
 
 /* ── LOGIN ── */
 async function doLogin() {
-  hideAlert();
-  const identifier = document.getElementById('l-id').value.trim();
-  const password   = document.getElementById('l-pass').value;
-  if (!identifier) { showAlert('Please enter your email or phone number.'); return; }
-  if (!password)   { showAlert('Please enter your password.'); return; }
+  hideAlert('login');
+  const id   = document.getElementById('l-id').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  if (!id)   { showAlert('login', 'Please enter your email or phone number.'); return; }
+  if (!pass) { showAlert('login', 'Please enter your password.'); return; }
   const btn = document.getElementById('btn-login');
-  setLoading(btn, true);
+  setBtnLoading(btn, true);
   try {
-    const resp = await fetch('/api/auth/login', {
+    const r = await fetch('/api/auth/login', {
       method:  'POST',
       headers: {'Content-Type': 'application/json'},
-      body:    JSON.stringify({ phone: identifier, password })
+      body:    JSON.stringify({phone: id, password: pass})
     });
-    const data = await resp.json();
-    setLoading(btn, false);
-    if (data.error) { showAlert(data.error); return; }
+    const data = await r.json();
+    setBtnLoading(btn, false);
+    if (data.error) { showAlert('login', data.error); return; }
     showOverlay(data.user ? data.user.name : '');
-  } catch (err) {
-    setLoading(btn, false);
-    showAlert('Connection error. Please check your internet and try again.');
+  } catch (e) {
+    setBtnLoading(btn, false);
+    showAlert('login', 'Connection error. Please check your internet and try again.');
   }
 }
 
 /* ── REGISTER ── */
 async function doRegister() {
-  hideAlert();
-  const name  = document.getElementById('r-name').value.trim();
-  const phone = document.getElementById('r-phone').value.trim();
+  hideAlert('register');
   const pass  = document.getElementById('r-pass').value;
-  if (!name)  { showAlert('Please enter your full name.'); return; }
-  if (!phone) { showAlert('Please enter your phone number.'); return; }
-  if (pass.length < 8) { showAlert('Password must be at least 8 characters.'); return; }
+  const pass2 = document.getElementById('r-pass2').value;
+  if (pass.length < 8)         { showAlert('register', 'Password must be at least 8 characters.'); return; }
+  if (pass !== pass2)          { showAlert('register', 'Passwords do not match.'); return; }
+  if (!document.getElementById('chk-terms').checked) { showAlert('register', 'Please accept the Terms of Service to continue.'); return; }
+  if (!document.getElementById('chk-aml').checked)   { showAlert('register', 'Please confirm the AML declaration to continue.');   return; }
+
+  const payload = {
+    first_name:      document.getElementById('r-first').value.trim(),
+    last_name:       document.getElementById('r-last').value.trim(),
+    full_name:       (document.getElementById('r-first').value.trim() + ' ' + document.getElementById('r-last').value.trim()).trim(),
+    gender:          document.getElementById('r-gender').value,
+    date_of_birth:   document.getElementById('r-dob').value,
+    country:         document.getElementById('r-country').value,
+    nationality:     document.getElementById('r-nationality').value,
+    occupation:      document.getElementById('r-occupation').value,
+    phone:           document.getElementById('r-phone').value.trim(),
+    email:           document.getElementById('r-email').value.trim() || null,
+    base_currency:   document.getElementById('r-currency').value,
+    source_of_funds: document.getElementById('r-funds').value,
+    password:        pass
+  };
+
   const btn = document.getElementById('btn-register');
-  setLoading(btn, true);
+  setBtnLoading(btn, true);
   try {
-    const resp = await fetch('/api/auth/register', {
+    const r = await fetch('/api/auth/register', {
       method:  'POST',
       headers: {'Content-Type': 'application/json'},
-      body:    JSON.stringify({
-        phone, password: pass,
-        full_name: name,
-        email:   document.getElementById('r-email').value.trim(),
-        country: document.getElementById('r-country').value,
-      })
+      body:    JSON.stringify(payload)
     });
-    const data = await resp.json();
-    setLoading(btn, false);
-    if (data.error) { showAlert(data.error); return; }
-    showOverlay(name);
-  } catch (err) {
-    setLoading(btn, false);
-    showAlert('Connection error. Please try again.');
+    const data = await r.json();
+    setBtnLoading(btn, false);
+    if (data.error) { showAlert('register', data.error); return; }
+    showOverlay(payload.first_name);
+  } catch (e) {
+    setBtnLoading(btn, false);
+    showAlert('register', 'Connection error. Please try again.');
   }
 }
 </script>
+
 </body>
 </html>

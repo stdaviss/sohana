@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+{% block title %}KYC Review — SOHANA Admin{% endblock %}
+{% block topbar_title %}KYC Review Panel{% endblock %}
+
+{% block content %}
+<style>
+.akyc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;flex-wrap:wrap}
+.akyc-header h2{font-size:1.25rem;font-weight:700;letter-spacing:-.02em}
+.akyc-role{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--accent);background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.25);padding:.2rem .55rem;border-radius:999px;text-transform:uppercase;letter-spacing:.06em}
+
+.akyc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.875rem;margin-bottom:1.25rem}
+.akyc-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.875rem 1.1rem}
+.akyc-stat .lbl{font-size:.7rem;color:var(--ink-3);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+.akyc-stat .val{font-size:1.5rem;font-weight:700;font-family:'Geist Mono',monospace;letter-spacing:-.02em}
+.akyc-stat .val.pending{color:var(--orange)}
+.akyc-stat .val.verified{color:var(--accent)}
+
+.tabs-row{display:flex;gap:.4rem;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.3rem;margin-bottom:1rem}
+.tab-pill{flex:1;padding:.5rem .85rem;background:none;border:none;border-radius:var(--radius);font-family:inherit;font-size:.825rem;font-weight:500;color:var(--ink-3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.45rem}
+.tab-pill.on{background:var(--bg-3);color:var(--ink);font-weight:600}
+.tab-pill .count{font-family:'Geist Mono',monospace;font-size:.7rem;background:var(--bg);padding:.05rem .4rem;border-radius:99px;color:var(--ink-3)}
+.tab-pill.on .count{background:var(--accent);color:var(--accent-ink)}
+
+.panel{display:none}
+.panel.on{display:block}
+
+.tbl-wrap{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:.75rem 1rem;font-size:.7rem;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);font-family:'Geist Mono',monospace;background:var(--bg-3)}
+td{padding:.7rem 1rem;border-bottom:1px solid var(--line);font-size:.825rem;color:var(--ink-2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-3)}
+.user-cell{display:flex;flex-direction:column;gap:.15rem}
+.user-name{color:var(--ink);font-weight:500}
+.user-meta{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3)}
+.lvl-pill{display:inline-block;font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .5rem;border-radius:99px;text-transform:uppercase;letter-spacing:.06em;background:var(--bg-3);color:var(--ink-2);border:1px solid var(--line)}
+.status-pill{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .55rem;border-radius:99px;text-transform:uppercase;letter-spacing:.05em}
+.status-pill.verified{background:rgba(158,228,147,.12);color:var(--accent)}
+.status-pill.pending{background:rgba(255,138,80,.12);color:var(--orange)}
+.status-pill.rejected{background:rgba(255,106,85,.12);color:var(--red)}
+.status-pill.none{background:var(--bg-3);color:var(--ink-3);border:1px solid var(--line)}
+.kyc-lvl{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-2)}
+
+.btn-act{padding:.35rem .75rem;border-radius:99px;border:none;font-family:inherit;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Geist Mono',monospace;letter-spacing:.02em;text-transform:uppercase}
+.btn-approve{background:var(--accent);color:var(--accent-ink)}
+.btn-approve:hover{background:#cef870}
+.btn-reject{background:transparent;color:var(--red);border:1px solid rgba(255,106,85,.3)}
+.btn-reject:hover{background:rgba(255,106,85,.1)}
+.btn-manual{background:transparent;color:var(--accent);border:1px solid rgba(158,228,147,.3);font-size:.72rem;padding:.35rem .75rem}
+.btn-manual:hover{background:rgba(158,228,147,.08)}
+.actions{display:flex;gap:.4rem;justify-content:flex-end}
+
+.empty{padding:2rem;text-align:center;color:var(--ink-3);font-size:.85rem}
+
+.search-wrap{margin-bottom:.875rem}
+.search-input{width:100%;max-width:340px;padding:.5rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.825rem;outline:none;transition:border-color .15s}
+.search-input:focus{border-color:var(--accent)}
+
+/* Modal */
+.modal-bd{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:1rem}
+.modal-bd.on{display:flex}
+.modal{background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-lg);max-width:480px;width:100%;padding:1.5rem;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:.4rem;letter-spacing:-.01em}
+.modal p{font-size:.825rem;color:var(--ink-2);margin-bottom:.875rem;line-height:1.55}
+.modal .field{margin-bottom:.875rem}
+.modal label{display:block;font-size:.72rem;color:var(--ink-2);font-family:'Geist Mono',monospace;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.modal select,.modal textarea,.modal input{width:100%;padding:.55rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.85rem;outline:none}
+.modal select:focus,.modal textarea:focus,.modal input:focus{border-color:var(--accent)}
+.modal textarea{resize:vertical;min-height:80px}
+.modal .btns{display:flex;gap:.6rem;margin-top:1rem}
+.modal .btns button{flex:1;padding:.55rem;border-radius:999px;border:none;font-family:inherit;font-size:.825rem;font-weight:600;cursor:pointer;transition:all .15s}
+.modal .btn-cancel{background:transparent;border:1.5px solid var(--line-2);color:var(--ink-2)}
+.modal .btn-cancel:hover{border-color:var(--line);color:var(--ink)}
+.modal .btn-go{background:var(--accent);color:var(--accent-ink)}
+.modal .btn-go:hover{background:#cef870}
+.modal .btn-go.danger{background:var(--red);color:#fff}
+.modal .btn-go.danger:hover{background:#e84a36}
+
+.alert-flash{display:none;padding:.7rem .9rem;border-radius:var(--radius);font-size:.825rem;margin-bottom:1rem;line-height:1.45}
+.alert-flash.show{display:block}
+.alert-flash.success{background:rgba(158,228,147,.1);color:var(--accent);border:1px solid rgba(158,228,147,.25)}
+.alert-flash.error{background:rgba(255,106,85,.1);color:var(--red);border:1px solid rgba(255,106,85,.22)}
+</style>
+
+<div class="content-wrap" style="max-width:1200px;">
+
+  <div class="akyc-header">
+    <div>
+      <h2>KYC Review Panel</h2>
+      <p style="font-size:.825rem;color:var(--ink-3);margin-top:.25rem;">Review and approve identity verification submissions across the platform.</p>
+    </div>
+    <span class="akyc-role">{{ actor_role|upper }} · Authorised reviewer</span>
+  </div>
+
+  <div id="alert-flash" class="alert-flash"></div>
+
+  <!-- STATS -->
+  <div class="akyc-stats">
+    <div class="akyc-stat">
+      <div class="lbl">Pending review</div>
+      <div class="val pending">{{ pending|length }}</div>
+    </div>
+    <div class="akyc-stat">
+      <div class="lbl">Verified users</div>
+      <div class="val verified">{{ all_users|selectattr('kyc_status','equalto','verified')|list|length }}</div>
+    </div>
+    <div class="akyc-stat">
+      <div class="lbl">Rejected (recent)</div>
+      <div class="val">{{ reviewed|selectattr('status','equalto','rejected')|list|length }}</div>
+    </div>
+    <div class="akyc-stat">
+      <div class="lbl">Total users</div>
+      <div class="val">{{ all_users|length }}</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs-row">
+    <button class="tab-pill on" id="tp-pending"  onclick="showPanel('pending')">Pending queue <span class="count">{{ pending|length }}</span></button>
+    <button class="tab-pill"    id="tp-reviewed" onclick="showPanel('reviewed')">Reviewed <span class="count">{{ reviewed|length }}</span></button>
+    <button class="tab-pill"    id="tp-users"    onclick="showPanel('users')">All users <span class="count">{{ all_users|length }}</span></button>
+  </div>
+
+  <!-- PENDING PANEL -->
+  <div class="panel on" id="panel-pending">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>User</th><th>Level</th><th>Document type</th><th>Submitted</th><th style="text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% if pending %}
+            {% for s in pending %}
+              <tr>
+                <td><div class="user-cell">
+                  <span class="user-name">{{ s.full_name }}</span>
+                  <span class="user-meta">{{ s.phone }}{% if s.hanatag %} · {{ s.hanatag }}{% endif %}</span>
+                </div></td>
+                <td><span class="lvl-pill">{{ s.level }}</span></td>
+                <td style="font-family:'Geist Mono',monospace;font-size:.78rem;color:var(--ink-3);">
+                  {{ s.doc_type_id or s.doc_type_addr or s.doc_type_funds or '—' }}
+                </td>
+                <td><span class="user-meta">{{ s.submitted_at[:16].replace('T',' ') }}</span></td>
+                <td><div class="actions">
+                  <button class="btn-act btn-approve" onclick="approveSub('{{ s.id }}')">✓ Approve</button>
+                  <button class="btn-act btn-reject"  onclick="openReject('{{ s.id }}', '{{ s.full_name|e }}')">Reject</button>
+                </div></td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="5" class="empty">🎉  No pending submissions. The queue is clear.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- REVIEWED PANEL -->
+  <div class="panel" id="panel-reviewed">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>User</th><th>Level</th><th>Status</th><th>Reviewer</th><th>Reviewed</th>
+        </tr></thead>
+        <tbody>
+          {% if reviewed %}
+            {% for s in reviewed %}
+              <tr>
+                <td><div class="user-cell">
+                  <span class="user-name">{{ s.full_name }}</span>
+                  <span class="user-meta">{{ s.phone }}</span>
+                </div></td>
+                <td><span class="lvl-pill">{{ s.level }}</span></td>
+                <td>
+                  <span class="status-pill {{ s.status }}">
+                    {% if s.status == 'approved' %}✓ Approved
+                    {% else %}✗ Rejected{% endif %}
+                  </span>
+                  {% if s.rejection_note %}<div style="font-size:.72rem;color:var(--ink-3);margin-top:.2rem;font-family:'Geist Mono',monospace;">{{ s.rejection_note }}</div>{% endif %}
+                </td>
+                <td><span class="user-meta">{{ s.reviewer_name or '—' }}</span></td>
+                <td><span class="user-meta">{{ (s.reviewed_at or s.submitted_at)[:16].replace('T',' ') }}</span></td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="5" class="empty">No reviewed submissions yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ALL USERS PANEL -->
+  <div class="panel" id="panel-users">
+    <div class="search-wrap">
+      <input class="search-input" id="user-search" type="text" placeholder="Search by name, phone, or hanatag…" oninput="filterUsers()">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>User</th><th>KYC Level</th><th>Status</th><th>Joined</th><th style="text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody id="users-body">
+          {% if all_users %}
+            {% for u in all_users %}
+              <tr data-search="{{ (u.full_name|lower) }} {{ u.phone }} {{ u.hanatag or '' }}">
+                <td><div class="user-cell">
+                  <span class="user-name">{{ u.full_name }}</span>
+                  <span class="user-meta">{{ u.phone }}{% if u.hanatag %} · {{ u.hanatag }}{% endif %}</span>
+                </div></td>
+                <td><span class="kyc-lvl">{{ u.kyc_level or 'phone' }}</span></td>
+                <td><span class="status-pill {{ u.kyc_status or 'none' }}">
+                  {% if u.kyc_status == 'verified' %}● Verified
+                  {% elif u.kyc_status == 'pending' %}● Pending
+                  {% elif u.kyc_status == 'rejected' %}● Rejected
+                  {% else %}● None{% endif %}
+                </span></td>
+                <td><span class="user-meta">{{ u.created_at[:10] }}</span></td>
+                <td style="text-align:right;">
+                  <button class="btn-act btn-manual" onclick="openManual('{{ u.id }}', '{{ u.full_name|e }}')">Manual approve</button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="5" class="empty">No users found.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── REJECT MODAL ── -->
+<div class="modal-bd" id="modal-reject">
+  <div class="modal">
+    <h3>Reject KYC submission</h3>
+    <p>Provide a clear reason. The user will be notified and can resubmit.</p>
+    <div class="field">
+      <label>Rejecting submission for</label>
+      <input id="reject-name" type="text" disabled>
+    </div>
+    <div class="field">
+      <label>Reason</label>
+      <textarea id="reject-note" placeholder="e.g. Document is blurred and unreadable. Please resubmit a clearer photo."></textarea>
+    </div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeModal('modal-reject')">Cancel</button>
+      <button class="btn-go danger" onclick="confirmReject()">Reject submission</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MANUAL APPROVE MODAL ── -->
+<div class="modal-bd" id="modal-manual">
+  <div class="modal">
+    <h3>Manual approval</h3>
+    <p>Override the standard process and verify this user directly. Logged for audit.</p>
+    <div class="field">
+      <label>User</label>
+      <input id="manual-name" type="text" disabled>
+    </div>
+    <div class="field">
+      <label>Verification level</label>
+      <select id="manual-level">
+        <option value="id_verified">Tier 1 — ID Verified</option>
+        <option value="full">Tier 3 — Full KYC</option>
+      </select>
+    </div>
+    <div class="btns">
+      <button class="btn-cancel" onclick="closeModal('modal-manual')">Cancel</button>
+      <button class="btn-go" onclick="confirmManual()">Approve user</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let activeRejectId = null;
+let activeManualId = null;
+
+function showAlert(type, msg) {
+  const el = document.getElementById('alert-flash');
+  el.className = 'alert-flash show ' + type;
+  el.textContent = msg;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setTimeout(function(){ el.classList.remove('show'); }, 5000);
+}
+
+function showPanel(name) {
+  ['pending','reviewed','users'].forEach(function(p){
+    document.getElementById('panel-' + p).classList.toggle('on', p === name);
+    document.getElementById('tp-' + p).classList.toggle('on', p === name);
+  });
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase().trim();
+  document.querySelectorAll('#users-body tr').forEach(function(tr){
+    const txt = tr.getAttribute('data-search') || '';
+    tr.style.display = (!q || txt.indexOf(q) !== -1) ? '' : 'none';
+  });
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+async function approveSub(id) {
+  if (!confirm('Approve this KYC submission?')) return;
+  try {
+    const r = await fetch('/api/admin/kyc/' + id + '/approve', {method:'POST', headers:{'Content-Type':'application/json'}});
+    const data = await r.json();
+    if (data.error) { showAlert('error', data.error); return; }
+    showAlert('success', '✓ Submission approved. User notified.');
+    setTimeout(function(){ window.location.reload(); }, 1200);
+  } catch(e) { showAlert('error', 'Connection error.'); }
+}
+
+function openReject(id, name) {
+  activeRejectId = id;
+  document.getElementById('reject-name').value = name;
+  document.getElementById('reject-note').value = '';
+  document.getElementById('modal-reject').classList.add('on');
+}
+
+async function confirmReject() {
+  const note = document.getElementById('reject-note').value.trim();
+  if (!note) { alert('Please provide a rejection reason.'); return; }
+  try {
+    const r = await fetch('/api/admin/kyc/' + activeRejectId + '/reject', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({note: note})
+    });
+    const data = await r.json();
+    if (data.error) { showAlert('error', data.error); return; }
+    closeModal('modal-reject');
+    showAlert('success', 'Submission rejected. User notified with reason.');
+    setTimeout(function(){ window.location.reload(); }, 1200);
+  } catch(e) { showAlert('error', 'Connection error.'); }
+}
+
+function openManual(uid, name) {
+  activeManualId = uid;
+  document.getElementById('manual-name').value = name;
+  document.getElementById('modal-manual').classList.add('on');
+}
+
+async function confirmManual() {
+  const level = document.getElementById('manual-level').value;
+  try {
+    const r = await fetch('/api/admin/kyc/manual-approve', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({user_id: activeManualId, kyc_level: level})
+    });
+    const data = await r.json();
+    if (data.error) { showAlert('error', data.error); return; }
+    closeModal('modal-manual');
+    showAlert('success', '✓ ' + (data.user_name || 'User') + ' verified at level: ' + level);
+    setTimeout(function(){ window.location.reload(); }, 1200);
+  } catch(e) { showAlert('error', 'Connection error.'); }
+}
+
+/* Click outside modal closes */
+document.querySelectorAll('.modal-bd').forEach(function(bd){
+  bd.addEventListener('click', function(e){ if (e.target === bd) bd.classList.remove('on'); });
+});
+</script>
+{% endblock %}

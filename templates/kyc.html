@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Identity Verification — SOHANA{% endblock %}
+{% block topbar_title %}Identity Verification{% endblock %}
+
+{% block content %}
+<style>
+.kyc-hero{background:linear-gradient(135deg,var(--bg-3) 0%,var(--bg-2) 100%);border:1px solid var(--line-2);border-radius:var(--radius-lg);padding:1.5rem 1.75rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.25rem}
+.kyc-hero-icon{width:56px;height:56px;border-radius:14px;background:rgba(158,228,147,.12);display:grid;place-items:center;font-size:1.5rem;flex-shrink:0}
+.kyc-hero h2{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;margin-bottom:.3rem}
+.kyc-hero p{font-size:.85rem;color:var(--ink-2);line-height:1.55}
+.kyc-status-pill{display:inline-flex;align-items:center;gap:.35rem;font-family:'Geist Mono',monospace;font-size:.7rem;padding:.2rem .6rem;border-radius:999px;margin-left:.5rem}
+.kyc-status-pill.verified{background:rgba(158,228,147,.15);color:var(--accent)}
+.kyc-status-pill.pending{background:rgba(255,138,80,.12);color:var(--orange)}
+.kyc-status-pill.rejected{background:rgba(255,106,85,.12);color:var(--red)}
+.kyc-status-pill.none{background:var(--bg-3);color:var(--ink-3);border:1px solid var(--line)}
+
+.tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem}
+.tier-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1.25rem;display:flex;flex-direction:column;position:relative;transition:border-color .15s}
+.tier-card:hover{border-color:var(--line-2)}
+.tier-card.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(158,228,147,.08)}
+.tier-card.locked{opacity:.55}
+.tier-num{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);letter-spacing:.08em;margin-bottom:.4rem;text-transform:uppercase}
+.tier-card h3{font-size:1.05rem;font-weight:700;margin-bottom:.45rem;letter-spacing:-.01em}
+.tier-card .tier-desc{font-size:.8rem;color:var(--ink-2);line-height:1.55;margin-bottom:.875rem;flex:1}
+.tier-limits{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);background:var(--bg-3);border-radius:var(--radius);padding:.5rem .65rem;margin-bottom:.875rem;line-height:1.5}
+.tier-limits strong{color:var(--ink-2);font-weight:500}
+.tier-status{display:flex;align-items:center;gap:.4rem;margin-bottom:.875rem;font-size:.78rem;font-family:'Geist Mono',monospace}
+
+.upload-form{display:none;flex-direction:column;gap:.65rem;border-top:1px solid var(--line);padding-top:.875rem}
+.upload-form.show{display:flex}
+.upload-form select,.upload-form textarea,.upload-form .file-stub{width:100%;padding:.5rem .75rem;border:1.5px solid var(--line-2);border-radius:var(--radius);font-size:.825rem;font-family:inherit;background:var(--bg-3);color:var(--ink);outline:none}
+.upload-form select:focus,.upload-form textarea:focus{border-color:var(--accent)}
+.upload-form textarea{resize:vertical;min-height:60px}
+.upload-form label{font-size:.72rem;color:var(--ink-2);font-weight:500;margin-bottom:-.3rem;font-family:'Geist Mono',monospace}
+.file-stub{display:flex;align-items:center;gap:.5rem;color:var(--ink-3);cursor:pointer;justify-content:center;font-size:.8rem;border-style:dashed;text-align:center}
+.file-stub:hover{border-color:var(--accent);color:var(--ink-2)}
+
+.btn-tier{padding:.55rem 1rem;background:var(--accent);color:var(--accent-ink);border:none;border-radius:999px;font-family:inherit;font-size:.825rem;font-weight:600;cursor:pointer;transition:all .15s;width:100%}
+.btn-tier:hover{background:#cef870;transform:translateY(-1px)}
+.btn-tier:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-tier.outline{background:transparent;color:var(--ink-2);border:1.5px solid var(--line-2)}
+.btn-tier.outline:hover{border-color:var(--accent);color:var(--accent);transform:none}
+
+.history-card{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem}
+.history-card h3{font-size:.95rem;font-weight:600;margin-bottom:.875rem;letter-spacing:-.01em}
+.sub-row{display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-bottom:1px solid var(--line);font-size:.825rem}
+.sub-row:last-child{border-bottom:none}
+.sub-meta{display:flex;align-items:center;gap:.6rem;color:var(--ink-2)}
+.sub-level{font-family:'Geist Mono',monospace;font-size:.7rem;background:var(--bg-3);padding:.15rem .45rem;border-radius:4px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.sub-date{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3)}
+.empty-state{padding:1.5rem;text-align:center;color:var(--ink-3);font-size:.85rem}
+
+.alert-box{display:none;padding:.7rem .9rem;border-radius:var(--radius);font-size:.825rem;margin-bottom:1rem;line-height:1.45}
+.alert-box.show{display:block}
+.alert-box.success{background:rgba(158,228,147,.1);color:var(--accent);border:1px solid rgba(158,228,147,.25)}
+.alert-box.error{background:rgba(255,106,85,.1);color:var(--red);border:1px solid rgba(255,106,85,.22)}
+</style>
+
+<div class="content-wrap" style="max-width:1080px;">
+
+  <div id="alert-msg" class="alert-box"></div>
+
+  <!-- HERO -->
+  <div class="kyc-hero">
+    <div class="kyc-hero-icon">🛡️</div>
+    <div style="flex:1;">
+      <h2>
+        Verify your identity
+        {% set ks = user.kyc_status or 'none' %}
+        <span class="kyc-status-pill {{ ks }}">
+          {% if ks == 'verified' %}● Verified
+          {% elif ks == 'pending' %}● Under review
+          {% elif ks == 'rejected' %}● Action required
+          {% else %}● Not started{% endif %}
+        </span>
+      </h2>
+      <p>Sohana is a regulated financial platform. Verifying your identity unlocks higher transaction limits and full access to circles, pools, and fundraising. Documents are reviewed within 1–2 business days.</p>
+    </div>
+  </div>
+
+  <!-- TIER CARDS -->
+  <div class="tier-grid">
+
+    <!-- TIER 1 — ID Verified -->
+    <div class="tier-card {% if user.kyc_level in ['id_verified','full'] %}active{% endif %}">
+      <div class="tier-num">Tier 1 · ID</div>
+      <h3>ID Verified</h3>
+      <div class="tier-desc">Upload a government-issued ID and a selfie. This unlocks the full platform with standard limits.</div>
+      <div class="tier-limits">
+        <strong>Limits unlocked:</strong><br>
+        Deposit: €10,000/day<br>
+        Withdraw: €3,000/day · €10,000/month
+      </div>
+      <div class="tier-status">
+        {% if user.kyc_level in ['id_verified','full'] %}
+          <span style="color:var(--accent)">✓ Verified</span>
+        {% else %}
+          <span style="color:var(--ink-3)">○ Not yet verified</span>
+        {% endif %}
+      </div>
+      {% if user.kyc_level not in ['id_verified','full'] %}
+        <button class="btn-tier" onclick="toggleForm('form-id')">Start verification →</button>
+        <div class="upload-form" id="form-id">
+          <label>Document type</label>
+          <select id="doc-id-type">
+            <option value="passport">Passport</option>
+            <option value="national_id">National ID card</option>
+            <option value="drivers_license">Driver's licence</option>
+            <option value="residence_permit">Residence permit</option>
+          </select>
+          <label>Upload document (front side + selfie)</label>
+          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <label>Notes (optional)</label>
+          <textarea id="notes-id" placeholder="Any additional context for our review team"></textarea>
+          <button class="btn-tier" onclick="submitKyc('id')">Submit for review</button>
+        </div>
+      {% else %}
+        <button class="btn-tier outline" disabled>✓ Completed</button>
+      {% endif %}
+    </div>
+
+    <!-- TIER 2 — Address Verified -->
+    <div class="tier-card {% if user.kyc_level not in ['id_verified','full'] %}locked{% endif %}">
+      <div class="tier-num">Tier 2 · Address</div>
+      <h3>Address Verified</h3>
+      <div class="tier-desc">Submit proof of address dated within the last 3 months. Increases your transaction limits.</div>
+      <div class="tier-limits">
+        <strong>Limits unlocked:</strong><br>
+        Deposit: €25,000/day<br>
+        Withdraw: €10,000/day · €30,000/month
+      </div>
+      <div class="tier-status">
+        {% if user.kyc_level not in ['id_verified','full'] %}
+          <span style="color:var(--ink-3)">🔒 Complete Tier 1 first</span>
+        {% else %}
+          <span style="color:var(--ink-3)">○ Optional upgrade</span>
+        {% endif %}
+      </div>
+      {% if user.kyc_level in ['id_verified','full'] %}
+        <button class="btn-tier" onclick="toggleForm('form-addr')">Add proof of address →</button>
+        <div class="upload-form" id="form-addr">
+          <label>Document type</label>
+          <select id="doc-addr-type">
+            <option value="utility_bill">Utility bill (electricity/gas/water)</option>
+            <option value="bank_statement">Bank statement</option>
+            <option value="rental_agreement">Rental agreement</option>
+            <option value="council_tax">Council/property tax bill</option>
+          </select>
+          <label>Upload document (less than 3 months old)</label>
+          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <label>Notes (optional)</label>
+          <textarea id="notes-addr" placeholder=""></textarea>
+          <button class="btn-tier" onclick="submitKyc('address')">Submit for review</button>
+        </div>
+      {% else %}
+        <button class="btn-tier outline" disabled>Locked</button>
+      {% endif %}
+    </div>
+
+    <!-- TIER 3 — Full KYC -->
+    <div class="tier-card {% if user.kyc_level == 'full' %}active{% elif user.kyc_level != 'id_verified' %}locked{% endif %}">
+      <div class="tier-num">Tier 3 · Funds</div>
+      <h3>Full KYC</h3>
+      <div class="tier-desc">Provide proof of source of funds. Required for our highest transaction limits and large transfers.</div>
+      <div class="tier-limits">
+        <strong>Limits unlocked:</strong><br>
+        Deposit: Unlimited<br>
+        Withdraw: €50,000/day · €250,000/month
+      </div>
+      <div class="tier-status">
+        {% if user.kyc_level == 'full' %}
+          <span style="color:var(--accent)">✓ Fully verified</span>
+        {% elif user.kyc_level != 'id_verified' %}
+          <span style="color:var(--ink-3)">🔒 Complete Tier 1 first</span>
+        {% else %}
+          <span style="color:var(--ink-3)">○ Optional upgrade</span>
+        {% endif %}
+      </div>
+      {% if user.kyc_level == 'id_verified' %}
+        <button class="btn-tier" onclick="toggleForm('form-funds')">Submit proof of funds →</button>
+        <div class="upload-form" id="form-funds">
+          <label>Document type</label>
+          <select id="doc-funds-type">
+            <option value="payslip">Payslip (last 3 months)</option>
+            <option value="tax_return">Tax return / Tax assessment</option>
+            <option value="bank_statement">Bank statement showing income</option>
+            <option value="business_accounts">Business accounts</option>
+            <option value="employment_contract">Employment contract</option>
+          </select>
+          <label>Upload document</label>
+          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <label>Notes (optional)</label>
+          <textarea id="notes-funds" placeholder=""></textarea>
+          <button class="btn-tier" onclick="submitKyc('funds')">Submit for review</button>
+        </div>
+      {% elif user.kyc_level == 'full' %}
+        <button class="btn-tier outline" disabled>✓ Completed</button>
+      {% else %}
+        <button class="btn-tier outline" disabled>Locked</button>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- SUBMISSION HISTORY -->
+  <div class="history-card">
+    <h3>Submission history</h3>
+    {% if submissions %}
+      {% for s in submissions %}
+        <div class="sub-row">
+          <div class="sub-meta">
+            <span class="sub-level">{{ s.level }}</span>
+            <span>
+              {% if s.status == 'approved' %}
+                <span style="color:var(--accent)">✓ Approved</span>
+              {% elif s.status == 'rejected' %}
+                <span style="color:var(--red)">✗ Rejected</span>
+                {% if s.rejection_note %}<span style="color:var(--ink-3);font-size:.78rem;"> — {{ s.rejection_note }}</span>{% endif %}
+              {% else %}
+                <span style="color:var(--orange)">● Under review</span>
+              {% endif %}
+            </span>
+          </div>
+          <span class="sub-date">{{ s.submitted_at[:16].replace('T',' ') }}</span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">No submissions yet. Start with Tier 1 above to verify your identity.</div>
+    {% endif %}
+  </div>
+
+  <p style="font-size:.75rem;color:var(--ink-3);text-align:center;font-family:'Geist Mono',monospace;margin-top:1rem;">
+    Your data is encrypted in transit and at rest · Reviewed under ACPR/FCA standards
+  </p>
+
+</div>
+
+<script>
+function showAlert(type, msg) {
+  const el = document.getElementById('alert-msg');
+  el.className = 'alert-box show ' + type;
+  el.textContent = msg;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  setTimeout(function(){ el.classList.remove('show'); }, 6000);
+}
+
+function toggleForm(id) {
+  document.querySelectorAll('.upload-form').forEach(function(f){
+    if (f.id !== id) f.classList.remove('show');
+  });
+  document.getElementById(id).classList.toggle('show');
+}
+
+async function submitKyc(level) {
+  const payload = {level: level};
+  if (level === 'id') {
+    payload.doc_type_id = document.getElementById('doc-id-type').value;
+    payload.notes       = document.getElementById('notes-id').value.trim();
+  } else if (level === 'address') {
+    payload.doc_type_addr = document.getElementById('doc-addr-type').value;
+    payload.notes         = document.getElementById('notes-addr').value.trim();
+  } else if (level === 'funds') {
+    payload.doc_type_funds = document.getElementById('doc-funds-type').value;
+    payload.notes          = document.getElementById('notes-funds').value.trim();
+  }
+  try {
+    const r = await fetch('/api/kyc/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (data.error) { showAlert('error', data.error); return; }
+    showAlert('success', '✓ Submission received. Our team will review it within 1–2 business days.');
+    setTimeout(function(){ window.location.reload(); }, 1800);
+  } catch(e) {
+    showAlert('error', 'Connection error. Please try again.');
+  }
+}
+</script>
+{% endblock %}
