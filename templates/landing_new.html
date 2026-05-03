@@ -551,6 +551,68 @@ footer{padding:80px 0 40px}
 button:focus-visible,a:focus-visible,input:focus-visible{
   outline:2px solid var(--accent);outline-offset:2px;
 }
+
+/* ── FINANCIAL TICKER ── */
+.ticker-wrap{
+  background:rgba(10,13,10,.95);border-top:1px solid rgba(158,228,147,.15);
+  border-bottom:1px solid rgba(158,228,147,.15);
+  padding:10px 0;overflow:hidden;position:relative;
+}
+.ticker-wrap::before,.ticker-wrap::after{
+  content:"";position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none;
+}
+.ticker-wrap::before{left:0;background:linear-gradient(to right,rgba(10,13,10,.95),transparent)}
+.ticker-wrap::after{right:0;background:linear-gradient(to left,rgba(10,13,10,.95),transparent)}
+.ticker-track{
+  display:flex;gap:0;animation:ticker-scroll 50s linear infinite;width:max-content;
+}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:0 24px;white-space:nowrap;
+  font-family:'Geist Mono',monospace;font-size:11.5px;
+  border-right:1px solid rgba(158,228,147,.08);
+}
+.t-code{color:#8A8E87;letter-spacing:.06em;font-size:10.5px}
+.t-name{color:#B7BAB4;font-size:10.5px}
+.t-price{color:#F4F2EC;font-weight:500}
+.t-chg{font-size:10.5px}
+.t-chg.up{color:#9EE493}.t-chg.down{color:#FF6A55}
+.t-dot{color:rgba(158,228,147,.2);margin:0 2px}
+
+/* ── NEWS SLIDESHOW ── */
+.news-slide-wrap{
+  margin-top:28px;background:rgba(244,242,236,.04);
+  border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;max-width:520px;
+}
+.news-slides{position:relative;height:68px}
+.news-slide{
+  position:absolute;inset:0;display:flex;align-items:center;
+  gap:12px;padding:0 14px;
+  opacity:0;transition:opacity .6s;pointer-events:none;
+}
+.news-slide.active{opacity:1;pointer-events:auto}
+.news-tag{
+  font-family:'Geist Mono',monospace;font-size:9.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+  background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.2);
+  border-radius:999px;padding:3px 8px;white-space:nowrap;flex-shrink:0;
+}
+.news-text{font-size:13px;color:var(--ink-2);line-height:1.4;flex:1}
+.news-text b{color:var(--ink);font-weight:500}
+.news-dots{
+  display:flex;justify-content:center;gap:5px;
+  padding:7px 0;border-top:1px solid var(--line);
+}
+.news-dot{width:5px;height:5px;border-radius:50%;background:var(--line-2);cursor:pointer;transition:background .2s}
+.news-dot.on{background:var(--accent)}
+
+/* light mode ticker bg */
+[data-theme="light"] .ticker-wrap{background:rgba(20,19,15,.92)}
+[data-theme="light"] .ticker-wrap::before{background:linear-gradient(to right,rgba(20,19,15,.92),transparent)}
+[data-theme="light"] .ticker-wrap::after{background:linear-gradient(to left,rgba(20,19,15,.92),transparent)}
 </style>
 </head>
 <body>
@@ -576,6 +638,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{
         <button class="on" id="lang-en" onclick="setLang('EN')">EN</button>
         <button id="lang-fr" onclick="setLang('FR')">FR</button>
       </div>
+      <button onclick="toggleTheme()" title="Toggle theme" style="width:32px;height:32px;border-radius:50%;background:rgba(244,242,236,.06);border:1px solid var(--line-2);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.85rem;transition:all .2s;" class="theme-toggle">
+        <span class="icon-moon">🌙</span><span class="icon-sun" style="display:none">☀️</span>
+      </button>
       <a href="/auth" class="btn btn-ghost btn-sm">Sign in</a>
       <a href="/auth" class="btn btn-primary btn-sm">Join waitlist</a>
       <button class="nav-burger" onclick="openDrawer()" aria-label="Menu">
@@ -638,6 +703,18 @@ button:focus-visible,a:focus-visible,input:focus-visible{
           <div class="wc-lbl">from 14 countries · France, UK, Canada, Cameroon, Nigeria, Ghana, Rwanda</div>
         </div>
       </div>
+
+      <!-- News slideshow -->
+      <div class="news-slide-wrap">
+        <div class="news-slides" id="news-slides">
+          <div class="news-slide active"><span class="news-tag">Award</span><span class="news-text"><b>SOHANA wins TEF 2026</b> — Selected among winning projects at the Tony Elumelu Foundation Entrepreneurship Award, Cohort 2026.</span></div>
+          <div class="news-slide"><span class="news-tag">Beta</span><span class="news-text"><b>Q3 2026 launch</b> — Waitlist members get priority Hanatag handles and free outbound transfers for the first 12 months.</span></div>
+          <div class="news-slide"><span class="news-tag">Research</span><span class="news-text"><b>Gold standard exchange live</b> — Sohana Labs launches the first intra-African currency model anchored to gold, not the dollar.</span></div>
+          <div class="news-slide"><span class="news-tag">Pilot</span><span class="news-text"><b>+13.2% completion rate</b> — Our closed pilot across France and Cameroon shows SOHANA circles outperform informal groups significantly.</span></div>
+          <div class="news-slide"><span class="news-tag">Platform</span><span class="news-text"><b>8 currencies now live</b> — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR — send money across corridors in seconds via Hanatag.</span></div>
+        </div>
+        <div class="news-dots" id="news-dots"></div>
+      </div>
     </div>
 
     <!-- Phone mock -->
@@ -685,6 +762,15 @@ button:focus-visible,a:focus-visible,input:focus-visible{
     </div>
   </div>
 </header>
+
+<!-- ════════════════════════════════════════════════════════
+     FINANCIAL TICKER — African currencies & stock indices
+════════════════════════════════════════════════════════ -->
+<div class="ticker-wrap" id="ticker-wrap">
+  <div class="ticker-track" id="ticker-track">
+    <!-- Populated by JS, duplicated for seamless loop -->
+  </div>
+</div>
 
 <!-- ════════════════════════════════════════════════════════
      TRUST BAND
@@ -1049,7 +1135,111 @@ button:focus-visible,a:focus-visible,input:focus-visible{
      JAVASCRIPT
 ════════════════════════════════════════════════════════ -->
 <script>
-// ── LANG TOGGLE ──────────────────────────────────────────
+// ── THEME TOGGLE ──────────────────────────────────────────
+(function(){
+  const stored = localStorage.getItem('sohana-theme');
+  if (stored) document.documentElement.setAttribute('data-theme', stored);
+  // Sync icon on all theme toggles
+  function syncIcons() {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    document.querySelectorAll('.icon-moon').forEach(el => el.style.display = isDark ? 'block' : 'none');
+    document.querySelectorAll('.icon-sun').forEach(el  => el.style.display = isDark ? 'none' : 'block');
+  }
+  syncIcons();
+  window._syncThemeIcons = syncIcons;
+})();
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  const next = (!current ? sys : current) === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('sohana-theme', next);
+  if (window._syncThemeIcons) window._syncThemeIcons();
+}
+
+// ── NEWS SLIDESHOW ────────────────────────────────────────
+(function(){
+  const slides = document.querySelectorAll('.news-slide');
+  const dotsEl = document.getElementById('news-dots');
+  if (!slides.length || !dotsEl) return;
+  let current = 0;
+  // Build dots
+  slides.forEach((_,i) => {
+    const d = document.createElement('span');
+    d.className = 'news-dot' + (i===0?' on':'');
+    d.onclick = () => goTo(i);
+    dotsEl.appendChild(d);
+  });
+  function goTo(n) {
+    slides[current].classList.remove('active');
+    dotsEl.children[current].classList.remove('on');
+    current = (n + slides.length) % slides.length;
+    slides[current].classList.add('active');
+    dotsEl.children[current].classList.add('on');
+  }
+  setInterval(() => goTo(current + 1), 4500);
+})();
+
+// ── AFRICAN FINANCIAL TICKER ──────────────────────────────
+const TICKER_DATA = [
+  // African currencies vs USD (indicative reference rates)
+  {code:'XAF/USD',name:'CFA Franc',price:'0.00160',chg:'+0.02%',up:true},
+  {code:'NGN/USD',name:'Naira',     price:'0.000633',chg:'-0.31%',up:false},
+  {code:'GHS/USD',name:'Cedi',      price:'0.0676',chg:'+0.12%',up:true},
+  {code:'KES/USD',name:'Shilling',  price:'0.00778',chg:'-0.08%',up:false},
+  {code:'ZAR/USD',name:'Rand',      price:'0.0538',chg:'+0.22%',up:true},
+  {code:'ETB/USD',name:'Birr',      price:'0.0177',chg:'-0.15%',up:false},
+  {code:'EGP/USD',name:'Pound',     price:'0.0209',chg:'+0.05%',up:true},
+  {code:'RWF/USD',name:'Franc',     price:'0.000752',chg:'+0.18%',up:true},
+  {code:'MAD/USD',name:'Dirham',    price:'0.0990',chg:'+0.03%',up:true},
+  // African stock indices (indicative)
+  {code:'NSE·ASI',  name:'Nigeria All Share',  price:'104,821',chg:'+0.84%',up:true},
+  {code:'JSE·TOP40',name:'SA Top 40',          price:'81,244',chg:'-0.41%',up:false},
+  {code:'GSE·CI',   name:'Ghana Composite',    price:'3,187',chg:'+1.23%',up:true},
+  {code:'NSE·20',   name:'Kenya NSE 20',       price:'2,104',chg:'-0.19%',up:false},
+  {code:'BRVM·CI',  name:'BRVM Composite',     price:'258.4',chg:'+0.67%',up:true},
+  {code:'EGX30',    name:'Egypt EGX 30',       price:'33,412',chg:'+0.31%',up:true},
+  {code:'USE·ASI',  name:'Uganda All Share',   price:'1,642',chg:'-0.08%',up:false},
+  {code:'XAU/USD',  name:'Gold (oz)',          price:'2,341.50',chg:'+0.44%',up:true},
+  {code:'XPT/USD',  name:'Platinum (oz)',      price:'981.20',chg:'-0.22%',up:false},
+];
+
+(function(){
+  const track = document.getElementById('ticker-track');
+  if (!track) return;
+  function buildItems() {
+    return TICKER_DATA.map(d =>
+      `<span class="ticker-item">
+        <span class="t-code">${d.code}</span>
+        <span class="t-name">${d.name}</span>
+        <span class="t-dot">·</span>
+        <span class="t-price">${d.price}</span>
+        <span class="t-chg ${d.up?'up':'down'}">${d.chg}</span>
+      </span>`
+    ).join('');
+  }
+  // Duplicate for seamless loop
+  track.innerHTML = buildItems() + buildItems();
+
+  // Try to fetch live FX data
+  fetch('https://open.er-api.com/v6/latest/USD').then(r=>r.json()).then(data => {
+    if (!data.rates) return;
+    const map = {
+      'XAF/USD': data.rates.XAF ? (1/data.rates.XAF).toFixed(6) : null,
+      'NGN/USD': data.rates.NGN ? (1/data.rates.NGN).toFixed(6) : null,
+      'GHS/USD': data.rates.GHS ? (1/data.rates.GHS).toFixed(4) : null,
+      'KES/USD': data.rates.KES ? (1/data.rates.KES).toFixed(5) : null,
+      'ZAR/USD': data.rates.ZAR ? (1/data.rates.ZAR).toFixed(4) : null,
+      'ETB/USD': data.rates.ETB ? (1/data.rates.ETB).toFixed(4) : null,
+      'EGP/USD': data.rates.EGP ? (1/data.rates.EGP).toFixed(4) : null,
+      'RWF/USD': data.rates.RWF ? (1/data.rates.RWF).toFixed(6) : null,
+      'MAD/USD': data.rates.MAD ? (1/data.rates.MAD).toFixed(4) : null,
+    };
+    TICKER_DATA.forEach(d => { if (map[d.code]) d.price = map[d.code]; });
+    track.innerHTML = buildItems() + buildItems();
+  }).catch(()=>{});
+})();
 const COPY = {
   EN: {
     h1: 'Save together.<br>Build <span class="accent">credit</span>.<br>Send money <span class="ital">home</span>.',

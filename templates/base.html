@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=6.0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=5.2">
 {% block head %}{% endblock %}
 </head>
 <body>
@@ -65,6 +65,10 @@
       <input type="text" placeholder="Search...">
     </div>
     <div class="topbar-actions">
+      <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode" aria-label="Toggle theme">
+        <span class="icon-moon">🌙</span>
+        <span class="icon-sun">☀️</span>
+      </button>
       <button class="topbar-icon-btn" id="notif-btn" onclick="toggleNotifPanel()">
         🔔
         <span class="notif-dot" id="notif-badge" style="display:none">0</span>
@@ -172,5 +176,25 @@ function closeMoreDrawer() {
 {% endif %}
 
 {% block scripts %}{% endblock %}
+<script>
+// ── THEME TOGGLE ──────────────────────────────────────────────
+(function(){
+  const stored = localStorage.getItem('sohana-theme');
+  if (stored) document.documentElement.setAttribute('data-theme', stored);
+})();
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const sys = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  let next;
+  if (!current) {
+    next = sys === 'dark' ? 'light' : 'dark';
+  } else {
+    next = current === 'dark' ? 'light' : 'dark';
+  }
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('sohana-theme', next);
+}
+</script>
 </body>
 </html>

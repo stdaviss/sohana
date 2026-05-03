@@ -700,3 +700,127 @@ tbody tr:hover td{background:var(--line)}
   /* Tap highlight */
   * { -webkit-tap-highlight-color: rgba(37,99,235,.15); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT / DARK MODE — v5.2
+   Dark is default. Light mode applies when:
+   - <html data-theme="light"> is set (manual toggle)
+   - System prefers light and no manual override is stored
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Light mode token overrides */
+[data-theme="light"] {
+  --bg:        #F8F9F5;
+  --bg-2:      #EEEEE8;
+  --bg-3:      #E4E4DD;
+  --ink:       #14130F;
+  --ink-2:     #4A4A40;
+  --ink-3:     #7A7A72;
+  --line:      rgba(20,19,15,.10);
+  --line-2:    rgba(20,19,15,.18);
+  --accent:    #3A8C30;   /* darker mint for light bg contrast */
+  --accent-2:  #2B7A58;
+  --accent-ink:#F8F9F5;
+  --warm:      #F4F2EC;
+  --warm-ink:  #14130F;
+  --danger:    #C84B38;
+  /* semantic aliases */
+  --navy:      #EEEEE8;
+  --navy-dark: #F8F9F5;
+  --navy-mid:  #E4E4DD;
+  --blue:      #3A8C30;
+  --blue-lt:   rgba(58,140,48,.12);
+  --teal:      #2B7A58;
+  --green:     #2B7A58;
+  --green-lt:  rgba(43,122,88,.12);
+  --amber:     #8B6914;
+  --amber-lt:  rgba(139,105,20,.12);
+  --red:       #C84B38;
+  --red-lt:    rgba(200,75,56,.12);
+  --orange:    #B85E28;
+  --purple:    #7C3AB0;
+  --purple-lt: rgba(124,58,176,.12);
+  --white:     #E4E4DD;
+  --text:      #14130F;
+  --text-muted:#7A7A72;
+  --border:    rgba(20,19,15,.12);
+  --gray-50:   #F8F9F5;
+  --gray-100:  #EEEEE8;
+  --gray-200:  rgba(20,19,15,.1);
+  --gray-300:  rgba(20,19,15,.18);
+  --gray-400:  #7A7A72;
+  --gray-500:  #4A4A40;
+  --gray-800:  #14130F;
+  --shadow-sm: 0 1px 3px rgba(20,19,15,.12);
+  --shadow:    0 2px 8px rgba(20,19,15,.1),0 1px 3px rgba(20,19,15,.08);
+  --shadow-md: 0 6px 20px rgba(20,19,15,.1),0 2px 6px rgba(20,19,15,.08);
+  --shadow-lg: 0 16px 40px rgba(20,19,15,.14),0 4px 10px rgba(20,19,15,.08);
+}
+
+/* System preference — dark mode (already default, but explicit) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* dark tokens already set in :root — this is a no-op but explicit */
+  }
+}
+
+/* System preference — light mode, no manual override */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:        #F8F9F5;
+    --bg-2:      #EEEEE8;
+    --bg-3:      #E4E4DD;
+    --ink:       #14130F;
+    --ink-2:     #4A4A40;
+    --ink-3:     #7A7A72;
+    --line:      rgba(20,19,15,.10);
+    --line-2:    rgba(20,19,15,.18);
+    --accent:    #3A8C30;
+    --accent-2:  #2B7A58;
+    --accent-ink:#F8F9F5;
+    --danger:    #C84B38;
+    --navy:      #EEEEE8;
+    --navy-dark: #F8F9F5;
+    --navy-mid:  #E4E4DD;
+    --blue:      #3A8C30;
+    --blue-lt:   rgba(58,140,48,.12);
+    --green:     #2B7A58;
+    --green-lt:  rgba(43,122,88,.12);
+    --red:       #C84B38;
+    --red-lt:    rgba(200,75,56,.12);
+    --text:      #14130F;
+    --text-muted:#7A7A72;
+    --border:    rgba(20,19,15,.12);
+    --gray-800:  #14130F;
+  }
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--line);
+  border: 1px solid var(--line-2);
+  color: var(--ink-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  background: var(--line-2);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+/* Show correct icon per mode */
+.theme-toggle .icon-sun  { display: none; }
+.theme-toggle .icon-moon { display: block; }
+[data-theme="light"] .theme-toggle .icon-sun  { display: block; }
+[data-theme="light"] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .theme-toggle .icon-sun  { display: block; }
+  :root:not([data-theme="dark"]) .theme-toggle .icon-moon { display: none; }
+}

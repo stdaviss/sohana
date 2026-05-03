@@ -1711,30 +1711,39 @@ def _seed_all():
             db.execute("UPDATE roscas SET status='active' WHERE id=?", (rid,))
 
     # Seed blog posts
+    BLOG_POSTS = [
+        ("blog-001","SOHANA wins TEF Entrepreneurship Award 2026","tef-award-2026",
+         "SOHANA has been selected as a winning project at the Tony Elumelu Foundation Entrepreneurship Award for 2026, recognised for its innovative approach to digitising community savings.",
+         "We are proud to announce that SOHANA has been selected among the winning projects at the Tony Elumelu Foundation Entrepreneurship Award (TEF Cohort 2026). This recognition validates our mission to digitalise rotating savings circles — Tontines, Njangis, Esusu and Chamas — and build financial identity for the African diaspora.\n\nThe TEF award recognises African entrepreneurs who are building scalable solutions to the continent's most pressing challenges. SOHANA's approach — using savings behaviour to build a proprietary credit score (NCS) for the unbanked — was cited as one of the most innovative fintech models in the cohort.\n\nWe are grateful to our beta users, our team, and everyone who believed in this from the beginning.",
+         "news","admin_id"),
+        ("blog-002","What is the Njangi Credit Score (NCS)?","what-is-ncs",
+         "The NCS is a 300–850 behavioural credit score built from your savings circle participation — not from your bank history. Here is how it works and why it matters.",
+         "Traditional credit scores measure whether you have borrowed money and paid it back. The NCS measures something different: whether you save reliably, contribute on time, and keep your commitments to your community.\n\nFor millions of African diaspora members — nurses in London, engineers in Paris, market traders in Douala — there is no traditional credit file. Banks cannot see their financial discipline. The NCS makes that discipline visible.\n\nYour NCS is calculated from five components: contribution consistency (35%), active circles (20%), tenure on SOHANA (15%), organiser reputation (15%), and cross-circle diversity (15%). Every on-time contribution moves the dial. Every completed cycle earns a milestone badge.\n\nAt 550, you unlock emergency credit. At 650, early payout loans. At 750, you reach Exemplary tier — the highest recognition on the platform.",
+         "education","admin_id"),
+        ("blog-003","How savings circles work in the digital age","savings-circles-digital",
+         "The Tontine, Njangi, Esusu, Chama — these rotating savings traditions have sustained African communities for generations. SOHANA brings them online without losing what makes them work.",
+         "A savings circle is one of humanity's oldest financial instruments. A group of people agree to contribute a fixed amount regularly. Each round, one member receives the full pot. The circle rotates until everyone has received once.\n\nWhat makes it work is not technology — it is trust. Community accountability. Social enforcement. SOHANA's role is not to replace that trust but to protect it.\n\nWith SOHANA, contributions are tracked automatically. Payouts release on schedule. Three admins must approve any change to the pot. The organiser has a dashboard showing exactly who has paid, who is late, and what the circle's reliability score looks like.\n\nThe ledger moves from a WhatsApp notebook to an auditable, transparent system. The trust stays exactly where it belongs: in the community.",
+         "education","admin_id"),
+        ("blog-004","Pan-African currency exchange: why gold, not the dollar","gold-standard-africa",
+         "SOHANA Labs has launched the first intra-African currency exchange anchored to gold rather than the US Dollar. Here is the research behind it.",
+         "The US Dollar became the world's reserve currency in 1944 — not because it represented real wealth, but by political agreement. Since then, African currencies have been priced against a floating instrument managed by institutions in which Africa has no meaningful vote.\n\nGold is different. Africa holds approximately 40% of the world's gold reserves. The DRC alone holds an estimated $24 trillion in mineral wealth. Ghana, South Africa, Mali, Burkina Faso and Sudan are among the world's largest gold producers.\n\nWhen the Ghanaian Cedi is priced against gold rather than the dollar, it is priced against something Ghana actually has.\n\nSohana Labs' gold-normalised currency explorer is a research tool — not a trading platform. But it represents a framework: what would African currencies look like if they were anchored to African wealth? Visit /currencies to explore.",
+         "research","admin_id"),
+        ("blog-005","Building for the African diaspora: a design philosophy","diaspora-design-philosophy",
+         "Why SOHANA uses Njangi, Tontine, Hanatag — not generic fintech language. A note on building with cultural specificity.",
+         "When we built SOHANA, we made a deliberate choice: we would use the real names for things.\n\nNot 'savings group' but Njangi. Not 'handle' but Hanatag. Not 'rotating fund' but Tontine, Esusu, Chama, Tanda — depending on who you are and where you are from.\n\nFintech platforms often strip cultural specificity in pursuit of universality. We believe the opposite: cultural specificity is the feature, not a limitation. A Cameroonian woman in Lyon does not need a platform that pretends not to know what a Njangi is. She needs a platform that knows exactly what it is and builds for it.\n\nThis philosophy extends to our design system — warm cream ink instead of cold white, community photography that reflects our actual users, copy that speaks directly without condescension.\n\nWe are building for the most financially sophisticated communities in the world. They deserve a product that knows them.",
+         "culture","admin_id"),
+        ("blog-006","Beta launch: what to expect from SOHANA in Q3 2026","beta-launch-q3-2026",
+         "SOHANA's beta launch is scheduled for Q3 2026. Here is what early users will have access to, what the waitlist gets, and what comes next.",
+         "We are targeting Q3 2026 for our beta launch. Waitlist members will receive early access to the full platform: multicurrency wallet (EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR), savings circle creation and management, NCS score building, and HanaPay instant transfers.\n\nWaitlist members who join before launch also receive: priority Hanatag handles (shorter, cleaner usernames), founder-circle status, and free outbound transfers for the first 12 months.\n\nThe regulatory path is clear. We are in active dialogue with ACPR in France and FCA in the UK. Until authorisations are in place, the platform operates in a controlled testing environment with no real funds.\n\nIf you are not on the waitlist yet, join at sohana.app. If you are already on it — thank you. You are part of something historic.",
+         "news","admin_id"),
+    ]
     admin_uid = fetchone("SELECT id FROM users WHERE admin_role='ceo'")
     admin_id  = admin_uid["id"] if admin_uid else None
-    posts = [
-        ("ROSCA vs Traditional Banking: The Key Differences","rosca-vs-banking",
-         "ROSCAs have served communities for centuries. Here's how they compare.",
-         "Rotating Savings and Credit Associations (ROSCAs) are community-based savings groups that predate formal banking by centuries. Unlike banks that charge interest and require credit histories, ROSCAs operate on social trust and mutual accountability. SOHANA brings the best of both worlds by digitising this trusted system while adding credit scoring, dispute resolution, and formal financial products.",
-         "education"),
-        ("5 Tips to Grow Your NCS Score Fast","improve-ncs-score",
-         "Your NCS score unlocks better rates and larger circles. Here's how to build it.",
-         "Your Njangi Credit Score (NCS) is the key to unlocking SOHANA's full potential. Pay contributions on time every single cycle — this alone accounts for 35% of your score. Complete full cycles without defaulting. Build peer endorsements by being a reliable circle member. Keep a healthy, regular wallet balance. Each positive action compounds over time.",
-         "tips"),
-        ("SOHANA Expands to East Africa","sohana-east-africa",
-         "SOHANA officially launches operations in Rwanda, Uganda and Kenya.",
-         "We are thrilled to announce that SOHANA is now fully operational in East Africa, with regulatory approval from Rwanda's National Bank (BNR). Users in Rwanda, Kenya, and Uganda can now join circles, build their NCS score, and access financial products designed for their communities. Mobile Money integration with MTN and Airtel is now live.",
-         "news"),
-        ("Understanding the Hanatag System","hanatag-explained",
-         "How your @hanatag becomes your financial identity on SOHANA.",
-         "Your Hanatag is your unique financial address on SOHANA — think of it like an email address, but for money. With your @hanatag, anyone on the platform can send you money instantly, for free, in any supported currency. No need to share your phone number or bank details. Your hanatag is tied to your NCS score and wallet history, making it a trusted identity layer across the entire SOHANA ecosystem.",
-         "education"),
-    ]
     with get_db() as db:
-        for title,slug,excerpt,body,cat in posts:
-            db.execute("INSERT OR IGNORE INTO blog_posts(id,title,slug,excerpt,body,category,author_id) VALUES(?,?,?,?,?,?,?)",
-                       (str(uuid.uuid4()),title,slug,excerpt,body,cat,admin_id))
+        for bid,title,slug,excerpt,body,cat,_ in BLOG_POSTS:
+            db.execute("""INSERT OR IGNORE INTO blog_posts(id,title,slug,excerpt,body,category,author_id,is_published,published_at)
+                          VALUES(?,?,?,?,?,?,?,1,datetime('now'))""",
+                       (bid,title,slug,excerpt,body,cat,admin_id))
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
