@@ -97,6 +97,14 @@ CREATE TABLE IF NOT EXISTS users (
     ncs_score     INTEGER NOT NULL DEFAULT 300,
     ncs_tier      TEXT NOT NULL DEFAULT 'probation',
     kyc_level     TEXT NOT NULL DEFAULT 'phone',
+    kyc_status    TEXT NOT NULL DEFAULT 'none',
+    first_name    TEXT,
+    last_name     TEXT,
+    gender        TEXT,
+    date_of_birth TEXT,
+    nationality   TEXT,
+    occupation    TEXT,
+    source_of_funds TEXT,
     is_admin      INTEGER NOT NULL DEFAULT 0,
     admin_role    TEXT,
     notif_email   INTEGER NOT NULL DEFAULT 1,
@@ -292,6 +300,24 @@ CREATE TABLE IF NOT EXISTS fraud_alerts (
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS kyc_submissions (
+    id               TEXT PRIMARY KEY,
+    user_id          TEXT NOT NULL REFERENCES users(id),
+    level            TEXT NOT NULL,
+    doc_type_id      TEXT,
+    doc_type_addr    TEXT,
+    doc_type_funds   TEXT,
+    notes            TEXT,
+    status           TEXT NOT NULL DEFAULT 'pending',
+    reviewed_by      TEXT REFERENCES users(id),
+    reviewed_at      TEXT,
+    rejection_note   TEXT,
+    submitted_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_kyc_submissions_user   ON kyc_submissions(user_id, submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_kyc_submissions_status ON kyc_submissions(status, submitted_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_wallet_tx        ON wallet_transactions(wallet_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS freeze_log (
@@ -409,6 +435,31 @@ def init_db():
         "ALTER TABLE users ADD COLUMN is_admin      INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE users ADD COLUMN admin_role    TEXT",
         "ALTER TABLE users ADD COLUMN kyc_level     TEXT NOT NULL DEFAULT 'phone'",
+        # KYC extended fields (v5.2)
+        "ALTER TABLE users ADD COLUMN kyc_status      TEXT NOT NULL DEFAULT 'none'",
+        "ALTER TABLE users ADD COLUMN first_name      TEXT",
+        "ALTER TABLE users ADD COLUMN last_name       TEXT",
+        "ALTER TABLE users ADD COLUMN gender          TEXT",
+        "ALTER TABLE users ADD COLUMN date_of_birth   TEXT",
+        "ALTER TABLE users ADD COLUMN nationality     TEXT",
+        "ALTER TABLE users ADD COLUMN occupation      TEXT",
+        "ALTER TABLE users ADD COLUMN source_of_funds TEXT",
+        """CREATE TABLE IF NOT EXISTS kyc_submissions (
+            id             TEXT PRIMARY KEY,
+            user_id        TEXT NOT NULL REFERENCES users(id),
+            level          TEXT NOT NULL,
+            doc_type_id    TEXT,
+            doc_type_addr  TEXT,
+            doc_type_funds TEXT,
+            notes          TEXT,
+            status         TEXT NOT NULL DEFAULT 'pending',
+            reviewed_by    TEXT REFERENCES users(id),
+            reviewed_at    TEXT,
+            rejection_note TEXT,
+            submitted_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_kyc_submissions_user   ON kyc_submissions(user_id, submitted_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_kyc_submissions_status ON kyc_submissions(status, submitted_at DESC)",
         # Wallet tx_type (v4.x)
         "ALTER TABLE wallet_transactions ADD COLUMN tx_type TEXT NOT NULL DEFAULT 'other'",
         # ROSCA creation fee (v4.x)
@@ -506,14 +557,71 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_campaigns_slug     ON campaigns(slug)",
     ]
 
+    # Run each migration with retry-on-lock + structured logging.
+    # Distinguishes between three outcomes:
+    #   1. Migration succeeded → silent
+    #   2. Migration failed because column/table already exists → silent (expected)
+    #   3. Migration failed due to lock or real error → log + retry up to 3 times
+    import time, sys
     for sql in safe_migrations:
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute(sql)
-            conn.commit()
-            conn.close()
-        except Exception:
-            pass  # Column already exists or table already exists — safe to ignore
+        applied = False
+        last_err = None
+        for attempt in range(3):
+            try:
+                conn = sqlite3.connect(DB_PATH, timeout=10)
+                conn.execute(sql)
+                conn.commit()
+                conn.close()
+                applied = True
+                break
+            except sqlite3.OperationalError as e:
+                last_err = str(e)
+                msg = last_err.lower()
+                # "duplicate column name" / "table ... already exists" / "index ... already exists"
+                # are EXPECTED failures — the migration was already applied. Don't retry.
+                if "duplicate column" in msg or "already exists" in msg:
+                    applied = True
+                    break
+                # "database is locked" / "database is busy" → retry after backoff
+                if "lock" in msg or "busy" in msg:
+                    time.sleep(0.25 * (attempt + 1))
+                    continue
+                # Other operational errors — log and stop retrying
+                break
+            except Exception as e:
+                last_err = str(e)
+                break
+        if not applied:
+            # Real failure — print to stderr so it shows in Railway logs
+            short = sql.split("\n")[0][:80]
+            print(f"[init_db] MIGRATION FAILED: {short}... → {last_err}", file=sys.stderr, flush=True)
+
+    # Verify critical KYC columns actually exist; if any are missing, retry them once more
+    # serially (no concurrency) before giving up. This protects against multi-worker races.
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        existing_cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        critical = {
+            "kyc_status":      "ALTER TABLE users ADD COLUMN kyc_status TEXT NOT NULL DEFAULT 'none'",
+            "first_name":      "ALTER TABLE users ADD COLUMN first_name TEXT",
+            "last_name":       "ALTER TABLE users ADD COLUMN last_name TEXT",
+            "gender":          "ALTER TABLE users ADD COLUMN gender TEXT",
+            "date_of_birth":   "ALTER TABLE users ADD COLUMN date_of_birth TEXT",
+            "nationality":     "ALTER TABLE users ADD COLUMN nationality TEXT",
+            "occupation":      "ALTER TABLE users ADD COLUMN occupation TEXT",
+            "source_of_funds": "ALTER TABLE users ADD COLUMN source_of_funds TEXT",
+        }
+        missing = [(col, sql) for col, sql in critical.items() if col not in existing_cols]
+        for col, sql in missing:
+            try:
+                conn.execute(sql)
+                conn.commit()
+                print(f"[init_db] Recovered missing column: users.{col}", file=sys.stderr, flush=True)
+            except Exception as e:
+                print(f"[init_db] FAILED to add users.{col}: {e}", file=sys.stderr, flush=True)
+        conn.close()
+    except Exception as e:
+        print(f"[init_db] Schema verification failed: {e}", file=sys.stderr, flush=True)
 
 
 @contextmanager

@@ -68,13 +68,46 @@ def login_required(f):
 def get_current_user():
     if "user_id" not in session:
         return None
-    row = fetchone(
-        """SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,
-                  ncs_score,ncs_tier,kyc_level,kyc_status,
-                  first_name,last_name,gender,date_of_birth,nationality,occupation,source_of_funds,
-                  is_admin,admin_role,notif_email,notif_push,notif_sms,
-                  freeze_deposits,freeze_withdrawals,freeze_reason,created_at
-           FROM users WHERE id=?""",
-        (session["user_id"],)
-    )
+    # Primary SELECT — includes all v5.2 KYC fields. If the production DB hasn't
+    # migrated yet (e.g. on first request after deploy with multiple workers),
+    # the new columns may not exist. Fall back to a minimal SELECT so the app
+    # stays alive instead of 500-ing every authenticated route.
+    try:
+        row = fetchone(
+            """SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,
+                      ncs_score,ncs_tier,kyc_level,kyc_status,
+                      first_name,last_name,gender,date_of_birth,nationality,occupation,source_of_funds,
+                      is_admin,admin_role,notif_email,notif_push,notif_sms,
+                      freeze_deposits,freeze_withdrawals,freeze_reason,created_at
+               FROM users WHERE id=?""",
+            (session["user_id"],)
+        )
+    except Exception as e:
+        # Defensive fallback: re-trigger migrations, then try the minimal pre-v5.2 SELECT.
+        import sys
+        print(f"[get_current_user] new SELECT failed ({e}) — falling back", file=sys.stderr, flush=True)
+        try:
+            from database import init_db
+            init_db()
+        except Exception:
+            pass
+        row = fetchone(
+            """SELECT id,phone,full_name,email,country,hanatag,bio,language,base_currency,
+                      ncs_score,ncs_tier,kyc_level,is_admin,admin_role,
+                      notif_email,notif_push,notif_sms,
+                      freeze_deposits,freeze_withdrawals,freeze_reason,created_at
+               FROM users WHERE id=?""",
+            (session["user_id"],)
+        )
+        if row:
+            d = dict(row)
+            # Synthesise missing v5.2 fields with safe defaults so templates don't break
+            for f in ("first_name","last_name","gender","date_of_birth",
+                      "nationality","occupation","source_of_funds"):
+                d.setdefault(f, None)
+            # kyc_status must be a known string for template comparisons
+            if d.get("kyc_status") in (None, ""):
+                d["kyc_status"] = "none"
+            return d
+        return None
     return dict(row) if row else None
