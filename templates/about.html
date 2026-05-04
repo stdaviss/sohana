@@ -2,50 +2,306 @@
 {% block title %}About SOHANA{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── ABOUT PAGE STYLES ── */
+.about-hero{padding:96px 5% 64px;position:relative;overflow:hidden}
+.about-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 75% 10%,rgba(158,228,147,.12),transparent 60%);pointer-events:none}
+.about-hero .container{position:relative;z-index:2;display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+@media(max-width:880px){.about-hero .container{grid-template-columns:1fr;gap:40px}}
+.about-hero h1{font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:500;line-height:1.05;letter-spacing:-0.025em;margin-bottom:1.25rem;color:#F4F2EC}
+.about-hero h1 .ital{color:#9EE493}
+.about-hero p.lead{font-size:1.1rem;color:#B7BAB4;line-height:1.65;max-width:540px}
+.about-hero-img{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.about-hero-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.45) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.35);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* SECTION CHROME */
+.about-section{padding:80px 5%;border-top:1px solid rgba(244,242,236,.08)}
+.about-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.about-section .container{max-width:1100px;margin:0 auto}
+.section-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;margin-bottom:1rem;display:inline-flex;align-items:center;gap:8px}
+.section-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.about-section.warm .section-eyebrow{color:rgba(20,19,15,.55)}
+.section-h2{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:500;line-height:1.15;letter-spacing:-0.02em;margin-bottom:1.25rem;max-width:760px}
+.section-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.about-section.warm .section-h2 .ital{color:#0E120F}
+
+/* STORY SECTION (founder) */
+.story-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start;margin-top:2.5rem}
+@media(max-width:880px){.story-grid{grid-template-columns:1fr;gap:32px}}
+.story-img-block{aspect-ratio:4/5;border-radius:20px;background-size:cover;background-position:center;position:relative;overflow:hidden;border:1px solid rgba(244,242,236,.1);position:sticky;top:90px}
+.about-section.warm .story-img-block{border-color:rgba(20,19,15,.1)}
+.story-text p{font-size:1.025rem;line-height:1.78;margin-bottom:1.1rem;color:#B7BAB4}
+.about-section.warm .story-text p{color:rgba(20,19,15,.78)}
+.story-text p strong{color:#F4F2EC;font-weight:500}
+.about-section.warm .story-text p strong{color:#0E120F}
+.story-text p.first::first-letter{font-family:'Instrument Serif',serif;font-size:3.6em;float:left;line-height:.9;padding:.1em .15em 0 0;color:#9EE493}
+.about-section.warm .story-text p.first::first-letter{color:#0E120F}
+
+/* WHAT WE'RE BUILDING — pillars */
+.pillars-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;margin-top:2.5rem}
+.pillar{padding:1.75rem;border:1px solid rgba(244,242,236,.1);border-radius:16px;background:#161B17;transition:border-color .2s,transform .2s}
+.pillar:hover{border-color:rgba(158,228,147,.3);transform:translateY(-2px)}
+.pillar .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;margin-bottom:.6rem}
+.pillar h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;margin-bottom:.55rem;letter-spacing:-0.005em}
+.pillar p{font-size:.9rem;color:#B7BAB4;line-height:1.6}
+
+/* WHY THIS MATTERS — split layout with imagery */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-top:2.5rem}
+@media(max-width:880px){.why-grid{grid-template-columns:1fr}}
+.why-img{aspect-ratio:5/4;border-radius:20px;background-size:cover;background-position:center;border:1px solid rgba(20,19,15,.1);position:relative;overflow:hidden;order:2}
+@media(max-width:880px){.why-img{order:1}}
+.why-text{order:1}
+@media(max-width:880px){.why-text{order:2}}
+.why-text p{font-size:1.025rem;line-height:1.78;margin-bottom:1.1rem;color:rgba(20,19,15,.78)}
+.why-text p strong{color:#0E120F;font-weight:500}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(20,19,15,.1)}
+.stat-row .stat-v{font-family:'Geist Mono',monospace;font-size:1.6rem;font-weight:600;color:#0E120F;letter-spacing:-.02em;line-height:1}
+.stat-row .stat-l{font-size:.78rem;color:rgba(20,19,15,.55);margin-top:.4rem;line-height:1.4}
+
+/* ROADMAP — the 10-year vision */
+.roadmap-section{padding:96px 5% 64px;background:radial-gradient(800px 500px at 50% 0%,rgba(158,228,147,.06),transparent 60%);border-top:1px solid rgba(244,242,236,.08)}
+.roadmap-track{position:relative;margin-top:3.5rem;padding-bottom:1rem}
+.roadmap-line{position:absolute;left:24px;top:8px;bottom:8px;width:2px;background:linear-gradient(180deg,rgba(158,228,147,.4) 0%,rgba(244,242,236,.1) 100%)}
+.roadmap-step{position:relative;padding:0 0 2.5rem 64px;display:grid;grid-template-columns:1fr;gap:.6rem}
+.roadmap-step:last-child{padding-bottom:0}
+.roadmap-step .dot{position:absolute;left:16px;top:6px;width:18px;height:18px;border-radius:50%;background:#0E120F;border:2px solid #9EE493;display:grid;place-items:center}
+.roadmap-step .dot::after{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.roadmap-step.future .dot{border-color:rgba(244,242,236,.2)}
+.roadmap-step.future .dot::after{background:rgba(244,242,236,.2)}
+.roadmap-step.now .dot{background:#9EE493}
+.roadmap-step.now .dot::after{background:#0E120F}
+.roadmap-step .year{font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:600;color:#9EE493;letter-spacing:.06em;text-transform:uppercase}
+.roadmap-step.future .year{color:#8A8E87}
+.roadmap-step h4{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-0.01em;line-height:1.3}
+.roadmap-step.future h4{color:#B7BAB4}
+.roadmap-step p{font-size:.92rem;color:#8A8E87;line-height:1.65;max-width:680px}
+.roadmap-step .badge-status{display:inline-block;font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:600;letter-spacing:.06em;padding:.18rem .55rem;border-radius:99px;text-transform:uppercase;margin-left:.5rem;vertical-align:middle}
+.roadmap-step.now .badge-status{background:rgba(158,228,147,.15);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.roadmap-step.next .badge-status{background:rgba(244,242,236,.06);color:#B7BAB4;border:1px solid rgba(244,242,236,.15)}
+.roadmap-step.future .badge-status{background:transparent;color:#8A8E87;border:1px solid rgba(244,242,236,.1)}
+
+/* AWARD CALLOUT */
+.award-band{padding:48px 5%;border-top:1px solid rgba(244,242,236,.08);background:#161B17}
+.award-row{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;justify-content:space-between}
+.award-text{display:flex;align-items:center;gap:1rem}
+.award-emoji{font-size:2.4rem;flex-shrink:0}
+.award-text h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;letter-spacing:-0.005em;margin-bottom:.2rem}
+.award-text p{font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace}
+
+/* CTA */
+.about-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.about-cta h2{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:500;letter-spacing:-0.02em;line-height:1.15;max-width:680px;margin:0 auto 1.25rem;color:#F4F2EC}
+.about-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.about-cta p{font-size:1rem;color:#B7BAB4;max-width:520px;margin:0 auto 2rem;line-height:1.65}
+.about-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ════ HERO ════ -->
+<section class="about-hero">
   <div class="container">
-    <div class="page-hero-label">Company</div>
-    <h1>About SOHANA</h1>
-    <p>SOHANA is a fintech platform that digitalises community savings and builds credit identities for Africa and the African diaspora.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="section-eyebrow">About Sohana</div>
+      <h1>Where <span class="ital">trust</span> becomes capital.</h1>
+      <p class="lead">Sohana was born from something simple, familiar, and deeply human: trust. We are building the financial infrastructure that takes the savings systems Africa has trusted for generations — and gives them the structure to scale.</p>
     </div>
+    <div class="about-hero-img" style="background-image:url('https://images.unsplash.com/photo-1573497019418-b400bb3ab074?auto=format&fit=crop&w=1200&q=80');">
+      <a class="img-credit" href="https://unsplash.com/photos/HiUe1jTUDhA" target="_blank" rel="noopener">Unsplash · placeholder</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════ THE STORY (warm takeover) ════ -->
+<section class="about-section warm">
+  <div class="container">
+    <div class="section-eyebrow">01 · The story</div>
+    <h2 class="section-h2">It began with a <span class="ital">treasurer</span>, not a bank.</h2>
+    <div class="story-grid">
+      <div class="story-img-block" style="background-image:url('https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=900&q=80');">
+        <a class="img-credit" href="https://unsplash.com/photos/L8y0Iqv7vK4" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
+      <div class="story-text">
+        <p class="first">Growing up, one of the most consistent financial systems I saw in action wasn't a bank — it was a community. My grandmother served as a treasurer in a local savings circle, where people came together regularly, contributed what they could, and took turns receiving the pooled funds.</p>
+        <p>There were no apps, no contracts, no dashboards — just <strong>discipline, accountability, and trust.</strong></p>
+        <p>Through that system, she helped ensure that her children — and eventually her grandchildren — had access to education and opportunity. It wasn't perfect, but it worked. And for millions of people across Africa and the diaspora, it still does.</p>
+        <p><strong>Sohana exists to take that same foundation and build something more powerful on top of it.</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ WHAT WE'RE BUILDING ════ -->
+<section class="about-section">
+  <div class="container">
+    <div class="section-eyebrow">02 · What we're building</div>
+    <h2 class="section-h2">Modernising what already <span class="ital">works</span>.</h2>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;max-width:780px;margin-bottom:1rem;">Sohana is a financial platform designed to modernise and scale community-based savings systems — commonly known as ROSCAs — without losing what makes them work.</p>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;max-width:780px;">These systems already move <strong style="color:#F4F2EC;">billions in value every year</strong>, entirely outside formal financial infrastructure. They are trusted, resilient, and culturally embedded. But they are also limited by manual processes, lack of transparency, and risk. We are building the tools to change that.</p>
+
+    <div class="pillars-grid">
+      <div class="pillar">
+        <div class="num">PILLAR 01</div>
+        <h4>Save together, efficiently</h4>
+        <p>Bring structure to group savings — automated contributions, transparent ledgers, predictable payouts. No more spreadsheets, no more arguments.</p>
+      </div>
+      <div class="pillar">
+        <div class="num">PILLAR 02</div>
+        <h4>Access capital, predictably</h4>
+        <p>Let members access pooled funds in a transparent and predictable way — with a clear order, clear rules, and a clear timeline.</p>
+      </div>
+      <div class="pillar">
+        <div class="num">PILLAR 03</div>
+        <h4>Build a financial track record</h4>
+        <p>Every on-time contribution becomes part of a verifiable history. Behaviour becomes a credential — the foundation of credit identity.</p>
+      </div>
+      <div class="pillar">
+        <div class="num">PILLAR 04</div>
+        <h4>Operate across borders</h4>
+        <p>Built for the diaspora reality — multi-currency, multi-jurisdiction, designed to work the way families and communities already work.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:2.5rem;font-family:'Instrument Serif',serif;font-size:1.4rem;font-style:italic;color:#9EE493;line-height:1.4;max-width:680px;">"At its core, Sohana is not replacing these systems — it is strengthening them."</p>
+  </div>
+</section>
+
+<!-- ════ WHY THIS MATTERS (warm) ════ -->
+<section class="about-section warm">
+  <div class="container">
+    <div class="section-eyebrow">03 · Why this matters</div>
+    <h2 class="section-h2">The future of finance <span class="ital">already exists</span> — it's just informal.</h2>
+    <div class="why-grid">
+      <div class="why-text">
+        <p>Across Africa and many emerging markets, access to formal financial systems is still uneven. But people haven't waited for banks to solve this — <strong>they've built their own systems.</strong></p>
+        <p>The challenge is not participation. It's <strong>scale, reliability, and evolution.</strong></p>
+        <p>We believe that the future of finance in these regions will not come from importing foreign systems alone, but from upgrading what already works. Sohana is one step in that direction.</p>
+        <div class="stat-row">
+          <div>
+            <div class="stat-v">800M</div>
+            <div class="stat-l">Adults in sub-Saharan Africa unbanked or underbanked</div>
+          </div>
+          <div>
+            <div class="stat-v">$200B+</div>
+            <div class="stat-l">Estimated annual flow through informal savings systems globally</div>
+          </div>
+          <div>
+            <div class="stat-v">100%</div>
+            <div class="stat-l">Of this value sits invisible to formal credit infrastructure</div>
+          </div>
+        </div>
+      </div>
+      <div class="why-img" style="background-image:url('https://images.unsplash.com/photo-1605640840605-14ac1855827b?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/photos/uX4XXR_E5FQ" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ ROADMAP ════ -->
+<section class="roadmap-section">
+  <div class="container" style="max-width:1100px;">
+    <div class="section-eyebrow">04 · Where we're going</div>
+    <h2 class="section-h2">A <span class="ital">decade-long</span> journey, one foundation at a time.</h2>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.75;max-width:720px;">This is not a short-term project. We are building toward a long-term vision where community-based savings become digitally structured, globally accessible, and the bridge between informal and formal economies — without friction, without compromise.</p>
+
+    <div class="roadmap-track">
+      <div class="roadmap-line"></div>
+
+      <!-- 2026 — Foundation -->
+      <div class="roadmap-step now">
+        <div class="dot"></div>
+        <span class="year">2026 · Foundation <span class="badge-status">We are here</span></span>
+        <h4>Launch the savings platform</h4>
+        <p>Beta launch with closed-pilot communities in France and Cameroon. Core ROSCA, Pool, and Wallet products live. First regulatory authorisations under way (ACPR France, FCA UK). KYC, AML, and compliance infrastructure operational.</p>
+      </div>
+
+      <!-- 2027 — Scale -->
+      <div class="roadmap-step next">
+        <div class="dot"></div>
+        <span class="year">2027 · Scale <span class="badge-status">Next</span></span>
+        <h4>Public launch across the EU diaspora</h4>
+        <p>Public mobile launch on iOS and Android. Expansion across France, Belgium, UK, Germany, Netherlands. Hanatag becomes the universal address for diaspora payments. First 100,000 verified members.</p>
+      </div>
+
+      <!-- 2028 — Credit -->
+      <div class="roadmap-step next">
+        <div class="dot"></div>
+        <span class="year">2028 · Credit identity</span>
+        <h4>NCS becomes a usable credit credential</h4>
+        <p>The Njangi Credit Score graduates from internal metric to portable credential. Partnerships with lenders, insurers, and EMIs in target corridors. Members start unlocking real credit products built on community-savings history.</p>
+      </div>
+
+      <!-- 2029 — Cross-border -->
+      <div class="roadmap-step future">
+        <div class="dot"></div>
+        <span class="year">2029 · Cross-border infrastructure</span>
+        <h4>Continental expansion: West &amp; Central Africa</h4>
+        <p>Direct presence in Cameroon, Ghana, Nigeria, Côte d'Ivoire, Senegal. Mobile-money integrations across MTN, Orange, Wave. Diaspora-to-domestic transfers as a default flow, not an exception.</p>
+      </div>
+
+      <!-- 2030 — Financial OS -->
+      <div class="roadmap-step future">
+        <div class="dot"></div>
+        <span class="year">2030 · Financial OS</span>
+        <h4>From savings to a full financial layer</h4>
+        <p>Sohana evolves from a savings platform into a financial operating system: insurance, micro-credit, investment, and remittance — all built on the trust graph our members have built. One million active members.</p>
+      </div>
+
+      <!-- 2032 — Regional infrastructure -->
+      <div class="roadmap-step future">
+        <div class="dot"></div>
+        <span class="year">2032 · Regional infrastructure</span>
+        <h4>The default credit infrastructure for African community finance</h4>
+        <p>Partnerships with central banks and regional bodies. NCS recognised by formal credit bureaus. Sohana's rails power third-party financial products across the continent — savings becomes infrastructure, not a feature.</p>
+      </div>
+
+      <!-- 2035 — The vision -->
+      <div class="roadmap-step future">
+        <div class="dot"></div>
+        <span class="year">2035 · The vision</span>
+        <h4>Community-based finance, globally accessible</h4>
+        <p>A world where the 800 million adults underserved by formal banking are no longer underserved — because the financial systems they already trusted have been given the structure to serve them everywhere they go. The informal becomes the foundational.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:3rem;font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace;line-height:1.6;max-width:720px;border-left:2px solid rgba(158,228,147,.3);padding-left:1rem;">This roadmap reflects Sohana's current ambitions and projections. Specific timelines depend on regulatory approvals, market conditions, and capital availability. We will publish updates against this trajectory as we go.</p>
+  </div>
+</section>
+
+<!-- ════ AWARD ════ -->
+<div class="award-band">
+  <div class="award-row">
+    <div class="award-text">
+      <div class="award-emoji">🏆</div>
+      <div>
+        <h4>Tony Elumelu Foundation Entrepreneurship Programme</h4>
+        <p>TEF Cohort 2026 · Selected from over 200,000 applicants across Africa</p>
+      </div>
+    </div>
+    <a href="/press" style="font-family:'Geist Mono',monospace;font-size:.78rem;color:#9EE493;text-decoration:none;letter-spacing:.04em;">Read more →</a>
   </div>
 </div>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🌍</div>
-      <h3>Our story</h3>
-      <p>SOHANA was founded with one conviction: that the billions of people who participate in community savings groups deserve a financial platform built specifically for them — not an adaptation of one built for someone else. We started in the African diaspora in Europe, where Tontines and Njangis have run for decades in notebooks and WhatsApp groups.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">💡</div>
-      <h3>What makes us different</h3>
-      <p>We did not build a bank that happens to support savings groups. We built a savings group platform that happens to have a wallet. The distinction matters. Every feature we have built — from the NCS score to the three-admin disbursement model — comes from studying how community finance actually works, not how Western finance thinks it should work.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🏆</div>
-      <h3>Recognition</h3>
-      <p>SOHANA was selected as a winning project at the Tony Elumelu Foundation Entrepreneurial Award 2026 — recognition of both the innovation and the scale of the opportunity we are addressing.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🎯</div>
-      <h3>Our mission</h3>
-      <p>To make community savings the foundation of financial inclusion for 800 million adults in Africa and the African diaspora who have been excluded from formal financial systems — not because they are unreliable, but because no one was recording their reliability.</p>
-    </div>
+<!-- ════ A STARTING POINT (closing thought) ════ -->
+<section class="about-section">
+  <div class="container" style="max-width:780px;text-align:center;">
+    <div class="section-eyebrow" style="justify-content:center;">05 · A starting point</div>
+    <h2 class="section-h2" style="margin:1rem auto 1.5rem;">Sohana is still <span class="ital">early</span>, and intentionally so.</h2>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;">We are beginning with the fundamentals: helping people save together, move money transparently, and build trust at scale. <strong style="color:#F4F2EC;font-weight:500;">Everything else will follow from that.</strong></p>
+    <p style="font-size:1.05rem;color:#B7BAB4;line-height:1.78;">Because at its core, this is not just about technology. It's about giving structure to systems that have quietly supported generations — and giving them the tools to go further.</p>
   </div>
+</section>
 
-  <hr class="divider">
-
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
-    </div>
+<!-- ════ CTA ════ -->
+<section class="about-cta">
+  <h2>Build the future of community finance with us, <span class="ital">one circle at a time.</span></h2>
+  <p>Join the waitlist, partner with us, or follow our progress as we build.</p>
+  <div class="about-cta-buttons">
+    <a href="/auth" class="btn-primary">Join the platform</a>
+    <a href="/partnerships" class="btn-outline-white">Partner with us</a>
+    <a href="/mission" class="btn-outline-white">Read our mission</a>
   </div>
-</div>
+</section>
+
 {% endblock %}
