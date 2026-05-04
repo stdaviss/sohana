@@ -419,11 +419,35 @@ h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400}
   background:repeating-linear-gradient(135deg,rgba(244,242,236,.06) 0 8px,rgba(244,242,236,.02) 8px 16px),
              linear-gradient(135deg,color-mix(in oklch,var(--accent) 30%,var(--bg)),var(--bg-2));
   position:relative;display:grid;place-items:center;
+  background-size:cover;background-position:center;
+  overflow:hidden;
+}
+.story-img.has-photo{background-blend-mode:normal}
+.story-img.has-photo::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 0%,transparent 55%,rgba(20,19,15,.55) 100%);
+  pointer-events:none;
 }
 .bg-warm .story-img{
   background:repeating-linear-gradient(135deg,rgba(20,19,15,.05) 0 8px,rgba(20,19,15,.02) 8px 16px),
              linear-gradient(135deg,color-mix(in oklch,var(--accent) 25%,var(--warm)),var(--warm-2));
 }
+.bg-warm .story-img.has-photo{
+  background:none;
+}
+.bg-warm .story-img.has-photo::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 0%,transparent 55%,rgba(20,19,15,.4) 100%);
+  pointer-events:none;
+}
+.story-img-credit{
+  position:absolute;bottom:8px;right:10px;z-index:2;
+  font-family:'Geist Mono',monospace;font-size:9px;
+  color:rgba(244,242,236,.55);letter-spacing:.04em;
+  background:rgba(0,0,0,.35);padding:2px 6px;border-radius:3px;
+  text-decoration:none;
+}
+.story-img-credit:hover{color:rgba(244,242,236,.9)}
 .ph-tag{
   font-family:'Geist Mono',monospace;font-size:11px;color:var(--ink-2);
   letter-spacing:.06em;padding:4px 10px;border-radius:4px;
@@ -681,7 +705,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{
 <header class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="pill"><span class="dot"></span>Regulated · launching Q3 2026 · #12,438 in line</span>
+      <span class="pill"><span class="dot"></span>Pursuing authorisation · launching Q3 2026 · #12,438 in line</span>
       <h1 class="display" id="hero-h1">
         Save together.<br>Build <span class="accent">credit</span>.<br>Send money <span class="ital">home</span>.
       </h1>
@@ -777,7 +801,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{
 ════════════════════════════════════════════════════════ -->
 <div class="trust-band">
   <div class="container trust-row">
-    <div class="trust-label">Regulated &amp; partnered with</div>
+    <div class="trust-label">Working towards authorisation with</div>
     <div class="partners">
       <span class="partner mono">ACPR · FRANCE</span>
       <span class="partner mono">FCA · UK</span>
@@ -813,8 +837,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{
         <div class="icon-tile" style="margin-top:18px">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M8 16h3"/></svg>
         </div>
-        <h3>Funds held in regulated escrow</h3>
-        <p>Every contribution sits in a segregated, ringfenced account. Members see balances live; payouts auto-release on schedule with full audit trail.</p>
+        <h3>Funds will be held in segregated escrow</h3>
+        <p>At launch, every contribution will sit in a segregated, ringfenced account at a licensed partner institution. Members see balances live; payouts auto-release on schedule with full audit trail. <span style="opacity:.65">Currently in beta — no real funds are held.</span></p>
       </div>
       <div class="card col-4">
         <div class="num">C · FLEXIBLE</div>
@@ -981,21 +1005,30 @@ button:focus-visible,a:focus-visible,input:focus-visible{
     </div>
     <div class="stories-grid">
       <article class="story">
-        <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 01</span></div>
+        <!-- TODO: Replace with real interview photo. Unsplash placeholder, free for commercial use. -->
+        <div class="story-img has-photo" style="background-image:url('https://images.unsplash.com/photo-1623091410901-00e2d268901f?auto=format&fit=crop&w=900&q=80');">
+          <a class="story-img-credit" href="https://unsplash.com/photos/sBoTYohBVx0" target="_blank" rel="noopener">Photo: Etty Fidele · Unsplash</a>
+        </div>
         <div class="story-body">
           <div class="quote">"My njangi paid for my mother's surgery in Bamenda. I want my daughter to grow up knowing this is how we take care of each other."</div>
           <div class="who"><span class="nm">Aïcha M.</span><span class="role">Brussels → Yaoundé</span><span class="flag">BE · CM</span></div>
         </div>
       </article>
       <article class="story">
-        <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 02</span></div>
+        <!-- TODO: Replace with real interview photo. Unsplash placeholder, free for commercial use. -->
+        <div class="story-img has-photo" style="background-image:url('https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=900&q=80');">
+          <a class="story-img-credit" href="https://unsplash.com/photos/Nv4QHkTVEaI" target="_blank" rel="noopener">Photo: Christina @ wocintechchat · Unsplash</a>
+        </div>
         <div class="story-body">
           <div class="quote">"We're 14 women, all nurses. Every Friday we contribute, every fortnight someone collects. With Sohana the ledger finally stopped causing fights."</div>
           <div class="who"><span class="nm">Adwoa B.</span><span class="role">London → Accra</span><span class="flag">UK · GH</span></div>
         </div>
       </article>
       <article class="story">
-        <div class="story-img"><span class="ph-tag">PHOTO · COMMUNITY 03</span></div>
+        <!-- TODO: Replace with real interview photo. Unsplash placeholder, free for commercial use. -->
+        <div class="story-img has-photo" style="background-image:url('https://images.unsplash.com/photo-1573497019418-b400bb3ab074?auto=format&fit=crop&w=900&q=80');">
+          <a class="story-img-credit" href="https://unsplash.com/photos/HiUe1jTUDhA" target="_blank" rel="noopener">Photo: Christina @ wocintechchat · Unsplash</a>
+        </div>
         <div class="story-body">
           <div class="quote">"I run six tandas at once for friends back home. Sohana let me organise without spreadsheets and without sending money through three banks."</div>
           <div class="who"><span class="nm">Fatou D.</span><span class="role">Montréal → Abidjan</span><span class="flag">CA · CI</span></div>

@@ -30,6 +30,7 @@
       <li><a href="/pools"     class="{{ 'active' if '/pools' in p }}"><span class="nav-icon">🏦</span>Pools</a></li>
       <li><a href="/history"   class="{{ 'active' if p=='/history' }}"><span class="nav-icon">⊟</span>History</a></li>
       <li><a href="/ncs"       class="{{ 'active' if p=='/ncs' }}"><span class="nav-icon">★</span>NCS Score</a></li>
+      <li><a href="/kyc"       class="{{ 'active' if p=='/kyc' }}"><span class="nav-icon">🛡️</span>Identity{% if user and user.kyc_status == 'verified' %} <span style="margin-left:auto;font-size:.65rem;color:var(--accent);font-family:'Geist Mono',monospace;">✓</span>{% elif user and user.kyc_status == 'pending' %} <span style="margin-left:auto;font-size:.65rem;color:var(--orange,#f0c040);font-family:'Geist Mono',monospace;">●</span>{% endif %}</a></li>
       <li><a href="/blog"      class="{{ 'active' if '/blog' in p }}"><span class="nav-icon">📰</span>News &amp; Blog</a></li>
       <li><a href="/campaigns" class="{{ 'active' if '/campaigns' in p or '/my-campaigns' in p }}"><span class="nav-icon">💚</span>Fundraising</a></li>
     </ul>
@@ -40,9 +41,12 @@
     <span class="sidebar-label">Admin</span>
     <ul class="sidebar-nav">
       <li><a href="/admin"         class="{{ 'active' if p=='/admin' }}"><span class="nav-icon">◈</span>Dashboard</a></li>
-      <li><a href="/admin/roscas"  class="{{ 'active' if '/admin/rosca' in p }}"><span class="nav-icon">◎</span>All ROSCAs</a></li>
+      <li style="opacity:.55;pointer-events:none;"><a href="#" onclick="return false;"><span class="nav-icon">◎</span>All ROSCAs <span style="margin-left:auto;font-size:.6rem;color:var(--ink-3);font-family:'Geist Mono',monospace;letter-spacing:.04em;">SOON</span></a></li>
       <li><a href="/admin/users"   class="{{ 'active' if '/admin/user' in p }}"><span class="nav-icon">◎</span>All Users</a></li>
       <li><a href="/admin/payments"class="{{ 'active' if '/admin/payment' in p }}"><span class="nav-icon">◈</span>Payments</a></li>
+      {% if session.get('admin_role') in ['ceo','cco','cfo'] %}
+      <li><a href="/admin/kyc"     class="{{ 'active' if '/admin/kyc' in p }}"><span class="nav-icon">🛡️</span>KYC Review</a></li>
+      {% endif %}
       <li><a href="/admin/admins"  class="{{ 'active' if '/admin/admin' in p }}"><span class="nav-icon">◎</span>Admins</a></li>
       <li><a href="/admin/blog"    class="{{ 'active' if '/admin/blog' in p }}"><span class="nav-icon">📝</span>Blog</a></li>
       <li><a href="/admin/campaigns" class="{{ 'active' if '/admin/campaign' in p }}"><span class="nav-icon">💚</span>Campaigns</a></li>
