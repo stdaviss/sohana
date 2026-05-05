@@ -2,50 +2,264 @@
 {% block title %}Our Mission{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── MISSION PAGE ── */
+.m-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative}
+.m-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.m-section .container{max-width:1100px;margin:0 auto}
+.m-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1.25rem}
+.m-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.m-section.warm .m-eyebrow{color:rgba(20,19,15,.55)}
+
+/* ── HERO ── */
+.m-hero{padding:128px 5% 96px;position:relative;overflow:hidden;text-align:center}
+.m-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 50% 0%,rgba(158,228,147,.12),transparent 60%);pointer-events:none}
+.m-hero-grid{position:absolute;inset:0;background-image:
+  linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.m-hero .container{position:relative;z-index:2;max-width:880px;margin:0 auto}
+.m-hero h1{font-size:clamp(2.8rem,6vw,4.8rem);font-weight:500;line-height:1;letter-spacing:-.035em;margin:1.5rem 0 1.75rem;color:#F4F2EC}
+.m-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.m-hero p.subline{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:620px;margin:0 auto}
+
+/* ── MISSION STATEMENT ── */
+.mission-card{margin-top:4rem;padding:3rem 2.5rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.05) 0%,rgba(158,228,147,.01) 100%);position:relative;max-width:780px;margin-left:auto;margin-right:auto}
+.mission-card::before{content:"\201C";position:absolute;top:.5rem;left:1.5rem;font-family:'Instrument Serif',serif;font-size:6rem;color:rgba(158,228,147,.25);line-height:1;font-style:italic}
+.mission-card .label{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#9EE493;margin-bottom:1rem}
+.mission-card p{font-family:'Instrument Serif',serif;font-size:clamp(1.5rem,2.2vw,1.95rem);line-height:1.35;color:#F4F2EC;font-style:italic;font-weight:400;letter-spacing:-.005em}
+.mission-card p .em{color:#9EE493}
+
+/* ── ANIMATED ROTATING WORD ── */
+.rotator{display:inline-block;position:relative;color:#9EE493;font-family:'Instrument Serif',serif;font-style:italic;min-width:6ch;text-align:left}
+.rotator span{display:inline-block;animation:rot-fade 9s cubic-bezier(.5,0,.5,1) infinite;opacity:0;position:absolute;left:0;white-space:nowrap}
+.rotator span:nth-child(1){animation-delay:0s}
+.rotator span:nth-child(2){animation-delay:3s}
+.rotator span:nth-child(3){animation-delay:6s}
+@keyframes rot-fade{
+  0%,5%   {opacity:0;transform:translateY(8px)}
+  10%,30% {opacity:1;transform:translateY(0)}
+  35%,100%{opacity:0;transform:translateY(-8px)}
+}
+.rotator::before{content:"\200B";display:inline-block}
+
+/* ── FADE-IN ON SCROLL ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}
+
+/* ── SECTION HEADINGS ── */
+.m-h2{font-size:clamp(1.9rem,3.4vw,2.7rem);font-weight:500;line-height:1.1;letter-spacing:-.025em;margin-bottom:1rem;max-width:780px}
+.m-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.m-section.warm .m-h2 .ital{color:#0E120F}
+.m-lead{font-size:clamp(1rem,1.2vw,1.1rem);color:#B7BAB4;line-height:1.7;max-width:680px;margin-bottom:2.5rem}
+.m-section.warm .m-lead{color:rgba(20,19,15,.7)}
+
+/* ── PRINCIPLES ── */
+.principles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:1.5rem}
+@media(max-width:880px){.principles-grid{grid-template-columns:1fr}}
+.principle{padding:2rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+.principle:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.principle::after{content:"";position:absolute;top:0;right:0;width:120px;height:120px;background:radial-gradient(circle,rgba(158,228,147,.15) 0%,transparent 60%);opacity:0;transition:opacity .3s}
+.principle:hover::after{opacity:1}
+.principle-num{font-family:'Geist Mono',monospace;font-size:1rem;font-weight:600;color:#9EE493;margin-bottom:1.25rem;display:flex;align-items:center;gap:.6rem}
+.principle-num::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(158,228,147,.35) 0%,transparent 100%)}
+.principle h3{font-size:1.2rem;font-weight:600;color:#F4F2EC;margin-bottom:.85rem;letter-spacing:-.01em;line-height:1.3}
+.principle p{font-size:.92rem;color:#B7BAB4;line-height:1.7}
+
+/* ── 5-YEAR VISION ── */
+.vision-pill{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1rem;border:1px solid rgba(20,19,15,.18);border-radius:99px;background:rgba(20,19,15,.03);font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:rgba(20,19,15,.6);margin-bottom:1rem}
+.vision-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:#0E120F;animation:pulse-dot 2.5s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
+.vision-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-top:2.5rem}
+@media(max-width:1000px){.vision-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.vision-grid{grid-template-columns:1fr}}
+.vision-cell{padding:1.5rem 1.25rem;background:#fff;border:1px solid rgba(20,19,15,.08);border-radius:14px;display:flex;flex-direction:column;gap:.6rem;transition:border-color .2s,box-shadow .2s}
+.vision-cell:hover{border-color:rgba(20,19,15,.2);box-shadow:0 8px 32px rgba(20,19,15,.06)}
+.vision-icon{width:36px;height:36px;border-radius:10px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-size:1rem;flex-shrink:0}
+.vision-cell h4{font-size:.95rem;font-weight:600;color:#0E120F;letter-spacing:-.005em;line-height:1.3;margin-top:.25rem}
+.vision-cell p{font-size:.82rem;color:rgba(20,19,15,.65);line-height:1.55}
+.vision-arrow{margin-top:3rem;padding:1.25rem 1.5rem;background:#0E120F;color:#F4F2EC;border-radius:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.875rem}
+.vision-arrow strong{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:#9EE493;font-size:1.25rem}
+.vision-arrow span{font-family:'Geist Mono',monospace;font-size:.78rem;color:#B7BAB4;letter-spacing:.04em}
+
+/* ── VENTURE-SCALE ── */
+.scale-hero-num{font-family:'Geist Mono',monospace;font-size:clamp(3rem,7vw,5.5rem);font-weight:500;line-height:1;letter-spacing:-.04em;color:#9EE493}
+.scale-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.5rem}
+@media(max-width:880px){.scale-grid{grid-template-columns:1fr}}
+.scale-stat{padding:1.75rem;border:1px solid rgba(244,242,236,.12);border-radius:18px;background:#161B17}
+.scale-stat .v{font-family:'Geist Mono',monospace;font-size:2.2rem;font-weight:500;color:#9EE493;letter-spacing:-.025em;line-height:1;margin-bottom:.6rem}
+.scale-stat .l{font-size:.88rem;color:#B7BAB4;line-height:1.6}
+.scale-arrow-list{margin-top:3rem;padding:2rem;border-left:3px solid #9EE493;background:linear-gradient(90deg,rgba(158,228,147,.05) 0%,transparent 100%)}
+.scale-arrow-list h3{font-size:1.05rem;color:#F4F2EC;font-weight:600;margin-bottom:1rem;letter-spacing:-.005em}
+.scale-arrow-list ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.85rem}
+.scale-arrow-list li{font-size:.95rem;color:#B7BAB4;line-height:1.5;padding-left:1.5rem;position:relative}
+.scale-arrow-list li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.scale-arrow-list li strong{color:#F4F2EC;font-weight:500}
+
+/* ── INFRASTRUCTURE CALLOUT ── */
+.infra-band{margin-top:3rem;padding:3rem 2.5rem;background:#9EE493;color:#0E120F;border-radius:24px;text-align:center}
+.infra-band .label{font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(14,18,15,.65);margin-bottom:1.25rem}
+.infra-band h3{font-size:clamp(1.5rem,2.6vw,2.2rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;max-width:680px;margin:0 auto}
+.infra-band h3 .em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400}
+
+/* ── CTA ── */
+.m-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.m-cta h2{font-size:clamp(1.8rem,3vw,2.6rem);font-weight:500;letter-spacing:-.02em;line-height:1.15;max-width:680px;margin:0 auto 1.25rem;color:#F4F2EC}
+.m-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.m-cta p{font-size:1rem;color:#B7BAB4;max-width:520px;margin:0 auto 2rem;line-height:1.65}
+.m-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ════ HERO ════ -->
+<section class="m-hero">
+  <div class="m-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Company</div>
-    <h1>Where Trust Becomes Capital</h1>
-    <p>SOHANA exists to transform community trust into financial capital — giving Africa's savers the credit identity they have always deserved.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="m-eyebrow">Our Mission</div>
+    <h1 class="reveal in">
+      To make <span class="ital">trust</span><br>
+      a financial <span class="rotator"><span>asset.</span><span>credential.</span><span>passport.</span></span>
+    </h1>
+    <p class="subline reveal in reveal-d2">For the hundreds of millions of people whose financial lives have always been built on community — and never been seen.</p>
+
+    <div class="mission-card reveal" id="mission-card">
+      <div class="label">— Mission</div>
+      <p>To enable people everywhere to <span class="em">save</span>, <span class="em">access capital</span>, and <span class="em">build financial trust</span> together — simply, transparently, and at scale.</p>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🌱</div>
-      <h3>The problem we are solving</h3>
-      <p>800 million adults in sub-Saharan Africa are unbanked or underbanked. This is not because they do not save. They save through Tontines, Njangis, Esusu, and Chamas — community savings systems with centuries of proven reliability. The problem is that this reliability is invisible to the formal financial system.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔑</div>
-      <h3>Our solution</h3>
-      <p>SOHANA makes the invisible visible. Every contribution a member makes is recorded. Every on-time payment builds a score. Every circle completed is a credential. We are building the first credit infrastructure designed specifically for community-based financial behaviour.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📅</div>
-      <h3>Ten-year vision</h3>
-      <p>By 2035, we aim to have given 25 million people a verifiable financial identity built entirely from their savings behaviour — and to have used that identity to connect them to loans, insurance, and financial services they could never access before.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🤝</div>
-      <h3>Our values</h3>
-      <p>Community first. Transparency always. Technology in service of people, not the other way around. We build for trust because trust is what our users already bring to the table.</p>
+<!-- ════ PRINCIPLES ════ -->
+<section class="m-section">
+  <div class="container">
+    <div class="m-eyebrow reveal">01 · Principles</div>
+    <h2 class="m-h2 reveal reveal-d1">Three principles that <span class="ital">guide every decision</span>.</h2>
+    <p class="m-lead reveal reveal-d2">When we choose what to build — and what not to build — we measure every option against these. They are not slogans. They are filters.</p>
+
+    <div class="principles-grid">
+      <div class="principle reveal reveal-d1">
+        <div class="principle-num">01</div>
+        <h3>Build on what already works</h3>
+        <p>We don't replace existing financial behaviours — we strengthen them. ROSCAs and community savings systems have worked for generations. Our role is to bring structure, reliability, and scale without removing the human trust at their core.</p>
+      </div>
+      <div class="principle reveal reveal-d2">
+        <div class="principle-num">02</div>
+        <h3>Trust is the product</h3>
+        <p>Every feature we ship must increase transparency, accountability, and confidence between participants. From contribution tracking to payout visibility, trust is not a layer on top — it is the foundation underneath.</p>
+      </div>
+      <div class="principle reveal reveal-d3">
+        <div class="principle-num">03</div>
+        <h3>Simplicity enables scale</h3>
+        <p>Financial tools only work if people actually use them. We prioritise clarity, ease of use, and accessibility across regions, devices, and levels of financial literacy. If it isn't usable on a mid-range Android over 3G, it isn't built.</p>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ════ 5-YEAR VISION (warm) ════ -->
+<section class="m-section warm">
+  <div class="container">
+    <div class="vision-pill reveal">Horizon · 2030</div>
+    <h2 class="m-h2 reveal reveal-d1" style="color:#0E120F;">What Africa's diaspora financial layer <span class="ital">looks like</span> in 2030.</h2>
+    <p class="m-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">By 2030, we believe the informal financial systems that already power hundreds of millions of lives will have been digitally transformed — without losing what makes them work. Five characteristics will define this layer.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="vision-grid">
+      <div class="vision-cell reveal reveal-d1">
+        <div class="vision-icon">⊞</div>
+        <h4>Digitally structured</h4>
+        <p>Informal savings systems are fully digitised, trackable, and audit-ready.</p>
+      </div>
+      <div class="vision-cell reveal reveal-d1">
+        <div class="vision-icon">⇄</div>
+        <h4>Cross-border by default</h4>
+        <p>Members participate in savings groups across countries and currencies seamlessly.</p>
+      </div>
+      <div class="vision-cell reveal reveal-d2">
+        <div class="vision-icon">◊</div>
+        <h4>Data-driven</h4>
+        <p>Financial behaviour within communities becomes the basis for identity and trust.</p>
+      </div>
+      <div class="vision-cell reveal reveal-d2">
+        <div class="vision-icon">◎</div>
+        <h4>Integrated</h4>
+        <p>Savings systems connect directly to credit, insurance, and investment products.</p>
+      </div>
+      <div class="vision-cell reveal reveal-d3">
+        <div class="vision-icon">⌘</div>
+        <h4>Community-powered</h4>
+        <p>Individuals and groups operate as their own financial networks — not just users of external institutions.</p>
+      </div>
+    </div>
+
+    <div class="vision-arrow reveal reveal-d3">
+      <strong>Sohana aims to be the infrastructure layer enabling this transformation.</strong>
+      <span>Not a single product · A new category</span>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ════ VENTURE-SCALE ════ -->
+<section class="m-section">
+  <div class="container">
+    <div class="m-eyebrow reveal">03 · Venture-scale</div>
+    <h2 class="m-h2 reveal reveal-d1">The opportunity is not to <span class="ital">create demand</span> — it's to organise it.</h2>
+    <p class="m-lead reveal reveal-d2">This is not a niche use case. ROSCAs and similar systems are an existing global behaviour with proven engagement, real value flow, and structural under-service. We are digitising a market that already exists at scale.</p>
+
+    <div class="scale-grid">
+      <div class="scale-stat reveal reveal-d1">
+        <div class="v">800M+</div>
+        <div class="l">Adults globally participate in informal savings groups — Tontines, Njangis, Esusu, Chamas, Tandas.</div>
+      </div>
+      <div class="scale-stat reveal reveal-d2">
+        <div class="v">$200B+</div>
+        <div class="l">Estimated annual flow through informal community-savings systems — entirely outside formal credit infrastructure.</div>
+      </div>
+      <div class="scale-stat reveal reveal-d3">
+        <div class="v">4 regions</div>
+        <div class="l">The market spans Africa, Europe, North America, and global diaspora communities — a network that is already connected, but not yet served.</div>
+      </div>
+    </div>
+
+    <div class="scale-arrow-list reveal">
+      <h3>By digitising and structuring community finance, we unlock:</h3>
+      <ul>
+        <li><strong>New financial data layers</strong> — making invisible behaviour visible to credit, insurance, and identity infrastructure.</li>
+        <li><strong>New financial products</strong> — credit, insurance, and investment products built on a foundation of verified community-savings behaviour.</li>
+        <li><strong>Network effects</strong> — across communities, currencies, and geographies, where every new circle strengthens every other.</li>
+      </ul>
+    </div>
+
+    <div class="infra-band reveal">
+      <div class="label">The thesis</div>
+      <h3>Sohana is not a single product — it is <span class="em">infrastructure for a new category of finance.</span></h3>
+    </div>
+  </div>
+</section>
+
+<!-- ════ CTA ════ -->
+<section class="m-cta">
+  <h2>Help us build the <span class="ital">infrastructure layer</span> for community finance.</h2>
+  <p>Join the platform, partner with us, or read more about how we are getting there.</p>
+  <div class="m-cta-buttons">
+    <a href="/auth" class="btn-primary">Join the platform</a>
+    <a href="/about" class="btn-outline-white">Read our story</a>
+    <a href="/partnerships" class="btn-outline-white">Partner with us</a>
+  </div>
+</section>
+
+<script>
+/* Scroll-reveal observer */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')});
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+    });
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
