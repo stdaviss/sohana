@@ -2,50 +2,285 @@
 {% block title %}Terms of Service{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+.lg-section{padding:96px 5% 64px;border-top:1px solid rgba(244,242,236,.08);position:relative}
+.lg-section .container{max-width:1100px;margin:0 auto}
+.lg-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.lg-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.lg-h2{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.25rem;max-width:780px;scroll-margin-top:90px}
+.lg-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-top:1.25rem;margin-bottom:.5rem}
+.lg-p{font-size:.96rem;color:#B7BAB4;line-height:1.7;margin-bottom:1rem;max-width:780px}
+.lg-p strong{color:#F4F2EC;font-weight:500}
+.lg-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.25rem;max-width:780px}
+.lg-list li{padding-left:1.6rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.lg-list li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.lg-list li strong{color:#F4F2EC;font-weight:500}
+
+.lg-hero{padding:120px 5% 64px;position:relative;overflow:hidden}
+.lg-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 50% 10%,rgba(158,228,147,.08),transparent 60%);pointer-events:none}
+.lg-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.lg-hero .container{position:relative;z-index:2;max-width:880px;text-align:center;margin:0 auto}
+.lg-hero h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:500;line-height:1.04;letter-spacing:-.03em;margin:1rem 0 1.25rem;color:#F4F2EC}
+.lg-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-hero p.lead{font-size:1.05rem;color:#B7BAB4;line-height:1.65;max-width:580px;margin:0 auto 1.5rem}
+.lg-meta{display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87}
+.lg-meta span{padding:.35rem .85rem;border:1px solid rgba(244,242,236,.12);border-radius:99px;background:rgba(22,27,23,.4);backdrop-filter:blur(8px)}
+.lg-meta span.live::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.4rem;vertical-align:middle;animation:lg-pulse 2s ease-in-out infinite}
+@keyframes lg-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.draft-banner{margin:2rem auto 0;max-width:780px;padding:1rem 1.25rem;border:1px solid rgba(255,179,80,.3);border-left:3px solid #FFB350;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(255,179,80,.06) 0%,transparent 80%);text-align:left}
+.draft-banner strong{color:#FFB350;font-weight:600;display:block;margin-bottom:.3rem;font-family:'Geist Mono',monospace;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.draft-banner p{font-size:.85rem;color:#B7BAB4;line-height:1.6;margin:0}
+
+.lg-layout{display:grid;grid-template-columns:240px 1fr;gap:64px;align-items:start}
+@media(max-width:880px){.lg-layout{grid-template-columns:1fr;gap:32px}}
+.lg-toc{position:sticky;top:90px;padding:1rem 0;border-left:1px solid rgba(244,242,236,.08)}
+.lg-toc-label{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#8A8E87;padding:0 1rem;margin-bottom:.75rem}
+.lg-toc ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.15rem}
+.lg-toc a{display:block;padding:.5rem 1rem;font-size:.85rem;color:#8A8E87;text-decoration:none;border-left:2px solid transparent;margin-left:-1px;transition:all .15s;line-height:1.4}
+.lg-toc a:hover{color:#9EE493;border-color:rgba(158,228,147,.3)}
+.lg-toc a.active{color:#9EE493;border-color:#9EE493}
+@media(max-width:880px){.lg-toc{display:none}}
+
+.lg-highlight{margin:1.5rem 0 2rem;padding:1.25rem 1.5rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(158,228,147,.04) 0%,transparent 80%)}
+.lg-highlight p{font-size:.92rem;color:#F4F2EC;line-height:1.65;margin:0}
+.lg-highlight p strong{color:#9EE493;font-weight:500}
+.lg-warning{margin:1.5rem 0 2rem;padding:1.25rem 1.5rem;border:1px solid rgba(255,138,80,.25);border-left:3px solid #FF8A50;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(255,138,80,.05) 0%,transparent 80%)}
+.lg-warning p{font-size:.92rem;color:#F4F2EC;line-height:1.65;margin:0}
+.lg-warning p strong{color:#FF8A50;font-weight:500}
+
+.lg-contact{margin-top:2rem;padding:2rem;border:1px solid rgba(158,228,147,.25);border-radius:18px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,transparent 100%);position:relative;overflow:hidden}
+.lg-contact::before{content:"";position:absolute;top:-80px;right:-80px;width:240px;height:240px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.lg-contact h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.5rem;position:relative}
+.lg-contact p{font-size:.92rem;color:#B7BAB4;line-height:1.65;margin-bottom:1rem;position:relative}
+.lg-contact-mail{display:inline-flex;align-items:center;gap:.5rem;font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3);padding-bottom:2px;letter-spacing:.02em;position:relative}
+.lg-contact-mail:hover{border-color:#9EE493}
+</style>
+
+<!-- HERO -->
+<section class="lg-hero">
+  <div class="lg-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Legal</div>
-    <h1>Terms of Service</h1>
-    <p>The terms and conditions governing your use of the SOHANA platform.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="lg-eyebrow">Legal · Terms of service</div>
+    <h1>Terms of <span class="ital">Service</span></h1>
+    <p class="lead">The agreement between you and Sohana when you use the platform — written in plain English, with no buried clauses.</p>
+    <div class="lg-meta">
+      <span>Version · 1.0 (draft)</span>
+      <span>Effective · 1 May 2026</span>
+      <span>Last reviewed · 1 May 2026</span>
+      <span class="live">Active</span>
+    </div>
+    <div class="draft-banner">
+      <strong>First draft · pending legal review</strong>
+      <p>This is a working first draft for transparency. The legally binding version will be finalised with counsel before regulated launch and any real-money operation. Questions? <a href="mailto:legal@sohana.app" style="color:#9EE493;">legal@sohana.app</a>.</p>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">📋</div>
-      <h3>Using SOHANA</h3>
-      <p>By creating a SOHANA account, you agree to use the platform in accordance with applicable laws, our community standards, and these terms. You must be at least 18 years old to register.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">💰</div>
-      <h3>Financial services terms</h3>
-      <p>SOHANA is currently a beta-stage fintech platform pursuing regulatory authorisation. At launch, SOHANA will operate as an agent of a licensed payment institution. We are not a bank, and wallet balances will not be bank deposits or covered by government deposit insurance schemes. Beta service is for demonstration and onboarding only — no real funds are held during this phase.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔒</div>
-      <h3>Your responsibilities</h3>
-      <p>You are responsible for maintaining the security of your account credentials and OTP codes. SOHANA will never ask for your password. Report any suspected unauthorised access to support@sohana.app immediately.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⚖️</div>
-      <h3>Governing law</h3>
-      <p>These terms are governed by French law. Disputes are subject to the jurisdiction of the courts of France, except where mandatory consumer protection laws in your country of residence provide otherwise.</p>
+<section class="lg-section">
+  <div class="container">
+    <div class="lg-layout">
+
+      <nav class="lg-toc">
+        <div class="lg-toc-label">Sections</div>
+        <ul>
+          <li><a href="#about" class="active">01 · About these terms</a></li>
+          <li><a href="#service">02 · The service</a></li>
+          <li><a href="#eligibility">03 · Eligibility</a></li>
+          <li><a href="#account">04 · Your account</a></li>
+          <li><a href="#use">05 · Acceptable use</a></li>
+          <li><a href="#groups">06 · Groups &amp; community</a></li>
+          <li><a href="#fees">07 · Fees</a></li>
+          <li><a href="#liability">08 · Risk &amp; liability</a></li>
+          <li><a href="#ip">09 · Intellectual property</a></li>
+          <li><a href="#close">10 · Closing your account</a></li>
+          <li><a href="#disputes">11 · Disputes</a></li>
+          <li><a href="#changes">12 · Changes</a></li>
+          <li><a href="#contact">13 · Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="lg-content">
+
+        <h2 class="lg-h2" id="about">01 · About <span class="ital">these terms</span></h2>
+        <p class="lg-p">These Terms of Service ("Terms") form a legal agreement between you and <strong>Sohana</strong> when you access or use the Sohana platform (sohana.app, our mobile applications, and any related services).</p>
+        <p class="lg-p">By creating an account or using the service, you agree to these Terms. If you do not agree, do not use Sohana.</p>
+        <p class="lg-p">These Terms work together with our <a href="/privacy" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">Privacy Policy</a> and <a href="/cookies" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">Cookie Policy</a>. Read all three.</p>
+
+        <div class="lg-warning">
+          <p><strong>Beta-stage notice:</strong> Sohana is currently a beta-stage platform pursuing regulatory authorisation. We are not yet a licensed financial institution in any jurisdiction, and during beta no real funds are processed. The full real-money service will only operate once authorisations are in place. These Terms anticipate that future state but apply now to your beta use.</p>
+        </div>
+
+        <h2 class="lg-h2" id="service">02 · The <span class="ital">service</span></h2>
+        <p class="lg-p">Sohana is a platform that digitises community-based savings systems — commonly known as ROSCAs, Tontines, Njangis, Esusu, Chamas, or Tandas. It also includes pool savings, fundraising campaigns, and a multi-currency wallet.</p>
+        <p class="lg-p">At launch, Sohana will operate as an agent of a licensed payment institution. We are not a bank. Wallet balances will not be bank deposits and are not covered by government deposit insurance schemes. During beta, no real funds are held; the platform is for demonstration and onboarding only.</p>
+
+        <h3 class="lg-h4">What we provide</h3>
+        <ul class="lg-list">
+          <li><strong>Coordination tools</strong> for group savings — contributions, payouts, member management, audit trails</li>
+          <li><strong>A multi-currency wallet</strong> system supporting EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR (at launch)</li>
+          <li><strong>The Njangi Credit Score (NCS)</strong> — a behavioural credential built from your platform participation</li>
+          <li><strong>Hanatag handles</strong> — universal addresses for cross-border payments</li>
+        </ul>
+
+        <h3 class="lg-h4">What we do not provide</h3>
+        <ul class="lg-list">
+          <li>Financial, tax, legal, or investment advice — Sohana is a coordination tool, not an adviser</li>
+          <li>A bank account — your balance is not a bank deposit</li>
+          <li>A guarantee that other members will fulfil their obligations within a community-savings circle</li>
+        </ul>
+
+        <h2 class="lg-h2" id="eligibility">03 · Eligibility</h2>
+        <p class="lg-p">To use Sohana, you must:</p>
+        <ul class="lg-list">
+          <li>Be <strong>at least 18 years old</strong> (we verify date of birth at registration)</li>
+          <li>Be legally able to enter binding contracts in your jurisdiction</li>
+          <li>Not be subject to sanctions or located in a sanctioned jurisdiction we do not serve</li>
+          <li>Not have previously had your Sohana account closed for terms violations</li>
+          <li>Provide accurate identity information when asked (KYC)</li>
+        </ul>
+
+        <h2 class="lg-h2" id="account">04 · Your <span class="ital">account</span></h2>
+
+        <h3 class="lg-h4">Registering</h3>
+        <p class="lg-p">When you register, you create credentials and provide personal information. You are responsible for keeping your password confidential. You must notify us immediately of any unauthorised use.</p>
+
+        <h3 class="lg-h4">Identity verification (KYC)</h3>
+        <p class="lg-p">Before sending or receiving funds at launch, you will need to complete identity verification. We may request additional documentation at any time to comply with KYC, AML, or sanctions requirements. We may suspend your account if verification is not completed or if our regulatory partners flag concerns.</p>
+
+        <h3 class="lg-h4">Account security</h3>
+        <ul class="lg-list">
+          <li><strong>One person, one account.</strong> Multiple accounts per individual are prohibited unless explicitly approved (e.g. business accounts at launch).</li>
+          <li><strong>Use a strong, unique password.</strong> We hash passwords with PBKDF2-SHA256, but a weak password is still a weak password.</li>
+          <li><strong>Multi-factor authentication</strong> will be available in Q3 2026; we strongly recommend enabling it as soon as it ships.</li>
+        </ul>
+
+        <h2 class="lg-h2" id="use">05 · Acceptable <span class="ital">use</span></h2>
+        <p class="lg-p">When using Sohana, you agree not to:</p>
+        <ul class="lg-list">
+          <li>Use the platform for money laundering, terrorism financing, fraud, or any illegal purpose</li>
+          <li>Misrepresent your identity or use someone else's identity</li>
+          <li>Attempt to bypass security, scrape data, or interfere with platform integrity</li>
+          <li>Pressure, coerce, or deceive other members within a circle, pool, or campaign</li>
+          <li>Reverse-engineer or attempt to extract source code or proprietary algorithms (including the NCS engine)</li>
+          <li>Use the platform to send unsolicited messages, advertise, or recruit users for unrelated purposes</li>
+        </ul>
+
+        <p class="lg-p"><strong>Violations may result in</strong> account suspension, account closure, recovery of funds, reporting to authorities, and (where applicable) civil or criminal legal action.</p>
+
+        <h2 class="lg-h2" id="groups">06 · Groups <span class="ital">&amp; community</span></h2>
+        <p class="lg-p">Sohana facilitates group-based financial activity (ROSCAs, Pools, Campaigns). When you join a group, you participate in a community agreement with other members.</p>
+
+        <h3 class="lg-h4">Our role</h3>
+        <p class="lg-p">We provide the technical infrastructure: ledger, audit trail, contribution tracking, payout orchestration, and the NCS. We do not arbitrate disputes between members about money owed outside what the platform records.</p>
+
+        <h3 class="lg-h4">Your responsibility</h3>
+        <ul class="lg-list">
+          <li><strong>Choose your circle wisely.</strong> Only join groups with people you trust. We display NCS scores to help you assess.</li>
+          <li><strong>Honour your contribution schedule.</strong> Missed contributions affect your NCS and other members' payouts.</li>
+          <li><strong>Communicate with your group.</strong> Most disputes can be resolved by talking before they reach us.</li>
+          <li><strong>If something goes wrong</strong>, raise a complaint via our <a href="/complaints" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">complaints process</a>. We review platform data and activity logs to support fair resolution.</li>
+        </ul>
+
+        <h3 class="lg-h4">Organiser responsibilities</h3>
+        <p class="lg-p">If you create a circle, pool, or campaign, you are the organiser. You set rules within the platform's framework. You must apply them fairly. You cannot use organiser tools to disadvantage members for arbitrary reasons.</p>
+
+        <h2 class="lg-h2" id="fees">07 · Fees</h2>
+        <p class="lg-p">During beta, Sohana is free to use. At launch, we will introduce a transparent fee structure. Fees will always be:</p>
+        <ul class="lg-list">
+          <li><strong>Disclosed upfront</strong> — before you incur them, on the same screen as the action</li>
+          <li><strong>Itemised</strong> — you will see exactly what each fee is for</li>
+          <li><strong>Reasonable</strong> — we benchmark against comparable providers in each market</li>
+        </ul>
+        <p class="lg-p">Currency conversion (when implemented) will incur a fee that we will disclose at the time of conversion. The current target is <strong>0.7%</strong> on conversions, but this may change before launch and will always be visible at the moment you authorise the conversion.</p>
+
+        <h2 class="lg-h2" id="liability">08 · Risk <span class="ital">&amp; liability</span></h2>
+
+        <h3 class="lg-h4">Beta risk acknowledgement</h3>
+        <p class="lg-p">During beta, the service is provided "as is." Bugs, downtime, and feature changes are likely. By using beta, you accept that the platform may behave unexpectedly. No real funds are processed during beta, so financial risk is bounded — but data loss, performance issues, and feature changes can still occur.</p>
+
+        <h3 class="lg-h4">Risks specific to community-based finance</h3>
+        <p class="lg-p">Sohana facilitates group savings, but cannot eliminate the risks inherent to community-based finance:</p>
+        <ul class="lg-list">
+          <li><strong>Member default</strong> — other members of your circle may fail to contribute on time or at all. The platform tracks this and reflects it in their NCS, but cannot guarantee recovery of unpaid contributions.</li>
+          <li><strong>Member exit</strong> — members may leave a circle before completion, affecting payouts.</li>
+          <li><strong>Disputes between members</strong> — we provide tools and audit trails but ultimately community agreements rely on participant trust.</li>
+        </ul>
+
+        <h3 class="lg-h4">Limitation of liability</h3>
+        <p class="lg-p">To the fullest extent permitted by law, Sohana is not liable for:</p>
+        <ul class="lg-list">
+          <li>Indirect, incidental, special, consequential, or punitive damages</li>
+          <li>Loss of profits, revenue, data, or business opportunities arising from platform use</li>
+          <li>Conduct, contributions, or behaviour of other members of any group you join</li>
+          <li>Currency exchange-rate movements</li>
+          <li>Service interruptions, downtime, or feature changes (especially during beta)</li>
+        </ul>
+        <p class="lg-p">Our total liability for any claim is limited to fees you paid to Sohana in the 12 months before the claim arose (or, during the beta period when there are no fees, EUR 100).</p>
+        <p class="lg-p"><strong>Nothing in these Terms limits liability that cannot legally be excluded</strong> — including liability for fraud, gross negligence, death or personal injury caused by negligence, and any consumer-protection rights you have under your local laws.</p>
+
+        <h2 class="lg-h2" id="ip">09 · Intellectual <span class="ital">property</span></h2>
+        <p class="lg-p">Sohana, the Sohana name, the Hanatag concept, the NCS engine, the S lettermark, all software code, design assets, documentation, and the platform architecture are owned by Sohana or licensed to us. You may not copy, modify, distribute, or create derivative works of any of it without our written permission.</p>
+        <p class="lg-p">Content you submit (profile information, complaint descriptions, bio, etc.) remains yours. By submitting it, you grant us a non-exclusive, worldwide licence to use it for the purpose of operating the service.</p>
+
+        <h2 class="lg-h2" id="close">10 · Closing <span class="ital">your account</span></h2>
+        <p class="lg-p">You can close your account at any time from your profile settings, subject to:</p>
+        <ul class="lg-list">
+          <li>Settling any open obligations within active circles, pools, or campaigns</li>
+          <li>Withdrawing any wallet balance (at launch — during beta there are no real balances)</li>
+          <li>Acknowledging that some data must be retained for regulatory periods (see our <a href="/privacy" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">Privacy Policy</a>)</li>
+        </ul>
+        <p class="lg-p"><strong>We may suspend or close your account</strong> if you breach these Terms, fail KYC verification, are flagged by sanctions or fraud screening, or use the platform in ways that risk other members. Where possible, we will give you advance notice and an opportunity to remedy the issue.</p>
+
+        <h2 class="lg-h2" id="disputes">11 · Disputes</h2>
+
+        <h3 class="lg-h4">Try us first</h3>
+        <p class="lg-p">If you have a complaint or dispute with Sohana, please contact us via our <a href="/complaints" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">complaints process</a> first. Most issues are resolved within 5–10 business days.</p>
+
+        <h3 class="lg-h4">External dispute resolution</h3>
+        <p class="lg-p">Once we obtain regulatory authorisations, you will have access to relevant external dispute resolution bodies in your jurisdiction (for example, the Financial Ombudsman Service in the UK, the AMF mediator in France). We will publish the relevant body for your jurisdiction here as authorisations are granted.</p>
+
+        <h3 class="lg-h4">Governing law</h3>
+        <p class="lg-p">These Terms are governed by the laws of the jurisdiction where Sohana's primary operating entity is registered. The specific governing law will be confirmed in this section once our final corporate structure is registered. <strong>Nothing in this section limits any rights you have under your local consumer protection laws.</strong></p>
+
+        <h2 class="lg-h2" id="changes">12 · Changes <span class="ital">to these terms</span></h2>
+        <p class="lg-p">We may update these Terms as the platform evolves and as we obtain regulatory authorisations. When we make material changes:</p>
+        <ul class="lg-list">
+          <li>We will update the "last reviewed" date at the top of this page</li>
+          <li>We will notify you by email at least <strong>14 days</strong> before the changes take effect</li>
+          <li>We will maintain a public version history (planned) so you can see what changed</li>
+        </ul>
+        <p class="lg-p">If you disagree with a change, you can close your account before it takes effect. Continued use after the effective date constitutes acceptance.</p>
+
+        <h2 class="lg-h2" id="contact">13 · Contact</h2>
+        <div class="lg-contact">
+          <h3>Questions about these terms</h3>
+          <p>For legal questions, contract clarifications, or anything unclear in these Terms, contact us. For complaints about the service, please use the <a href="/complaints" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">complaints process</a> instead — it's faster and tracked.</p>
+          <a class="lg-contact-mail" href="mailto:legal@sohana.app">
+            legal@sohana.app
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
-
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
-    </div>
-  </div>
-</div>
+<script>
+(function(){
+  var sections = document.querySelectorAll('h2[id]');
+  var links    = document.querySelectorAll('.lg-toc a');
+  if(!sections.length || !links.length) return;
+  function setActive(){
+    var fromTop = window.scrollY + 140;
+    var current = sections[0].id;
+    sections.forEach(function(s){if(s.offsetTop <= fromTop) current = s.id});
+    links.forEach(function(l){l.classList.toggle('active', l.getAttribute('href') === '#' + current)});
+  }
+  window.addEventListener('scroll', setActive, {passive:true});
+  setActive();
+})();
+</script>
 {% endblock %}

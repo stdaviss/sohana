@@ -2,50 +2,243 @@
 {% block title %}Cookie Policy{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+.lg-section{padding:96px 5% 64px;border-top:1px solid rgba(244,242,236,.08);position:relative}
+.lg-section .container{max-width:1100px;margin:0 auto}
+.lg-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.lg-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.lg-h2{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.25rem;max-width:780px;scroll-margin-top:90px}
+.lg-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-top:1.25rem;margin-bottom:.5rem}
+.lg-p{font-size:.96rem;color:#B7BAB4;line-height:1.7;margin-bottom:1rem;max-width:780px}
+.lg-p strong{color:#F4F2EC;font-weight:500}
+.lg-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.25rem;max-width:780px}
+.lg-list li{padding-left:1.6rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.lg-list li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.lg-list li strong{color:#F4F2EC;font-weight:500}
+
+.lg-hero{padding:120px 5% 64px;position:relative;overflow:hidden}
+.lg-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 50% 10%,rgba(158,228,147,.08),transparent 60%);pointer-events:none}
+.lg-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.lg-hero .container{position:relative;z-index:2;max-width:880px;text-align:center;margin:0 auto}
+.lg-hero h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:500;line-height:1.04;letter-spacing:-.03em;margin:1rem 0 1.25rem;color:#F4F2EC}
+.lg-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-hero p.lead{font-size:1.05rem;color:#B7BAB4;line-height:1.65;max-width:580px;margin:0 auto 1.5rem}
+.lg-meta{display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87}
+.lg-meta span{padding:.35rem .85rem;border:1px solid rgba(244,242,236,.12);border-radius:99px;background:rgba(22,27,23,.4);backdrop-filter:blur(8px)}
+.lg-meta span.live::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.4rem;vertical-align:middle;animation:lg-pulse 2s ease-in-out infinite}
+@keyframes lg-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.draft-banner{margin:2rem auto 0;max-width:780px;padding:1rem 1.25rem;border:1px solid rgba(255,179,80,.3);border-left:3px solid #FFB350;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(255,179,80,.06) 0%,transparent 80%);text-align:left}
+.draft-banner strong{color:#FFB350;font-weight:600;display:block;margin-bottom:.3rem;font-family:'Geist Mono',monospace;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.draft-banner p{font-size:.85rem;color:#B7BAB4;line-height:1.6;margin:0}
+
+.lg-highlight{margin:1.5rem 0 2rem;padding:1.25rem 1.5rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(158,228,147,.04) 0%,transparent 80%);max-width:780px}
+.lg-highlight p{font-size:.92rem;color:#F4F2EC;line-height:1.65;margin:0}
+.lg-highlight p strong{color:#9EE493;font-weight:500}
+
+/* ── Cookie category cards ── */
+.cookie-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;margin:2rem 0;max-width:1080px}
+.cookie-card{padding:1.75rem 1.5rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;display:flex;flex-direction:column;gap:.85rem;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+.cookie-card:hover{border-color:rgba(158,228,147,.3);transform:translateY(-2px)}
+.cookie-card.required{border-color:rgba(158,228,147,.3);background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%)}
+.cookie-icon{width:44px;height:44px;border-radius:12px;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;color:#9EE493;font-family:'Geist Mono',monospace;font-weight:600;font-size:.95rem;flex-shrink:0}
+.cookie-cat-head{display:flex;align-items:center;justify-content:space-between;gap:.85rem;flex-wrap:wrap}
+.cookie-cat-title{font-size:1.05rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.cookie-cat-pill{font-family:'Geist Mono',monospace;font-size:.65rem;padding:.18rem .55rem;border-radius:99px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+.cookie-cat-pill.req{background:rgba(158,228,147,.12);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.cookie-cat-pill.opt{background:rgba(244,242,236,.06);color:#B7BAB4;border:1px solid rgba(244,242,236,.15)}
+.cookie-card p{font-size:.88rem;color:#B7BAB4;line-height:1.6}
+.cookie-card .examples{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;letter-spacing:.02em;background:rgba(14,18,15,.6);padding:.55rem .75rem;border-radius:8px;border:1px solid rgba(244,242,236,.06);line-height:1.55}
+.cookie-card .examples strong{color:#9EE493;font-weight:500}
+.cookie-card .duration{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;text-transform:uppercase}
+.cookie-card .duration::before{content:"";width:5px;height:5px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.4rem;vertical-align:middle;opacity:.5}
+
+.lg-table{margin:1rem 0 2rem;width:100%;max-width:840px;border:1px solid rgba(244,242,236,.1);border-radius:12px;overflow:hidden;background:#161B17}
+.lg-table table{width:100%;border-collapse:collapse}
+.lg-table th{text-align:left;padding:.7rem 1rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;font-weight:600;background:rgba(14,18,15,.5);border-bottom:1px solid rgba(244,242,236,.08)}
+.lg-table td{padding:.7rem 1rem;font-size:.87rem;color:#B7BAB4;border-bottom:1px solid rgba(244,242,236,.06);vertical-align:top;line-height:1.55}
+.lg-table tr:last-child td{border-bottom:none}
+.lg-table td strong{color:#F4F2EC;font-weight:500}
+.lg-table td .pill{display:inline-block;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.15rem .5rem;border-radius:99px;letter-spacing:.04em}
+.lg-table td .pill.req{background:rgba(158,228,147,.1);color:#9EE493;border:1px solid rgba(158,228,147,.25)}
+.lg-table td .pill.opt{background:rgba(244,242,236,.05);color:#8A8E87;border:1px solid rgba(244,242,236,.12)}
+
+.lg-contact{margin-top:2rem;padding:2rem;border:1px solid rgba(158,228,147,.25);border-radius:18px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,transparent 100%);position:relative;overflow:hidden;max-width:840px}
+.lg-contact::before{content:"";position:absolute;top:-80px;right:-80px;width:240px;height:240px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.lg-contact h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.5rem;position:relative}
+.lg-contact p{font-size:.92rem;color:#B7BAB4;line-height:1.65;margin-bottom:1rem;position:relative}
+.lg-contact-mail{display:inline-flex;align-items:center;gap:.5rem;font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3);padding-bottom:2px;letter-spacing:.02em;position:relative}
+.lg-contact-mail:hover{border-color:#9EE493}
+</style>
+
+<!-- HERO -->
+<section class="lg-hero">
+  <div class="lg-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Legal</div>
-    <h1>Cookie Policy</h1>
-    <p>How SOHANA uses cookies and how you can manage your preferences.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="lg-eyebrow">Legal · Cookies</div>
+    <h1>Cookie <span class="ital">Policy</span></h1>
+    <p class="lead">A short, honest explanation of the cookies and similar technologies we use — and the ones we don't.</p>
+    <div class="lg-meta">
+      <span>Version · 1.0 (draft)</span>
+      <span>Effective · 1 May 2026</span>
+      <span>Last reviewed · 1 May 2026</span>
+      <span class="live">Active</span>
+    </div>
+    <div class="draft-banner">
+      <strong>First draft · pending legal review</strong>
+      <p>This is a working first draft. The legally binding version will be finalised with counsel. Questions? <a href="mailto:privacy@sohana.app" style="color:#9EE493;">privacy@sohana.app</a>.</p>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🍪</div>
-      <h3>What cookies we use</h3>
-      <p>SOHANA uses strictly necessary cookies to keep you signed in and protect your session. We use analytics cookies to understand how the platform is used. We do not use advertising cookies or sell cookie data.</p>
+<!-- ══════════════════════════════════════════════════════════
+     COOKIES IN PLAIN ENGLISH
+══════════════════════════════════════════════════════════ -->
+<section class="lg-section">
+  <div class="container" style="max-width:1100px;">
+
+    <h2 class="lg-h2" id="what">01 · What is a <span class="ital">cookie</span>?</h2>
+    <p class="lg-p">A cookie is a small text file that a website asks your browser to store on your device. The next time you visit, your browser sends it back, allowing the site to recognise you and remember things like your login state or theme preference. It is one of the oldest, simplest pieces of web technology.</p>
+    <p class="lg-p">"Similar technologies" — like local storage, session storage, and tracking pixels — work in slightly different ways but serve the same broad purpose. We treat them the same way as cookies in this policy.</p>
+
+    <div class="lg-highlight">
+      <p><strong>Our position on cookies:</strong> we use the minimum necessary to operate the platform. We do not use third-party advertising cookies. We do not sell or share your data with ad networks. We do not track you across other websites.</p>
     </div>
-    <div class="info-card">
-      <div class="icon">⚙️</div>
-      <h3>Managing your preferences</h3>
-      <p>You can disable non-essential cookies in your browser settings at any time. Note that disabling session cookies will require you to sign in again on each visit.</p>
+
+    <h2 class="lg-h2" id="categories">02 · The <span class="ital">categories</span> we use</h2>
+    <p class="lg-p">We group cookies into four categories. Some are required for the platform to function. Others are optional and only set if you opt in.</p>
+
+    <div class="cookie-cats">
+
+      <!-- 01 Strictly necessary -->
+      <div class="cookie-card required">
+        <div class="cookie-icon">!</div>
+        <div class="cookie-cat-head">
+          <div class="cookie-cat-title">Strictly necessary</div>
+          <span class="cookie-cat-pill req">Required</span>
+        </div>
+        <p>Without these, the platform cannot function. They handle authentication, security, and remembering you between page loads.</p>
+        <div class="examples"><strong>Examples:</strong> session cookie · CSRF token · light/dark mode preference</div>
+        <div class="duration">Session or up to 12 months</div>
+      </div>
+
+      <!-- 02 Functional -->
+      <div class="cookie-card">
+        <div class="cookie-icon">⊞</div>
+        <div class="cookie-cat-head">
+          <div class="cookie-cat-title">Functional</div>
+          <span class="cookie-cat-pill opt">Optional</span>
+        </div>
+        <p>Remember preferences that improve your experience but are not essential — like which currencies you've opened, your sidebar state, or recently viewed circles.</p>
+        <div class="examples"><strong>Examples:</strong> currency preferences · sidebar collapse state</div>
+        <div class="duration">Up to 12 months</div>
+      </div>
+
+      <!-- 03 Analytics -->
+      <div class="cookie-card">
+        <div class="cookie-icon">◊</div>
+        <div class="cookie-cat-head">
+          <div class="cookie-cat-title">Analytics</div>
+          <span class="cookie-cat-pill opt">Optional</span>
+        </div>
+        <p>Help us understand how the platform is used in aggregate — which pages get traffic, where users drop off, what's slow. We use only privacy-respecting analytics; data is aggregated and anonymised.</p>
+        <div class="examples"><strong>Examples:</strong> page-view counters · error tracking</div>
+        <div class="duration">Up to 24 months</div>
+      </div>
+
+      <!-- 04 Marketing -->
+      <div class="cookie-card">
+        <div class="cookie-icon">✕</div>
+        <div class="cookie-cat-head">
+          <div class="cookie-cat-title">Marketing &amp; advertising</div>
+          <span class="cookie-cat-pill opt">Not used</span>
+        </div>
+        <p>We do not currently use marketing or advertising cookies. We do not run third-party ad networks, retargeting, or behavioural advertising. If this changes, we will update this policy and ask for your explicit consent before setting any.</p>
+        <div class="examples"><strong>Status:</strong> Not in use</div>
+        <div class="duration">N/A</div>
+      </div>
+
     </div>
-    <div class="info-card">
-      <div class="icon">📊</div>
-      <h3>Analytics</h3>
-      <p>We use privacy-preserving analytics to understand which features are most used and where users encounter difficulty. This data is aggregated and never tied to individual identity.</p>
+
+    <h2 class="lg-h2" id="specifics">03 · The <span class="ital">specifics</span></h2>
+    <p class="lg-p">For full transparency, here is the breakdown of cookies we currently set on the platform:</p>
+
+    <div class="lg-table">
+      <table>
+        <thead><tr><th>Cookie</th><th>Purpose</th><th>Category</th><th>Duration</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>session</strong></td>
+            <td>Keeps you logged in between page loads</td>
+            <td><span class="pill req">Necessary</span></td>
+            <td>Session</td>
+          </tr>
+          <tr>
+            <td><strong>theme</strong></td>
+            <td>Stores your light or dark mode preference</td>
+            <td><span class="pill req">Necessary</span></td>
+            <td>12 months</td>
+          </tr>
+          <tr>
+            <td><strong>locale</strong></td>
+            <td>Stores your language preference</td>
+            <td><span class="pill req">Necessary</span></td>
+            <td>12 months</td>
+          </tr>
+          <tr>
+            <td><strong>csrf_token</strong></td>
+            <td>Security token to prevent cross-site request forgery</td>
+            <td><span class="pill req">Necessary</span></td>
+            <td>Session</td>
+          </tr>
+          <tr>
+            <td><strong>sidebar_state</strong></td>
+            <td>Remembers if you have the sidebar expanded or collapsed</td>
+            <td><span class="pill opt">Functional</span></td>
+            <td>6 months</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <div class="info-card">
-      <div class="icon">📬</div>
-      <h3>Questions</h3>
-      <p>For any questions about our cookie use: legal@sohana.app.</p>
+
+    <p class="lg-p">As we add features (multi-factor authentication, advanced analytics, etc.), this list will grow. We will update it whenever new cookies are introduced.</p>
+
+    <h2 class="lg-h2" id="control">04 · How to <span class="ital">control cookies</span></h2>
+
+    <h4 class="lg-h4">Through your browser</h4>
+    <p class="lg-p">All major browsers let you view, manage, and delete cookies. You can also block them entirely — but be aware that strictly necessary cookies are required for the platform to work, so blocking them will prevent you from logging in.</p>
+    <ul class="lg-list">
+      <li><strong>Chrome:</strong> Settings → Privacy &amp; security → Cookies and other site data</li>
+      <li><strong>Safari:</strong> Settings → Privacy → Manage Website Data</li>
+      <li><strong>Firefox:</strong> Settings → Privacy &amp; Security → Cookies and Site Data</li>
+      <li><strong>Edge:</strong> Settings → Cookies and site permissions → Cookies and site data</li>
+    </ul>
+
+    <h4 class="lg-h4">Through Sohana</h4>
+    <p class="lg-p">When we add optional cookies (functional or analytics), you will see a consent banner the first time you visit. You can accept all, reject all, or pick categories. Your choice is stored and respected on every visit. You can change your preferences at any time from your profile settings.</p>
+
+    <div class="lg-highlight">
+      <p><strong>Beta-stage note:</strong> during beta, only strictly necessary cookies are in use. The consent banner will appear when we introduce optional cookies — at which point this policy will be updated and you will be notified.</p>
     </div>
+
+    <h2 class="lg-h2" id="dnt">05 · Do Not Track</h2>
+    <p class="lg-p">Some browsers send a "Do Not Track" (DNT) signal. The standard is not consistently implemented across the web, but our position is simple: we don't track you across other sites regardless of your DNT setting. The cookies we use are limited to operating the platform you're on.</p>
+
+    <h2 class="lg-h2" id="changes">06 · Changes <span class="ital">to this policy</span></h2>
+    <p class="lg-p">We will update this policy when we add or remove cookies, change retention periods, or introduce new categories. The effective date at the top of the page reflects the most recent revision.</p>
+    <p class="lg-p">When changes are material — for example, introducing a new category of cookies — we will notify you on your next visit and ask for fresh consent where required.</p>
+
+    <h2 class="lg-h2" id="contact">07 · Contact</h2>
+    <div class="lg-contact">
+      <h3>Cookie questions or concerns</h3>
+      <p>For questions about cookies, tracking, or how to exercise your data-protection rights, contact us at the address below. For broader privacy questions, see our <a href="/privacy" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">Privacy Policy</a>.</p>
+      <a class="lg-contact-mail" href="mailto:privacy@sohana.app">
+        privacy@sohana.app
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
   </div>
-
-  <hr class="divider">
-
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
-    </div>
-  </div>
-</div>
+</section>
 {% endblock %}

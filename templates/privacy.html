@@ -2,50 +2,356 @@
 {% block title %}Privacy Policy{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── LEGAL PAGE SHARED ── */
+.lg-section{padding:96px 5% 64px;border-top:1px solid rgba(244,242,236,.08);position:relative}
+.lg-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.lg-section .container{max-width:1100px;margin:0 auto}
+.lg-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.lg-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.lg-h2{font-size:clamp(1.7rem,3vw,2.3rem);font-weight:500;line-height:1.15;letter-spacing:-.02em;margin-bottom:1.25rem;max-width:780px}
+.lg-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-section.warm .lg-h2 .ital{color:#0E120F}
+.lg-h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-top:2rem;margin-bottom:.75rem;line-height:1.35}
+.lg-section.warm .lg-h3{color:#0E120F}
+.lg-h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-top:1.25rem;margin-bottom:.5rem}
+.lg-section.warm .lg-h4{color:#0E120F}
+.lg-p{font-size:.96rem;color:#B7BAB4;line-height:1.7;margin-bottom:1rem;max-width:780px}
+.lg-section.warm .lg-p{color:rgba(20,19,15,.72)}
+.lg-p strong{color:#F4F2EC;font-weight:500}
+.lg-section.warm .lg-p strong{color:#0E120F}
+.lg-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55rem;margin-bottom:1.25rem;max-width:780px}
+.lg-list li{padding-left:1.6rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.lg-list li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.lg-list li strong{color:#F4F2EC;font-weight:500}
+.lg-section.warm .lg-list li{color:rgba(20,19,15,.72)}
+.lg-section.warm .lg-list li strong{color:#0E120F}
+
+/* ── HERO ── */
+.lg-hero{padding:120px 5% 64px;position:relative;overflow:hidden}
+.lg-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 50% 10%,rgba(158,228,147,.08),transparent 60%);pointer-events:none}
+.lg-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.lg-hero .container{position:relative;z-index:2;max-width:880px;text-align:center}
+.lg-hero h1{font-size:clamp(2.4rem,5vw,3.6rem);font-weight:500;line-height:1.04;letter-spacing:-.03em;margin:1rem 0 1.25rem;color:#F4F2EC}
+.lg-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.lg-hero p.lead{font-size:1.05rem;color:#B7BAB4;line-height:1.65;max-width:580px;margin:0 auto 1.5rem}
+.lg-meta{display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87}
+.lg-meta span{padding:.35rem .85rem;border:1px solid rgba(244,242,236,.12);border-radius:99px;background:rgba(22,27,23,.4);backdrop-filter:blur(8px)}
+.lg-meta span.live::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.4rem;vertical-align:middle;animation:lg-pulse 2s ease-in-out infinite}
+@keyframes lg-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── DRAFT BANNER ── */
+.draft-banner{margin:2rem auto 0;max-width:780px;padding:1rem 1.25rem;border:1px solid rgba(255,179,80,.3);border-left:3px solid #FFB350;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(255,179,80,.06) 0%,transparent 80%);text-align:left}
+.draft-banner strong{color:#FFB350;font-weight:600;display:block;margin-bottom:.3rem;font-family:'Geist Mono',monospace;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.draft-banner p{font-size:.85rem;color:#B7BAB4;line-height:1.6;margin:0}
+
+/* ── TWO-COL LAYOUT (sidebar TOC + content) ── */
+.lg-layout{display:grid;grid-template-columns:240px 1fr;gap:64px;align-items:start}
+@media(max-width:880px){.lg-layout{grid-template-columns:1fr;gap:32px}}
+.lg-toc{position:sticky;top:90px;padding:1rem 0;border-left:1px solid rgba(244,242,236,.08)}
+.lg-toc-label{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#8A8E87;padding:0 1rem;margin-bottom:.75rem}
+.lg-toc ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.15rem}
+.lg-toc a{display:block;padding:.5rem 1rem;font-size:.85rem;color:#8A8E87;text-decoration:none;border-left:2px solid transparent;margin-left:-1px;transition:all .15s;line-height:1.4}
+.lg-toc a:hover{color:#9EE493;border-color:rgba(158,228,147,.3)}
+.lg-toc a.active{color:#9EE493;border-color:#9EE493}
+@media(max-width:880px){.lg-toc{position:static;display:none}}
+
+/* ── HIGHLIGHT BAND ── */
+.lg-highlight{margin:1.5rem 0 2rem;padding:1.25rem 1.5rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(158,228,147,.04) 0%,transparent 80%)}
+.lg-highlight p{font-size:.92rem;color:#F4F2EC;line-height:1.65;margin:0}
+.lg-highlight p strong{color:#9EE493;font-weight:500}
+
+/* ── INFO TABLE ── */
+.lg-table{margin:1rem 0 2rem;width:100%;max-width:780px;border:1px solid rgba(244,242,236,.1);border-radius:12px;overflow:hidden;background:#161B17}
+.lg-table table{width:100%;border-collapse:collapse}
+.lg-table th{text-align:left;padding:.7rem 1rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;font-weight:600;background:rgba(14,18,15,.5);border-bottom:1px solid rgba(244,242,236,.08)}
+.lg-table td{padding:.7rem 1rem;font-size:.87rem;color:#B7BAB4;border-bottom:1px solid rgba(244,242,236,.06);vertical-align:top;line-height:1.55}
+.lg-table tr:last-child td{border-bottom:none}
+.lg-table td strong{color:#F4F2EC;font-weight:500}
+.lg-table td .pill{display:inline-block;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.15rem .5rem;border-radius:99px;background:rgba(158,228,147,.1);color:#9EE493;border:1px solid rgba(158,228,147,.25);letter-spacing:.04em}
+
+/* ── CONTACT BAND ── */
+.lg-contact{margin-top:2rem;padding:2rem 2rem;border:1px solid rgba(158,228,147,.25);border-radius:18px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,transparent 100%);position:relative;overflow:hidden}
+.lg-contact::before{content:"";position:absolute;top:-80px;right:-80px;width:240px;height:240px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.lg-contact h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.5rem;position:relative}
+.lg-contact p{font-size:.92rem;color:#B7BAB4;line-height:1.65;margin-bottom:1rem;position:relative}
+.lg-contact-mail{display:inline-flex;align-items:center;gap:.5rem;font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3);padding-bottom:2px;letter-spacing:.02em;position:relative;transition:border-color .2s}
+.lg-contact-mail:hover{border-color:#9EE493}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════ -->
+<section class="lg-hero">
+  <div class="lg-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Legal</div>
-    <h1>Privacy Policy</h1>
-    <p>SOHANA is committed to protecting your personal data. This policy explains what we collect, how we use it, and what rights you have.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="lg-eyebrow">Legal · Privacy</div>
+    <h1>Privacy <span class="ital">Policy</span></h1>
+    <p class="lead">How Sohana collects, uses, stores, and protects your personal data — explained in plain language.</p>
+    <div class="lg-meta">
+      <span>Version · 1.0 (draft)</span>
+      <span>Effective · 1 May 2026</span>
+      <span>Last reviewed · 1 May 2026</span>
+      <span class="live">Active</span>
+    </div>
+
+    <div class="draft-banner">
+      <strong>First draft · pending legal review</strong>
+      <p>This policy is a working first draft written in plain English. We are working with counsel to finalise the legally binding version before public launch. If anything is unclear or seems incomplete, please reach out to <a href="mailto:privacy@sohana.app" style="color:#9EE493;">privacy@sohana.app</a> — we'd rather hear from you.</p>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">📋</div>
-      <h3>What data we collect</h3>
-      <p>We collect the information you provide when registering (name, phone, email, country), the transactions you make (contributions, payments, withdrawals), and behavioural data used to calculate your NCS score. We do not sell your data to third parties.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔐</div>
-      <h3>How we use your data</h3>
-      <p>Your data is used to operate your account, calculate your NCS score, detect fraud, comply with AML regulations, and improve the platform. We will always tell you if we intend to use your data for a new purpose.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⚖️</div>
-      <h3>Your rights under GDPR</h3>
-      <p>If you are in the EU or UK, you have the right to access your data, correct inaccuracies, request deletion, and port your data to another service. Email legal@sohana.app to exercise these rights.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📬</div>
-      <h3>Contact</h3>
-      <p>For all privacy-related enquiries: legal@sohana.app. Data Controller: SOHANA Technologies SAS, France.</p>
+<!-- ══════════════════════════════════════════════════════════
+     POLICY BODY — TOC + sections
+══════════════════════════════════════════════════════════ -->
+<section class="lg-section">
+  <div class="container">
+    <div class="lg-layout">
+
+      <!-- TOC SIDEBAR -->
+      <nav class="lg-toc">
+        <div class="lg-toc-label">Sections</div>
+        <ul>
+          <li><a href="#who" class="active">01 · Who we are</a></li>
+          <li><a href="#what">02 · What we collect</a></li>
+          <li><a href="#how">03 · How we use it</a></li>
+          <li><a href="#legal">04 · Legal basis</a></li>
+          <li><a href="#share">05 · Sharing &amp; transfers</a></li>
+          <li><a href="#retain">06 · How long we keep it</a></li>
+          <li><a href="#rights">07 · Your rights</a></li>
+          <li><a href="#security">08 · Security</a></li>
+          <li><a href="#children">09 · Children</a></li>
+          <li><a href="#changes">10 · Changes</a></li>
+          <li><a href="#contact">11 · Contact</a></li>
+        </ul>
+      </nav>
+
+      <!-- POLICY CONTENT -->
+      <div class="lg-content">
+
+        <!-- 01 -->
+        <h2 class="lg-h2" id="who">01 · Who <span class="ital">we are</span></h2>
+        <p class="lg-p">Sohana is a financial-technology platform digitising community-based savings systems (ROSCAs) for Africa and the global diaspora. We are pre-launch and currently operating in beta. As we obtain regulatory authorisations (ACPR in France, FCA in the UK, FINTRAC in Canada), the legal entity acting as data controller will be confirmed in this policy.</p>
+        <div class="lg-highlight">
+          <p><strong>Beta-stage notice:</strong> Sohana is currently a beta-stage platform. We collect personal data to operate the service and prepare for regulated launch. No real-money transactions are processed during beta.</p>
+        </div>
+
+        <!-- 02 -->
+        <h2 class="lg-h2" id="what">02 · What <span class="ital">we collect</span></h2>
+        <p class="lg-p">We collect only what we need to operate the service and meet regulatory obligations. Data falls into four categories.</p>
+
+        <h3 class="lg-h4">Information you give us directly</h3>
+        <ul class="lg-list">
+          <li><strong>Account data:</strong> name, email, phone number, password (stored hashed, never in plaintext), Hanatag handle</li>
+          <li><strong>KYC data:</strong> first name, last name, date of birth, gender, nationality, country of residence, occupation, source of funds, and identity documents you upload (passport, national ID, driver's licence, residence permit, proof of address)</li>
+          <li><strong>Profile data:</strong> base currency preference, language, notification settings, bio</li>
+          <li><strong>Communications:</strong> messages you send to support, complaints, press inquiries, partnership inquiries, career applications</li>
+        </ul>
+
+        <h3 class="lg-h4">Information generated through your use of Sohana</h3>
+        <ul class="lg-list">
+          <li><strong>Transaction data:</strong> contributions, payouts, wallet operations, ROSCA participation, pool contributions, campaign donations</li>
+          <li><strong>Behavioural data:</strong> on-time contribution rate, completion rate, group diversity, tenure — used to calculate your Njangi Credit Score (NCS)</li>
+          <li><strong>Activity logs:</strong> login timestamps, IP address, device type, browser, pages visited within the platform</li>
+        </ul>
+
+        <h3 class="lg-h4">Information we receive from third parties</h3>
+        <ul class="lg-list">
+          <li><strong>Payment partner data:</strong> when we go live with licensed payment providers, transaction confirmations and settlement data</li>
+          <li><strong>Identity verification partners:</strong> at launch, KYC verification responses from regulated providers</li>
+          <li><strong>Sanctions &amp; PEP screening:</strong> at launch, results from regulated screening providers (AML compliance)</li>
+        </ul>
+
+        <h3 class="lg-h4">Information we do not collect</h3>
+        <ul class="lg-list">
+          <li>We do not collect biometric data beyond what is required for KYC document verification</li>
+          <li>We do not track you across other websites or use third-party advertising cookies</li>
+          <li>We do not collect data from your device's contacts, photos, or location unless you explicitly grant access for a specific feature</li>
+        </ul>
+
+        <!-- 03 -->
+        <h2 class="lg-h2" id="how">03 · How <span class="ital">we use your data</span></h2>
+        <p class="lg-p">We use your data for clearly defined purposes — never for things you wouldn't expect.</p>
+
+        <div class="lg-table">
+          <table>
+            <thead><tr><th>Purpose</th><th>Examples</th><th>Required?</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>Operating the service</strong></td>
+                <td>Authentication, ROSCA participation, contribution tracking, payouts, NCS calculation</td>
+                <td><span class="pill">Required</span></td>
+              </tr>
+              <tr>
+                <td><strong>Regulatory compliance</strong></td>
+                <td>KYC, AML, sanctions screening, fraud detection, audit trail, regulatory reporting</td>
+                <td><span class="pill">Required</span></td>
+              </tr>
+              <tr>
+                <td><strong>Security &amp; integrity</strong></td>
+                <td>Detecting suspicious activity, preventing account takeovers, audit logs</td>
+                <td><span class="pill">Required</span></td>
+              </tr>
+              <tr>
+                <td><strong>Service improvements</strong></td>
+                <td>Aggregated anonymous analytics, identifying friction points, building new features</td>
+                <td>Legitimate interest</td>
+              </tr>
+              <tr>
+                <td><strong>Communications</strong></td>
+                <td>Transactional notifications, security alerts, complaint responses</td>
+                <td><span class="pill">Required</span></td>
+              </tr>
+              <tr>
+                <td><strong>Marketing &amp; updates</strong></td>
+                <td>Newsletter, product announcements, feature launches</td>
+                <td>Opt-in only</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="lg-p"><strong>We do not sell your data.</strong> We do not share it with advertisers. We do not use it to train AI models.</p>
+
+        <!-- 04 -->
+        <h2 class="lg-h2" id="legal">04 · Legal <span class="ital">basis</span></h2>
+        <p class="lg-p">Under GDPR and similar frameworks, we process your data on one of these legal bases:</p>
+        <ul class="lg-list">
+          <li><strong>Contract performance</strong> — we need your data to deliver the service you signed up for</li>
+          <li><strong>Legal obligation</strong> — KYC, AML, anti-fraud, and regulatory reporting are mandated by law</li>
+          <li><strong>Legitimate interest</strong> — fraud prevention, platform security, aggregated analytics that don't override your rights</li>
+          <li><strong>Consent</strong> — for optional things like marketing emails or analytical cookies. You can withdraw consent at any time</li>
+        </ul>
+
+        <!-- 05 -->
+        <h2 class="lg-h2" id="share">05 · Sharing <span class="ital">&amp; transfers</span></h2>
+        <p class="lg-p">We share your data only when necessary, only with vetted parties, and only under strict contractual safeguards.</p>
+
+        <h3 class="lg-h4">Who we share with</h3>
+        <ul class="lg-list">
+          <li><strong>Hosting infrastructure</strong> — Railway (US/EU), our cloud platform. Data encrypted in transit and at rest.</li>
+          <li><strong>Identity verification partners</strong> — at launch, regulated KYC providers in each jurisdiction. Document data shared only for verification, not retained by them beyond regulatory requirements.</li>
+          <li><strong>Payment institutions</strong> — at launch, licensed EMIs and PIs in each market for transaction processing. Only the data they need to process your payment.</li>
+          <li><strong>Regulatory authorities</strong> — when legally required, including ACPR, FCA, FINTRAC, tax authorities, and law enforcement. Only on lawful request.</li>
+          <li><strong>Other ROSCA / Pool members</strong> — only the data the platform shows them: name, Hanatag, public profile, and your participation in shared circles. Never your private contact details, KYC documents, or payment information.</li>
+        </ul>
+
+        <h3 class="lg-h4">International transfers</h3>
+        <p class="lg-p">Sohana operates across Europe, Africa, and North America. Your data may cross borders to provide the service. Where data leaves your jurisdiction, we rely on:</p>
+        <ul class="lg-list">
+          <li>Standard Contractual Clauses (SCCs) approved by the European Commission</li>
+          <li>Adequacy decisions where they exist (e.g. EU–UK, EU–Canada PIPEDA)</li>
+          <li>Additional safeguards on a case-by-case basis where neither applies</li>
+        </ul>
+
+        <!-- 06 -->
+        <h2 class="lg-h2" id="retain">06 · How long <span class="ital">we keep your data</span></h2>
+        <p class="lg-p">Different data has different retention requirements. We don't hold things longer than we need to.</p>
+
+        <div class="lg-table">
+          <table>
+            <thead><tr><th>Data type</th><th>Retention period</th><th>Reason</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Account data</strong></td><td>While your account is active + 30 days after closure</td><td>To allow account reactivation</td></tr>
+              <tr><td><strong>KYC documents</strong></td><td>5–7 years after account closure</td><td>Regulatory requirement (AML)</td></tr>
+              <tr><td><strong>Transaction records</strong></td><td>5–10 years</td><td>Regulatory requirement (financial records)</td></tr>
+              <tr><td><strong>Activity logs</strong></td><td>12 months</td><td>Security &amp; fraud detection</td></tr>
+              <tr><td><strong>Marketing consent</strong></td><td>Until you withdraw it</td><td>Your choice, always</td></tr>
+              <tr><td><strong>Complaint records</strong></td><td>3 years after resolution</td><td>Audit + dispute resolution</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="lg-p">After retention periods expire, data is either deleted or fully anonymised so it can no longer be linked to you.</p>
+
+        <!-- 07 -->
+        <h2 class="lg-h2" id="rights">07 · Your <span class="ital">rights</span></h2>
+        <p class="lg-p">Under GDPR and similar frameworks, you have the following rights. We will honour them within 30 days of a verified request.</p>
+
+        <ul class="lg-list">
+          <li><strong>Right of access</strong> — see what data we hold about you, in a portable format</li>
+          <li><strong>Right to rectification</strong> — correct inaccurate or incomplete data</li>
+          <li><strong>Right to erasure</strong> — request deletion (subject to legal retention requirements)</li>
+          <li><strong>Right to restrict processing</strong> — pause specific uses while a dispute is investigated</li>
+          <li><strong>Right to data portability</strong> — receive your data in a machine-readable format to take elsewhere</li>
+          <li><strong>Right to object</strong> — to processing based on legitimate interest, especially marketing</li>
+          <li><strong>Right to withdraw consent</strong> — for any processing where consent is the legal basis</li>
+          <li><strong>Right not to be subject to automated decisions</strong> — including profiling that has legal effects on you</li>
+          <li><strong>Right to lodge a complaint</strong> — with your data protection authority. The full list is on the European Data Protection Board's website (edpb.europa.eu)</li>
+        </ul>
+
+        <div class="lg-highlight">
+          <p>To exercise any of these rights, email <strong>privacy@sohana.app</strong>. We will verify your identity before processing the request and respond within 30 days. There is no fee for reasonable requests.</p>
+        </div>
+
+        <!-- 08 -->
+        <h2 class="lg-h2" id="security">08 · Security</h2>
+        <p class="lg-p">Security is not a feature — it's the foundation. Full detail is on our <a href="/security" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">security page</a>. In summary, we use:</p>
+        <ul class="lg-list">
+          <li><strong>Password hashing</strong> — PBKDF2-SHA256 with 260,000 iterations and per-user random salts. Plaintext passwords never touch our database.</li>
+          <li><strong>Encryption in transit</strong> — TLS 1.3 on all connections</li>
+          <li><strong>Encryption at rest</strong> — encrypted storage on infrastructure level</li>
+          <li><strong>Role-based access control</strong> — internal staff see only what their role requires</li>
+          <li><strong>Audit trails</strong> — every administrative action is logged and attributable</li>
+          <li><strong>Session security</strong> — SameSite cookies, server-side validation, automatic revocation</li>
+        </ul>
+        <p class="lg-p">If you suspect a security incident on your account, email <a href="mailto:security@sohana.app" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">security@sohana.app</a> immediately.</p>
+
+        <!-- 09 -->
+        <h2 class="lg-h2" id="children">09 · Children</h2>
+        <p class="lg-p">Sohana is not intended for use by anyone under 18. We require date-of-birth verification at registration and enforce an 18+ minimum age. If we learn that a minor has created an account, we will close it and delete any associated personal data.</p>
+
+        <!-- 10 -->
+        <h2 class="lg-h2" id="changes">10 · Changes <span class="ital">to this policy</span></h2>
+        <p class="lg-p">We may update this policy as the platform evolves, as we obtain regulatory authorisations, and as we expand to new markets. When we make material changes, we will:</p>
+        <ul class="lg-list">
+          <li>Update the "last reviewed" date at the top of this page</li>
+          <li>Notify you by email at least 14 days before the changes take effect, where the change is material</li>
+          <li>Maintain a public version history (planned) so you can see what changed</li>
+        </ul>
+        <p class="lg-p">If you disagree with a change, you can close your account before it takes effect. Continued use after the effective date constitutes acceptance.</p>
+
+        <!-- 11 -->
+        <h2 class="lg-h2" id="contact">11 · Contact</h2>
+        <div class="lg-contact">
+          <h3>Privacy questions, requests, or concerns</h3>
+          <p>For all data-protection matters, including exercising any of your rights, please email us. We aim to respond to verified requests within 30 days, often much faster.</p>
+          <a class="lg-contact-mail" href="mailto:privacy@sohana.app">
+            privacy@sohana.app
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <p style="margin-top:1.25rem;font-size:.82rem;color:#8A8E87;">For complaints relating specifically to data, you can also raise a formal complaint via our <a href="/complaints" style="color:#9EE493;border-bottom:1px solid rgba(158,228,147,.3);">complaints process</a> — we treat data complaints as high-priority by default.</p>
+        </div>
+
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<script>
+/* TOC active highlighting on scroll */
+(function(){
+  var sections = document.querySelectorAll('h2[id]');
+  var links    = document.querySelectorAll('.lg-toc a');
+  if(!sections.length || !links.length) return;
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
-    </div>
-  </div>
-</div>
+  function setActive(){
+    var fromTop = window.scrollY + 140;
+    var current = sections[0].id;
+    sections.forEach(function(s){
+      if(s.offsetTop <= fromTop) current = s.id;
+    });
+    links.forEach(function(l){
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', setActive, {passive:true});
+  setActive();
+})();
+</script>
 {% endblock %}
