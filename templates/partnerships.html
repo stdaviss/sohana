@@ -2,50 +2,596 @@
 {% block title %}Partnerships{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── PARTNERSHIPS PAGE ── */
+.p-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.p-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.p-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.p-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.p-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.p-section.warm .p-eyebrow{color:rgba(20,19,15,.55)}
+.p-h2{font-size:clamp(1.8rem,3.2vw,2.5rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.p-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.p-section.warm .p-h2 .ital{color:#0E120F}
+.p-lead{font-size:clamp(1rem,1.2vw,1.1rem);color:#B7BAB4;line-height:1.7;max-width:680px;margin-bottom:2rem}
+.p-section.warm .p-lead{color:rgba(20,19,15,.7)}
+
+/* ── REVEAL ANIMATION ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with handshake/bridge animated graphic ── */
+.p-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.p-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.p-hero .container{grid-template-columns:1fr;gap:48px}}
+.p-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.p-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.p-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.p-hero p{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px}
+
+/* HERO SVG: continents linked by data flows */
+.bridge-svg{width:100%;max-width:500px;margin:0 auto;display:block;aspect-ratio:1.1;filter:drop-shadow(0 0 20px rgba(158,228,147,.2))}
+.continent{fill:rgba(158,228,147,.08);stroke:#9EE493;stroke-width:1;opacity:.85}
+.continent-label{font-family:'Geist Mono',monospace;font-size:8px;fill:#9EE493;letter-spacing:.1em;font-weight:600}
+.continent-name{font-family:'Geist Mono',monospace;font-size:6.5px;fill:#8A8E87;letter-spacing:.05em}
+.bridge-line{stroke:#9EE493;stroke-width:1.2;fill:none;stroke-dasharray:4 5;animation:bridge-flow 4s linear infinite}
+.bridge-line.b2{animation-duration:5s;animation-delay:.5s}
+.bridge-line.b3{animation-duration:6s;animation-delay:1s}
+.bridge-line.b4{animation-duration:4.5s;animation-delay:.3s}
+@keyframes bridge-flow{to{stroke-dashoffset:-36}}
+.bridge-pkt{r:4;fill:#9EE493;animation:pkt-pulse 2s ease-in-out infinite}
+.bridge-pkt.bp2{animation-delay:.4s}.bridge-pkt.bp3{animation-delay:.8s}.bridge-pkt.bp4{animation-delay:1.2s}
+@keyframes pkt-pulse{0%,100%{opacity:.4;r:3}50%{opacity:1;r:5}}
+.bridge-orbit{transform-origin:center;animation:bridge-rot 40s linear infinite}
+@keyframes bridge-rot{to{transform:rotate(360deg)}}
+.center-hub{filter:drop-shadow(0 0 12px rgba(158,228,147,.5))}
+.center-hub-pulse{animation:hub-pulse 3s ease-in-out infinite}
+@keyframes hub-pulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* ── INTERSECTION VENN ── */
+.venn-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.venn-grid{grid-template-columns:1fr;gap:32px}}
+.venn-svg{width:100%;max-width:400px;margin:0 auto;display:block;aspect-ratio:1}
+.venn-circle{fill-opacity:.18;stroke:#9EE493;stroke-width:1.5;mix-blend-mode:screen;animation:venn-breathe 4s ease-in-out infinite}
+.venn-circle.v2{animation-delay:1.3s}
+.venn-circle.v3{animation-delay:2.6s}
+@keyframes venn-breathe{0%,100%{fill-opacity:.15}50%{fill-opacity:.3}}
+.venn-label{font-family:'Geist Mono',monospace;font-size:9px;fill:#9EE493;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.venn-center{fill:#9EE493;font-family:'Instrument Serif',serif;font-style:italic;font-size:13px;text-anchor:middle}
+.venn-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.9rem}
+.venn-list li{padding:1rem 1.25rem;border:1px solid rgba(244,242,236,.1);border-radius:14px;background:#161B17;display:flex;align-items:flex-start;gap:.85rem;transition:border-color .25s,transform .25s}
+.venn-list li:hover{border-color:rgba(158,228,147,.35);transform:translateX(4px)}
+.venn-list li .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;flex-shrink:0;width:74px;padding-top:.15rem}
+.venn-list li .txt{font-size:.92rem;color:#B7BAB4;line-height:1.6}
+.venn-list li .txt strong{color:#F4F2EC;font-weight:500}
+
+/* ── WHY PARTNER (with photo) ── */
+.why-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.why-grid{grid-template-columns:1fr;gap:32px}}
+.why-photo{aspect-ratio:5/4;border-radius:20px;background-size:cover;background-position:center;border:1px solid rgba(20,19,15,.08);position:relative;overflow:hidden}
+.why-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(20,19,15,.4) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.35);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+.why-list{display:flex;flex-direction:column;gap:1rem}
+.why-list .why-item{padding-left:2.2rem;position:relative}
+.why-list .why-item::before{content:"";position:absolute;left:0;top:.45rem;width:18px;height:18px;border-radius:6px;background:#0E120F;display:grid;place-items:center}
+.why-list .why-item::after{content:"+";position:absolute;left:5px;top:.15rem;font-family:'Geist Mono',monospace;color:#9EE493;font-weight:600;font-size:.95rem}
+.why-list .why-item h4{font-size:1rem;font-weight:600;color:#0E120F;margin-bottom:.3rem;letter-spacing:-.005em}
+.why-list .why-item p{font-size:.88rem;color:rgba(20,19,15,.65);line-height:1.6}
+
+/* ── PARTNER TYPES (4 tiles with animated icons) ── */
+.types-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;margin-top:2rem}
+@media(max-width:760px){.types-grid{grid-template-columns:1fr}}
+.type-card{padding:2rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative;overflow:hidden;transition:border-color .3s,transform .3s;display:flex;flex-direction:column;gap:1rem}
+.type-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.type-card .glow-bg{position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(158,228,147,.12) 0%,transparent 60%);opacity:0;transition:opacity .35s}
+.type-card:hover .glow-bg{opacity:1}
+.type-svg{width:56px;height:56px;flex-shrink:0}
+.type-num{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.06em;color:#9EE493;display:flex;align-items:center;gap:.5rem}
+.type-num::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(158,228,147,.3) 0%,transparent 100%)}
+.type-card h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;line-height:1.3}
+.type-card .role{font-family:'Geist Mono',monospace;font-size:.72rem;color:#9EE493;letter-spacing:.04em;margin-top:-.5rem}
+.type-card p{font-size:.9rem;color:#B7BAB4;line-height:1.65;margin-bottom:.4rem}
+.type-card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.45rem;margin-top:auto}
+.type-card ul li{font-size:.84rem;color:#8A8E87;line-height:1.5;padding-left:1.1rem;position:relative}
+.type-card ul li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+
+/* Type icon animations */
+.icon-bank .bank-bar{animation:bank-pulse 3s ease-in-out infinite}
+.icon-bank .bank-bar.b2{animation-delay:.3s}.icon-bank .bank-bar.b3{animation-delay:.6s}.icon-bank .bank-bar.b4{animation-delay:.9s}
+@keyframes bank-pulse{0%,100%{opacity:.5}50%{opacity:1}}
+.icon-comm .ring-comm{transform-origin:32px 32px;animation:bridge-rot 18s linear infinite}
+.icon-comm .person-c{animation:bank-pulse 2.2s ease-in-out infinite}
+.icon-comm .person-c.p2{animation-delay:.4s}.icon-comm .person-c.p3{animation-delay:.8s}
+.icon-tech .gear-spin{transform-origin:32px 32px;animation:bridge-rot 14s linear infinite}
+.icon-tech .gear-spin.g2{transform-origin:46px 46px;animation:bridge-rot 10s linear infinite reverse}
+.icon-strat .compass-needle{transform-origin:32px 32px;animation:compass-spin 6s ease-in-out infinite}
+@keyframes compass-spin{0%{transform:rotate(0)}40%{transform:rotate(135deg)}60%{transform:rotate(135deg)}100%{transform:rotate(360deg)}}
+
+/* ── COLLAB AREAS ── */
+.collab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.collab-tile{padding:1.5rem 1.4rem;border:1px solid rgba(244,242,236,.08);border-radius:16px;background:rgba(22,27,23,.5);position:relative;transition:all .25s}
+.collab-tile:hover{border-color:rgba(158,228,147,.3);background:#161B17}
+.collab-tile .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.6rem}
+.collab-tile h4{font-size:.98rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em;line-height:1.3}
+.collab-tile p{font-size:.84rem;color:#B7BAB4;line-height:1.55}
+
+/* ── APPROACH (warm) — 4 principles ── */
+.approach-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem}
+@media(max-width:680px){.approach-grid{grid-template-columns:1fr}}
+.approach-card{padding:1.5rem 1.5rem;background:#fff;border:1px solid rgba(20,19,15,.08);border-radius:16px;display:flex;align-items:flex-start;gap:1rem;transition:border-color .2s,box-shadow .2s}
+.approach-card:hover{border-color:rgba(20,19,15,.2);box-shadow:0 8px 28px rgba(20,19,15,.06)}
+.approach-card .ico{width:36px;height:36px;border-radius:10px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-size:1rem;flex-shrink:0;font-family:'Geist Mono',monospace}
+.approach-card h4{font-size:.95rem;font-weight:600;color:#0E120F;margin-bottom:.3rem;letter-spacing:-.005em}
+.approach-card p{font-size:.82rem;color:rgba(20,19,15,.6);line-height:1.55}
+
+/* ── CURRENT STAGE ── */
+.stage-band{margin-top:2rem;padding:2rem 2.25rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 16px 16px 0;background:linear-gradient(90deg,rgba(158,228,147,.05) 0%,transparent 80%);display:grid;grid-template-columns:1fr 1.3fr;gap:2rem;align-items:center}
+@media(max-width:760px){.stage-band{grid-template-columns:1fr;gap:1.25rem}}
+.stage-pulse{display:flex;align-items:center;gap:.55rem;font-family:'Geist Mono',monospace;font-size:.75rem;color:#9EE493;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:.6rem}
+.stage-pulse::before{content:"";width:8px;height:8px;border-radius:50%;background:#9EE493;animation:hub-pulse 1.6s ease-in-out infinite;box-shadow:0 0 8px rgba(158,228,147,.6)}
+.stage-band h3{font-size:1.2rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;line-height:1.3;margin-bottom:.5rem}
+.stage-band p{font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.stage-band ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55rem}
+.stage-band ul li{font-size:.88rem;color:#B7BAB4;line-height:1.5;padding-left:1.4rem;position:relative}
+.stage-band ul li::before{content:"";position:absolute;left:0;top:.5rem;width:6px;height:6px;border-radius:50%;background:#9EE493}
+.stage-band ul li strong{color:#F4F2EC;font-weight:500}
+
+/* ── CONTACT FORM/BLOCK ── */
+.contact-card{margin-top:2rem;padding:3rem 2.5rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);text-align:center;position:relative;overflow:hidden}
+.contact-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.12) 0%,transparent 60%);pointer-events:none}
+.contact-card h3{font-size:clamp(1.5rem,2.4vw,2rem);font-weight:500;color:#F4F2EC;letter-spacing:-.02em;margin-bottom:1rem;position:relative}
+.contact-card h3 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.contact-card p{font-size:.95rem;color:#B7BAB4;max-width:560px;margin:0 auto 1.75rem;line-height:1.65;position:relative}
+.contact-mail{display:inline-flex;align-items:center;gap:.6rem;padding:.85rem 1.75rem;background:#9EE493;color:#0E120F;border-radius:999px;font-weight:600;font-size:.95rem;text-decoration:none;transition:all .2s;font-family:inherit;position:relative}
+.contact-mail:hover{background:#cef870;transform:translateY(-2px)}
+.contact-checklist{margin-top:1.75rem;display:flex;justify-content:center;gap:1.5rem;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;letter-spacing:.02em;position:relative}
+.contact-checklist span{display:inline-flex;align-items:center;gap:.4rem}
+.contact-checklist span::before{content:"✓";color:#9EE493;font-weight:700}
+
+/* ── CTA ── */
+.p-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.p-cta h2{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;max-width:700px;margin:0 auto 1rem;color:#F4F2EC}
+.p-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.p-cta p{font-size:.95rem;color:#B7BAB4;max-width:560px;margin:0 auto 2rem;line-height:1.65}
+.p-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with cross-continental bridge SVG
+══════════════════════════════════════════════════════════ -->
+<section class="p-hero">
+  <div class="p-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Company</div>
-    <h1>Partner with SOHANA</h1>
-    <p>SOHANA is building an ecosystem. We are actively seeking partners across financial services, mobile money, community organisations, and the development sector.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="p-eyebrow">Partnerships</div>
+      <h1>Building this <span class="ital">together</span> — across borders, across institutions.</h1>
+      <p>Sohana sits at the intersection of informal finance, digital infrastructure, and cross-border communities. We are early — and that is precisely why now is the moment to build with us.</p>
+    </div>
+
+    <!-- Animated cross-continent bridge graphic -->
+    <svg class="bridge-svg" viewBox="0 0 480 440" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="hubGrad" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".5"/>
+          <stop offset="60%" stop-color="#9EE493" stop-opacity=".1"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Outer orbit ring -->
+      <g class="bridge-orbit">
+        <circle cx="240" cy="220" r="200" fill="none" stroke="#9EE493" stroke-opacity=".12" stroke-width="1" stroke-dasharray="2 6"/>
+        <circle cx="240" cy="20"  r="2.5" fill="#9EE493"/>
+        <circle cx="440" cy="220" r="2.5" fill="#9EE493"/>
+        <circle cx="240" cy="420" r="2.5" fill="#9EE493"/>
+        <circle cx="40"  cy="220" r="2.5" fill="#9EE493"/>
+      </g>
+
+      <!-- Continents (simplified shapes) -->
+
+      <!-- EUROPE (top-left) -->
+      <g transform="translate(60,80)">
+        <path class="continent" d="M0 20 Q4 0 28 4 Q56 0 60 16 Q72 20 68 36 Q60 52 40 48 Q24 52 12 44 Q-4 36 0 20 Z"/>
+        <text class="continent-label" x="34" y="28" text-anchor="middle">EU</text>
+        <text class="continent-name" x="34" y="68" text-anchor="middle">EUROPE</text>
+      </g>
+
+      <!-- NORTH AMERICA (top-right) -->
+      <g transform="translate(340,70)">
+        <path class="continent" d="M0 16 Q12 0 36 4 Q56 8 64 28 Q60 44 48 44 Q32 56 16 48 Q0 40 0 16 Z"/>
+        <text class="continent-label" x="32" y="28" text-anchor="middle">NA</text>
+        <text class="continent-name" x="32" y="68" text-anchor="middle">N. AMERICA</text>
+      </g>
+
+      <!-- AFRICA (bottom-left) -->
+      <g transform="translate(70,260)">
+        <path class="continent" d="M28 0 Q52 4 60 24 Q68 44 60 64 Q52 88 36 92 Q24 100 16 84 Q4 64 8 44 Q12 20 28 0 Z"/>
+        <text class="continent-label" x="36" y="48" text-anchor="middle">AF</text>
+        <text class="continent-name" x="36" y="106" text-anchor="middle">AFRICA</text>
+      </g>
+
+      <!-- DIASPORA hub (bottom-right) -->
+      <g transform="translate(340,260)">
+        <path class="continent" d="M0 24 Q8 4 28 4 Q52 0 60 20 Q68 40 56 60 Q40 76 24 68 Q4 60 0 24 Z"/>
+        <text class="continent-label" x="32" y="40" text-anchor="middle">CMTY</text>
+        <text class="continent-name" x="32" y="86" text-anchor="middle">DIASPORA</text>
+      </g>
+
+      <!-- Bridge lines through center hub -->
+      <line class="bridge-line"    x1="116" y1="120" x2="240" y2="220" />
+      <line class="bridge-line b2" x1="372" y1="116" x2="240" y2="220" />
+      <line class="bridge-line b3" x1="118" y1="320" x2="240" y2="220" />
+      <line class="bridge-line b4" x1="370" y1="320" x2="240" y2="220" />
+
+      <!-- Travelling packets -->
+      <circle class="bridge-pkt"    cx="178" cy="170" />
+      <circle class="bridge-pkt bp2" cx="306" cy="168" />
+      <circle class="bridge-pkt bp3" cx="180" cy="270" />
+      <circle class="bridge-pkt bp4" cx="304" cy="272" />
+
+      <!-- CENTER HUB (Sohana) -->
+      <circle cx="240" cy="220" r="46" fill="url(#hubGrad)"/>
+      <g class="center-hub">
+        <circle class="center-hub-pulse" cx="240" cy="220" r="26" fill="rgba(158,228,147,.08)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="240" y="218" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="700" fill="#F4F2EC" letter-spacing="-.5">SOHANA</text>
+        <text x="240" y="232" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493" letter-spacing=".5">PROTOCOL</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     INTERSECTION VENN — three pillars
+══════════════════════════════════════════════════════════ -->
+<section class="p-section">
+  <div class="container">
+    <div class="p-eyebrow reveal">01 · Why partner with Sohana</div>
+    <h2 class="p-h2 reveal reveal-d1">An <span class="ital">already widespread behaviour</span>, made structured and scalable.</h2>
+    <p class="p-lead reveal reveal-d2">Sohana sits at a unique intersection. We are turning a behaviour that already moves billions in value — community group savings — into something formal infrastructure can recognise, plug into, and build on top of.</p>
+
+    <div class="venn-grid">
+
+      <!-- VENN SVG (3 overlapping circles) -->
+      <div class="reveal reveal-d1">
+        <svg class="venn-svg" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <radialGradient id="vc1"><stop offset="0%" stop-color="#9EE493" stop-opacity=".25"/><stop offset="100%" stop-color="#9EE493" stop-opacity=".05"/></radialGradient>
+            <radialGradient id="vc2"><stop offset="0%" stop-color="#76E0A1" stop-opacity=".25"/><stop offset="100%" stop-color="#76E0A1" stop-opacity=".05"/></radialGradient>
+            <radialGradient id="vc3"><stop offset="0%" stop-color="#9EE493" stop-opacity=".25"/><stop offset="100%" stop-color="#9EE493" stop-opacity=".05"/></radialGradient>
+          </defs>
+
+          <!-- Top circle: Informal finance -->
+          <circle class="venn-circle" cx="160" cy="115" r="85" fill="url(#vc1)"/>
+          <text class="venn-label" x="160" y="46" text-anchor="middle">INFORMAL FINANCE</text>
+
+          <!-- Bottom-left: Digital infrastructure -->
+          <circle class="venn-circle v2" cx="105" cy="200" r="85" fill="url(#vc2)"/>
+          <text class="venn-label" x="48" y="280" text-anchor="middle">DIGITAL INFRA</text>
+
+          <!-- Bottom-right: Cross-border communities -->
+          <circle class="venn-circle v3" cx="215" cy="200" r="85" fill="url(#vc3)"/>
+          <text class="venn-label" x="272" y="280" text-anchor="middle">DIASPORA</text>
+
+          <!-- Center label -->
+          <text class="venn-center" x="160" y="172">Sohana</text>
+        </svg>
+      </div>
+
+      <ul class="venn-list">
+        <li class="reveal reveal-d1"><span class="lbl">SHAPE</span><span class="txt"><strong>Help shape product direction.</strong> Early partners influence what we build, in what order, for which markets.</span></li>
+        <li class="reveal reveal-d2"><span class="lbl">REACH</span><span class="txt"><strong>Access emerging markets and underserved segments</strong> through a platform built for the diaspora reality, not retrofitted to it.</span></li>
+        <li class="reveal reveal-d3"><span class="lbl">BUILD</span><span class="txt"><strong>Co-create financial &amp; community-driven solutions</strong> — credit products, identity layers, distribution rails — together.</span></li>
+        <li class="reveal reveal-d4"><span class="lbl">POSITION</span><span class="txt"><strong>Position alongside long-term infrastructure.</strong> Sohana is not a single product — it is a layer that compounds in value over time.</span></li>
+      </ul>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🏦</div>
-      <h3>Financial institution partners</h3>
-      <p>We work with licensed payment institutions, banks, and EMIs who want to serve African diaspora communities and domestic African markets. Contact partnerships@sohana.app to explore licensing, white-label, or referral arrangements.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📱</div>
-      <h3>Mobile money providers</h3>
-      <p>We are actively seeking integration partnerships with mobile money operators in West, East, and Central Africa. If you operate or manage a mobile money service, we want to talk.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🎓</div>
-      <h3>Community and diaspora organisations</h3>
-      <p>We partner with African diaspora associations, churches, student unions, and professional networks to bring SOHANA to their communities. Referral arrangements available.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🤝</div>
-      <h3>NGO and development sector</h3>
-      <p>SOHANA's NCS infrastructure can be used by NGOs and development organisations to assess financial reliability among beneficiaries. Contact us to discuss how our data can support your programmes.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHO WE'RE LOOKING TO WORK WITH (4 partner types)
+══════════════════════════════════════════════════════════ -->
+<section class="p-section">
+  <div class="container">
+    <div class="p-eyebrow reveal">02 · Who we're looking for</div>
+    <h2 class="p-h2 reveal reveal-d1">Four kinds of partner. <span class="ital">All long-term</span>.</h2>
+    <p class="p-lead reveal reveal-d2">We are open to conversations across the financial, community, technology, and strategic ecosystem. If you operate in any of these, we want to hear from you.</p>
+
+    <div class="types-grid">
+
+      <!-- 01 Financial Institutions -->
+      <div class="type-card reveal reveal-d1">
+        <div class="glow-bg"></div>
+        <svg class="type-svg icon-bank" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <polygon points="32,8 56,20 8,20" fill="rgba(158,228,147,.08)" stroke="#9EE493" stroke-width="1.5" stroke-linejoin="round"/>
+          <line x1="8"  y1="20" x2="56" y2="20" stroke="#9EE493" stroke-width="1.5"/>
+          <rect class="bank-bar"    x="14" y="26" width="6" height="22" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+          <rect class="bank-bar b2" x="24" y="26" width="6" height="22" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+          <rect class="bank-bar b3" x="34" y="26" width="6" height="22" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+          <rect class="bank-bar b4" x="44" y="26" width="6" height="22" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+          <line x1="8"  y1="52" x2="56" y2="52" stroke="#9EE493" stroke-width="1.5"/>
+          <line x1="6"  y1="56" x2="58" y2="56" stroke="#9EE493" stroke-width="1.5"/>
+        </svg>
+        <div>
+          <div class="type-num">01 — FINANCIAL</div>
+          <h3>Banks, EMIs &amp; fintechs</h3>
+          <div class="role">Licensed money movers</div>
+        </div>
+        <p>Institutions that want to expand into new user segments, support group-based financial products, and integrate with community-driven savings systems.</p>
+        <ul>
+          <li>Reach diaspora &amp; underserved segments</li>
+          <li>Co-build group savings products</li>
+          <li>API integration into Sohana rails</li>
+        </ul>
+      </div>
+
+      <!-- 02 Community Orgs -->
+      <div class="type-card reveal reveal-d2">
+        <div class="glow-bg"></div>
+        <svg class="type-svg icon-comm" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="ring-comm">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#9EE493" stroke-opacity=".25" stroke-width="1" stroke-dasharray="2 4"/>
+          </g>
+          <!-- center person -->
+          <circle cx="32" cy="28" r="6" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1.5"/>
+          <path d="M22 46 Q32 38 42 46" fill="none" stroke="#9EE493" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- 3 surrounding -->
+          <g class="person-c">
+            <circle cx="14" cy="20" r="3" fill="#9EE493"/>
+            <path d="M10 28 Q14 24 18 28" fill="none" stroke="#9EE493" stroke-width="1"/>
+          </g>
+          <g class="person-c p2">
+            <circle cx="50" cy="20" r="3" fill="#9EE493"/>
+            <path d="M46 28 Q50 24 54 28" fill="none" stroke="#9EE493" stroke-width="1"/>
+          </g>
+          <g class="person-c p3">
+            <circle cx="32" cy="56" r="3" fill="#9EE493"/>
+          </g>
+          <!-- connecting lines -->
+          <line x1="20" y1="22" x2="28" y2="28" stroke="#9EE493" stroke-opacity=".4" stroke-width="1" stroke-dasharray="2 3"/>
+          <line x1="44" y1="22" x2="36" y2="28" stroke="#9EE493" stroke-opacity=".4" stroke-width="1" stroke-dasharray="2 3"/>
+          <line x1="32" y1="44" x2="32" y2="52" stroke="#9EE493" stroke-opacity=".4" stroke-width="1" stroke-dasharray="2 3"/>
+        </svg>
+        <div>
+          <div class="type-num">02 — COMMUNITY</div>
+          <h3>Networks &amp; cooperatives</h3>
+          <div class="role">Diaspora associations · Faith groups · Co-ops</div>
+        </div>
+        <p>Organisations that already operate savings groups or ROSCAs and want to digitise, scale, or formalise what they're doing — and pilot with us.</p>
+        <ul>
+          <li>Migrate existing circles onto the platform</li>
+          <li>Pilot programmes with real members</li>
+          <li>Distribution through trusted networks</li>
+        </ul>
+      </div>
+
+      <!-- 03 Technology -->
+      <div class="type-card reveal reveal-d3">
+        <div class="glow-bg"></div>
+        <svg class="type-svg icon-tech" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="gear-spin">
+            <circle cx="32" cy="32" r="14" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+            <circle cx="32" cy="32" r="5" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1"/>
+            <line x1="32" y1="14" x2="32" y2="18" stroke="#9EE493" stroke-width="2"/>
+            <line x1="32" y1="46" x2="32" y2="50" stroke="#9EE493" stroke-width="2"/>
+            <line x1="14" y1="32" x2="18" y2="32" stroke="#9EE493" stroke-width="2"/>
+            <line x1="46" y1="32" x2="50" y2="32" stroke="#9EE493" stroke-width="2"/>
+            <line x1="20" y1="20" x2="22" y2="22" stroke="#9EE493" stroke-width="2"/>
+            <line x1="42" y1="42" x2="44" y2="44" stroke="#9EE493" stroke-width="2"/>
+            <line x1="44" y1="20" x2="42" y2="22" stroke="#9EE493" stroke-width="2"/>
+            <line x1="22" y1="42" x2="20" y2="44" stroke="#9EE493" stroke-width="2"/>
+          </g>
+          <g class="gear-spin g2">
+            <circle cx="46" cy="46" r="7" fill="none" stroke="#9EE493" stroke-width="1.2"/>
+            <circle cx="46" cy="46" r="2.5" fill="#9EE493"/>
+            <line x1="46" y1="38" x2="46" y2="40" stroke="#9EE493" stroke-width="1.2"/>
+            <line x1="46" y1="52" x2="46" y2="54" stroke="#9EE493" stroke-width="1.2"/>
+            <line x1="38" y1="46" x2="40" y2="46" stroke="#9EE493" stroke-width="1.2"/>
+            <line x1="52" y1="46" x2="54" y2="46" stroke="#9EE493" stroke-width="1.2"/>
+          </g>
+        </svg>
+        <div>
+          <div class="type-num">03 — TECHNOLOGY</div>
+          <h3>Infrastructure providers</h3>
+          <div class="role">KYC · Risk · Payments · Data</div>
+        </div>
+        <p>Builders of payments, identity verification, fraud detection, or financial data infrastructure looking for a platform that wants to integrate, not white-label.</p>
+        <ul>
+          <li>Payments &amp; remittance rails</li>
+          <li>Identity &amp; KYC verification stacks</li>
+          <li>Risk, fraud &amp; data infrastructure</li>
+        </ul>
+      </div>
+
+      <!-- 04 Strategic / Venture -->
+      <div class="type-card reveal reveal-d4">
+        <div class="glow-bg"></div>
+        <svg class="type-svg icon-strat" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="32" cy="32" r="26" fill="rgba(158,228,147,.05)" stroke="#9EE493" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="3" fill="#9EE493"/>
+          <text x="32" y="14"  text-anchor="middle" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">N</text>
+          <text x="32" y="56"  text-anchor="middle" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">S</text>
+          <text x="10"  y="35" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">W</text>
+          <text x="54"  y="35" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">E</text>
+          <g class="compass-needle">
+            <polygon points="32,16 28,32 32,28 36,32" fill="#9EE493"/>
+            <polygon points="32,48 28,32 32,36 36,32" fill="rgba(158,228,147,.4)"/>
+          </g>
+        </svg>
+        <div>
+          <div class="type-num">04 — STRATEGIC</div>
+          <h3>Investors &amp; advisors</h3>
+          <div class="role">Venture · Ecosystem · Operating</div>
+        </div>
+        <p>Investors, advisors, and ecosystem builders who understand the long-term value of informal finance, and want to back early-stage infrastructure rather than feature plays.</p>
+        <ul>
+          <li>Early-stage infrastructure conviction</li>
+          <li>Africa &amp; diaspora market expertise</li>
+          <li>Multi-cycle thinking, not feature plays</li>
+        </ul>
+      </div>
+
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     AREAS OF COLLABORATION (warm) — 5 tiles + photo
+══════════════════════════════════════════════════════════ -->
+<section class="p-section warm">
+  <div class="container">
+    <div class="p-eyebrow reveal">03 · Areas of collaboration</div>
+    <h2 class="p-h2 reveal reveal-d1" style="color:#0E120F;">Where partnerships <span class="ital">unlock real value</span>.</h2>
+    <p class="p-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">We are particularly interested in partnerships that deliver concrete outcomes — pilots, integrations, products, regulatory pathways, distribution.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="why-grid">
+      <ul class="why-list reveal reveal-d1">
+        <li class="why-item">
+          <h4>Pilot programmes with real communities</h4>
+          <p>Run a controlled pilot with a community network — measure what works, refine, then scale.</p>
+        </li>
+        <li class="why-item">
+          <h4>Integration with payment rails</h4>
+          <p>Plug into mobile money, bank rails, or card networks in the markets that matter most.</p>
+        </li>
+        <li class="why-item">
+          <h4>Co-development of new products</h4>
+          <p>Build credit, insurance, or savings products on top of Sohana's behavioural data layer.</p>
+        </li>
+        <li class="why-item">
+          <h4>Regulatory insight &amp; market entry</h4>
+          <p>Help us navigate authorisation pathways and local frameworks across diaspora and home markets.</p>
+        </li>
+        <li class="why-item">
+          <h4>Distribution through trusted networks</h4>
+          <p>Reach members through associations, cooperatives, and diaspora groups that already have trust.</p>
+        </li>
+      </ul>
+
+      <div class="why-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/photos/jOqJbvo1P9g" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     OUR APPROACH (warm) — 4 principles
+══════════════════════════════════════════════════════════ -->
+<section class="p-section warm">
+  <div class="container">
+    <div class="p-eyebrow reveal">04 · How we partner</div>
+    <h2 class="p-h2 reveal reveal-d1" style="color:#0E120F;">Practical implementation, not <span class="ital">discussion theatre</span>.</h2>
+    <p class="p-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">We are still early. That means we prioritise partners who are willing to build with us, test ideas, and iterate quickly — over partners looking for finished products and signed contracts on day one.</p>
+
+    <div class="approach-grid">
+      <div class="approach-card reveal reveal-d1">
+        <div class="ico">∞</div>
+        <div>
+          <h4>Long-term alignment</h4>
+          <p>We choose partners we expect to be working with in five years, not five weeks.</p>
+        </div>
+      </div>
+      <div class="approach-card reveal reveal-d2">
+        <div class="ico">⊞</div>
+        <div>
+          <h4>Practical implementation</h4>
+          <p>Every partnership has a measurable outcome — a pilot, an integration, a product. Conversations lead somewhere.</p>
+        </div>
+      </div>
+      <div class="approach-card reveal reveal-d3">
+        <div class="ico">⇆</div>
+        <div>
+          <h4>Mutual value creation</h4>
+          <p>Both sides should be visibly better off six months in. We don't do partnerships that only work for one party.</p>
+        </div>
+      </div>
+      <div class="approach-card reveal reveal-d4">
+        <div class="ico">◎</div>
+        <div>
+          <h4>Respect for what already works</h4>
+          <p>We respect local financial behaviours and structures. Strengthen — never override — what communities have already built.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CURRENT STAGE
+══════════════════════════════════════════════════════════ -->
+<section class="p-section">
+  <div class="container">
+    <div class="p-eyebrow reveal">05 · Current stage</div>
+    <h2 class="p-h2 reveal reveal-d1">We're <span class="ital">early</span> — and that's the point.</h2>
+    <p class="p-lead reveal reveal-d2">Sohana is not yet publicly launched. Foundational decisions about product direction, market sequencing, and integrations are still being made. That makes this an unusually high-leverage moment to engage.</p>
+
+    <div class="stage-band reveal reveal-d3">
+      <div>
+        <div class="stage-pulse">Live status</div>
+        <h3>Where we are right now</h3>
+        <p>Pre-launch · Active beta · Closed pilots · Early-stage architecture</p>
+      </div>
+      <ul>
+        <li><strong>Developing the platform</strong> — beta MVP live, core ROSCA &amp; Pool products operational, KYC &amp; admin pipeline in place.</li>
+        <li><strong>Validating with real users</strong> — closed pilots running across France &amp; Cameroon with measurable signal.</li>
+        <li><strong>Preparing for first market entry</strong> — regulatory authorisation pathways under way (ACPR, FCA), partner conversations open.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTACT BLOCK
+══════════════════════════════════════════════════════════ -->
+<section class="p-section">
+  <div class="container">
+    <div class="p-eyebrow reveal">06 · Get in touch</div>
+    <h2 class="p-h2 reveal reveal-d1">If you're <span class="ital">building toward</span> a similar future — let's talk.</h2>
+
+    <div class="contact-card reveal reveal-d2">
+      <h3>Help shape the <span class="ital">foundation</span> of community finance.</h3>
+      <p>Reach out with a brief introduction, your area of interest, and how you see a potential collaboration. Replies typically within 3 business days.</p>
+      <a class="contact-mail" href="mailto:partnerships@sohana.app">
+        partnerships@sohana.app
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </a>
+      <div class="contact-checklist">
+        <span>Brief intro</span>
+        <span>Area of interest</span>
+        <span>Potential collaboration</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="p-cta">
+  <h2>The future of finance will be more connected, more community-driven, and <span class="ital">more accessible</span>.</h2>
+  <p>We are building toward that future — and we are open to building it together.</p>
+  <div class="p-cta-buttons">
+    <a href="mailto:partnerships@sohana.app" class="btn-primary">Start a conversation</a>
+    <a href="/about" class="btn-outline-white">Read our story</a>
+    <a href="/mission" class="btn-outline-white">Read our mission</a>
+  </div>
+</section>
+
+<script>
+/* Scroll-reveal observer */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')});
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+    });
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
