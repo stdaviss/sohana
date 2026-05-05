@@ -755,6 +755,124 @@ def admin_waitlist_export():
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=sohana-waitlist.csv"})
 
+
+# ── CAREERS APPLICATIONS ──────────────────────────────────────────────────────
+
+@app.route("/api/careers/apply", methods=["POST"])
+def api_careers_apply():
+    """Capture career application submissions from the careers page."""
+    d         = request.json or {}
+    name      = d.get("name", "").strip()
+    email     = d.get("email", "").strip().lower()
+    phone     = d.get("phone", "").strip()
+    role      = d.get("role", "").strip()
+    portfolio = d.get("portfolio", "").strip()
+    message   = d.get("message", "").strip()
+
+    # Basic validation
+    if not name or not email or not phone:
+        return jsonify({"error": "Name, email, and phone are required."}), 400
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"error": "Please enter a valid email address."}), 400
+    if not role:
+        role = "general"
+
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS career_applications (
+                id          TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                email       TEXT NOT NULL,
+                phone       TEXT NOT NULL,
+                role        TEXT NOT NULL,
+                portfolio   TEXT,
+                message     TEXT,
+                status      TEXT NOT NULL DEFAULT 'new',
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                notes       TEXT,
+                created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            db.execute("""INSERT INTO career_applications
+                          (id, name, email, phone, role, portfolio, message)
+                          VALUES (?,?,?,?,?,?,?)""",
+                       (str(uuid.uuid4()), name, email, phone, role,
+                        portfolio or None, message or None))
+        return jsonify({"ok": True})
+    except Exception as e:
+        # Don't expose DB errors — log internally and tell user generic
+        import sys
+        print(f"[careers_apply] failed: {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Submission failed. Please email careers@sohana.app instead."}), 500
+
+
+@app.route("/admin/careers")
+@admin_required
+def admin_careers():
+    """Admin view of career applications."""
+    user = auth.get_current_user()
+    try:
+        applications = fetchall(
+            """SELECT id, name, email, phone, role, portfolio, message,
+                      status, reviewed_by, reviewed_at, notes, created_at
+               FROM career_applications ORDER BY created_at DESC"""
+        )
+    except Exception:
+        applications = []
+    # group by status for stats
+    counts = {"new": 0, "reviewed": 0, "shortlisted": 0, "rejected": 0}
+    for a in applications:
+        s = a["status"] or "new"
+        counts[s] = counts.get(s, 0) + 1
+    return render_template("admin_careers.html",
+                           user=user, applications=applications, counts=counts)
+
+
+@app.route("/api/admin/careers/<app_id>/status", methods=["POST"])
+@admin_required
+def api_admin_careers_status(app_id):
+    """Update application status (new / reviewed / shortlisted / rejected)."""
+    d = request.json or {}
+    new_status = d.get("status", "").strip()
+    notes      = d.get("notes", "").strip() or None
+    if new_status not in ("new", "reviewed", "shortlisted", "rejected"):
+        return jsonify({"error": "Invalid status."}), 400
+    try:
+        with get_db() as db:
+            db.execute(
+                """UPDATE career_applications
+                   SET status=?, reviewed_by=?, reviewed_at=datetime('now'), notes=?
+                   WHERE id=?""",
+                (new_status, session["user_id"], notes, app_id)
+            )
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": "Update failed."}), 500
+
+
+@app.route("/admin/careers/export")
+@admin_required
+def admin_careers_export():
+    import io, csv
+    try:
+        rows = fetchall(
+            """SELECT name, email, phone, role, portfolio, message, status, created_at
+               FROM career_applications ORDER BY created_at DESC"""
+        )
+    except Exception:
+        rows = []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Name", "Email", "Phone", "Role", "Portfolio", "Message", "Status", "Submitted"])
+    for r in rows:
+        writer.writerow([r["name"], r["email"], r["phone"], r["role"],
+                         r["portfolio"] or "", r["message"] or "",
+                         r["status"], r["created_at"][:16]])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=sohana-careers-applications.csv"})
+
+
 # ── WALLET API ────────────────────────────────────────────────────────────────
 
 @app.route("/api/wallet/balances")

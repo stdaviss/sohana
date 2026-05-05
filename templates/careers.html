@@ -2,50 +2,806 @@
 {% block title %}Careers{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── CAREERS PAGE ── */
+.c-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.c-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.c-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.c-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.c-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.c-section.warm .c-eyebrow{color:rgba(20,19,15,.55)}
+.c-h2{font-size:clamp(1.8rem,3.2vw,2.5rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.c-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.c-section.warm .c-h2 .ital{color:#0E120F}
+.c-lead{font-size:clamp(1rem,1.2vw,1.1rem);color:#B7BAB4;line-height:1.7;max-width:680px;margin-bottom:2rem}
+.c-section.warm .c-lead{color:rgba(20,19,15,.7)}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with photo + animated tags ── */
+.c-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.c-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.c-hero .container{grid-template-columns:1fr;gap:48px}}
+.c-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.c-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.c-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.c-hero p{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:1.5rem}
+
+.hero-photo-wrap{position:relative;aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;overflow:hidden;border:1px solid rgba(244,242,236,.1)}
+.hero-photo-wrap::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,18,15,.0) 30%,rgba(14,18,15,.55) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:5;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+.hero-floating-tags{position:absolute;inset:0;z-index:3;pointer-events:none}
+.float-tag{position:absolute;display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .85rem;background:rgba(14,18,15,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(158,228,147,.3);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.04em;animation:tag-bob 5s ease-in-out infinite}
+.float-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:#9EE493;box-shadow:0 0 6px rgba(158,228,147,.6)}
+.float-tag.t1{top:14%;left:8%;animation-delay:0s}
+.float-tag.t2{top:38%;right:5%;animation-delay:1.5s}
+.float-tag.t3{bottom:24%;left:6%;animation-delay:3s}
+.float-tag.t4{bottom:8%;right:12%;animation-delay:.7s}
+@keyframes tag-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* ── HONESTY BANNER ── */
+.honesty-banner{margin-top:1.5rem;padding:1rem 1.25rem;border:1px solid rgba(158,228,147,.2);border-left:3px solid #9EE493;border-radius:0 12px 12px 0;background:linear-gradient(90deg,rgba(158,228,147,.04) 0%,transparent 80%);font-size:.88rem;color:#B7BAB4;line-height:1.6;max-width:520px}
+.honesty-banner strong{color:#F4F2EC;font-weight:500}
+
+/* ── WHY JOIN — 4 stat cards with animated icons ── */
+.why-join{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;margin-top:2rem}
+@media(max-width:680px){.why-join{grid-template-columns:1fr}}
+.wj-card{padding:1.75rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;display:flex;align-items:flex-start;gap:1.1rem;transition:border-color .25s,transform .25s}
+.wj-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.wj-icon{width:48px;height:48px;flex-shrink:0}
+.wj-card h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;margin-bottom:.5rem;letter-spacing:-.005em}
+.wj-card p{font-size:.88rem;color:#B7BAB4;line-height:1.6}
+
+/* Why-join icon animations */
+.icon-globe .ring-g{transform-origin:24px 24px;animation:ring-rot 18s linear infinite}
+@keyframes ring-rot{to{transform:rotate(360deg)}}
+.icon-globe .meridian{animation:meridian-pulse 3s ease-in-out infinite}
+@keyframes meridian-pulse{0%,100%{opacity:.4}50%{opacity:1}}
+.icon-build .brick{animation:brick-stack 4s ease-in-out infinite}
+.icon-build .brick.b2{animation-delay:.4s}.icon-build .brick.b3{animation-delay:.8s}
+@keyframes brick-stack{0%,40%,100%{opacity:.5;transform:translateY(0)}20%{opacity:1;transform:translateY(-2px)}}
+.icon-team .person-tn{animation:meridian-pulse 2.5s ease-in-out infinite}
+.icon-team .person-tn.t2{animation-delay:.3s}.icon-team .person-tn.t3{animation-delay:.6s}
+.icon-impact .wave{transform-origin:24px 24px;animation:impact-pulse 2.4s ease-out infinite;opacity:0}
+.icon-impact .wave.w2{animation-delay:.8s}.icon-impact .wave.w3{animation-delay:1.6s}
+@keyframes impact-pulse{0%{opacity:.6;transform:scale(.4)}100%{opacity:0;transform:scale(1.2)}}
+
+/* ── ROLE SELECTOR (modular dropdown) ── */
+.role-explorer{margin-top:2rem;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px;overflow:hidden}
+.role-selector-bar{padding:1.25rem 1.5rem;border-bottom:1px solid rgba(244,242,236,.08);display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,transparent 100%)}
+@media(max-width:680px){.role-selector-bar{grid-template-columns:1fr;gap:.75rem}}
+.role-select-label{font-family:'Geist Mono',monospace;font-size:.72rem;color:#9EE493;letter-spacing:.06em;font-weight:600;display:flex;align-items:center;gap:.5rem}
+.role-select-label::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;animation:pulse-dot 2s ease-in-out infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.role-select{width:100%;padding:.7rem 1rem;background:#0E120F;color:#F4F2EC;border:1.5px solid rgba(244,242,236,.18);border-radius:10px;font-family:inherit;font-size:.95rem;font-weight:500;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EE493' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.5rem;transition:border-color .15s}
+.role-select:focus{border-color:#9EE493}
+.role-status{font-family:'Geist Mono',monospace;font-size:.68rem;letter-spacing:.06em;color:#8A8E87;text-transform:uppercase;display:flex;align-items:center;gap:.4rem;white-space:nowrap}
+.role-status .stat-dot{width:8px;height:8px;border-radius:50%;background:#9EE493;display:inline-block;box-shadow:0 0 6px rgba(158,228,147,.5)}
+
+.role-content{padding:2rem 2rem 2.25rem;display:grid;grid-template-columns:1fr;gap:1.5rem;animation:role-fade .35s ease}
+@keyframes role-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.role-header{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:center}
+.role-icon-wrap{width:48px;height:48px;border-radius:12px;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;color:#9EE493;font-family:'Geist Mono',monospace;font-weight:600;font-size:.85rem;flex-shrink:0}
+.role-title{font-size:1.4rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;line-height:1.25;margin-bottom:.2rem}
+.role-tag{font-family:'Geist Mono',monospace;font-size:.72rem;color:#9EE493;letter-spacing:.04em;text-transform:uppercase}
+
+.role-section{display:flex;flex-direction:column;gap:.7rem;padding-top:1rem;border-top:1px solid rgba(244,242,236,.06)}
+.role-section h5{font-family:'Geist Mono',monospace;font-size:.68rem;color:#9EE493;letter-spacing:.08em;font-weight:600;text-transform:uppercase}
+.role-section p{font-size:.95rem;color:#B7BAB4;line-height:1.7}
+.role-section ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.role-section ul li{padding-left:1.5rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.6}
+.role-section ul li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.role-section ul li strong{color:#F4F2EC;font-weight:500}
+
+.role-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;padding-top:1rem;border-top:1px solid rgba(244,242,236,.06)}
+.role-meta{display:flex;gap:1rem;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87}
+.role-meta span{display:inline-flex;align-items:center;gap:.4rem}
+.role-meta span::before{content:"";width:5px;height:5px;border-radius:50%;background:#9EE493;opacity:.6}
+.btn-apply-role{padding:.65rem 1.35rem;background:#9EE493;color:#0E120F;border:none;border-radius:999px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-apply-role:hover{background:#cef870;transform:translateY(-1px)}
+
+/* ── BENEFITS GRID ── */
+.benefits-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.benefit{padding:1.5rem;background:#fff;border:1px solid rgba(20,19,15,.08);border-radius:16px;display:flex;flex-direction:column;gap:.6rem;transition:all .25s}
+.benefit:hover{border-color:rgba(20,19,15,.18);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.benefit-ico{width:36px;height:36px;border-radius:10px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace}
+.benefit h4{font-size:.95rem;font-weight:600;color:#0E120F;letter-spacing:-.005em}
+.benefit p{font-size:.83rem;color:rgba(20,19,15,.65);line-height:1.55}
+
+/* ── HIRING APPROACH ── */
+.hiring-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem}
+@media(max-width:680px){.hiring-grid{grid-template-columns:1fr}}
+.hire-card{padding:1.5rem;border:1px solid rgba(244,242,236,.1);border-radius:14px;background:#161B17;display:flex;align-items:flex-start;gap:.85rem}
+.hire-card .num{font-family:'Geist Mono',monospace;font-size:1.5rem;font-weight:500;color:#9EE493;letter-spacing:-.02em;line-height:1;flex-shrink:0;width:34px}
+.hire-card h4{font-size:.95rem;font-weight:600;color:#F4F2EC;margin-bottom:.3rem;letter-spacing:-.005em}
+.hire-card p{font-size:.85rem;color:#B7BAB4;line-height:1.55}
+
+/* ── APPLICATION FORM ── */
+.apply-card{margin-top:2rem;padding:2.5rem 2.25rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.apply-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.apply-card h3{font-size:1.4rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.01em;position:relative}
+.apply-card p.apply-sub{font-size:.92rem;color:#B7BAB4;margin-bottom:1.75rem;line-height:1.6;max-width:580px;position:relative}
+.apply-form{display:grid;grid-template-columns:1fr 1fr;gap:1rem;position:relative}
+@media(max-width:680px){.apply-form{grid-template-columns:1fr}}
+.apply-form .full{grid-column:1 / -1}
+.apply-field label{display:block;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem;text-transform:uppercase}
+.apply-field label .opt{color:#8A8E87;font-weight:400}
+.apply-input{width:100%;padding:.7rem .95rem;background:#0E120F;border:1.5px solid rgba(244,242,236,.15);border-radius:10px;font-family:inherit;font-size:.92rem;color:#F4F2EC;outline:none;transition:border-color .15s,box-shadow .15s}
+.apply-input:focus{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.apply-input::placeholder{color:#8A8E87}
+textarea.apply-input{resize:vertical;min-height:90px;font-family:inherit}
+select.apply-input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EE493' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.5rem}
+.btn-submit-apply{padding:.85rem 2rem;background:#9EE493;color:#0E120F;border:none;border-radius:999px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;justify-self:start}
+.btn-submit-apply:hover{background:#cef870;transform:translateY(-1px)}
+.btn-submit-apply:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.apply-success{display:none;padding:2rem;text-align:center;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.3);border-radius:16px;margin-top:1rem}
+.apply-success.show{display:block;animation:role-fade .4s ease}
+.apply-success-ico{width:54px;height:54px;border-radius:50%;background:#9EE493;color:#0E120F;display:grid;place-items:center;font-size:1.5rem;font-weight:700;margin:0 auto 1rem}
+.apply-success h4{font-size:1.15rem;font-weight:600;color:#F4F2EC;margin-bottom:.5rem;letter-spacing:-.005em}
+.apply-success p{font-size:.9rem;color:#B7BAB4;line-height:1.6;max-width:480px;margin:0 auto}
+.apply-error{display:none;padding:.7rem 1rem;background:rgba(255,106,85,.1);color:#FF6A55;border:1px solid rgba(255,106,85,.25);border-radius:10px;font-size:.85rem;margin-top:.75rem;line-height:1.4}
+.apply-error.show{display:block}
+
+/* ── CTA ── */
+.c-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.c-cta h2{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;max-width:680px;margin:0 auto 1rem;color:#F4F2EC}
+.c-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.c-cta p{font-size:.95rem;color:#B7BAB4;max-width:560px;margin:0 auto 2rem;line-height:1.65}
+.c-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with photo + floating tags
+══════════════════════════════════════════════════════════ -->
+<section class="c-hero">
+  <div class="c-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Company</div>
-    <h1>Join the SOHANA Team</h1>
-    <p>SOHANA is a small team building large infrastructure. We are always looking for people who understand community finance from the inside.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="c-eyebrow">Careers</div>
+      <h1>Build what <span class="ital">comes next</span>.</h1>
+      <p>Sohana is building financial infrastructure for community-driven economies. We are still early — intentionally so. This is the phase where the right people don't just join a company, they help <em style="font-style:normal;color:#F4F2EC;">define</em> it.</p>
+      <p>If you're interested in working on problems at the intersection of finance, technology, and real-world impact — we'd like to hear from you.</p>
+
+      <div class="honesty-banner">
+        <strong>Honest note:</strong> We are not hiring at full scale yet. We are identifying and connecting with people who want to build with us as we grow. Roles below are <em style="font-style:italic;font-family:'Instrument Serif',serif;color:#9EE493;">expressions of interest</em> — submit your details and we'll reach out as positions formally open.
+      </div>
+    </div>
+
+    <div class="hero-photo-wrap" style="background-image:url('https://images.unsplash.com/photo-1591115765373-5207764f72e7?auto=format&fit=crop&w=1100&q=80');">
+      <div class="hero-floating-tags">
+        <span class="float-tag t1">REMOTE-FIRST</span>
+        <span class="float-tag t2">EARLY EQUITY</span>
+        <span class="float-tag t3">AFRICA-FOCUSED</span>
+        <span class="float-tag t4">FOUNDATIONAL TEAM</span>
+      </div>
+      <a class="img-credit" href="https://unsplash.com/photos/zMV7sqlJNow" target="_blank" rel="noopener">Unsplash · placeholder</a>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🚀</div>
-      <h3>We are building something historic</h3>
-      <p>SOHANA is at the intersection of fintech, cultural identity, and financial inclusion. If you want to work on a product that genuinely changes how people relate to money — and to each other — this is the right place.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🌍</div>
-      <h3>Remote-first, Africa-and-Europe focused</h3>
-      <p>We hire across France, the UK, Belgium, Rwanda, Ghana, Cameroon, and Nigeria. We build for our communities, which means we want our team to be from those communities.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">💼</div>
-      <h3>Roles we typically hire for</h3>
-      <p>Engineering (Python, React), Product Management, Community Growth, Compliance and Regulatory Affairs, Data Science, and Customer Support. If you do not see your role listed, reach out anyway.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📬</div>
-      <h3>How to apply</h3>
-      <p>Send your CV and a short note on why SOHANA matters to you to careers@sohana.app. We read every application personally.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHY JOIN SOHANA — 4 cards with animated icons
+══════════════════════════════════════════════════════════ -->
+<section class="c-section">
+  <div class="container">
+    <div class="c-eyebrow reveal">01 · Why join Sohana</div>
+    <h2 class="c-h2 reveal reveal-d1">Four reasons that <span class="ital">should matter</span> to you.</h2>
+
+    <div class="why-join">
+
+      <!-- 01 Real-world relevance (globe) -->
+      <div class="wj-card reveal reveal-d1">
+        <svg class="wj-icon icon-globe" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="24" cy="24" r="20" fill="rgba(158,228,147,.06)" stroke="#9EE493" stroke-width="1.5"/>
+          <g class="ring-g">
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#9EE493" stroke-opacity=".5" stroke-width="1"/>
+          </g>
+          <line class="meridian" x1="4" y1="24" x2="44" y2="24" stroke="#9EE493" stroke-opacity=".4" stroke-width="1"/>
+          <line class="meridian" x1="24" y1="4" x2="24" y2="44" stroke="#9EE493" stroke-opacity=".4" stroke-width="1"/>
+          <ellipse cx="24" cy="24" rx="8" ry="20" fill="none" stroke="#9EE493" stroke-opacity=".4" stroke-width="1"/>
+        </svg>
+        <div>
+          <h4>Real-world relevance</h4>
+          <p>Work on a product whose informal version is already used by hundreds of millions of people. We're not creating demand — we're meeting it.</p>
+        </div>
+      </div>
+
+      <!-- 02 Build access to capital (bricks) -->
+      <div class="wj-card reveal reveal-d2">
+        <svg class="wj-icon icon-build" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect class="brick"    x="6"  y="32" width="14" height="10" rx="1.5" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.2"/>
+          <rect class="brick"    x="22" y="32" width="14" height="10" rx="1.5" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.2"/>
+          <rect class="brick b2" x="14" y="20" width="14" height="10" rx="1.5" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.2"/>
+          <rect class="brick b2" x="30" y="20" width="14" height="10" rx="1.5" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.2"/>
+          <rect class="brick b3" x="22" y="8"  width="14" height="10" rx="1.5" fill="rgba(158,228,147,.25)" stroke="#9EE493" stroke-width="1.2"/>
+        </svg>
+        <div>
+          <h4>Build systems that matter</h4>
+          <p>Help build the financial coordination layer that improves access to capital for the people who have always built it themselves — without a formal system.</p>
+        </div>
+      </div>
+
+      <!-- 03 Foundational team (people) -->
+      <div class="wj-card reveal reveal-d3">
+        <svg class="wj-icon icon-team" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="person-tn">
+            <circle cx="14" cy="18" r="4" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.2"/>
+            <path d="M8 32 Q14 26 20 32" fill="none" stroke="#9EE493" stroke-width="1.2"/>
+          </g>
+          <g class="person-tn t2">
+            <circle cx="34" cy="18" r="4" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.2"/>
+            <path d="M28 32 Q34 26 40 32" fill="none" stroke="#9EE493" stroke-width="1.2"/>
+          </g>
+          <g class="person-tn t3">
+            <circle cx="24" cy="36" r="4" fill="rgba(158,228,147,.25)" stroke="#9EE493" stroke-width="1.2"/>
+          </g>
+          <line x1="18" y1="22" x2="22" y2="34" stroke="#9EE493" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 3"/>
+          <line x1="30" y1="22" x2="26" y2="34" stroke="#9EE493" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 3"/>
+          <line x1="20" y1="18" x2="28" y2="18" stroke="#9EE493" stroke-opacity=".4" stroke-width=".8" stroke-dasharray="2 3"/>
+        </svg>
+        <div>
+          <h4>Be on the foundational team</h4>
+          <p>Join before structure hardens. Decisions you make in the next 18 months will compound for the next 10 years. This phase doesn't come twice.</p>
+        </div>
+      </div>
+
+      <!-- 04 Long-term scale (impact waves) -->
+      <div class="wj-card reveal reveal-d4">
+        <svg class="wj-icon icon-impact" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle class="wave"    cx="24" cy="24" r="18" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+          <circle class="wave w2" cx="24" cy="24" r="18" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+          <circle class="wave w3" cx="24" cy="24" r="18" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="6" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="2.5" fill="#9EE493"/>
+        </svg>
+        <div>
+          <h4>Designed for long-term scale</h4>
+          <p>Sohana isn't a feature. It's infrastructure designed to compound across Africa and global diaspora markets over the next decade. The work has reach.</p>
+        </div>
+      </div>
+
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     ROLES (modular dropdown explorer)
+══════════════════════════════════════════════════════════ -->
+<section class="c-section">
+  <div class="container">
+    <div class="c-eyebrow reveal">02 · Open roles · Expression of interest</div>
+    <h2 class="c-h2 reveal reveal-d1">Eight foundational roles. <span class="ital">Pick one to explore</span>.</h2>
+    <p class="c-lead reveal reveal-d2">Select a role from the dropdown below to view responsibilities, requirements, and what success looks like in the first six months.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="role-explorer reveal reveal-d3">
+      <div class="role-selector-bar">
+        <div class="role-select-label">Browse role</div>
+        <select class="role-select" id="role-select" onchange="showRole(this.value)">
+          <option value="frontend">Frontend &amp; Mobile Engineer</option>
+          <option value="backend">Backend Engineer</option>
+          <option value="design">Product Designer (UI/UX)</option>
+          <option value="product">Product Manager</option>
+          <option value="growth">Growth &amp; Marketing Lead</option>
+          <option value="partnerships">Partnerships &amp; BD Lead</option>
+          <option value="compliance">Compliance &amp; Risk Analyst</option>
+          <option value="community">Community &amp; Operations Manager</option>
+        </select>
+        <div class="role-status"><span class="stat-dot"></span> Expressions open</div>
+      </div>
+
+      <!-- Role panels — only one shows at a time -->
+
+      <!-- 01 Frontend -->
+      <div class="role-content" id="role-frontend">
+        <div class="role-header">
+          <div class="role-icon-wrap">FE</div>
+          <div>
+            <div class="role-title">Frontend &amp; Mobile Engineer</div>
+            <div class="role-tag">Engineering · Web + Mobile · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Build clean, fast, mobile-responsive interfaces for the Sohana platform — dashboards, wallet flows, ROSCA management, and the consumer-facing mobile app. You'll own front-end architecture decisions and ship features end-to-end.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Strong React proficiency</strong> — and bonus for React Native or Flutter for the mobile track</li>
+            <li><strong>Solid UI/UX intuition</strong> — you can take a Figma file and ship something better than the spec</li>
+            <li><strong>Mobile-responsive web</strong> — comfortable with performance on mid-range Android over 3G</li>
+            <li><strong>Bonus:</strong> experience with HTML/Jinja stacks (current MVP) or progressive web apps</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>The mobile experience feels native. Page loads under 2 seconds on real-world African networks. You've shipped at least three flagship user flows and influenced how the product feels.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time or contract</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('frontend')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 02 Backend -->
+      <div class="role-content" id="role-backend" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">BE</div>
+          <div>
+            <div class="role-title">Backend Engineer</div>
+            <div class="role-tag">Engineering · APIs · Database · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Own the core platform logic — APIs, ledger integrity, transaction flows, KYC pipeline. You'll architect for both correctness (this is financial software) and scale (multi-region, multi-currency).</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Solid Python or Node.js</strong> — current stack is Python/Flask/SQLite, evolving to Postgres</li>
+            <li><strong>Database design fluency</strong> — financial data, audit trails, idempotency</li>
+            <li><strong>API security mindset</strong> — auth, signing, rate-limiting, replay protection</li>
+            <li><strong>Bonus:</strong> experience with payments integrations (Stripe, mobile money, EMIs)</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>Zero ledger discrepancies. APIs documented and stable. Payment-rail integration work is unblocked. You've made the system both more reliable and easier to extend.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('backend')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 03 Design -->
+      <div class="role-content" id="role-design" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">UX</div>
+          <div>
+            <div class="role-title">Product Designer (UI/UX)</div>
+            <div class="role-tag">Design · Product · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Shape how Sohana feels — from first-time user flows to admin-side tools. You'll work directly with the founder on the product's visual identity and the experience of every screen people see.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Strong portfolio</strong> — fintech or community-product experience valued, not required</li>
+            <li><strong>Figma fluency</strong> — design systems, prototypes, handoff</li>
+            <li><strong>Translates ideas to interfaces</strong> — taking ambiguous product input and producing clear flows</li>
+            <li><strong>Bonus:</strong> familiarity with low-bandwidth design or accessibility</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>The design system is documented and consistent. Onboarding completion rate increases. Real users describe the product as "easy" without prompting.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time or contract</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('design')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 04 Product Manager -->
+      <div class="role-content" id="role-product" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">PM</div>
+          <div>
+            <div class="role-title">Product Manager</div>
+            <div class="role-tag">Product · Strategy · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Own the product roadmap, prioritisation, and execution rhythm. You'll be the connective tissue between engineering, design, partnerships, and the founder — and the person who turns "we should build X" into "X shipped on time."</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Track record shipping digital products</strong> — fintech, marketplace, or community products preferred</li>
+            <li><strong>Strong prioritisation instinct</strong> — comfortable saying no, comfortable cutting scope</li>
+            <li><strong>User-flow fluency</strong> — you can read a session recording and identify the friction</li>
+            <li><strong>Bonus:</strong> experience operating in emerging markets or with diaspora users</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>The roadmap is clear, contested, and shipped on time. The team knows what they're building and why. Product KPIs are defined, instrumented, and improving.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('product')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 05 Growth -->
+      <div class="role-content" id="role-growth" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">GR</div>
+          <div>
+            <div class="role-title">Growth &amp; Marketing Lead</div>
+            <div class="role-tag">Growth · Brand · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Drive user acquisition, brand positioning, and early traction across diaspora markets. You'll own the funnel from first impression to first contribution — and the messaging that gets people to trust a new financial platform.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Digital marketing or growth experience</strong> — fintech or community-product experience preferred</li>
+            <li><strong>Grassroots / community growth understanding</strong> — diaspora networks don't respond to standard ad strategies</li>
+            <li><strong>Multi-channel execution</strong> — content, paid, partnerships, events</li>
+            <li><strong>Bonus:</strong> ties to African diaspora communities in EU, UK, or Canada</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>Waitlist conversion improves measurably. Brand voice is defined. Three growth channels are validated and scaling.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('growth')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 06 Partnerships -->
+      <div class="role-content" id="role-partnerships" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">BD</div>
+          <div>
+            <div class="role-title">Partnerships &amp; BD Lead</div>
+            <div class="role-tag">Business · Ecosystem · Hybrid (London / Paris)</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Build the relationships that make Sohana scale — financial institutions, community networks, technology providers, and ecosystem players. You'll move conversations from intro to integration.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Strong communication &amp; negotiation</strong> — you can hold a room of bank-side stakeholders</li>
+            <li><strong>Partnerships or ecosystem experience</strong> — fintech, payments, or emerging markets ideal</li>
+            <li><strong>Genuine interest in fintech</strong> — you're not chasing — you understand why this matters</li>
+            <li><strong>Bonus:</strong> existing network in EMI/PI space or African diaspora associations</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>Two pilot integrations live. Three serious partner conversations in late stage. Pipeline visible and reportable.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Hybrid</span><span>Early equity</span><span>Full-time</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('partnerships')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 07 Compliance -->
+      <div class="role-content" id="role-compliance" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">CO</div>
+          <div>
+            <div class="role-title">Compliance &amp; Risk Analyst</div>
+            <div class="role-tag">Compliance · Legal · Risk · Remote</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Support regulatory alignment as we scale — KYC/AML, GDPR, multi-jurisdiction frameworks. You'll also help build out fraud detection logic and risk scoring on the platform side.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Background in financial regulation</strong> — ACPR, FCA, FINTRAC familiarity a plus</li>
+            <li><strong>GDPR / data protection literacy</strong> — and how to apply it operationally, not just on paper</li>
+            <li><strong>Comfort with data tools</strong> — SQL or Python for behavioural and transaction analysis</li>
+            <li><strong>Bonus:</strong> AML monitoring, fraud detection, or audit experience in fintech</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>Authorisation workstreams have clear owners and timelines. Internal compliance dashboards are live. Risk scoring framework drafted.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote</span><span>Early equity</span><span>Full-time or contract</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('compliance')">Apply for this role →</button>
+        </div>
+      </div>
+
+      <!-- 08 Community -->
+      <div class="role-content" id="role-community" style="display:none">
+        <div class="role-header">
+          <div class="role-icon-wrap">CM</div>
+          <div>
+            <div class="role-title">Community &amp; Operations Manager</div>
+            <div class="role-tag">Community · Support · Remote-first</div>
+          </div>
+        </div>
+        <div class="role-section">
+          <h5>The work</h5>
+          <p>Be the human face of Sohana for our earliest members — onboarding pilots, supporting circle organisers, gathering feedback that shapes the product. The closer you are to users, the better the product gets.</p>
+        </div>
+        <div class="role-section">
+          <h5>Key requirements</h5>
+          <ul>
+            <li><strong>Excellent communication</strong> — across English and ideally French; bonus for any African language</li>
+            <li><strong>Community work experience</strong> — diaspora associations, cooperatives, faith groups, or grassroots organisations</li>
+            <li><strong>Operational mindset</strong> — you turn chaos into checklists</li>
+            <li><strong>Bonus:</strong> experience supporting non-technical users on financial products</li>
+          </ul>
+        </div>
+        <div class="role-section">
+          <h5>What success looks like (first 6 months)</h5>
+          <p>Pilot circles are running smoothly. Member NPS is measured and improving. Feedback loops back to product reliably.</p>
+        </div>
+        <div class="role-footer">
+          <div class="role-meta"><span>Remote-first</span><span>Early equity</span><span>Full-time</span></div>
+          <button class="btn-apply-role" onclick="prefillRole('community')">Apply for this role →</button>
+        </div>
+      </div>
+
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     BENEFITS (warm) — what you get joining early
+══════════════════════════════════════════════════════════ -->
+<section class="c-section warm">
+  <div class="container">
+    <div class="c-eyebrow reveal">03 · What we offer</div>
+    <h2 class="c-h2 reveal reveal-d1" style="color:#0E120F;">Decent benefits and <span class="ital">real ownership</span>.</h2>
+    <p class="c-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">We are early — that means cash compensation is not yet at large-company levels. What we offer instead is meaningful equity, real ownership of the work, and a culture built around long-term thinking.</p>
+
+    <div class="benefits-grid">
+      <div class="benefit reveal reveal-d1">
+        <div class="benefit-ico">$</div>
+        <h4>Meaningful early equity</h4>
+        <p>Stock options that reflect joining at the foundation. The earlier you join, the more upside compounds.</p>
+      </div>
+      <div class="benefit reveal reveal-d1">
+        <div class="benefit-ico">⊞</div>
+        <h4>Remote-first, async</h4>
+        <p>Work from anywhere. Core overlap hours respect both EU and African time zones. No mandatory office.</p>
+      </div>
+      <div class="benefit reveal reveal-d2">
+        <div class="benefit-ico">+</div>
+        <h4>Health &amp; wellbeing</h4>
+        <p>Health-insurance support adapted to your jurisdiction. Mental-health resources. Time off when you need it.</p>
+      </div>
+      <div class="benefit reveal reveal-d2">
+        <div class="benefit-ico">↑</div>
+        <h4>Learning budget</h4>
+        <p>Annual budget for books, courses, certifications, and conferences relevant to your work.</p>
+      </div>
+      <div class="benefit reveal reveal-d3">
+        <div class="benefit-ico">⌘</div>
+        <h4>Equipment &amp; setup</h4>
+        <p>Laptop, monitor, and home-office setup covered. We don't expect you to fund your own tools.</p>
+      </div>
+      <div class="benefit reveal reveal-d3">
+        <div class="benefit-ico">∞</div>
+        <h4>Real ownership</h4>
+        <p>Not just job titles — actual ownership of decisions, problems, and outcomes. You build it, you run it.</p>
+      </div>
+      <div class="benefit reveal reveal-d4">
+        <div class="benefit-ico">◎</div>
+        <h4>Annual team meet-ups</h4>
+        <p>We come together in person at least twice a year — once in Africa, once in Europe — to align, ship, and rest.</p>
+      </div>
+      <div class="benefit reveal reveal-d4">
+        <div class="benefit-ico">★</div>
+        <h4>Mission &amp; impact</h4>
+        <p>Work whose outcome you can describe to your grandmother — and have her understand why it matters.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     OUR HIRING APPROACH
+══════════════════════════════════════════════════════════ -->
+<section class="c-section">
+  <div class="container">
+    <div class="c-eyebrow reveal">04 · How we hire</div>
+    <h2 class="c-h2 reveal reveal-d1">We hire for <span class="ital">long-term fit</span>, not just résumé fit.</h2>
+    <p class="c-lead reveal reveal-d2">Early teams are built through conversations before contracts. Even if a role isn't formally open yet, reach out if you believe you can contribute meaningfully.</p>
+
+    <div class="hiring-grid">
+      <div class="hire-card reveal reveal-d1">
+        <div class="num">01</div>
+        <div>
+          <h4>Long-term thinkers</h4>
+          <p>You're comfortable with three-year horizons, not three-week ones. You compound rather than sprint.</p>
+        </div>
+      </div>
+      <div class="hire-card reveal reveal-d2">
+        <div class="num">02</div>
+        <div>
+          <h4>Builders, ground-up</h4>
+          <p>You're comfortable with ambiguity, missing tooling, and evolving systems. You build the road as you walk it.</p>
+        </div>
+      </div>
+      <div class="hire-card reveal reveal-d3">
+        <div class="num">03</div>
+        <div>
+          <h4>Clarity, ownership, execution</h4>
+          <p>You value clear thinking over clever thinking. You ship. You own outcomes — not just outputs.</p>
+        </div>
+      </div>
+      <div class="hire-card reveal reveal-d4">
+        <div class="num">04</div>
+        <div>
+          <h4>Aligned with the mission</h4>
+          <p>You believe that improving access to financial coordination is worth a decade of your career — not because it's hot, because it's right.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     APPLICATION FORM
+══════════════════════════════════════════════════════════ -->
+<section class="c-section">
+  <div class="container">
+    <div class="c-eyebrow reveal">05 · Submit your interest</div>
+    <h2 class="c-h2 reveal reveal-d1">If <span class="ital">any of this resonates</span> — let's talk.</h2>
+    <p class="c-lead reveal reveal-d2">Submit your details below. We'll get back to you as roles formally open. Even if you don't see a perfect fit, we read every submission.</p>
+
+    <div class="apply-card reveal reveal-d3">
+      <h3>Express your interest</h3>
+      <p class="apply-sub">All fields except portfolio and message are required. We aim to respond within 7 business days as roles open up.</p>
+
+      <form class="apply-form" id="apply-form" onsubmit="return submitApplication(event)">
+        <div class="apply-field">
+          <label for="ap-name">Full name</label>
+          <input class="apply-input" id="ap-name" type="text" placeholder="Marie Ngono" required>
+        </div>
+
+        <div class="apply-field">
+          <label for="ap-email">Email</label>
+          <input class="apply-input" id="ap-email" type="email" placeholder="you@email.com" required>
+        </div>
+
+        <div class="apply-field">
+          <label for="ap-phone">Phone <span class="opt">(with country code)</span></label>
+          <input class="apply-input" id="ap-phone" type="tel" placeholder="+33 6 11 00 00 01" required>
+        </div>
+
+        <div class="apply-field">
+          <label for="ap-role">Role of interest</label>
+          <select class="apply-input" id="ap-role" required>
+            <option value="frontend">Frontend &amp; Mobile Engineer</option>
+            <option value="backend">Backend Engineer</option>
+            <option value="design">Product Designer (UI/UX)</option>
+            <option value="product">Product Manager</option>
+            <option value="growth">Growth &amp; Marketing Lead</option>
+            <option value="partnerships">Partnerships &amp; BD Lead</option>
+            <option value="compliance">Compliance &amp; Risk Analyst</option>
+            <option value="community">Community &amp; Operations Manager</option>
+            <option value="general">General — open to discussion</option>
+          </select>
+        </div>
+
+        <div class="apply-field full">
+          <label for="ap-portfolio">Portfolio / LinkedIn / GitHub <span class="opt">(optional)</span></label>
+          <input class="apply-input" id="ap-portfolio" type="url" placeholder="https://...">
+        </div>
+
+        <div class="apply-field full">
+          <label for="ap-message">Why Sohana? <span class="opt">(optional, but helpful)</span></label>
+          <textarea class="apply-input" id="ap-message" rows="4" placeholder="Tell us briefly why this resonates — and what you'd want to build. A few sentences is plenty."></textarea>
+        </div>
+
+        <div class="apply-field full">
+          <button type="submit" class="btn-submit-apply" id="ap-submit">
+            Submit application
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <div class="apply-error" id="ap-error"></div>
+        </div>
+      </form>
+
+      <div class="apply-success" id="ap-success">
+        <div class="apply-success-ico">✓</div>
+        <h4>Thanks — we've received your application</h4>
+        <p>We read every submission personally. You'll hear from us within 7 business days as the role opens. In the meantime, follow our progress on <a href="/blog" style="color:#9EE493;">the blog</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="c-cta">
+  <h2>Even if no role looks <span class="ital">exactly right</span> — reach out.</h2>
+  <p>Early teams are built through conversations before contracts. If you believe you can contribute, we want to hear from you.</p>
+  <div class="c-cta-buttons">
+    <a href="mailto:careers@sohana.app" class="btn-primary">Email us directly</a>
+    <a href="/about" class="btn-outline-white">Read our story</a>
+    <a href="/mission" class="btn-outline-white">Read our mission</a>
+  </div>
+</section>
+
+<script>
+/* ── Role explorer ── */
+function showRole(key){
+  document.querySelectorAll('.role-content').forEach(function(el){el.style.display='none'});
+  var el=document.getElementById('role-'+key);
+  if(el){el.style.display='grid';el.style.animation='none';void el.offsetWidth;el.style.animation='role-fade .35s ease'}
+}
+function prefillRole(key){
+  document.getElementById('ap-role').value = key;
+  document.getElementById('apply-form').scrollIntoView({behavior:'smooth',block:'start'});
+  setTimeout(function(){document.getElementById('ap-name').focus()},600);
+}
+
+/* ── Application submission ── */
+async function submitApplication(e){
+  e.preventDefault();
+  var btn=document.getElementById('ap-submit');
+  var err=document.getElementById('ap-error');
+  err.classList.remove('show');
+  var payload={
+    name:     document.getElementById('ap-name').value.trim(),
+    email:    document.getElementById('ap-email').value.trim(),
+    phone:    document.getElementById('ap-phone').value.trim(),
+    role:     document.getElementById('ap-role').value,
+    portfolio:document.getElementById('ap-portfolio').value.trim(),
+    message:  document.getElementById('ap-message').value.trim()
+  };
+  if(!payload.name||!payload.email||!payload.phone){
+    err.textContent='Please fill in name, email and phone.';
+    err.classList.add('show'); return false;
+  }
+  btn.disabled=true; btn.textContent='Submitting…';
+  try{
+    var r=await fetch('/api/careers/apply',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var data=await r.json();
+    if(data.error){
+      err.textContent=data.error;
+      err.classList.add('show');
+      btn.disabled=false; btn.innerHTML='Submit application <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+      return false;
+    }
+    document.getElementById('apply-form').style.display='none';
+    document.getElementById('ap-success').classList.add('show');
+    document.getElementById('ap-success').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(ex){
+    err.textContent='Connection error. Please try again or email careers@sohana.app';
+    err.classList.add('show');
+    btn.disabled=false; btn.innerHTML='Submit application <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+  }
+  return false;
+}
+
+/* ── Scroll reveal observer ── */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
