@@ -873,6 +873,294 @@ def admin_careers_export():
                     headers={"Content-Disposition": "attachment; filename=sohana-careers-applications.csv"})
 
 
+# ── PRESS PAGE (public) ───────────────────────────────────────────────────────
+
+def _ensure_press_tables():
+    """Create press tables if they don't exist. Called lazily."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS press_mentions (
+                id           TEXT PRIMARY KEY,
+                title        TEXT NOT NULL,
+                source       TEXT NOT NULL,
+                url          TEXT NOT NULL,
+                summary      TEXT,
+                image_url    TEXT,
+                category     TEXT,
+                published_at TEXT,
+                position     INTEGER NOT NULL DEFAULT 0,
+                is_active    INTEGER NOT NULL DEFAULT 1,
+                created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS press_instagram_posts (
+                id         TEXT PRIMARY KEY,
+                url        TEXT NOT NULL,
+                image_url  TEXT NOT NULL,
+                caption    TEXT,
+                position   INTEGER NOT NULL DEFAULT 0,
+                is_active  INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS press_inquiries (
+                id          TEXT PRIMARY KEY,
+                name        TEXT NOT NULL,
+                organisation TEXT NOT NULL,
+                email       TEXT NOT NULL,
+                phone       TEXT,
+                reason      TEXT NOT NULL,
+                timeline    TEXT,
+                message     TEXT,
+                status      TEXT NOT NULL DEFAULT 'new',
+                reviewed_by TEXT,
+                reviewed_at TEXT,
+                notes       TEXT,
+                created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+    except Exception as e:
+        import sys
+        print(f"[_ensure_press_tables] {e}", file=sys.stderr, flush=True)
+
+
+@app.route("/press")
+def press_page():
+    """Public press page — loads mentions and Instagram posts from DB."""
+    _ensure_press_tables()
+    try:
+        mentions = fetchall(
+            """SELECT id, title, source, url, summary, image_url, category, published_at
+               FROM press_mentions WHERE is_active=1
+               ORDER BY position ASC, published_at DESC, created_at DESC"""
+        )
+    except Exception:
+        mentions = []
+    try:
+        instagram_posts = fetchall(
+            """SELECT id, url, image_url, caption
+               FROM press_instagram_posts WHERE is_active=1
+               ORDER BY position ASC, created_at DESC LIMIT 12"""
+        )
+    except Exception:
+        instagram_posts = []
+    return render_template("press.html",
+                           mentions=mentions, instagram_posts=instagram_posts)
+
+
+@app.route("/api/press/inquiry", methods=["POST"])
+def api_press_inquiry():
+    """Capture press inquiry submissions."""
+    _ensure_press_tables()
+    d         = request.json or {}
+    name      = d.get("name", "").strip()
+    org       = d.get("org", "").strip()
+    email     = d.get("email", "").strip().lower()
+    phone     = d.get("phone", "").strip()
+    reason    = d.get("reason", "").strip() or "other"
+    timeline  = d.get("timeline", "").strip()
+    message   = d.get("message", "").strip()
+
+    if not name or not org or not email:
+        return jsonify({"error": "Name, organisation, and email are required."}), 400
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"error": "Please enter a valid email address."}), 400
+
+    try:
+        with get_db() as db:
+            db.execute("""INSERT INTO press_inquiries
+                          (id, name, organisation, email, phone, reason, timeline, message)
+                          VALUES (?,?,?,?,?,?,?,?)""",
+                       (str(uuid.uuid4()), name, org, email,
+                        phone or None, reason, timeline or None, message or None))
+        return jsonify({"ok": True})
+    except Exception as e:
+        import sys
+        print(f"[press_inquiry] failed: {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Submission failed. Please email press@sohana.app instead."}), 500
+
+
+# ── PRESS ADMIN ────────────────────────────────────────────────────────────────
+
+@app.route("/admin/press")
+@admin_required
+def admin_press():
+    """Admin view — manage mentions, Instagram posts, and inquiries."""
+    _ensure_press_tables()
+    user = auth.get_current_user()
+    try:
+        mentions = fetchall(
+            """SELECT id, title, source, url, summary, image_url, category, published_at,
+                      position, is_active, created_at
+               FROM press_mentions ORDER BY position ASC, created_at DESC"""
+        )
+    except Exception:
+        mentions = []
+    try:
+        ig_posts = fetchall(
+            """SELECT id, url, image_url, caption, position, is_active, created_at
+               FROM press_instagram_posts ORDER BY position ASC, created_at DESC"""
+        )
+    except Exception:
+        ig_posts = []
+    try:
+        inquiries = fetchall(
+            """SELECT id, name, organisation, email, phone, reason, timeline, message,
+                      status, reviewed_by, reviewed_at, notes, created_at
+               FROM press_inquiries ORDER BY created_at DESC"""
+        )
+    except Exception:
+        inquiries = []
+    counts = {"new": 0, "reviewed": 0, "responded": 0, "archived": 0}
+    for q in inquiries:
+        s = q["status"] or "new"
+        counts[s] = counts.get(s, 0) + 1
+    return render_template("admin_press.html",
+                           user=user, mentions=mentions, ig_posts=ig_posts,
+                           inquiries=inquiries, counts=counts)
+
+
+@app.route("/api/admin/press/mention", methods=["POST"])
+@admin_required
+def api_admin_press_mention_create():
+    """Create a press mention."""
+    _ensure_press_tables()
+    d = request.json or {}
+    title  = d.get("title", "").strip()
+    source = d.get("source", "").strip()
+    url    = d.get("url", "").strip()
+    if not title or not source or not url:
+        return jsonify({"error": "Title, source, and URL are required."}), 400
+    try:
+        mid = str(uuid.uuid4())
+        with get_db() as db:
+            db.execute(
+                """INSERT INTO press_mentions
+                   (id, title, source, url, summary, image_url, category, published_at, position, is_active)
+                   VALUES (?,?,?,?,?,?,?,?,?,1)""",
+                (mid, title, source, url,
+                 d.get("summary") or None, d.get("image_url") or None,
+                 d.get("category") or None, d.get("published_at") or None,
+                 int(d.get("position", 0) or 0))
+            )
+        return jsonify({"ok": True, "id": mid})
+    except Exception as e:
+        return jsonify({"error": "Create failed."}), 500
+
+
+@app.route("/api/admin/press/mention/<mid>/delete", methods=["POST"])
+@admin_required
+def api_admin_press_mention_delete(mid):
+    try:
+        with get_db() as db:
+            db.execute("DELETE FROM press_mentions WHERE id=?", (mid,))
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"error": "Delete failed."}), 500
+
+
+@app.route("/api/admin/press/mention/<mid>/toggle", methods=["POST"])
+@admin_required
+def api_admin_press_mention_toggle(mid):
+    try:
+        with get_db() as db:
+            db.execute("UPDATE press_mentions SET is_active=1-is_active WHERE id=?", (mid,))
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"error": "Toggle failed."}), 500
+
+
+@app.route("/api/admin/press/instagram", methods=["POST"])
+@admin_required
+def api_admin_press_ig_create():
+    """Create an Instagram post entry."""
+    _ensure_press_tables()
+    d = request.json or {}
+    url       = d.get("url", "").strip()
+    image_url = d.get("image_url", "").strip()
+    if not url or not image_url:
+        return jsonify({"error": "Post URL and image URL are required."}), 400
+    try:
+        pid = str(uuid.uuid4())
+        with get_db() as db:
+            db.execute(
+                """INSERT INTO press_instagram_posts
+                   (id, url, image_url, caption, position, is_active)
+                   VALUES (?,?,?,?,?,1)""",
+                (pid, url, image_url,
+                 d.get("caption") or None,
+                 int(d.get("position", 0) or 0))
+            )
+        return jsonify({"ok": True, "id": pid})
+    except Exception:
+        return jsonify({"error": "Create failed."}), 500
+
+
+@app.route("/api/admin/press/instagram/<pid>/delete", methods=["POST"])
+@admin_required
+def api_admin_press_ig_delete(pid):
+    try:
+        with get_db() as db:
+            db.execute("DELETE FROM press_instagram_posts WHERE id=?", (pid,))
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"error": "Delete failed."}), 500
+
+
+@app.route("/api/admin/press/instagram/<pid>/toggle", methods=["POST"])
+@admin_required
+def api_admin_press_ig_toggle(pid):
+    try:
+        with get_db() as db:
+            db.execute("UPDATE press_instagram_posts SET is_active=1-is_active WHERE id=?", (pid,))
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"error": "Toggle failed."}), 500
+
+
+@app.route("/api/admin/press/inquiry/<iid>/status", methods=["POST"])
+@admin_required
+def api_admin_press_inquiry_status(iid):
+    """Update inquiry status: new / reviewed / responded / archived."""
+    d = request.json or {}
+    new_status = d.get("status", "").strip()
+    notes      = d.get("notes", "").strip() or None
+    if new_status not in ("new", "reviewed", "responded", "archived"):
+        return jsonify({"error": "Invalid status."}), 400
+    try:
+        with get_db() as db:
+            db.execute(
+                """UPDATE press_inquiries
+                   SET status=?, reviewed_by=?, reviewed_at=datetime('now'), notes=?
+                   WHERE id=?""",
+                (new_status, session["user_id"], notes, iid)
+            )
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"error": "Update failed."}), 500
+
+
+@app.route("/admin/press/inquiries/export")
+@admin_required
+def admin_press_inquiries_export():
+    import io, csv
+    try:
+        rows = fetchall(
+            """SELECT name, organisation, email, phone, reason, timeline, message,
+                      status, created_at FROM press_inquiries ORDER BY created_at DESC"""
+        )
+    except Exception:
+        rows = []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Name", "Organisation", "Email", "Phone", "Reason",
+                     "Timeline", "Message", "Status", "Submitted"])
+    for r in rows:
+        writer.writerow([r["name"], r["organisation"], r["email"], r["phone"] or "",
+                         r["reason"], r["timeline"] or "", r["message"] or "",
+                         r["status"], r["created_at"][:16]])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=sohana-press-inquiries.csv"})
+
+
 # ── WALLET API ────────────────────────────────────────────────────────────────
 
 @app.route("/api/wallet/balances")

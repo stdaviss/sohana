@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% block title %}Press Management — SOHANA Admin{% endblock %}
+{% block topbar_title %}Press Management{% endblock %}
+
+{% block content %}
+<style>
+.ap-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem}
+.ap-header h2{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.ap-header p{font-size:.825rem;color:var(--ink-3);margin-top:.25rem}
+
+.ap-tabs{display:flex;gap:.4rem;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.3rem;margin-bottom:1.25rem}
+.ap-tab{flex:1;padding:.55rem .85rem;background:none;border:none;border-radius:var(--radius);font-family:inherit;font-size:.825rem;font-weight:500;color:var(--ink-3);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.45rem}
+.ap-tab.on{background:var(--bg-3);color:var(--ink);font-weight:600}
+.ap-tab .count{font-family:'Geist Mono',monospace;font-size:.7rem;background:var(--bg);padding:.05rem .4rem;border-radius:99px;color:var(--ink-3)}
+.ap-tab.on .count{background:var(--accent);color:var(--accent-ink)}
+
+.ap-panel{display:none}
+.ap-panel.on{display:block}
+
+.ap-actions-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.btn-add{padding:.55rem 1.1rem;background:var(--accent);color:var(--accent-ink);border:none;border-radius:99px;font-family:inherit;font-size:.825rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
+.btn-add:hover{background:#cef870;transform:translateY(-1px)}
+.btn-export{padding:.5rem 1rem;background:transparent;border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2);font-family:inherit;font-size:.78rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
+.btn-export:hover{border-color:var(--accent);color:var(--accent)}
+
+.ap-table-wrap{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+.ap-table{width:100%;border-collapse:collapse}
+.ap-table th{text-align:left;padding:.7rem 1rem;font-size:.7rem;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line);font-family:'Geist Mono',monospace;background:var(--bg-3)}
+.ap-table td{padding:.75rem 1rem;border-bottom:1px solid var(--line);font-size:.825rem;color:var(--ink-2);vertical-align:middle}
+.ap-table tr:last-child td{border-bottom:none}
+.ap-table tr:hover td{background:var(--bg-3)}
+.ap-thumb{width:54px;height:36px;border-radius:6px;background-size:cover;background-position:center;background-color:rgba(158,228,147,.05);border:1px solid var(--line)}
+.ap-thumb.placeholder{display:grid;place-items:center;color:var(--ink-3);font-size:.85rem}
+.ap-link{color:var(--accent);font-family:'Geist Mono',monospace;font-size:.72rem;text-decoration:none;display:inline-flex;align-items:center;gap:.3rem}
+.ap-link:hover{text-decoration:underline}
+.ap-source-pill{display:inline-block;font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .5rem;border-radius:99px;background:var(--bg-3);color:var(--ink-2);border:1px solid var(--line);text-transform:uppercase;letter-spacing:.06em}
+.ap-status{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .55rem;border-radius:99px;text-transform:uppercase;letter-spacing:.05em}
+.ap-status.active{background:rgba(158,228,147,.12);color:var(--accent);border:1px solid rgba(158,228,147,.3)}
+.ap-status.inactive{background:rgba(244,242,236,.06);color:var(--ink-3);border:1px solid var(--line)}
+.ap-actions{display:flex;gap:.3rem;flex-wrap:wrap;justify-content:flex-end}
+.ap-btn{padding:.3rem .6rem;font-family:'Geist Mono',monospace;font-size:.65rem;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);border-radius:99px;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .15s}
+.ap-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ap-btn.danger:hover{border-color:var(--red,#FF6A55);color:var(--red,#FF6A55)}
+.ap-empty{padding:2rem;text-align:center;color:var(--ink-3);font-size:.85rem}
+
+.ap-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.875rem;margin-bottom:1.25rem}
+.ap-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.875rem 1.1rem}
+.ap-stat .lbl{font-size:.7rem;color:var(--ink-3);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+.ap-stat .val{font-size:1.5rem;font-weight:700;font-family:'Geist Mono',monospace;letter-spacing:-.02em;color:var(--ink)}
+.ap-stat .val.new{color:var(--accent)}
+
+.ap-status-pill{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .55rem;border-radius:99px;text-transform:uppercase;letter-spacing:.05em}
+.ap-status-pill.new{background:rgba(158,228,147,.12);color:var(--accent);border:1px solid rgba(158,228,147,.3)}
+.ap-status-pill.reviewed{background:rgba(244,242,236,.06);color:var(--ink-2);border:1px solid var(--line)}
+.ap-status-pill.responded{background:rgba(118,224,161,.15);color:#76E0A1;border:1px solid rgba(118,224,161,.3)}
+.ap-status-pill.archived{background:rgba(244,242,236,.04);color:var(--ink-3);border:1px solid var(--line)}
+
+.ap-msg{max-width:280px;color:var(--ink-3);font-size:.78rem;line-height:1.4;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+
+/* MODAL */
+.ap-modal-bd{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:1rem}
+.ap-modal-bd.on{display:flex}
+.ap-modal{background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-lg);max-width:520px;width:100%;padding:1.5rem;max-height:90vh;overflow-y:auto}
+.ap-modal h3{font-size:1.05rem;font-weight:700;margin-bottom:.4rem}
+.ap-modal p.modal-sub{font-size:.825rem;color:var(--ink-2);margin-bottom:1rem;line-height:1.55}
+.ap-field{margin-bottom:.875rem}
+.ap-field label{display:block;font-size:.7rem;color:var(--ink-2);font-family:'Geist Mono',monospace;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.ap-field label .opt{color:var(--ink-3);font-weight:400}
+.ap-field input,.ap-field textarea,.ap-field select{width:100%;padding:.55rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.875rem;outline:none}
+.ap-field input:focus,.ap-field textarea:focus,.ap-field select:focus{border-color:var(--accent)}
+.ap-field textarea{resize:vertical;min-height:70px}
+.ap-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.ap-modal-btns{display:flex;gap:.6rem;margin-top:1.25rem}
+.ap-modal-btns button{flex:1;padding:.6rem;border-radius:99px;border:none;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+.ap-cancel{background:transparent;border:1.5px solid var(--line-2);color:var(--ink-2)}
+.ap-cancel:hover{border-color:var(--line);color:var(--ink)}
+.ap-save{background:var(--accent);color:var(--accent-ink)}
+.ap-save:hover{background:#cef870}
+
+.ap-flash{display:none;padding:.7rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.85rem}
+.ap-flash.show{display:block}
+.ap-flash.success{background:rgba(158,228,147,.1);color:var(--accent);border:1px solid rgba(158,228,147,.25)}
+.ap-flash.error{background:rgba(255,106,85,.1);color:var(--red,#FF6A55);border:1px solid rgba(255,106,85,.22)}
+</style>
+
+<div class="content-wrap" style="max-width:1200px;">
+
+  <div class="ap-header">
+    <div>
+      <h2>Press Management</h2>
+      <p>Manage press mentions, Instagram posts, and inquiries from the press page.</p>
+    </div>
+  </div>
+
+  <div id="ap-flash" class="ap-flash"></div>
+
+  <!-- TABS -->
+  <div class="ap-tabs">
+    <button class="ap-tab on" id="tab-mentions"  onclick="showTab('mentions')">Mentions <span class="count">{{ mentions|length }}</span></button>
+    <button class="ap-tab"    id="tab-instagram" onclick="showTab('instagram')">Instagram <span class="count">{{ ig_posts|length }}</span></button>
+    <button class="ap-tab"    id="tab-inquiries" onclick="showTab('inquiries')">Inquiries <span class="count">{{ counts.new or 0 }}/{{ inquiries|length }}</span></button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 1: MENTIONS
+  ══════════════════════════════════════════════════════════ -->
+  <div class="ap-panel on" id="panel-mentions">
+    <div class="ap-actions-row">
+      <div></div>
+      <button class="btn-add" onclick="openMentionModal()">+ Add mention</button>
+    </div>
+
+    <div class="ap-table-wrap">
+      <table class="ap-table">
+        <thead><tr>
+          <th>Image</th><th>Title</th><th>Source</th><th>Category</th><th>Date</th><th>Status</th><th style="text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% if mentions %}
+            {% for m in mentions %}
+              <tr>
+                <td>
+                  {% if m.image_url %}
+                    <div class="ap-thumb" style="background-image:url('{{ m.image_url }}');"></div>
+                  {% else %}
+                    <div class="ap-thumb placeholder">📰</div>
+                  {% endif %}
+                </td>
+                <td><div style="color:var(--ink);font-weight:500;max-width:280px;">{{ m.title }}</div></td>
+                <td><span class="ap-source-pill">{{ m.source }}</span></td>
+                <td><span style="font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);">{{ m.category or '—' }}</span></td>
+                <td><span style="font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);">{{ m.published_at[:10] if m.published_at else '—' }}</span></td>
+                <td><span class="ap-status {{ 'active' if m.is_active else 'inactive' }}">{{ 'Active' if m.is_active else 'Hidden' }}</span></td>
+                <td>
+                  <div class="ap-actions">
+                    <a class="ap-link" href="{{ m.url }}" target="_blank" rel="noopener">View ↗</a>
+                    <button class="ap-btn" onclick="toggleMention('{{ m.id }}')">{{ 'Hide' if m.is_active else 'Show' }}</button>
+                    <button class="ap-btn danger" onclick="deleteMention('{{ m.id }}')">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="7" class="ap-empty">No mentions yet — click <strong style="color:var(--accent);">+ Add mention</strong> to get started.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 2: INSTAGRAM
+  ══════════════════════════════════════════════════════════ -->
+  <div class="ap-panel" id="panel-instagram">
+    <div class="ap-actions-row">
+      <p style="font-size:.82rem;color:var(--ink-3);max-width:520px;">Add an Instagram post by pasting the post URL and the image URL (right-click the post image → Copy image address). Up to 12 posts will display on the press page.</p>
+      <button class="btn-add" onclick="openIgModal()">+ Add Instagram post</button>
+    </div>
+
+    <div class="ap-table-wrap">
+      <table class="ap-table">
+        <thead><tr>
+          <th>Preview</th><th>Caption</th><th>Post URL</th><th>Position</th><th>Status</th><th style="text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody>
+          {% if ig_posts %}
+            {% for p in ig_posts %}
+              <tr>
+                <td><div class="ap-thumb" style="background-image:url('{{ p.image_url }}');"></div></td>
+                <td><div class="ap-msg">{{ p.caption or '—' }}</div></td>
+                <td><a class="ap-link" href="{{ p.url }}" target="_blank" rel="noopener">View on IG ↗</a></td>
+                <td><span style="font-family:'Geist Mono',monospace;font-size:.78rem;color:var(--ink-2);">{{ p.position }}</span></td>
+                <td><span class="ap-status {{ 'active' if p.is_active else 'inactive' }}">{{ 'Active' if p.is_active else 'Hidden' }}</span></td>
+                <td>
+                  <div class="ap-actions">
+                    <button class="ap-btn" onclick="toggleIg('{{ p.id }}')">{{ 'Hide' if p.is_active else 'Show' }}</button>
+                    <button class="ap-btn danger" onclick="deleteIg('{{ p.id }}')">Delete</button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="6" class="ap-empty">No Instagram posts yet — click <strong style="color:var(--accent);">+ Add Instagram post</strong> to feature posts on the press page.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       PANEL 3: INQUIRIES
+  ══════════════════════════════════════════════════════════ -->
+  <div class="ap-panel" id="panel-inquiries">
+    <div class="ap-stats">
+      <div class="ap-stat"><div class="lbl">New</div><div class="val new">{{ counts.new or 0 }}</div></div>
+      <div class="ap-stat"><div class="lbl">Reviewed</div><div class="val">{{ counts.reviewed or 0 }}</div></div>
+      <div class="ap-stat"><div class="lbl">Responded</div><div class="val">{{ counts.responded or 0 }}</div></div>
+      <div class="ap-stat"><div class="lbl">Archived</div><div class="val">{{ counts.archived or 0 }}</div></div>
+      <div class="ap-stat"><div class="lbl">Total</div><div class="val">{{ inquiries|length }}</div></div>
+    </div>
+
+    <div class="ap-actions-row">
+      <input type="text" class="ap-field" id="iq-search" placeholder="Search inquiries…" oninput="iqFilter()" style="max-width:320px;padding:.5rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.825rem;outline:none;">
+      <a href="/admin/press/inquiries/export" class="btn-export">⤓ Export CSV</a>
+    </div>
+
+    <div class="ap-table-wrap">
+      <table class="ap-table">
+        <thead><tr>
+          <th>From</th><th>Reason</th><th>Timeline</th><th>Message</th><th>Submitted</th><th>Status</th><th style="text-align:right;">Actions</th>
+        </tr></thead>
+        <tbody id="iq-tbody">
+          {% if inquiries %}
+            {% for q in inquiries %}
+              <tr data-search="{{ (q.name|lower) }} {{ q.organisation|lower }} {{ q.email }} {{ q.reason }}">
+                <td>
+                  <div style="display:flex;flex-direction:column;gap:.15rem;">
+                    <span style="color:var(--ink);font-weight:500;">{{ q.name }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--accent);">{{ q.organisation }}</span>
+                    <span style="font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);">{{ q.email }}{% if q.phone %} · {{ q.phone }}{% endif %}</span>
+                  </div>
+                </td>
+                <td><span class="ap-source-pill">{{ q.reason }}</span></td>
+                <td>
+                  {% if q.timeline %}
+                    <div class="ap-msg" style="max-width:200px;">{{ q.timeline }}</div>
+                  {% else %}
+                    <span style="color:var(--ink-3);font-size:.75rem;">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if q.message %}
+                    <div class="ap-msg" title="{{ q.message }}">{{ q.message }}</div>
+                  {% else %}
+                    <span style="color:var(--ink-3);font-size:.75rem;">—</span>
+                  {% endif %}
+                </td>
+                <td><span style="font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);">{{ q.created_at[:16].replace('T',' ') }}</span></td>
+                <td><span class="ap-status-pill {{ q.status or 'new' }}">{{ q.status or 'new' }}</span></td>
+                <td>
+                  <div class="ap-actions">
+                    <a class="ap-link" href="mailto:{{ q.email }}?subject=Re%3A%20Sohana%20press%20inquiry">Reply ↗</a>
+                    <button class="ap-btn" onclick="iqStatus('{{ q.id }}','reviewed')">Reviewed</button>
+                    <button class="ap-btn" onclick="iqStatus('{{ q.id }}','responded')">Responded</button>
+                    <button class="ap-btn" onclick="iqStatus('{{ q.id }}','archived')">Archive</button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="7" class="ap-empty">No inquiries yet. The press page is live and accepting submissions.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ADD MENTION MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="ap-modal-bd" id="modal-mention">
+  <div class="ap-modal">
+    <h3>Add press mention</h3>
+    <p class="modal-sub">Add a coverage article, interview, or feature to the press page.</p>
+    <div class="ap-field"><label>Title</label><input id="m-title" type="text" placeholder="The Future of Diaspora Finance"></div>
+    <div class="ap-grid-2">
+      <div class="ap-field"><label>Source</label><input id="m-source" type="text" placeholder="TechCrunch · Le Monde"></div>
+      <div class="ap-field"><label>Category <span class="opt">(optional)</span></label><input id="m-category" type="text" placeholder="Interview · Feature · News"></div>
+    </div>
+    <div class="ap-field"><label>Article URL</label><input id="m-url" type="url" placeholder="https://..."></div>
+    <div class="ap-field"><label>Image URL <span class="opt">(optional)</span></label><input id="m-image" type="url" placeholder="https://..."></div>
+    <div class="ap-field"><label>Summary <span class="opt">(optional)</span></label><textarea id="m-summary" placeholder="A short 1–2 sentence summary."></textarea></div>
+    <div class="ap-grid-2">
+      <div class="ap-field"><label>Published date <span class="opt">(YYYY-MM-DD)</span></label><input id="m-date" type="date"></div>
+      <div class="ap-field"><label>Display order <span class="opt">(0 = first)</span></label><input id="m-pos" type="number" value="0" min="0"></div>
+    </div>
+    <div class="ap-modal-btns">
+      <button class="ap-cancel" onclick="closeModal('modal-mention')">Cancel</button>
+      <button class="ap-save" onclick="saveMention()">Add mention</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ADD INSTAGRAM POST MODAL
+══════════════════════════════════════════════════════════ -->
+<div class="ap-modal-bd" id="modal-ig">
+  <div class="ap-modal">
+    <h3>Add Instagram post</h3>
+    <p class="modal-sub">Paste the post URL and the image URL. Right-click the post image on Instagram → "Copy image address" to grab the image URL.</p>
+    <div class="ap-field"><label>Instagram post URL</label><input id="ig-url" type="url" placeholder="https://www.instagram.com/p/..."></div>
+    <div class="ap-field"><label>Image URL</label><input id="ig-image" type="url" placeholder="https://scontent.cdninstagram.com/..."></div>
+    <div class="ap-field"><label>Caption <span class="opt">(optional)</span></label><textarea id="ig-caption" placeholder="Short caption shown on hover."></textarea></div>
+    <div class="ap-field"><label>Display order <span class="opt">(0 = first)</span></label><input id="ig-pos" type="number" value="0" min="0"></div>
+    <div class="ap-modal-btns">
+      <button class="ap-cancel" onclick="closeModal('modal-ig')">Cancel</button>
+      <button class="ap-save" onclick="saveIg()">Add post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  ['mentions','instagram','inquiries'].forEach(function(t){
+    document.getElementById('panel-'+t).classList.toggle('on',t===name);
+    document.getElementById('tab-'+t).classList.toggle('on',t===name);
+  });
+}
+function flash(type,msg){
+  var el=document.getElementById('ap-flash');
+  el.className='ap-flash show '+type;
+  el.textContent=msg;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(function(){el.classList.remove('show')},4000);
+}
+function closeModal(id){document.getElementById(id).classList.remove('on')}
+
+/* MENTIONS */
+function openMentionModal(){
+  document.getElementById('m-title').value='';
+  document.getElementById('m-source').value='';
+  document.getElementById('m-category').value='';
+  document.getElementById('m-url').value='';
+  document.getElementById('m-image').value='';
+  document.getElementById('m-summary').value='';
+  document.getElementById('m-date').value='';
+  document.getElementById('m-pos').value='0';
+  document.getElementById('modal-mention').classList.add('on');
+}
+async function saveMention(){
+  var payload={
+    title:    document.getElementById('m-title').value.trim(),
+    source:   document.getElementById('m-source').value.trim(),
+    url:      document.getElementById('m-url').value.trim(),
+    category: document.getElementById('m-category').value.trim(),
+    image_url:document.getElementById('m-image').value.trim(),
+    summary:  document.getElementById('m-summary').value.trim(),
+    published_at: document.getElementById('m-date').value,
+    position: document.getElementById('m-pos').value || 0
+  };
+  if(!payload.title||!payload.source||!payload.url){flash('error','Title, source, and URL are required.');return}
+  try{
+    var r=await fetch('/api/admin/press/mention',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var d=await r.json();
+    if(d.error){flash('error',d.error);return}
+    closeModal('modal-mention'); flash('success','Mention added.'); setTimeout(function(){location.reload()},700);
+  }catch(e){flash('error','Connection error.')}
+}
+async function deleteMention(id){
+  if(!confirm('Delete this mention?'))return;
+  try{var r=await fetch('/api/admin/press/mention/'+id+'/delete',{method:'POST'});var d=await r.json();
+    if(d.error){flash('error',d.error);return}flash('success','Deleted.');setTimeout(function(){location.reload()},600);
+  }catch(e){flash('error','Connection error.')}
+}
+async function toggleMention(id){
+  try{var r=await fetch('/api/admin/press/mention/'+id+'/toggle',{method:'POST'});var d=await r.json();
+    if(d.error){flash('error',d.error);return}flash('success','Updated.');setTimeout(function(){location.reload()},500);
+  }catch(e){flash('error','Connection error.')}
+}
+
+/* INSTAGRAM */
+function openIgModal(){
+  document.getElementById('ig-url').value='';
+  document.getElementById('ig-image').value='';
+  document.getElementById('ig-caption').value='';
+  document.getElementById('ig-pos').value='0';
+  document.getElementById('modal-ig').classList.add('on');
+}
+async function saveIg(){
+  var payload={
+    url:       document.getElementById('ig-url').value.trim(),
+    image_url: document.getElementById('ig-image').value.trim(),
+    caption:   document.getElementById('ig-caption').value.trim(),
+    position:  document.getElementById('ig-pos').value || 0
+  };
+  if(!payload.url||!payload.image_url){flash('error','Post URL and image URL are required.');return}
+  try{
+    var r=await fetch('/api/admin/press/instagram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var d=await r.json();
+    if(d.error){flash('error',d.error);return}
+    closeModal('modal-ig');flash('success','Post added.');setTimeout(function(){location.reload()},700);
+  }catch(e){flash('error','Connection error.')}
+}
+async function deleteIg(id){
+  if(!confirm('Delete this Instagram post?'))return;
+  try{var r=await fetch('/api/admin/press/instagram/'+id+'/delete',{method:'POST'});var d=await r.json();
+    if(d.error){flash('error',d.error);return}flash('success','Deleted.');setTimeout(function(){location.reload()},600);
+  }catch(e){flash('error','Connection error.')}
+}
+async function toggleIg(id){
+  try{var r=await fetch('/api/admin/press/instagram/'+id+'/toggle',{method:'POST'});var d=await r.json();
+    if(d.error){flash('error',d.error);return}flash('success','Updated.');setTimeout(function(){location.reload()},500);
+  }catch(e){flash('error','Connection error.')}
+}
+
+/* INQUIRIES */
+function iqFilter(){
+  var q=document.getElementById('iq-search').value.toLowerCase().trim();
+  document.querySelectorAll('#iq-tbody tr[data-search]').forEach(function(tr){
+    var t=tr.getAttribute('data-search')||'';
+    tr.style.display=(!q||t.indexOf(q)!==-1)?'':'none';
+  });
+}
+async function iqStatus(id,status){
+  if(!confirm('Mark inquiry as "'+status+'"?'))return;
+  try{
+    var r=await fetch('/api/admin/press/inquiry/'+id+'/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status})});
+    var d=await r.json();
+    if(d.error){flash('error',d.error);return}
+    flash('success','Status updated to '+status);setTimeout(function(){location.reload()},700);
+  }catch(e){flash('error','Connection error.')}
+}
+
+/* Click outside modal closes */
+document.querySelectorAll('.ap-modal-bd').forEach(function(bd){
+  bd.addEventListener('click',function(e){if(e.target===bd)bd.classList.remove('on')});
+});
+</script>
+{% endblock %}

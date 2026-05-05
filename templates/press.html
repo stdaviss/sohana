@@ -1,51 +1,601 @@
 {% extends "page_base.html" %}
-{% block title %}Press{% endblock %}
+{% block title %}Press &amp; Media{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── PRESS PAGE ── */
+.pr-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.pr-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.pr-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.pr-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.pr-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.pr-section.warm .pr-eyebrow{color:rgba(20,19,15,.55)}
+.pr-h2{font-size:clamp(1.8rem,3.2vw,2.5rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.pr-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pr-section.warm .pr-h2 .ital{color:#0E120F}
+.pr-lead{font-size:clamp(1rem,1.2vw,1.1rem);color:#B7BAB4;line-height:1.7;max-width:680px;margin-bottom:2rem}
+.pr-section.warm .pr-lead{color:rgba(20,19,15,.7)}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO ── */
+.pr-hero{padding:120px 5% 80px;position:relative;overflow:hidden;text-align:center}
+.pr-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 50% 10%,rgba(158,228,147,.12),transparent 60%);pointer-events:none}
+.pr-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.pr-hero .container{position:relative;z-index:2;max-width:880px}
+.pr-hero h1{font-size:clamp(2.5rem,5.5vw,4.2rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.pr-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pr-hero p{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:620px;margin:0 auto}
+.pr-hero-meta{margin-top:2rem;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:.75rem;color:#8A8E87}
+.pr-hero-meta span{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .85rem;border:1px solid rgba(244,242,236,.12);border-radius:99px;background:rgba(22,27,23,.4);backdrop-filter:blur(8px)}
+.pr-hero-meta span::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+
+/* ── FEATURED RECOGNITION (TEF) ── */
+.tef-card{margin-top:2rem;padding:0;border:1px solid rgba(158,228,147,.25);border-radius:28px;overflow:hidden;background:linear-gradient(135deg,rgba(158,228,147,.07) 0%,rgba(118,224,161,.03) 100%);position:relative}
+.tef-grid{display:grid;grid-template-columns:1.05fr .95fr;align-items:stretch}
+@media(max-width:880px){.tef-grid{grid-template-columns:1fr}}
+.tef-content{padding:3rem 2.75rem;display:flex;flex-direction:column;justify-content:center;gap:1rem;position:relative;z-index:2}
+.tef-badge{display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;align-self:flex-start;box-shadow:0 6px 20px rgba(158,228,147,.3)}
+.tef-badge::before{content:"★";font-size:.9rem;line-height:1}
+.tef-content h3{font-size:clamp(1.6rem,2.6vw,2.1rem);font-weight:500;color:#F4F2EC;letter-spacing:-.02em;line-height:1.18}
+.tef-content h3 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.tef-content p{font-size:.95rem;color:#B7BAB4;line-height:1.7}
+.tef-content p strong{color:#F4F2EC;font-weight:500}
+.tef-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin-top:.75rem;padding-top:1.25rem;border-top:1px solid rgba(244,242,236,.08)}
+.tef-stat .v{font-family:'Geist Mono',monospace;font-size:1.4rem;font-weight:600;color:#9EE493;letter-spacing:-.02em;line-height:1}
+.tef-stat .l{font-size:.72rem;color:#8A8E87;margin-top:.3rem;line-height:1.4}
+.tef-cta-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem}
+.tef-link{display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.2rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:500;text-decoration:none;letter-spacing:.04em;transition:all .2s}
+.tef-link:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+.tef-visual{position:relative;background:linear-gradient(135deg,#0E120F 0%,#161B17 100%);min-height:340px;display:grid;place-items:center;overflow:hidden}
+.tef-visual::before{content:"";position:absolute;inset:0;background:radial-gradient(500px 400px at 50% 50%,rgba(158,228,147,.18),transparent 60%);pointer-events:none}
+
+/* TEF SVG seal */
+.tef-seal{width:240px;height:240px;position:relative;z-index:2}
+.tef-seal-orbit{transform-origin:center;animation:seal-rot 30s linear infinite}
+.tef-seal-orbit.ro2{animation-duration:42s;animation-direction:reverse}
+@keyframes seal-rot{to{transform:rotate(360deg)}}
+.tef-seal-pulse{animation:seal-pulse 4s ease-in-out infinite}
+@keyframes seal-pulse{0%,100%{opacity:.85}50%{opacity:1}}
+.tef-seal-star{transform-origin:center;animation:star-glow 3s ease-in-out infinite}
+@keyframes star-glow{0%,100%{filter:drop-shadow(0 0 4px rgba(158,228,147,.4))}50%{filter:drop-shadow(0 0 14px rgba(158,228,147,.85))}}
+.tef-particle{animation:particle-float 4s ease-in-out infinite}
+.tef-particle.p2{animation-delay:.6s}.tef-particle.p3{animation-delay:1.2s}.tef-particle.p4{animation-delay:1.8s}.tef-particle.p5{animation-delay:2.4s}.tef-particle.p6{animation-delay:3s}
+@keyframes particle-float{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-6px)}}
+
+/* ── MENTIONS GRID ── */
+.mentions-toolbar{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.mention-chip{padding:.4rem .85rem;background:transparent;border:1px solid rgba(244,242,236,.15);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.72rem;color:#B7BAB4;cursor:pointer;letter-spacing:.04em;transition:all .15s}
+.mention-chip:hover{border-color:rgba(158,228,147,.4);color:#9EE493}
+.mention-chip.on{background:rgba(158,228,147,.12);border-color:#9EE493;color:#9EE493}
+
+.mentions-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem}
+.mention-card{padding:0;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;overflow:hidden;display:flex;flex-direction:column;transition:border-color .25s,transform .25s;text-decoration:none;color:inherit}
+.mention-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.mention-img{aspect-ratio:16/9;background-size:cover;background-position:center;background-color:rgba(158,228,147,.04);position:relative}
+.mention-img.placeholder{background:linear-gradient(135deg,rgba(158,228,147,.06) 0%,rgba(118,224,161,.02) 100%);display:grid;place-items:center}
+.mention-img.placeholder::before{content:"";width:48px;height:48px;border-radius:50%;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.25);display:grid;place-items:center}
+.mention-img.placeholder::after{content:"📰";position:absolute;font-size:1.4rem;left:50%;top:50%;transform:translate(-50%,-50%)}
+.mention-body{padding:1.25rem 1.4rem 1.4rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+.mention-meta{display:flex;align-items:center;gap:.6rem;font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;letter-spacing:.04em;text-transform:uppercase}
+.mention-source{color:#9EE493;font-weight:600}
+.mention-meta .dot{width:3px;height:3px;border-radius:50%;background:#8A8E87}
+.mention-card h4{font-size:1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.35}
+.mention-card p{font-size:.85rem;color:#B7BAB4;line-height:1.55;flex:1}
+.mention-card .read-more{display:inline-flex;align-items:center;gap:.35rem;font-family:'Geist Mono',monospace;font-size:.72rem;color:#9EE493;letter-spacing:.04em;margin-top:auto;padding-top:.6rem}
+.mention-card:hover .read-more svg{transform:translateX(3px)}
+.mention-card .read-more svg{transition:transform .2s}
+
+.empty-mentions{padding:3rem 1.5rem;text-align:center;color:#8A8E87;font-size:.9rem;border:1px dashed rgba(244,242,236,.12);border-radius:18px}
+.empty-mentions p{font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:.04em;color:#8A8E87}
+
+/* ── INSTAGRAM FEED ── */
+.ig-band{position:relative}
+.ig-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}
+.ig-handle{display:inline-flex;align-items:center;gap:.55rem;padding:.45rem 1rem;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.78rem;color:#9EE493;text-decoration:none;letter-spacing:.02em;transition:all .2s}
+.ig-handle:hover{background:rgba(158,228,147,.12);border-color:#9EE493}
+.ig-handle .ig-icon{width:14px;height:14px;display:grid;place-items:center}
+
+.ig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.6rem}
+@media(min-width:760px){.ig-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1100px){.ig-grid{grid-template-columns:repeat(6,1fr)}}
+.ig-tile{aspect-ratio:1;border-radius:14px;overflow:hidden;position:relative;background:#161B17;border:1px solid rgba(244,242,236,.08);text-decoration:none;display:block;transition:transform .25s,border-color .25s}
+.ig-tile:hover{transform:scale(1.02);border-color:rgba(158,228,147,.35)}
+.ig-tile-img{position:absolute;inset:0;background-size:cover;background-position:center;background-color:rgba(158,228,147,.04)}
+.ig-tile-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,18,15,0) 50%,rgba(14,18,15,.85) 100%);opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:flex-end;padding:.85rem;z-index:2}
+.ig-tile:hover .ig-tile-overlay{opacity:1}
+.ig-tile-caption{font-size:.75rem;color:#F4F2EC;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ig-tile-corner{position:absolute;top:.55rem;right:.55rem;z-index:2;width:22px;height:22px;background:rgba(14,18,15,.75);backdrop-filter:blur(4px);border-radius:6px;display:grid;place-items:center;color:#9EE493;opacity:0;transition:opacity .25s}
+.ig-tile:hover .ig-tile-corner{opacity:1}
+
+.empty-ig{padding:3rem 1.5rem;text-align:center;border:1px dashed rgba(244,242,236,.12);border-radius:18px;color:#8A8E87}
+.empty-ig p{font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:.04em}
+
+/* ── MEDIA RESOURCES ── */
+.resources-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.resource{padding:1.5rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;display:flex;flex-direction:column;gap:.55rem;transition:all .2s}
+.resource:hover{border-color:rgba(20,19,15,.18);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.resource-ico{width:36px;height:36px;border-radius:10px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace}
+.resource h4{font-size:.92rem;font-weight:600;color:#0E120F;letter-spacing:-.005em}
+.resource p{font-size:.8rem;color:rgba(20,19,15,.6);line-height:1.55}
+
+/* ── INQUIRY REASONS ── */
+.reasons-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem;margin-top:2rem}
+.reason{padding:1rem 1.2rem;border:1px solid rgba(244,242,236,.08);border-radius:12px;background:rgba(22,27,23,.5);font-size:.85rem;color:#B7BAB4;line-height:1.5;display:flex;align-items:flex-start;gap:.65rem;transition:all .2s}
+.reason:hover{border-color:rgba(158,228,147,.3);background:#161B17;color:#F4F2EC;cursor:pointer}
+.reason-num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;font-weight:600;letter-spacing:.04em;flex-shrink:0;width:22px}
+
+/* ── PRESS INQUIRY FORM ── */
+.pi-card{margin-top:2rem;padding:2.5rem 2.25rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.pi-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.pi-card h3{font-size:1.4rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.01em;position:relative}
+.pi-card p.pi-sub{font-size:.92rem;color:#B7BAB4;margin-bottom:1.75rem;line-height:1.6;max-width:580px;position:relative}
+.pi-form{display:grid;grid-template-columns:1fr 1fr;gap:1rem;position:relative}
+@media(max-width:680px){.pi-form{grid-template-columns:1fr}}
+.pi-form .full{grid-column:1 / -1}
+.pi-field label{display:block;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem;text-transform:uppercase}
+.pi-field label .opt{color:#8A8E87;font-weight:400}
+.pi-input{width:100%;padding:.7rem .95rem;background:#0E120F;border:1.5px solid rgba(244,242,236,.15);border-radius:10px;font-family:inherit;font-size:.92rem;color:#F4F2EC;outline:none;transition:border-color .15s,box-shadow .15s}
+.pi-input:focus{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.pi-input::placeholder{color:#8A8E87}
+textarea.pi-input{resize:vertical;min-height:110px}
+select.pi-input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EE493' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.5rem}
+.btn-pi-submit{padding:.85rem 2rem;background:#9EE493;color:#0E120F;border:none;border-radius:999px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;justify-self:start}
+.btn-pi-submit:hover{background:#cef870;transform:translateY(-1px)}
+.btn-pi-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.pi-success{display:none;padding:2rem;text-align:center;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.3);border-radius:16px;margin-top:1rem}
+.pi-success.show{display:block}
+.pi-success-ico{width:54px;height:54px;border-radius:50%;background:#9EE493;color:#0E120F;display:grid;place-items:center;font-size:1.5rem;font-weight:700;margin:0 auto 1rem}
+.pi-success h4{font-size:1.15rem;font-weight:600;color:#F4F2EC;margin-bottom:.5rem;letter-spacing:-.005em}
+.pi-success p{font-size:.9rem;color:#B7BAB4;line-height:1.6;max-width:480px;margin:0 auto}
+.pi-error{display:none;padding:.7rem 1rem;background:rgba(255,106,85,.1);color:#FF6A55;border:1px solid rgba(255,106,85,.25);border-radius:10px;font-size:.85rem;margin-top:.75rem;line-height:1.4}
+.pi-error.show{display:block}
+
+/* ── LOOKING AHEAD / CTA ── */
+.ahead-band{margin-top:2rem;padding:3rem 2.5rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 20px 20px 0;background:linear-gradient(90deg,rgba(158,228,147,.05) 0%,transparent 80%)}
+.ahead-band p.lead-quote{font-family:'Instrument Serif',serif;font-style:italic;font-size:clamp(1.25rem,1.8vw,1.55rem);color:#F4F2EC;line-height:1.45;max-width:680px;margin-bottom:.75rem}
+.ahead-band p.lead-quote .em{color:#9EE493}
+.ahead-band p.byline{font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;letter-spacing:.04em}
+
+.pr-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.pr-cta h2{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;max-width:680px;margin:0 auto 1rem;color:#F4F2EC}
+.pr-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pr-cta p{font-size:.95rem;color:#B7BAB4;max-width:540px;margin:0 auto 2rem;line-height:1.65}
+.pr-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════════════════ -->
+<section class="pr-hero">
+  <div class="pr-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Company</div>
-    <h1>SOHANA in the Press</h1>
-    <p>Press resources, brand assets, and media contact information for SOHANA.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="pr-eyebrow">Press &amp; Media</div>
+    <h1>Sohana in the <span class="ital">spotlight</span>.</h1>
+    <p>Sohana is building a new layer of financial infrastructure — rooted in trust, community, and real-world behaviour. As we grow, we're beginning to attract attention from partners, communities, and platforms interested in the future of finance across Africa and the global diaspora.</p>
+    <div class="pr-hero-meta">
+      <span>Founded · 2025</span>
+      <span>HQ · Marseille &amp; Yaoundé</span>
+      <span>Stage · Pre-launch beta</span>
+      <span>TEF Cohort · 2026</span>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">📰</div>
-      <h3>For media enquiries</h3>
-      <p>If you are a journalist, editor, or researcher covering African fintech, financial inclusion, diaspora remittances, or community banking — we would love to speak with you. Contact press@sohana.app.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📋</div>
-      <h3>Brand assets</h3>
-      <p>Our logo, brand colours, and usage guidelines are available on request. Please do not modify our logo or use our brand assets without written permission.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🏆</div>
-      <h3>Recent recognition</h3>
-      <p>SOHANA was selected as a winning project at the Tony Elumelu Foundation Entrepreneurial Award 2026. We are proud to be recognised among Africa's most innovative entrepreneurial projects.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📊</div>
-      <h3>Platform data</h3>
-      <p>For verified platform statistics, user numbers, and transaction data for editorial use, please contact press@sohana.app with your publication name and deadline.</p>
+<!-- ══════════════════════════════════════════════════════════
+     FEATURED RECOGNITION — TEF
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section">
+  <div class="container">
+    <div class="pr-eyebrow reveal">01 · Featured recognition</div>
+    <h2 class="pr-h2 reveal reveal-d1">Selected for the <span class="ital">Tony Elumelu Foundation</span> · Cohort 2026.</h2>
+
+    <div class="tef-card reveal reveal-d2">
+      <div class="tef-grid">
+        <div class="tef-content">
+          <span class="tef-badge">TEF · Cohort 2026</span>
+          <h3>One of Africa's most <span class="ital">competitive</span> entrepreneurship programmes.</h3>
+          <p>Sohana was selected as part of the Tony Elumelu Foundation Entrepreneurship Programme 2026 Cohort — among <strong>thousands of entrepreneurs</strong> chosen each year from across the continent. The programme provides funding, mentorship, and access to a powerful pan-African network.</p>
+          <p>The 2026 cohort brought together founders building solutions across <strong>fintech, energy, agriculture, and digital infrastructure</strong> — a generation of ventures recognised not only for innovation, but for their potential to create long-term economic impact.</p>
+
+          <div class="tef-stats-row">
+            <div class="tef-stat">
+              <div class="v">200K+</div>
+              <div class="l">Applicants screened across Africa</div>
+            </div>
+            <div class="tef-stat">
+              <div class="v">2026</div>
+              <div class="l">Cohort year · Active</div>
+            </div>
+            <div class="tef-stat">
+              <div class="v">$5K</div>
+              <div class="l">Seed funding + mentorship + network</div>
+            </div>
+          </div>
+
+          <div class="tef-cta-row">
+            <a href="https://www.tonyelumelufoundation.org/" target="_blank" rel="noopener" class="tef-link">
+              Visit TEF
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M7 7h10v10"/></svg>
+            </a>
+            <a href="mailto:press@sohana.app?subject=TEF%202026%20Coverage" class="tef-link">
+              Coverage requests →
+            </a>
+          </div>
+        </div>
+
+        <!-- Animated TEF seal SVG -->
+        <div class="tef-visual">
+          <svg class="tef-seal" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <radialGradient id="sealGrad" cx="50%" cy="50%">
+                <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
+                <stop offset="60%" stop-color="#9EE493" stop-opacity=".05"/>
+                <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+
+            <!-- background glow -->
+            <circle cx="120" cy="120" r="90" fill="url(#sealGrad)"/>
+
+            <!-- outer rotating ring with text dots -->
+            <g class="tef-seal-orbit">
+              <circle cx="120" cy="120" r="106" fill="none" stroke="#9EE493" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 6"/>
+              <circle cx="120" cy="14"  r="3" fill="#9EE493"/>
+              <circle cx="226" cy="120" r="3" fill="#9EE493"/>
+              <circle cx="120" cy="226" r="3" fill="#9EE493"/>
+              <circle cx="14"  cy="120" r="3" fill="#9EE493"/>
+            </g>
+
+            <!-- inner ring -->
+            <g class="tef-seal-orbit ro2">
+              <circle cx="120" cy="120" r="86" fill="none" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.2"/>
+            </g>
+
+            <!-- dotted accent ring -->
+            <g class="tef-seal-pulse">
+              <circle cx="120" cy="120" r="68" fill="none" stroke="#9EE493" stroke-opacity=".25" stroke-width="1" stroke-dasharray="2 3"/>
+            </g>
+
+            <!-- center medal -->
+            <circle cx="120" cy="120" r="54" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="1.5"/>
+            <circle cx="120" cy="120" r="48" fill="#0E120F"/>
+
+            <!-- star -->
+            <g class="tef-seal-star" transform="translate(120,118)">
+              <polygon points="0,-22 6,-7 22,-7 9,3 14,18 0,9 -14,18 -9,3 -22,-7 -6,-7"
+                       fill="#9EE493"/>
+              <polygon points="0,-22 4,-7 0,-3 -4,-7" fill="#cef870" opacity=".7"/>
+            </g>
+
+            <!-- TEF wordmark -->
+            <text x="120" y="148" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="700" fill="#F4F2EC" letter-spacing="1">TEF</text>
+            <text x="120" y="163" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" fill="#9EE493" letter-spacing=".5">COHORT 2026</text>
+
+            <!-- floating particles -->
+            <circle class="tef-particle"    cx="50"  cy="60"  r="2" fill="#9EE493"/>
+            <circle class="tef-particle p2" cx="190" cy="70"  r="2" fill="#9EE493"/>
+            <circle class="tef-particle p3" cx="200" cy="170" r="2" fill="#9EE493"/>
+            <circle class="tef-particle p4" cx="60"  cy="180" r="2" fill="#9EE493"/>
+            <circle class="tef-particle p5" cx="30"  cy="120" r="2" fill="#9EE493"/>
+            <circle class="tef-particle p6" cx="210" cy="120" r="2" fill="#9EE493"/>
+          </svg>
+        </div>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     MENTIONS GRID (admin-managed via DB)
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section">
+  <div class="container">
+    <div class="pr-eyebrow reveal">02 · Mentions &amp; coverage</div>
+    <h2 class="pr-h2 reveal reveal-d1">Where Sohana has been <span class="ital">written about</span>.</h2>
+    <p class="pr-lead reveal reveal-d2">Articles, interviews, and references from journalists, platforms, and ecosystem voices.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    {% if mentions %}
+      <div class="mentions-grid reveal">
+        {% for m in mentions %}
+          <a class="mention-card" href="{{ m.url }}" target="_blank" rel="noopener">
+            {% if m.image_url %}
+              <div class="mention-img" style="background-image:url('{{ m.image_url }}');"></div>
+            {% else %}
+              <div class="mention-img placeholder"></div>
+            {% endif %}
+            <div class="mention-body">
+              <div class="mention-meta">
+                <span class="mention-source">{{ m.source }}</span>
+                {% if m.published_at %}<span class="dot"></span><span>{{ m.published_at[:10] }}</span>{% endif %}
+                {% if m.category %}<span class="dot"></span><span>{{ m.category }}</span>{% endif %}
+              </div>
+              <h4>{{ m.title }}</h4>
+              {% if m.summary %}<p>{{ m.summary }}</p>{% endif %}
+              <span class="read-more">
+                Read article
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              </span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-mentions reveal">
+        <p>No press mentions yet — coverage is being added as it lands.</p>
+        <p style="margin-top:.85rem;color:#B7BAB4;font-family:'Geist',sans-serif;font-size:.88rem;">If you've written about Sohana, we'd love to hear from you. <a href="mailto:press@sohana.app" style="color:#9EE493;text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3);">Get in touch →</a></p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     INSTAGRAM FEED (admin-managed via DB)
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section ig-band">
+  <div class="container">
+    <div class="ig-header">
+      <div>
+        <div class="pr-eyebrow reveal">03 · Sohana on Instagram</div>
+        <h2 class="pr-h2 reveal reveal-d1" style="margin-bottom:.5rem;">Behind the scenes &amp; <span class="ital">live updates</span>.</h2>
+      </div>
+      <a href="https://www.instagram.com/sohanaapp" target="_blank" rel="noopener" class="ig-handle reveal reveal-d2">
+        <span class="ig-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".75" fill="currentColor"/></svg>
+        </span>
+        @sohanaapp
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M7 7h10v10"/></svg>
+      </a>
+    </div>
+
+    {% if instagram_posts %}
+      <div class="ig-grid reveal">
+        {% for p in instagram_posts %}
+          <a class="ig-tile" href="{{ p.url }}" target="_blank" rel="noopener" title="{{ p.caption or 'View on Instagram' }}">
+            <div class="ig-tile-img" style="background-image:url('{{ p.image_url }}');"></div>
+            <div class="ig-tile-corner">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M7 7h10v10"/></svg>
+            </div>
+            {% if p.caption %}
+              <div class="ig-tile-overlay">
+                <div class="ig-tile-caption">{{ p.caption }}</div>
+              </div>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-ig reveal">
+        <p>Instagram feed loading soon.</p>
+        <p style="margin-top:.6rem;color:#B7BAB4;font-family:'Geist',sans-serif;font-size:.88rem;">Follow <a href="https://www.instagram.com/sohanaapp" target="_blank" rel="noopener" style="color:#9EE493;text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3);">@sohanaapp</a> for live updates.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHAT WE'RE BUILDING + WHY THIS MATTERS (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section warm">
+  <div class="container">
+    <div class="pr-eyebrow reveal">04 · The story behind the platform</div>
+    <h2 class="pr-h2 reveal reveal-d1" style="color:#0E120F;">Why this is a story <span class="ital">worth telling</span>.</h2>
+    <p class="pr-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">Sohana is developing a platform that digitises and scales community-based savings systems — ROSCAs — transforming them into structured, transparent, and globally accessible financial tools.</p>
+    <p class="pr-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">We believe the future of finance in emerging markets will not come solely from traditional institutions — but from <strong style="color:#0E120F;">strengthening systems that already work</strong>. We operate at the intersection of informal finance, digital infrastructure, and cross-border communities — three spaces that are rapidly evolving and still largely underreported.</p>
+    <p class="pr-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);font-family:'Instrument Serif',serif;font-style:italic;font-size:1.25rem;line-height:1.45;max-width:680px;">"There are stories that are built for attention. And there are stories that quietly reshape systems. Sohana is the latter."</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PRESS RESOURCES (warm continued)
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section warm" style="border-top:none;padding-top:0;">
+  <div class="container">
+    <div class="pr-eyebrow reveal">05 · Media kit &amp; resources</div>
+    <h2 class="pr-h2 reveal reveal-d1" style="color:#0E120F;">What we can <span class="ital">provide journalists</span>.</h2>
+    <p class="pr-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">We're happy to provide materials and support for journalists, researchers, and media platforms. Request our press kit via the form below.</p>
+
+    <div class="resources-grid">
+      <div class="resource reveal reveal-d1">
+        <div class="resource-ico">i</div>
+        <h4>Company overview</h4>
+        <p>One-page fact sheet — what we do, where we operate, where we're going.</p>
+      </div>
+      <div class="resource reveal reveal-d1">
+        <div class="resource-ico">⊞</div>
+        <h4>Product information</h4>
+        <p>Detailed walkthroughs of ROSCAs, Pools, NCS, and the wallet system.</p>
+      </div>
+      <div class="resource reveal reveal-d2">
+        <div class="resource-ico">★</div>
+        <h4>Founder background</h4>
+        <p>Bio, photos, and the story behind why Sohana exists.</p>
+      </div>
+      <div class="resource reveal reveal-d2">
+        <div class="resource-ico">◆</div>
+        <h4>High-resolution visuals</h4>
+        <p>UI screenshots, brand assets, logo SVGs, product photography.</p>
+      </div>
+      <div class="resource reveal reveal-d3">
+        <div class="resource-ico">◎</div>
+        <h4>Early-stage insights</h4>
+        <p>Anonymised pilot data, behavioural patterns, market sizing references.</p>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     INQUIRY REASONS + FORM
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section">
+  <div class="container">
+    <div class="pr-eyebrow reveal">06 · Press inquiries</div>
+    <h2 class="pr-h2 reveal reveal-d1">What we welcome <span class="ital">conversations on</span>.</h2>
+    <p class="pr-lead reveal reveal-d2">Pick the reason that fits your inquiry — we tailor our response to what you're working on.</p>
+
+    <div class="reasons-grid">
+      <div class="reason reveal reveal-d1"><span class="reason-num">01</span><span>Interviews — founder or product discussions</span></div>
+      <div class="reason reveal reveal-d1"><span class="reason-num">02</span><span>Feature articles &amp; editorial coverage</span></div>
+      <div class="reason reveal reveal-d2"><span class="reason-num">03</span><span>Podcast and media appearances</span></div>
+      <div class="reason reveal reveal-d2"><span class="reason-num">04</span><span>Speaking engagements &amp; panels</span></div>
+      <div class="reason reveal reveal-d3"><span class="reason-num">05</span><span>Partnership announcements</span></div>
+      <div class="reason reveal reveal-d3"><span class="reason-num">06</span><span>Product demos &amp; walkthroughs</span></div>
+      <div class="reason reveal reveal-d4"><span class="reason-num">07</span><span>Research &amp; community-finance insights</span></div>
+      <div class="reason reveal reveal-d4"><span class="reason-num">08</span><span>Commentary on African fintech &amp; diaspora</span></div>
+    </div>
+
+    <div class="pi-card reveal">
+      <h3>Submit a press inquiry</h3>
+      <p class="pi-sub">All fields except timeline and message are required. We aim to respond within 3 business days for serious inquiries — faster for urgent deadlines.</p>
+
+      <form class="pi-form" id="pi-form" onsubmit="return submitInquiry(event)">
+        <div class="pi-field">
+          <label for="pi-name">Your name</label>
+          <input class="pi-input" id="pi-name" type="text" placeholder="Marie Ngono" required>
+        </div>
+
+        <div class="pi-field">
+          <label for="pi-org">Organisation / publication</label>
+          <input class="pi-input" id="pi-org" type="text" placeholder="Le Monde · TechCrunch · independent" required>
+        </div>
+
+        <div class="pi-field">
+          <label for="pi-email">Email</label>
+          <input class="pi-input" id="pi-email" type="email" placeholder="you@publication.com" required>
+        </div>
+
+        <div class="pi-field">
+          <label for="pi-phone">Phone <span class="opt">(optional)</span></label>
+          <input class="pi-input" id="pi-phone" type="tel" placeholder="+33 6 11 00 00 01">
+        </div>
+
+        <div class="pi-field full">
+          <label for="pi-reason">Nature of request</label>
+          <select class="pi-input" id="pi-reason" required>
+            <option value="interview">Interview · Founder or product discussion</option>
+            <option value="feature">Feature article · Editorial coverage</option>
+            <option value="podcast">Podcast · Media appearance</option>
+            <option value="speaking">Speaking engagement · Panel</option>
+            <option value="partnership">Partnership announcement</option>
+            <option value="demo">Product demo · Walkthrough</option>
+            <option value="research">Research · Community-finance insights</option>
+            <option value="commentary">Commentary · African fintech / diaspora</option>
+            <option value="press_kit">Press kit request</option>
+            <option value="other">Other — please describe in message</option>
+          </select>
+        </div>
+
+        <div class="pi-field full">
+          <label for="pi-timeline">Timeline <span class="opt">(if applicable)</span></label>
+          <input class="pi-input" id="pi-timeline" type="text" placeholder="e.g. publishing 15 June, looking for response by 8 June">
+        </div>
+
+        <div class="pi-field full">
+          <label for="pi-message">Tell us more <span class="opt">(optional, but helpful)</span></label>
+          <textarea class="pi-input" id="pi-message" rows="5" placeholder="Brief description of the angle, audience, or specific topics you'd like to discuss…"></textarea>
+        </div>
+
+        <div class="pi-field full">
+          <button type="submit" class="btn-pi-submit" id="pi-submit">
+            Submit inquiry
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <div class="pi-error" id="pi-error"></div>
+        </div>
+      </form>
+
+      <div class="pi-success" id="pi-success">
+        <div class="pi-success-ico">✓</div>
+        <h4>Thanks — we've received your inquiry</h4>
+        <p>Our team will review and respond within 3 business days. For urgent deadlines, follow up directly to <a href="mailto:press@sohana.app" style="color:#9EE493;">press@sohana.app</a>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     LOOKING AHEAD
+══════════════════════════════════════════════════════════ -->
+<section class="pr-section">
+  <div class="container">
+    <div class="pr-eyebrow reveal">07 · Looking ahead</div>
+    <h2 class="pr-h2 reveal reveal-d1">This is <span class="ital">just the beginning</span>.</h2>
+    <p class="pr-lead reveal reveal-d2">As Sohana develops, this page will evolve to include media coverage, product announcements, milestones, partnerships, and thought-leadership contributions.</p>
+
+    <div class="ahead-band reveal">
+      <p class="lead-quote">"There are stories that are built for attention. And there are stories that <span class="em">quietly reshape systems</span>."</p>
+      <p class="byline">— Sohana · 2026</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="pr-cta">
+  <h2>For interviews, coverage, or media requests — <span class="ital">reach out directly</span>.</h2>
+  <p>Press inquiries via the form above, or email us directly. We respond promptly to all serious requests.</p>
+  <div class="pr-cta-buttons">
+    <a href="mailto:press@sohana.app" class="btn-primary">press@sohana.app</a>
+    <a href="/about" class="btn-outline-white">Read our story</a>
+    <a href="/mission" class="btn-outline-white">Read our mission</a>
+  </div>
+</section>
+
+<script>
+async function submitInquiry(e){
+  e.preventDefault();
+  var btn=document.getElementById('pi-submit');
+  var err=document.getElementById('pi-error');
+  err.classList.remove('show');
+  var payload={
+    name:     document.getElementById('pi-name').value.trim(),
+    org:      document.getElementById('pi-org').value.trim(),
+    email:    document.getElementById('pi-email').value.trim(),
+    phone:    document.getElementById('pi-phone').value.trim(),
+    reason:   document.getElementById('pi-reason').value,
+    timeline: document.getElementById('pi-timeline').value.trim(),
+    message:  document.getElementById('pi-message').value.trim()
+  };
+  if(!payload.name||!payload.org||!payload.email){
+    err.textContent='Please fill in name, organisation, and email.';
+    err.classList.add('show'); return false;
+  }
+  btn.disabled=true; btn.textContent='Submitting…';
+  try{
+    var r=await fetch('/api/press/inquiry',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var data=await r.json();
+    if(data.error){
+      err.textContent=data.error; err.classList.add('show');
+      btn.disabled=false; btn.innerHTML='Submit inquiry <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+      return false;
+    }
+    document.getElementById('pi-form').style.display='none';
+    document.getElementById('pi-success').classList.add('show');
+    document.getElementById('pi-success').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(ex){
+    err.textContent='Connection error. Please email press@sohana.app instead.';
+    err.classList.add('show');
+    btn.disabled=false; btn.innerHTML='Submit inquiry <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+  }
+  return false;
+}
+
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
