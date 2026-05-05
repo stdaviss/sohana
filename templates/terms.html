@@ -35,7 +35,13 @@
 
 .lg-layout{display:grid;grid-template-columns:240px 1fr;gap:64px;align-items:start}
 @media(max-width:880px){.lg-layout{grid-template-columns:1fr;gap:32px}}
-.lg-toc{position:sticky;top:90px;padding:1rem 0;border-left:1px solid rgba(244,242,236,.08)}
+.lg-toc{
+  position:sticky;top:90px;padding:1rem 0;
+  border-left:1px solid rgba(244,242,236,.08);
+  display:block !important;height:auto !important;
+  background:transparent !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+  z-index:auto !important;align-items:initial !important;justify-content:initial !important;
+}
 .lg-toc-label{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#8A8E87;padding:0 1rem;margin-bottom:.75rem}
 .lg-toc ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.15rem}
 .lg-toc a{display:block;padding:.5rem 1rem;font-size:.85rem;color:#8A8E87;text-decoration:none;border-left:2px solid transparent;margin-left:-1px;transition:all .15s;line-height:1.4}
@@ -82,7 +88,7 @@
   <div class="container">
     <div class="lg-layout">
 
-      <nav class="lg-toc">
+      <aside class="lg-toc">
         <div class="lg-toc-label">Sections</div>
         <ul>
           <li><a href="#about" class="active">01 · About these terms</a></li>
@@ -99,7 +105,7 @@
           <li><a href="#changes">12 · Changes</a></li>
           <li><a href="#contact">13 · Contact</a></li>
         </ul>
-      </nav>
+      </aside>
 
       <div class="lg-content">
 
