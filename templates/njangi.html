@@ -2,50 +2,855 @@
 {% block title %}Njangi Circles{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── NJANGI PAGE ── */
+.nj-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.nj-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.nj-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.nj-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.nj-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.nj-section.warm .nj-eyebrow{color:rgba(20,19,15,.55)}
+.nj-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.nj-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.nj-section.warm .nj-h2 .ital{color:#0E120F}
+.nj-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.nj-section.warm .nj-p{color:rgba(20,19,15,.74)}
+.nj-p strong{color:#F4F2EC;font-weight:500}
+.nj-section.warm .nj-p strong{color:#0E120F}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with multilingual rotator ── */
+.nj-hero{padding:96px 5% 80px;position:relative;overflow:hidden;text-align:center;min-height:520px;display:flex;align-items:center;justify-content:center}
+.nj-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 600px at 50% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.nj-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,black 30%,transparent 75%);pointer-events:none}
+.nj-hero .container{position:relative;z-index:2;max-width:1000px;margin:0 auto}
+
+.nj-hero-pretext{font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:.5rem}
+.nj-hero-pretext::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+
+/* DECORATIVE ROTATOR — the centerpiece */
+.word-stage{position:relative;height:clamp(140px,18vw,240px);margin:.5rem auto 1.5rem;max-width:1100px}
+.word-stage .word{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:clamp(3.5rem,12vw,8.5rem);font-weight:400;
+  line-height:1;letter-spacing:-.025em;
+  background:linear-gradient(135deg,#9EE493 0%,#cef870 50%,#76E0A1 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  opacity:0;transform:translateY(24px) scale(.96);
+  animation:word-cycle 36s ease-in-out infinite;
+  filter:drop-shadow(0 0 24px rgba(158,228,147,.18));
+}
+.word-stage .word.w1 { animation-delay: 0s; }
+.word-stage .word.w2 { animation-delay: 3s; }
+.word-stage .word.w3 { animation-delay: 6s; }
+.word-stage .word.w4 { animation-delay: 9s; }
+.word-stage .word.w5 { animation-delay: 12s; }
+.word-stage .word.w6 { animation-delay: 15s; }
+.word-stage .word.w7 { animation-delay: 18s; }
+.word-stage .word.w8 { animation-delay: 21s; }
+.word-stage .word.w9 { animation-delay: 24s; }
+.word-stage .word.w10{ animation-delay: 27s; }
+.word-stage .word.w11{ animation-delay: 30s; }
+.word-stage .word.w12{ animation-delay: 33s; }
+
+@keyframes word-cycle {
+  0%,1%   { opacity:0; transform:translateY(24px) scale(.96); }
+  3%,7%   { opacity:1; transform:translateY(0) scale(1); }
+  9%,100% { opacity:0; transform:translateY(-18px) scale(1.02); }
+}
+
+.word-stage .lang{
+  position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);
+  font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:.16em;
+  text-transform:uppercase;color:#8A8E87;
+  white-space:nowrap;opacity:0;
+  animation:word-cycle 36s ease-in-out infinite;
+}
+.word-stage .lang.w1 { animation-delay: 0s; }
+.word-stage .lang.w2 { animation-delay: 3s; }
+.word-stage .lang.w3 { animation-delay: 6s; }
+.word-stage .lang.w4 { animation-delay: 9s; }
+.word-stage .lang.w5 { animation-delay: 12s; }
+.word-stage .lang.w6 { animation-delay: 15s; }
+.word-stage .lang.w7 { animation-delay: 18s; }
+.word-stage .lang.w8 { animation-delay: 21s; }
+.word-stage .lang.w9 { animation-delay: 24s; }
+.word-stage .lang.w10{ animation-delay: 27s; }
+.word-stage .lang.w11{ animation-delay: 30s; }
+.word-stage .lang.w12{ animation-delay: 33s; }
+
+.nj-hero h1{font-size:clamp(1.5rem,2.4vw,2rem);font-weight:500;line-height:1.25;letter-spacing:-.02em;margin:1.5rem auto .75rem;color:#F4F2EC;max-width:680px}
+.nj-hero p.lead{font-size:clamp(1rem,1.25vw,1.15rem);color:#B7BAB4;line-height:1.65;max-width:620px;margin:0 auto 2rem}
+.nj-hero-meta{display:inline-flex;flex-wrap:wrap;gap:.5rem;justify-content:center;font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87}
+.nj-hero-meta span{padding:.4rem .9rem;border:1px solid rgba(244,242,236,.12);border-radius:99px;background:rgba(22,27,23,.4);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.nj-hero-meta span::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.45rem;vertical-align:middle}
+
+.nj-hero-cta-row{margin-top:2rem;display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.nj-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.nj-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.nj-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.nj-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* ── DEFINITION CARD with photo ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── 3-PHASE LIFECYCLE INFOGRAPHIC ── */
+.lifecycle{margin-top:2.5rem;padding:2.5rem 2rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:24px;position:relative;overflow:hidden}
+.lifecycle::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.07),transparent 60%);pointer-events:none}
+.lifecycle-svg{width:100%;height:auto;display:block;position:relative;z-index:2}
+.cycle-orbit{transform-origin:300px 180px;animation:cycle-spin 20s linear infinite}
+@keyframes cycle-spin{to{transform:rotate(360deg)}}
+.cycle-arrow{stroke-dasharray:4 5;animation:cycle-flow 3s linear infinite}
+@keyframes cycle-flow{to{stroke-dashoffset:-36}}
+.cycle-pulse{animation:cycle-breath 3s ease-in-out infinite}
+.cycle-pulse.p2{animation-delay:.7s}.cycle-pulse.p3{animation-delay:1.4s}.cycle-pulse.p4{animation-delay:2.1s}.cycle-pulse.p5{animation-delay:2.8s}
+@keyframes cycle-breath{0%,100%{opacity:.6}50%{opacity:1}}
+.cycle-coin{animation:coin-fly 4s ease-in-out infinite}
+@keyframes coin-fly{
+  0%,15%   {transform:translate(0,0) scale(1);opacity:0}
+  20%,80%  {opacity:1}
+  100%     {transform:translate(0,-30px) scale(.7);opacity:0}
+}
+
+/* ── HOW IT WORKS — 5 stages with rich content ── */
+.stage{display:grid;grid-template-columns:auto 1fr;gap:2rem;padding:2rem 0;border-bottom:1px solid rgba(244,242,236,.06);align-items:start}
+.stage:last-child{border-bottom:none}
+.stage-num{font-family:'Geist Mono',monospace;font-size:2.4rem;font-weight:500;color:#9EE493;letter-spacing:-.03em;line-height:1;width:80px;flex-shrink:0;background:linear-gradient(135deg,#9EE493 0%,#76E0A1 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.stage-content h3{font-size:1.3rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.7rem;line-height:1.3}
+.stage-content p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:.8rem;max-width:700px}
+.stage-content p strong{color:#F4F2EC;font-weight:500}
+.stage-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.stage-meta span{font-family:'Geist Mono',monospace;font-size:.72rem;padding:.3rem .75rem;border-radius:99px;background:rgba(158,228,147,.06);color:#9EE493;border:1px solid rgba(158,228,147,.2);letter-spacing:.04em}
+@media(max-width:680px){.stage{grid-template-columns:1fr;gap:1rem}.stage-num{font-size:1.8rem;width:auto}}
+
+/* ── PILLARS (4-card "why it works") ── */
+.pillars{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem;max-width:900px}
+@media(max-width:680px){.pillars{grid-template-columns:1fr}}
+.pillar{padding:1.75rem;border:1px solid rgba(20,19,15,.08);border-radius:18px;background:#fff;display:flex;gap:1rem;align-items:flex-start;transition:all .2s}
+.pillar:hover{border-color:rgba(20,19,15,.18);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.pillar-ico{width:42px;height:42px;border-radius:11px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;flex-shrink:0;font-size:.95rem}
+.pillar h4{font-size:1.05rem;font-weight:600;color:#0E120F;margin-bottom:.4rem;letter-spacing:-.005em}
+.pillar p{font-size:.88rem;color:rgba(20,19,15,.65);line-height:1.65}
+
+/* ── COMPARISON: traditional vs Sohana ── */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:2rem}
+@media(max-width:680px){.compare-grid{grid-template-columns:1fr}}
+.compare-col{padding:2rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative}
+.compare-col.sohana{border-color:rgba(158,228,147,.3);background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%)}
+.compare-col h4{display:flex;align-items:center;gap:.5rem;font-size:.78rem;font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A8E87;font-weight:600;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(244,242,236,.06)}
+.compare-col.sohana h4{color:#9EE493}
+.compare-col h4::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.compare-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.85rem}
+.compare-list li{padding-left:1.6rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.compare-col .compare-list li::before{content:"✕";position:absolute;left:0;color:#FF8A50;font-weight:700;font-size:.85rem;top:.05rem}
+.compare-col.sohana .compare-list li::before{content:"✓";color:#9EE493}
+.compare-list li strong{color:#F4F2EC;font-weight:500}
+
+/* ── PAYOUT CALCULATOR ── */
+.calc-card{margin-top:2rem;padding:2.5rem 2rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.calc-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;position:relative;align-items:center}
+@media(max-width:760px){.calc-grid{grid-template-columns:1fr;gap:2rem}}
+.calc-controls{display:flex;flex-direction:column;gap:1.25rem}
+.calc-row{display:flex;flex-direction:column;gap:.4rem}
+.calc-row .lbl{display:flex;justify-content:space-between;align-items:baseline}
+.calc-row .lbl .label-text{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;text-transform:uppercase}
+.calc-row .lbl .value{font-family:'Geist Mono',monospace;font-size:1rem;color:#F4F2EC;font-weight:600;letter-spacing:-.01em}
+.calc-row .currency{font-size:.78rem;color:#8A8E87;margin-left:.3rem;font-weight:400}
+.calc-row input[type="range"]{
+  -webkit-appearance:none;appearance:none;width:100%;height:6px;
+  background:rgba(244,242,236,.1);border-radius:99px;outline:none;cursor:pointer;
+}
+.calc-row input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:20px;height:20px;
+  background:#9EE493;border-radius:50%;cursor:pointer;
+  box-shadow:0 0 0 4px rgba(158,228,147,.15),0 2px 6px rgba(0,0,0,.3);
+  transition:transform .15s,box-shadow .15s;
+}
+.calc-row input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.1);box-shadow:0 0 0 6px rgba(158,228,147,.25),0 2px 8px rgba(0,0,0,.4)}
+.calc-row input[type="range"]::-moz-range-thumb{width:20px;height:20px;background:#9EE493;border:none;border-radius:50%;cursor:pointer;box-shadow:0 0 0 4px rgba(158,228,147,.15)}
+.calc-currency-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.calc-currency-row button{flex:1;min-width:50px;padding:.4rem .6rem;background:transparent;border:1px solid rgba(244,242,236,.15);color:#B7BAB4;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.74rem;cursor:pointer;transition:all .15s;font-weight:500}
+.calc-currency-row button:hover{border-color:rgba(158,228,147,.4);color:#F4F2EC}
+.calc-currency-row button.on{background:#9EE493;color:#0E120F;border-color:#9EE493;font-weight:600}
+.calc-freq-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.calc-freq-row button{flex:1;padding:.45rem;background:transparent;border:1px solid rgba(244,242,236,.15);color:#B7BAB4;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.74rem;cursor:pointer;transition:all .15s;font-weight:500}
+.calc-freq-row button:hover{border-color:rgba(158,228,147,.4);color:#F4F2EC}
+.calc-freq-row button.on{background:rgba(158,228,147,.15);color:#9EE493;border-color:#9EE493}
+
+.calc-result{padding:1.75rem;background:rgba(14,18,15,.6);border:1px solid rgba(244,242,236,.08);border-radius:18px;display:flex;flex-direction:column;gap:.85rem;text-align:center}
+.calc-result .label{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;letter-spacing:.08em;text-transform:uppercase}
+.calc-payout{font-family:'Geist Mono',monospace;font-size:clamp(2.4rem,6vw,3.6rem);font-weight:500;line-height:1;letter-spacing:-.03em;color:#9EE493;background:linear-gradient(135deg,#9EE493 0%,#cef870 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;transition:all .3s ease}
+.calc-summary{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding-top:1rem;border-top:1px solid rgba(244,242,236,.08);margin-top:.5rem}
+.calc-summary div{display:flex;flex-direction:column;gap:.2rem}
+.calc-summary .v{font-family:'Geist Mono',monospace;font-size:.95rem;color:#F4F2EC;font-weight:600}
+.calc-summary .l{font-size:.7rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.04em;text-transform:uppercase}
+
+/* ── ROLES INFOGRAPHIC ── */
+.roles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2.5rem}
+@media(max-width:880px){.roles-grid{grid-template-columns:1fr}}
+.role-card{padding:2rem 1.75rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative;overflow:hidden;transition:all .25s}
+.role-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.role-svg{width:64px;height:64px;margin-bottom:1.25rem}
+.role-card h4{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.4rem}
+.role-card .role-tag{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;margin-bottom:1rem;text-transform:uppercase}
+.role-card p{font-size:.88rem;color:#B7BAB4;line-height:1.65;margin-bottom:1rem}
+.role-card .role-can{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(244,242,236,.06);display:block;margin-bottom:.5rem;text-transform:uppercase}
+.role-card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.4rem}
+.role-card ul li{font-size:.82rem;color:#B7BAB4;line-height:1.5;padding-left:1.1rem;position:relative}
+.role-card ul li::before{content:"✓";position:absolute;left:0;color:#9EE493;font-weight:700;font-size:.78rem}
+
+/* Animated role icons */
+.icon-organiser .o-orbit{transform-origin:32px 32px;animation:cycle-spin 14s linear infinite}
+.icon-organiser .o-pulse{animation:cycle-breath 2.5s ease-in-out infinite}
+.icon-member .m-person{animation:cycle-breath 2.5s ease-in-out infinite}
+.icon-member .m-person.p2{animation-delay:.4s}
+.icon-member .m-person.p3{animation-delay:.8s}
+.icon-treasurer .t-coin{animation:coin-stack 3s ease-in-out infinite}
+.icon-treasurer .t-coin.c2{animation-delay:.5s}
+.icon-treasurer .t-coin.c3{animation-delay:1s}
+@keyframes coin-stack{0%,100%{opacity:.6;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}}
+
+/* ── WHO IT'S FOR (4 user categories) ── */
+.users-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem}
+@media(max-width:680px){.users-grid{grid-template-columns:1fr}}
+.user-card{padding:1.75rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;display:grid;grid-template-columns:auto 1fr;gap:1.1rem;transition:all .25s}
+.user-card:hover{border-color:rgba(158,228,147,.3);transform:translateY(-2px)}
+.user-emoji{width:48px;height:48px;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.2);border-radius:12px;display:grid;place-items:center;font-size:1.4rem;flex-shrink:0}
+.user-card h4{font-size:1rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em}
+.user-card p{font-size:.85rem;color:#B7BAB4;line-height:1.6;margin-bottom:.7rem}
+.user-card .scenario{font-family:'Geist Mono',monospace;font-size:.72rem;color:#9EE493;background:rgba(158,228,147,.06);padding:.4rem .7rem;border-radius:8px;border:1px solid rgba(158,228,147,.18);line-height:1.5;letter-spacing:.02em}
+.user-card .scenario strong{color:#cef870;font-weight:500}
+
+/* ── CTA ── */
+.nj-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.nj-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.nj-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.nj-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.nj-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.nj-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.nj-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO — 12-language rotating decorative names
+══════════════════════════════════════════════════════════ -->
+<section class="nj-hero">
+  <div class="nj-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>Savings Circles</h1>
-    <p>Njangi Circles bring the oldest savings tradition in Africa into the digital age. Join a circle, contribute on time, and receive your payout when your turn comes.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div class="nj-hero-pretext">One practice · many names · all over the world</div>
+
+    <div class="word-stage" aria-label="Names for community savings circles around the world">
+      <div class="word w1">Njangi</div>
+      <div class="word w2">Tontine</div>
+      <div class="word w3">Esusu</div>
+      <div class="word w4">Susu</div>
+      <div class="word w5">Chama</div>
+      <div class="word w6">Tanda</div>
+      <div class="word w7">Stokvel</div>
+      <div class="word w8">標會</div>
+      <div class="word w9">계</div>
+      <div class="word w10">Ekub</div>
+      <div class="word w11">Hagbad</div>
+      <div class="word w12">Pardna</div>
+
+      <div class="lang w1">Cameroon · Bamileke</div>
+      <div class="lang w2">West Africa · French diaspora</div>
+      <div class="lang w3">Nigeria · Yoruba</div>
+      <div class="lang w4">Ghana · Akan</div>
+      <div class="lang w5">Kenya · Swahili</div>
+      <div class="lang w6">Mexico · Spanish</div>
+      <div class="lang w7">South Africa · isiZulu</div>
+      <div class="lang w8">中国 · biāo huì · China · Mandarin</div>
+      <div class="lang w9">한국 · gye · Korea</div>
+      <div class="lang w10">Ethiopia · Amharic</div>
+      <div class="lang w11">Somalia · Somali</div>
+      <div class="lang w12">Jamaica · Caribbean diaspora</div>
+    </div>
+
+    <h1>One of the oldest financial systems in the world. <span style="color:#9EE493;font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;">Now digital.</span></h1>
+    <p class="lead">Across Africa, Asia, the Americas and the global diaspora, communities have organised themselves around the same simple idea — pooling money, taking turns, building together. We are bringing that practice into the digital age, without changing what makes it work.</p>
+
+    <div class="nj-hero-meta">
+      <span>Hundreds of millions of participants worldwide</span>
+      <span>Centuries of practice</span>
+      <span>One platform</span>
+    </div>
+
+    <div class="nj-hero-cta-row">
+      <a href="/auth" class="nj-cta-primary">Start a circle →</a>
+      <a href="#calculator" class="nj-cta-ghost">Try the calculator</a>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🔄</div>
-      <h3>How Njangi circles work</h3>
-      <p>A Njangi (also known as Tontine, ROSCA, or Esusu) is a rotating savings group where every member contributes a fixed amount each period. The pooled amount goes to one member at a time until everyone has received it once.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔒</div>
-      <h3>Built-in trust and governance</h3>
-      <p>Every circle on SOHANA requires organiser approval for new members. Three co-admins must agree on any change to payout order. Your money is protected by rules, not promises.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📊</div>
-      <h3>Your NCS score grows with every circle</h3>
-      <p>Every on-time contribution adds to your Njangi Credit Score. The longer you participate, the stronger your financial identity becomes.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🌍</div>
-      <h3>Cross-border circles</h3>
-      <p>Run a circle with members in France, Cameroon, Rwanda, and the UK simultaneously. Contributions and payouts settle across our multicurrency wallet instantly.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS A NJANGI — full prose explanation
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section">
+  <div class="container">
+    <div class="nj-eyebrow reveal">01 · What is a Njangi</div>
+    <h2 class="nj-h2 reveal reveal-d1">A practice older than banking, <span class="ital">simpler than credit</span>.</h2>
+
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="nj-p">A <strong>Njangi</strong> — known across the world as a Tontine, Esusu, Chama, Susu, Tanda, biāo huì, gye, or by a hundred other local names — is a rotating savings and credit association. The mechanics are deceptively simple. A fixed group of people commit to contributing a fixed amount on a fixed schedule. At each cycle, one member of the group receives the entire pot. The cycle continues until every member has had their turn.</p>
+        <p class="nj-p">Over the full lifetime of the circle, <strong>everyone contributes the same total amount, and everyone receives the same total amount</strong>. The economics are perfectly balanced. What changes for each member is <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">when</em> they receive their lump sum — and that timing is what makes Njangi powerful. For the person who receives the early payouts, it functions like a zero-interest loan. For those who receive later, it functions like a forced savings account. Everyone wins, in different ways, at different times.</p>
+        <p class="nj-p">It is not a financial product invented in a corporate boardroom. It is a behaviour that has emerged independently in nearly every culture that values community over individualism — from village circles in West Africa to immigrant networks in New York, from women's groups in Nairobi to merchant associations in Taiwan. The reason it persists across continents and centuries is the same in every case: <strong>it works.</strong></p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     LIFECYCLE INFOGRAPHIC — animated SVG
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section">
+  <div class="container">
+    <div class="nj-eyebrow reveal">02 · The cycle</div>
+    <h2 class="nj-h2 reveal reveal-d1">How a circle <span class="ital">flows</span> through one full cycle.</h2>
+    <p class="nj-p reveal reveal-d2">Every Njangi follows the same essential rhythm: members join, contribute on schedule, and one member at a time receives the pooled funds. The illustration below shows a 5-member circle moving through one contribution period, with funds flowing into the central pot and being released to the recipient for that cycle.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="lifecycle reveal reveal-d3">
+      <svg class="lifecycle-svg" viewBox="0 0 600 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="potGrad" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="#9EE493" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="memberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9EE493" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#9EE493" stop-opacity=".05"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Outer rotating ring -->
+        <g class="cycle-orbit">
+          <circle cx="300" cy="180" r="135" fill="none" stroke="#9EE493" stroke-opacity=".15" stroke-width="1" stroke-dasharray="3 6"/>
+        </g>
+
+        <!-- Central pot -->
+        <circle cx="300" cy="180" r="58" fill="url(#potGrad)"/>
+        <circle cx="300" cy="180" r="42" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="2"/>
+        <text x="300" y="178" text-anchor="middle" font-family="Geist Mono,monospace" font-size="10" font-weight="600" fill="#9EE493" letter-spacing="1">THE POT</text>
+        <text x="300" y="194" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#cef870" letter-spacing=".5">€500 / cycle</text>
+
+        <!-- Coin animations rising from pot -->
+        <circle class="cycle-coin" cx="300" cy="155" r="4" fill="#cef870" opacity="0"/>
+        <circle class="cycle-coin" cx="285" cy="158" r="3" fill="#9EE493" opacity="0" style="animation-delay:.5s"/>
+        <circle class="cycle-coin" cx="315" cy="160" r="3" fill="#9EE493" opacity="0" style="animation-delay:1s"/>
+
+        <!-- 5 Members positioned around the pot -->
+        <g class="cycle-pulse">
+          <circle cx="300" cy="50"  r="28" fill="url(#memberGrad)" stroke="#9EE493" stroke-width="1.5"/>
+          <text x="300" y="48" text-anchor="middle" font-family="Geist,sans-serif" font-size="10" font-weight="600" fill="#F4F2EC">Aïcha</text>
+          <text x="300" y="62" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#9EE493">Cycle 1</text>
+        </g>
+        <g class="cycle-pulse p2">
+          <circle cx="437" cy="135" r="28" fill="url(#memberGrad)" stroke="#9EE493" stroke-width="1.5"/>
+          <text x="437" y="133" text-anchor="middle" font-family="Geist,sans-serif" font-size="10" font-weight="600" fill="#F4F2EC">Adwoa</text>
+          <text x="437" y="147" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#8A8E87">Cycle 2</text>
+        </g>
+        <g class="cycle-pulse p3">
+          <circle cx="385" cy="290" r="28" fill="url(#memberGrad)" stroke="#9EE493" stroke-width="1.5"/>
+          <text x="385" y="288" text-anchor="middle" font-family="Geist,sans-serif" font-size="10" font-weight="600" fill="#F4F2EC">Kofi</text>
+          <text x="385" y="302" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#8A8E87">Cycle 3</text>
+        </g>
+        <g class="cycle-pulse p4">
+          <circle cx="215" cy="290" r="28" fill="url(#memberGrad)" stroke="#9EE493" stroke-width="1.5"/>
+          <text x="215" y="288" text-anchor="middle" font-family="Geist,sans-serif" font-size="10" font-weight="600" fill="#F4F2EC">Marie</text>
+          <text x="215" y="302" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#8A8E87">Cycle 4</text>
+        </g>
+        <g class="cycle-pulse p5">
+          <circle cx="163" cy="135" r="28" fill="url(#memberGrad)" stroke="#9EE493" stroke-width="1.5"/>
+          <text x="163" y="133" text-anchor="middle" font-family="Geist,sans-serif" font-size="10" font-weight="600" fill="#F4F2EC">Fatou</text>
+          <text x="163" y="147" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#8A8E87">Cycle 5</text>
+        </g>
+
+        <!-- Dashed flow lines from each member into the pot -->
+        <line class="cycle-arrow" x1="300" y1="78"  x2="300" y2="138" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.5"/>
+        <line class="cycle-arrow" x1="412" y1="148" x2="340" y2="170" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+        <line class="cycle-arrow" x1="365" y1="270" x2="328" y2="210" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+        <line class="cycle-arrow" x1="235" y1="270" x2="272" y2="210" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+        <line class="cycle-arrow" x1="188" y1="148" x2="260" y2="170" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+
+        <!-- Cycle 1 = Aïcha receives — show payout arrow -->
+        <line class="cycle-arrow" x1="300" y1="138" x2="300" y2="78" stroke="#cef870" stroke-opacity=".9" stroke-width="2.5"/>
+        <text x="412" y="48" font-family="Geist Mono,monospace" font-size="8" fill="#cef870" letter-spacing=".4">⬆ THIS CYCLE'S PAYOUT</text>
+      </svg>
+
+      <p style="text-align:center;margin-top:1.5rem;font-size:.88rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.04em;">5 members · €100 contribution · €500 payout per cycle · 5 cycles total</p>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     HOW IT WORKS — 5 stages in prose
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section">
+  <div class="container">
+    <div class="nj-eyebrow reveal">03 · How it works on Sohana</div>
+    <h2 class="nj-h2 reveal reveal-d1">From <span class="ital">setup</span> to <span class="ital">payout</span> — five stages.</h2>
+    <p class="nj-p reveal reveal-d2">Every Njangi on Sohana follows the same five stages. The platform handles the tracking, the timing, and the transparency — so you and your members can focus on what matters: showing up for each other.</p>
+
+    <div style="margin-top:2rem;" class="reveal reveal-d3">
+
+      <div class="stage">
+        <div class="stage-num">01</div>
+        <div class="stage-content">
+          <h3>Create or join a circle</h3>
+          <p>You can either start a new Njangi with friends, family, or community members — or join one that already exists. When you create a circle, you become its <strong>organiser</strong>: you set the rules, invite the members, and oversee the cycle. When you join one, you commit to contributing on the agreed schedule and trust that the organiser and platform will handle the rest fairly.</p>
+          <p>Most circles are private — only invited members can see them or join. If you want to find members beyond your immediate network, you can also create a public circle and let trusted members of the wider Sohana community apply to join.</p>
+          <div class="stage-meta">
+            <span>Private or public</span>
+            <span>Invite via Hanatag, email or phone</span>
+            <span>Min. NCS score optional</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">02</div>
+        <div class="stage-content">
+          <h3>Set the rules clearly, once</h3>
+          <p>Before the circle starts, the organiser defines the four parameters that will govern every contribution and payout: the <strong>contribution amount</strong> (how much each member puts in per cycle), the <strong>frequency</strong> (weekly, fortnightly, or monthly), the <strong>number of members</strong> (typically 3 to 12), and the <strong>payout order</strong> (drawn at random, set by the organiser, or determined by member preference).</p>
+          <p>Once the rules are set and members have joined, they cannot be silently changed. Every member sees the same agreement, the same numbers, and the same schedule. <strong>What was promised at the start is what gets delivered at the end.</strong> No re-negotiation mid-cycle, no "trust me" mechanics — just clear, enforceable rules.</p>
+          <div class="stage-meta">
+            <span>Contribution amount</span>
+            <span>Frequency: weekly · fortnightly · monthly</span>
+            <span>Members: 3–12</span>
+            <span>Payout order</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">03</div>
+        <div class="stage-content">
+          <h3>Contribute on schedule — every cycle</h3>
+          <p>When a contribution period opens, every member transfers their share into the platform's escrow. The Sohana ledger records exactly who has paid, when, and how much. Members can see the pool's progress in real time — <strong>4 of 5 paid · €400 of €500 collected</strong> — and the organiser receives an automatic alert if anyone falls behind.</p>
+          <p>If a member is late, the platform follows up automatically with reminders. If a member is repeatedly late or fails to contribute, this affects their <strong>Njangi Credit Score (NCS)</strong> — the behavioural credential that follows them across every circle they join. Showing up reliably builds your score; missing contributions damages it. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">Discipline becomes data.</em></p>
+          <div class="stage-meta">
+            <span>Real-time pool tracking</span>
+            <span>Automated reminders</span>
+            <span>NCS impact</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">04</div>
+        <div class="stage-content">
+          <h3>Receive your payout when your turn comes</h3>
+          <p>Once a cycle's contributions are fully collected, the platform releases the entire pool to that cycle's recipient. <strong>No confusion. No waiting on the organiser to send the money. No questions about whether everyone paid.</strong> The transfer is automatic, the audit trail is permanent, and the recipient sees the full payout land in their wallet within minutes.</p>
+          <p>The recipient still has obligations: they must continue contributing to every remaining cycle, just like everyone else. The early payout is not a withdrawal from the system — it is an advance against their future contributions, structurally guaranteed by the rules and tracked by the platform.</p>
+          <div class="stage-meta">
+            <span>Automatic release</span>
+            <span>Full audit trail</span>
+            <span>Funds in wallet within minutes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">05</div>
+        <div class="stage-content">
+          <h3>Complete the full rotation</h3>
+          <p>The circle continues until every member has had their turn to receive. At the end, <strong>every member has contributed the same total amount and received the same total amount</strong> — but each will have experienced the rotation differently. Some will have used their early payout to buy something significant; others will have built quiet savings discipline.</p>
+          <p>Once complete, the organiser and members can close the circle and start a new one with the same group, or part ways. Either way, every member walks away with their financial track record updated — months or years of on-time contributions added permanently to their NCS, ready to support future circles, partner products, and credit decisions.</p>
+          <div class="stage-meta">
+            <span>NCS updated</span>
+            <span>Members can renew or close</span>
+            <span>Permanent track record</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHY NJANGI WORKS — 4-pillar warm cream
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section warm">
+  <div class="container">
+    <div class="nj-eyebrow reveal">04 · Why it works</div>
+    <h2 class="nj-h2 reveal reveal-d1" style="color:#0E120F;">It's not just saving — it's <span class="ital">coordinated access to capital</span>.</h2>
+    <p class="nj-p reveal reveal-d2">A Njangi works because it weaves together four forces that, on their own, are difficult to maintain — but together create a system that has outlasted banking institutions, currency reforms, and entire empires. The platform's job is not to replace these forces. It is to make them more reliable, more transparent, and more scalable than they have ever been before.</p>
+
+    <div class="pillars">
+      <div class="pillar reveal reveal-d1">
+        <div class="pillar-ico">⊟</div>
+        <div>
+          <h4>Discipline</h4>
+          <p>You commit to a regular contribution and your group expects you to honour it. Saving stops being optional. The structure makes consistency easier than negotiation.</p>
+        </div>
+      </div>
+      <div class="pillar reveal reveal-d2">
+        <div class="pillar-ico">↑</div>
+        <div>
+          <h4>Access</h4>
+          <p>When your turn comes, you receive a lump sum that would take you far longer to save alone. For early recipients, it is effectively a zero-interest advance against their own future contributions.</p>
+        </div>
+      </div>
+      <div class="pillar reveal reveal-d3">
+        <div class="pillar-ico">◊</div>
+        <div>
+          <h4>Trust</h4>
+          <p>Your circle is built on real relationships — friends, family, neighbours, colleagues. Showing up reliably for them strengthens both the circle and the bond between members.</p>
+        </div>
+      </div>
+      <div class="pillar reveal reveal-d4">
+        <div class="pillar-ico">▦</div>
+        <div>
+          <h4>Structure</h4>
+          <p>The rules are clear from the start, the platform enforces them, and the audit trail proves who did what. No more "did you pay last month?" arguments.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHAT SOHANA ADDS — comparison
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section">
+  <div class="container">
+    <div class="nj-eyebrow reveal">05 · What Sohana adds</div>
+    <h2 class="nj-h2 reveal reveal-d1">We don't <span class="ital">change</span> the system. We <span class="ital">strengthen</span> it.</h2>
+    <p class="nj-p reveal reveal-d2">The original mechanics of a Njangi are perfect. What was missing was the infrastructure to make it work at scale — across borders, across currencies, across years. Here is what changes when a circle moves from a notebook or WhatsApp group to Sohana.</p>
+
+    <div class="compare-grid">
+      <div class="compare-col reveal reveal-d1">
+        <h4>Traditional Njangi</h4>
+        <ul class="compare-list">
+          <li><strong>Tracking is manual.</strong> Notebooks, spreadsheets, and group chats — all editable, all easy to lose.</li>
+          <li><strong>Disputes are common.</strong> "Did you pay last month?" arguments are a real source of friction.</li>
+          <li><strong>One organiser holds the cash.</strong> Trust depends entirely on one person's reliability.</li>
+          <li><strong>Limited to one location.</strong> Members generally need to live in the same city.</li>
+          <li><strong>No financial track record.</strong> Years of disciplined saving leave no trace anywhere.</li>
+          <li><strong>Vulnerable to default.</strong> If a member disappears, recovery is informal at best.</li>
+        </ul>
+      </div>
+      <div class="compare-col sohana reveal reveal-d2">
+        <h4>Njangi on Sohana</h4>
+        <ul class="compare-list">
+          <li><strong>Everything is tracked automatically.</strong> Permanent ledger, visible to every member, never lost.</li>
+          <li><strong>Disputes become rare.</strong> The audit trail answers every question before it's asked.</li>
+          <li><strong>Funds sit in escrow.</strong> No single person holds the pool — the platform releases it according to the rules.</li>
+          <li><strong>Cross-border by design.</strong> Members can be in Paris, Yaoundé, Montréal — same circle, same rules.</li>
+          <li><strong>Builds your NCS.</strong> Every on-time contribution adds to a portable, verifiable credit identity.</li>
+          <li><strong>Defaults are visible.</strong> Members are protected by transparency, NCS impact, and platform safeguards.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAYOUT CALCULATOR — interactive
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section" id="calculator">
+  <div class="container">
+    <div class="nj-eyebrow reveal">06 · Estimate your payout</div>
+    <h2 class="nj-h2 reveal reveal-d1">See what your <span class="ital">circle</span> looks like before you start.</h2>
+    <p class="nj-p reveal reveal-d2">Before you create or join a Njangi, it helps to see the numbers. Adjust the contribution amount, member count, and frequency below to see exactly what each member will receive — and how long the full cycle will take. This is the same calculation the platform applies when a circle is set up.</p>
+
+    <div class="calc-card reveal reveal-d3">
+      <div class="calc-grid">
+
+        <div class="calc-controls">
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Contribution per member</span>
+              <span class="value"><span id="calc-contrib-display">100</span><span class="currency" id="calc-currency-display">EUR</span></span>
+            </div>
+            <input type="range" id="calc-contrib" min="10" max="1000" value="100" step="10" oninput="recalc()">
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Currency</span>
+            </div>
+            <div class="calc-currency-row" id="calc-curr-row">
+              <button onclick="setCurrency('EUR',this)" class="on">EUR</button>
+              <button onclick="setCurrency('GBP',this)">GBP</button>
+              <button onclick="setCurrency('USD',this)">USD</button>
+              <button onclick="setCurrency('CAD',this)">CAD</button>
+              <button onclick="setCurrency('XAF',this)">XAF</button>
+              <button onclick="setCurrency('GHC',this)">GHC</button>
+              <button onclick="setCurrency('NGN',this)">NGN</button>
+              <button onclick="setCurrency('ZAR',this)">ZAR</button>
+            </div>
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Number of members</span>
+              <span class="value"><span id="calc-members-display">5</span></span>
+            </div>
+            <input type="range" id="calc-members" min="3" max="12" value="5" step="1" oninput="recalc()">
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Frequency</span>
+            </div>
+            <div class="calc-freq-row" id="calc-freq-row">
+              <button onclick="setFreq(7,this)">Weekly</button>
+              <button onclick="setFreq(14,this)">Fortnightly</button>
+              <button onclick="setFreq(30,this)" class="on">Monthly</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="calc-result">
+          <div class="label">Each payout</div>
+          <div class="calc-payout"><span id="calc-currency-symbol">€</span><span id="calc-payout-amount">500</span></div>
+          <div class="calc-summary">
+            <div>
+              <span class="v" id="calc-cycles">5</span>
+              <span class="l">Total cycles</span>
+            </div>
+            <div>
+              <span class="v" id="calc-duration">5 months</span>
+              <span class="l">Full duration</span>
+            </div>
+          </div>
+          <div style="margin-top:.85rem;font-size:.78rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.04em;line-height:1.5;">
+            Total contributed: <span id="calc-total-contrib" style="color:#9EE493;font-weight:600;">€500</span> · Total received: <span id="calc-total-recv" style="color:#9EE493;font-weight:600;">€500</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ROLES WITHIN A CIRCLE
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section warm">
+  <div class="container">
+    <div class="nj-eyebrow reveal">07 · Roles within a circle</div>
+    <h2 class="nj-h2 reveal reveal-d1" style="color:#0E120F;">Three roles. <span class="ital">Clear responsibilities</span> for each.</h2>
+    <p class="nj-p reveal reveal-d2">Every Njangi has a small set of well-defined roles. The platform makes the boundaries between them explicit, so members know exactly what they can do, what others can do, and where the lines are drawn. The clearer the roles, the smoother the circle.</p>
+
+    <div class="roles-grid">
+      <!-- ORGANISER -->
+      <div class="role-card reveal reveal-d1" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <svg class="role-svg icon-organiser" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="o-orbit">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#0E120F" stroke-opacity=".15" stroke-width="1" stroke-dasharray="2 4"/>
+            <circle cx="32" cy="6" r="2.5" fill="#9EE493"/>
+          </g>
+          <circle class="o-pulse" cx="32" cy="32" r="14" fill="rgba(158,228,147,.18)" stroke="#0E120F" stroke-width="1.5"/>
+          <circle cx="32" cy="28" r="4" fill="#0E120F"/>
+          <path d="M24 42 Q32 36 40 42" fill="none" stroke="#0E120F" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="3" fill="#9EE493"/>
+        </svg>
+        <h4 style="color:#0E120F;">Organiser</h4>
+        <div class="role-tag">Creates &amp; oversees</div>
+        <p style="color:rgba(20,19,15,.7);">The person who sets up the circle. They define the rules, invite members, and act as the first point of contact when something needs human judgment. They do not handle money — the platform does that.</p>
+        <span class="role-can" style="color:rgba(20,19,15,.55);">Can do</span>
+        <ul style="color:rgba(20,19,15,.65);">
+          <li>Set rules &amp; payout order</li>
+          <li>Invite or remove members (within limits)</li>
+          <li>Send group reminders</li>
+          <li>Close the circle at end of cycle</li>
+        </ul>
+      </div>
+
+      <!-- MEMBER -->
+      <div class="role-card reveal reveal-d2" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <svg class="role-svg icon-member" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="m-person">
+            <circle cx="14" cy="22" r="5" fill="rgba(158,228,147,.2)" stroke="#0E120F" stroke-width="1.5"/>
+            <path d="M8 36 Q14 30 20 36" fill="none" stroke="#0E120F" stroke-width="1.5"/>
+          </g>
+          <g class="m-person p2">
+            <circle cx="32" cy="22" r="5" fill="rgba(158,228,147,.25)" stroke="#0E120F" stroke-width="1.5"/>
+            <path d="M26 36 Q32 30 38 36" fill="none" stroke="#0E120F" stroke-width="1.5"/>
+          </g>
+          <g class="m-person p3">
+            <circle cx="50" cy="22" r="5" fill="rgba(158,228,147,.2)" stroke="#0E120F" stroke-width="1.5"/>
+            <path d="M44 36 Q50 30 56 36" fill="none" stroke="#0E120F" stroke-width="1.5"/>
+          </g>
+          <line x1="20" y1="42" x2="44" y2="42" stroke="#9EE493" stroke-width="1" stroke-dasharray="2 3"/>
+          <line x1="20" y1="48" x2="44" y2="48" stroke="#9EE493" stroke-width="1" stroke-dasharray="2 3"/>
+        </svg>
+        <h4 style="color:#0E120F;">Member</h4>
+        <div class="role-tag">Contributes &amp; receives</div>
+        <p style="color:rgba(20,19,15,.7);">A regular participant in the circle. Members commit to contributing on time and receive their payout when their turn comes. Their on-time behaviour is recorded in their NCS for life.</p>
+        <span class="role-can" style="color:rgba(20,19,15,.55);">Can do</span>
+        <ul style="color:rgba(20,19,15,.65);">
+          <li>Contribute to active cycles</li>
+          <li>See full pool progress in real time</li>
+          <li>View other members' status</li>
+          <li>Leave a circle (with notice rules)</li>
+        </ul>
+      </div>
+
+      <!-- TREASURER (the platform) -->
+      <div class="role-card reveal reveal-d3" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <svg class="role-svg icon-treasurer" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="14" y="20" width="36" height="34" rx="3" fill="rgba(158,228,147,.1)" stroke="#0E120F" stroke-width="1.5"/>
+          <rect x="14" y="20" width="36" height="8" fill="rgba(158,228,147,.25)" stroke="#0E120F" stroke-width="1.5"/>
+          <circle class="t-coin" cx="22" cy="36" r="3" fill="#9EE493" stroke="#0E120F" stroke-width="1"/>
+          <circle class="t-coin c2" cx="32" cy="36" r="3" fill="#9EE493" stroke="#0E120F" stroke-width="1"/>
+          <circle class="t-coin c3" cx="42" cy="36" r="3" fill="#9EE493" stroke="#0E120F" stroke-width="1"/>
+          <line x1="20" y1="44" x2="44" y2="44" stroke="#0E120F" stroke-width="1"/>
+          <line x1="20" y1="48" x2="44" y2="48" stroke="#0E120F" stroke-width="1"/>
+          <path d="M28 12 L36 12 L36 20 L28 20 Z" fill="rgba(158,228,147,.4)" stroke="#0E120F" stroke-width="1.5"/>
+          <path d="M30 12 L30 8 L34 8 L34 12" fill="none" stroke="#0E120F" stroke-width="1.5"/>
+        </svg>
+        <h4 style="color:#0E120F;">The Platform</h4>
+        <div class="role-tag">Holds &amp; releases funds</div>
+        <p style="color:rgba(20,19,15,.7);">Sohana itself plays the role of treasurer — the ledger, the escrow, the audit trail. No single person ever holds the group's money. The platform releases payouts only when the rules say it should.</p>
+        <span class="role-can" style="color:rgba(20,19,15,.55);">Always does</span>
+        <ul style="color:rgba(20,19,15,.65);">
+          <li>Hold contributions in escrow</li>
+          <li>Release payouts on schedule</li>
+          <li>Maintain the audit trail</li>
+          <li>Update each member's NCS</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHO IT'S FOR — 4 user categories
+══════════════════════════════════════════════════════════ -->
+<section class="nj-section">
+  <div class="container">
+    <div class="nj-eyebrow reveal">08 · Who Njangi is for</div>
+    <h2 class="nj-h2 reveal reveal-d1">Different goals. <span class="ital">Same mechanism</span>.</h2>
+    <p class="nj-p reveal reveal-d2">A Njangi is not a single product with a single user. It is a coordination mechanism that adapts to what your group needs — short-term cash flow, long-term savings discipline, working capital, family coordination. Here is how different kinds of users typically use a circle.</p>
+
+    <div class="users-grid">
+      <div class="user-card reveal reveal-d1">
+        <div class="user-emoji">👥</div>
+        <div>
+          <h4>Friends saving for a shared goal</h4>
+          <p>A group of friends who want to save together for something specific — a holiday, a wedding contribution, a major purchase — without needing to chase each other for money.</p>
+          <div class="scenario">Example: 6 friends · <strong>€200/month · 6 months</strong> · €1,200 lump sum to whoever's wedding it is that month</div>
+        </div>
+      </div>
+
+      <div class="user-card reveal reveal-d2">
+        <div class="user-emoji">🏠</div>
+        <div>
+          <h4>Families coordinating finances</h4>
+          <p>Family members who want to support shared expenses — tuition, healthcare, family events — with a clear, fair system instead of ad-hoc requests for help.</p>
+          <div class="scenario">Example: 4 siblings · <strong>€150/month</strong> · €600 sent to whichever sibling has the biggest expense that month</div>
+        </div>
+      </div>
+
+      <div class="user-card reveal reveal-d3">
+        <div class="user-emoji">🛠️</div>
+        <div>
+          <h4>Entrepreneurs needing capital</h4>
+          <p>Small-business owners and traders pooling working capital among trusted peers, with predictable access to the lump sum when stock or equipment needs to be bought.</p>
+          <div class="scenario">Example: 8 market traders · <strong>€100/week</strong> · €800 every week to one trader for inventory restocking</div>
+        </div>
+      </div>
+
+      <div class="user-card reveal reveal-d4">
+        <div class="user-emoji">🌍</div>
+        <div>
+          <h4>Diaspora &amp; community groups</h4>
+          <p>Diaspora associations, faith-based groups, or alumni networks running cross-border circles where members are spread across cities and continents but share a common bond.</p>
+          <div class="scenario">Example: 12 Cameroonian nurses across 3 countries · <strong>€250/month</strong> · €3,000 lump sum each month for family support back home</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="nj-cta">
+  <div class="container">
+    <h2>A familiar system. <span class="ital">Rebuilt for trust at scale.</span></h2>
+    <p>Create your circle, invite your people, and start saving with structure. Or join an existing circle and add to your financial track record from the first contribution.</p>
+    <div class="nj-cta-row">
+      <a href="/auth" class="nj-cta-primary">Create your first circle →</a>
+      <a href="/ncs-page" class="nj-cta-ghost">Learn about the NCS</a>
+      <a href="/about" class="nj-cta-ghost">Read our story</a>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ──────── PAYOUT CALCULATOR ──────── */
+var calcState = { contrib: 100, members: 5, frequencyDays: 30, currency: 'EUR' };
+var currencySymbols = { EUR:'€', GBP:'£', USD:'$', CAD:'C$', XAF:'CFA ', GHC:'₵', NGN:'₦', ZAR:'R' };
+
+function setCurrency(code, btn){
+  calcState.currency = code;
+  document.querySelectorAll('#calc-curr-row button').forEach(function(b){ b.classList.remove('on') });
+  btn.classList.add('on');
+  recalc();
+}
+function setFreq(days, btn){
+  calcState.frequencyDays = days;
+  document.querySelectorAll('#calc-freq-row button').forEach(function(b){ b.classList.remove('on') });
+  btn.classList.add('on');
+  recalc();
+}
+function fmtNumber(n){ return n.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+function recalc(){
+  calcState.contrib = parseInt(document.getElementById('calc-contrib').value);
+  calcState.members = parseInt(document.getElementById('calc-members').value);
+
+  var payout = calcState.contrib * calcState.members;
+  var totalDays = calcState.members * calcState.frequencyDays;
+  var sym = currencySymbols[calcState.currency];
+
+  // friendly duration
+  var duration;
+  if (totalDays >= 360) duration = (totalDays/30).toFixed(0) + ' months (' + (totalDays/365).toFixed(1) + ' years)';
+  else if (totalDays >= 60) duration = Math.round(totalDays/30) + ' months';
+  else duration = totalDays + ' days';
+
+  // Update DOM
+  document.getElementById('calc-contrib-display').textContent = fmtNumber(calcState.contrib);
+  document.getElementById('calc-currency-display').textContent = ' ' + calcState.currency;
+  document.getElementById('calc-members-display').textContent = calcState.members;
+  document.getElementById('calc-currency-symbol').textContent = sym;
+  document.getElementById('calc-payout-amount').textContent = fmtNumber(payout);
+  document.getElementById('calc-cycles').textContent = calcState.members;
+  document.getElementById('calc-duration').textContent = duration;
+  document.getElementById('calc-total-contrib').textContent = sym + fmtNumber(payout);
+  document.getElementById('calc-total-recv').textContent = sym + fmtNumber(payout);
+}
+
+/* ──────── SCROLL REVEAL ──────── */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
