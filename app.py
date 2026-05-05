@@ -1161,6 +1161,214 @@ def admin_press_inquiries_export():
                     headers={"Content-Disposition": "attachment; filename=sohana-press-inquiries.csv"})
 
 
+# ── COMPLAINTS ───────────────────────────────────────────────────────────────
+
+def _ensure_complaints_table():
+    """Create complaints table on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS complaints (
+                id            TEXT PRIMARY KEY,
+                reference     TEXT UNIQUE NOT NULL,
+                name          TEXT NOT NULL,
+                email         TEXT NOT NULL,
+                phone         TEXT,
+                category      TEXT NOT NULL,
+                rosca_name    TEXT,
+                description   TEXT NOT NULL,
+                evidence_url  TEXT,
+                status        TEXT NOT NULL DEFAULT 'new',
+                priority      TEXT NOT NULL DEFAULT 'normal',
+                assigned_to   TEXT,
+                resolution    TEXT,
+                reviewed_by   TEXT,
+                reviewed_at   TEXT,
+                resolved_at   TEXT,
+                user_id       TEXT,
+                created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_complaints_ref ON complaints(reference)")
+    except Exception as e:
+        import sys
+        print(f"[_ensure_complaints_table] {e}", file=sys.stderr, flush=True)
+
+
+def _gen_complaint_ref():
+    """Generate a human-readable reference like SOH-CMP-2026-XXXX."""
+    import datetime, secrets
+    year = datetime.datetime.now().year
+    suffix = secrets.token_hex(2).upper()  # 4 chars
+    return f"SOH-CMP-{year}-{suffix}"
+
+
+@app.route("/complaints")
+def complaints_page():
+    """Public complaints page."""
+    _ensure_complaints_table()
+    return render_template("complaints.html")
+
+
+@app.route("/api/complaints/submit", methods=["POST"])
+def api_complaints_submit():
+    """Capture complaint submissions from the public page."""
+    _ensure_complaints_table()
+    d           = request.json or {}
+    name        = d.get("name", "").strip()
+    email       = d.get("email", "").strip().lower()
+    phone       = d.get("phone", "").strip()
+    category    = d.get("category", "").strip() or "other"
+    rosca       = d.get("rosca", "").strip()
+    description = d.get("description", "").strip()
+    evidence    = d.get("evidence", "").strip()
+
+    # Validation
+    if not name or not email or not description:
+        return jsonify({"error": "Name, email, and description are required."}), 400
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"error": "Please enter a valid email address."}), 400
+    if len(description) < 20:
+        return jsonify({"error": "Please provide at least a few sentences describing the issue."}), 400
+    if category not in ("account", "transaction", "platform", "member", "data", "other"):
+        category = "other"
+
+    # Auto-set priority for data/security and account-freeze related
+    priority = "normal"
+    if category == "data":
+        priority = "high"
+
+    # If user is logged in, link the complaint to their account
+    user_id = session.get("user_id")
+
+    try:
+        cid = str(uuid.uuid4())
+        # Generate unique reference (retry on collision, max 5 tries)
+        for _ in range(5):
+            ref = _gen_complaint_ref()
+            existing = fetchone("SELECT id FROM complaints WHERE reference=?", (ref,))
+            if not existing:
+                break
+        with get_db() as db:
+            db.execute("""INSERT INTO complaints
+                          (id, reference, name, email, phone, category, rosca_name,
+                           description, evidence_url, priority, user_id)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                       (cid, ref, name, email, phone or None, category,
+                        rosca or None, description, evidence or None,
+                        priority, user_id))
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        import sys
+        print(f"[complaints_submit] failed: {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Submission failed. Please email complaints@sohana.app instead."}), 500
+
+
+# ── COMPLAINTS ADMIN ─────────────────────────────────────────────────────────
+
+@app.route("/admin/complaints")
+@admin_required
+def admin_complaints():
+    """Admin view of complaints with status/priority workflow."""
+    _ensure_complaints_table()
+    user = auth.get_current_user()
+    try:
+        complaints = fetchall(
+            """SELECT c.id, c.reference, c.name, c.email, c.phone, c.category,
+                      c.rosca_name, c.description, c.evidence_url, c.status,
+                      c.priority, c.resolution, c.reviewed_by, c.reviewed_at,
+                      c.resolved_at, c.user_id, c.created_at,
+                      r.full_name as reviewer_name
+               FROM complaints c
+               LEFT JOIN users r ON r.id = c.reviewed_by
+               ORDER BY
+                 CASE c.status
+                   WHEN 'new' THEN 1
+                   WHEN 'reviewing' THEN 2
+                   WHEN 'escalated' THEN 3
+                   WHEN 'resolved' THEN 4
+                   WHEN 'closed' THEN 5
+                   ELSE 6 END,
+                 CASE c.priority WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END,
+                 c.created_at DESC"""
+        )
+    except Exception:
+        complaints = []
+    counts = {"new": 0, "reviewing": 0, "resolved": 0, "escalated": 0, "closed": 0, "high": 0}
+    for c in complaints:
+        s = c["status"] or "new"
+        counts[s] = counts.get(s, 0) + 1
+        if c["priority"] == "high" and s in ("new", "reviewing"):
+            counts["high"] += 1
+    return render_template("admin_complaints.html",
+                           user=user, complaints=complaints, counts=counts)
+
+
+@app.route("/api/admin/complaints/<cid>/update", methods=["POST"])
+@admin_required
+def api_admin_complaints_update(cid):
+    """Update complaint status, priority, or resolution."""
+    d = request.json or {}
+    status     = d.get("status", "").strip()
+    priority   = d.get("priority", "").strip()
+    resolution = d.get("resolution", "").strip()
+
+    valid_statuses = ("new", "reviewing", "escalated", "resolved", "closed")
+    valid_priority = ("low", "normal", "high")
+
+    if status and status not in valid_statuses:
+        return jsonify({"error": "Invalid status."}), 400
+    if priority and priority not in valid_priority:
+        return jsonify({"error": "Invalid priority."}), 400
+
+    try:
+        # Build update dynamically
+        sets, params = [], []
+        if status:
+            sets.append("status=?"); params.append(status)
+            if status == "resolved":
+                sets.append("resolved_at=datetime('now')")
+        if priority:
+            sets.append("priority=?"); params.append(priority)
+        if resolution:
+            sets.append("resolution=?"); params.append(resolution)
+        sets.append("reviewed_by=?"); params.append(session["user_id"])
+        sets.append("reviewed_at=datetime('now')")
+        params.append(cid)
+        with get_db() as db:
+            db.execute(f"UPDATE complaints SET {', '.join(sets)} WHERE id=?", params)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": "Update failed."}), 500
+
+
+@app.route("/admin/complaints/export")
+@admin_required
+def admin_complaints_export():
+    import io, csv
+    try:
+        rows = fetchall(
+            """SELECT reference, name, email, phone, category, rosca_name, description,
+                      evidence_url, status, priority, resolution, created_at, resolved_at
+               FROM complaints ORDER BY created_at DESC"""
+        )
+    except Exception:
+        rows = []
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Reference", "Name", "Email", "Phone", "Category", "ROSCA",
+                     "Description", "Evidence URL", "Status", "Priority",
+                     "Resolution", "Submitted", "Resolved"])
+    for r in rows:
+        writer.writerow([r["reference"], r["name"], r["email"], r["phone"] or "",
+                         r["category"], r["rosca_name"] or "", r["description"],
+                         r["evidence_url"] or "", r["status"], r["priority"],
+                         r["resolution"] or "",
+                         r["created_at"][:16], r["resolved_at"][:16] if r["resolved_at"] else ""])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=sohana-complaints.csv"})
+
+
 # ── WALLET API ────────────────────────────────────────────────────────────────
 
 @app.route("/api/wallet/balances")

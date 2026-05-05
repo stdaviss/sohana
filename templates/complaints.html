@@ -1,51 +1,748 @@
 {% extends "page_base.html" %}
-{% block title %}Complaints{% endblock %}
+{% block title %}Complaints &amp; Concerns{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+.cm-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.cm-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.cm-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.cm-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.cm-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.cm-section.warm .cm-eyebrow{color:rgba(20,19,15,.55)}
+.cm-h2{font-size:clamp(1.8rem,3.2vw,2.5rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.cm-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.cm-section.warm .cm-h2 .ital{color:#0E120F}
+.cm-lead{font-size:clamp(1rem,1.2vw,1.1rem);color:#B7BAB4;line-height:1.7;max-width:680px;margin-bottom:2rem}
+.cm-section.warm .cm-lead{color:rgba(20,19,15,.7)}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with animated trust handshake SVG ── */
+.cm-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.cm-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.cm-hero .container{grid-template-columns:1fr;gap:48px}}
+.cm-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.cm-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.cm-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.cm-hero p{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:1rem}
+.cm-hero .cta-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1.5rem}
+.cm-hero .cta-row a{padding:.65rem 1.35rem;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:500;text-decoration:none;letter-spacing:.04em;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem}
+.cm-hero .cta-row .primary{background:#9EE493;color:#0E120F}
+.cm-hero .cta-row .primary:hover{background:#cef870;transform:translateY(-1px)}
+.cm-hero .cta-row .ghost{background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35)}
+.cm-hero .cta-row .ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO SVG — trust seal with rotating particles */
+.trust-svg{width:100%;max-width:460px;margin:0 auto;display:block;aspect-ratio:1;filter:drop-shadow(0 0 24px rgba(158,228,147,.2))}
+.trust-orbit{transform-origin:center;animation:trust-rot 40s linear infinite}
+.trust-orbit.r2{animation:trust-rot 28s linear infinite reverse}
+.trust-orbit.r3{animation:trust-rot 18s linear infinite}
+@keyframes trust-rot{to{transform:rotate(360deg)}}
+.trust-pulse{animation:trust-breath 4s ease-in-out infinite}
+@keyframes trust-breath{0%,100%{opacity:.85}50%{opacity:1}}
+.trust-shield-glow{filter:drop-shadow(0 0 14px rgba(158,228,147,.55));animation:trust-breath 3s ease-in-out infinite}
+.trust-particle{animation:trust-float 3.5s ease-in-out infinite}
+.trust-particle.tp2{animation-delay:.5s}.trust-particle.tp3{animation-delay:1s}.trust-particle.tp4{animation-delay:1.5s}.trust-particle.tp5{animation-delay:2s}.trust-particle.tp6{animation-delay:2.5s}
+@keyframes trust-float{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+.trust-line{stroke-dasharray:3 5;animation:trust-flow 3s linear infinite}
+@keyframes trust-flow{to{stroke-dashoffset:-32}}
+
+/* ── PROMISE BAND ── */
+.promise-band{margin-top:2rem;padding:2.5rem 2.25rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.05) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.promise-band::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.promise-band .pr-quote{font-family:'Instrument Serif',serif;font-style:italic;font-size:clamp(1.3rem,2.2vw,1.7rem);color:#F4F2EC;line-height:1.4;max-width:760px;margin:0 auto;text-align:center;position:relative}
+.promise-band .pr-quote .em{color:#9EE493}
+.promise-band .pr-byline{display:block;text-align:center;font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;letter-spacing:.05em;margin-top:1rem;position:relative}
+
+/* ── WHAT IS A COMPLAINT — list with hover items ── */
+.what-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;margin-top:2rem}
+@media(max-width:880px){.what-grid{grid-template-columns:1fr;gap:32px}}
+.what-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.75rem}
+.what-list li{padding:1rem 1.2rem;border:1px solid rgba(244,242,236,.1);border-radius:12px;background:#161B17;display:flex;align-items:flex-start;gap:.85rem;transition:border-color .2s,transform .2s}
+.what-list li:hover{border-color:rgba(158,228,147,.3);transform:translateX(4px)}
+.what-list li .ico{width:32px;height:32px;border-radius:8px;background:rgba(158,228,147,.1);color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:600;flex-shrink:0}
+.what-list li .txt{font-size:.92rem;color:#B7BAB4;line-height:1.55}
+.what-list li .txt strong{color:#F4F2EC;font-weight:500;display:block;margin-bottom:.15rem}
+.what-photo{aspect-ratio:5/4;border-radius:20px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.what-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── 4-STEP FLOW DIAGRAM ── */
+.flow-wrap{margin-top:2rem;padding:2.25rem 2rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:24px;position:relative;overflow:hidden}
+.flow-wrap::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.05),transparent 60%);pointer-events:none}
+.flow-svg{width:100%;height:auto;display:block;position:relative;z-index:2}
+.flow-stage{animation:flow-pulse 3s ease-in-out infinite}
+.flow-stage.s2{animation-delay:.5s}.flow-stage.s3{animation-delay:1s}.flow-stage.s4{animation-delay:1.5s}
+@keyframes flow-pulse{0%,100%{opacity:.85}50%{opacity:1}}
+.flow-arrow{stroke-dasharray:3 4;animation:flow-arrow-dash 2s linear infinite}
+@keyframes flow-arrow-dash{to{stroke-dashoffset:-28}}
+.flow-pkt{animation:flow-pkt-travel 4s linear infinite}
+.flow-pkt.fp2{animation-delay:1s}.flow-pkt.fp3{animation-delay:2s}.flow-pkt.fp4{animation-delay:3s}
+@keyframes flow-pkt-travel{0%{opacity:0;transform:translateX(0)}10%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translateX(720px)}}
+
+.flow-detail{margin-top:1.75rem;display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
+@media(max-width:760px){.flow-detail{grid-template-columns:1fr 1fr}}
+@media(max-width:440px){.flow-detail{grid-template-columns:1fr}}
+.flow-detail-card{padding:1.1rem 1.1rem;border:1px solid rgba(244,242,236,.06);border-radius:14px;background:rgba(14,18,15,.4);position:relative}
+.flow-detail-card .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+.flow-detail-card .num::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(158,228,147,.3) 0%,transparent 100%)}
+.flow-detail-card h4{font-size:.95rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em}
+.flow-detail-card .sla{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;background:rgba(158,228,147,.08);padding:.15rem .45rem;border-radius:99px;margin-bottom:.5rem;display:inline-block}
+.flow-detail-card p{font-size:.82rem;color:#B7BAB4;line-height:1.55}
+.flow-detail-card ul{list-style:none;padding:0;margin-top:.5rem;display:flex;flex-direction:column;gap:.3rem}
+.flow-detail-card ul li{font-size:.78rem;color:#8A8E87;line-height:1.5;padding-left:.95rem;position:relative}
+.flow-detail-card ul li::before{content:"·";position:absolute;left:0;color:#9EE493;font-weight:700;font-size:1.1rem;line-height:1;top:.05rem}
+
+/* ── PRINCIPLES (4 cards w animated icons) ── */
+.principles-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:2rem}
+@media(max-width:880px){.principles-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.principles-grid{grid-template-columns:1fr}}
+.pp-card{padding:1.75rem 1.5rem;border:1px solid rgba(20,19,15,.08);border-radius:18px;background:#fff;display:flex;flex-direction:column;gap:.75rem;transition:all .25s}
+.pp-card:hover{border-color:rgba(20,19,15,.18);transform:translateY(-3px);box-shadow:0 10px 28px rgba(20,19,15,.06)}
+.pp-icon{width:48px;height:48px}
+.pp-card h4{font-size:1rem;font-weight:600;color:#0E120F;letter-spacing:-.005em}
+.pp-card p{font-size:.85rem;color:rgba(20,19,15,.6);line-height:1.6}
+
+/* Principle SVG animations */
+.icon-fair .scale-arm{transform-origin:24px 16px;animation:fair-tilt 4s ease-in-out infinite}
+@keyframes fair-tilt{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.icon-trans .trans-eye{animation:trans-blink 4s ease-in-out infinite}
+@keyframes trans-blink{0%,90%,100%{transform:scaleY(1)}93%{transform:scaleY(.1)}}
+.icon-time .clock-hand{transform-origin:24px 24px;animation:clock-tick 12s linear infinite}
+@keyframes clock-tick{to{transform:rotate(360deg)}}
+.icon-acc .accent-pulse{animation:flow-pulse 2s ease-in-out infinite}
+
+/* ── DATA / GDPR / RIGHTS ── */
+.rights-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.rights-grid{grid-template-columns:1fr;gap:32px}}
+.rights-svg-wrap{aspect-ratio:1;max-width:380px;margin:0 auto;width:100%}
+.rights-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.85rem}
+.rights-list li{padding-left:2.2rem;position:relative;font-size:.95rem;color:#B7BAB4;line-height:1.6}
+.rights-list li::before{content:"";position:absolute;left:0;top:.4rem;width:18px;height:18px;border:1.5px solid #9EE493;border-radius:5px;background:rgba(158,228,147,.06)}
+.rights-list li::after{content:"✓";position:absolute;left:4px;top:.05rem;font-size:.78rem;font-weight:700;color:#9EE493}
+.rights-list li strong{color:#F4F2EC;font-weight:500}
+
+.rights-svg .gdpr-shield{animation:trust-breath 3.5s ease-in-out infinite}
+.rights-svg .ring-r{transform-origin:center;animation:trust-rot 22s linear infinite}
+.rights-svg .ring-r.r2{animation:trust-rot 16s linear infinite reverse}
+
+/* ── COMPLAINT FORM ── */
+.complaint-card{margin-top:2rem;padding:2.5rem 2.25rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.complaint-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.complaint-card h3{font-size:1.4rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.01em;position:relative}
+.complaint-card p.cs-sub{font-size:.92rem;color:#B7BAB4;margin-bottom:1.75rem;line-height:1.6;max-width:580px;position:relative}
+.cf-form{display:grid;grid-template-columns:1fr 1fr;gap:1rem;position:relative}
+@media(max-width:680px){.cf-form{grid-template-columns:1fr}}
+.cf-form .full{grid-column:1 / -1}
+.cf-field label{display:block;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem;text-transform:uppercase}
+.cf-field label .opt{color:#8A8E87;font-weight:400}
+.cf-input{width:100%;padding:.7rem .95rem;background:#0E120F;border:1.5px solid rgba(244,242,236,.15);border-radius:10px;font-family:inherit;font-size:.92rem;color:#F4F2EC;outline:none;transition:border-color .15s,box-shadow .15s}
+.cf-input:focus{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.cf-input::placeholder{color:#8A8E87}
+textarea.cf-input{resize:vertical;min-height:120px}
+select.cf-input{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239EE493' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.5rem}
+.btn-cf-submit{padding:.85rem 2rem;background:#9EE493;color:#0E120F;border:none;border-radius:999px;font-family:inherit;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;justify-self:start}
+.btn-cf-submit:hover{background:#cef870;transform:translateY(-1px)}
+.btn-cf-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.cf-success{display:none;padding:2rem;text-align:center;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.3);border-radius:16px;margin-top:1rem}
+.cf-success.show{display:block}
+.cf-success-ico{width:54px;height:54px;border-radius:50%;background:#9EE493;color:#0E120F;display:grid;place-items:center;font-size:1.5rem;font-weight:700;margin:0 auto 1rem}
+.cf-success h4{font-size:1.15rem;font-weight:600;color:#F4F2EC;margin-bottom:.5rem;letter-spacing:-.005em}
+.cf-success p{font-size:.9rem;color:#B7BAB4;line-height:1.6;max-width:480px;margin:0 auto}
+.cf-ref{font-family:'Geist Mono',monospace;color:#9EE493;background:rgba(158,228,147,.08);padding:.25rem .65rem;border-radius:6px;display:inline-block;margin-top:.85rem;font-size:.85rem}
+.cf-error{display:none;padding:.7rem 1rem;background:rgba(255,106,85,.1);color:#FF6A55;border:1px solid rgba(255,106,85,.25);border-radius:10px;font-size:.85rem;margin-top:.75rem;line-height:1.4}
+.cf-error.show{display:block}
+
+/* ── COMMUNITY NOTE BAND ── */
+.note-band{margin-top:2rem;padding:1.75rem 2rem;border:1px solid rgba(158,228,147,.18);border-left:3px solid #9EE493;border-radius:0 16px 16px 0;background:linear-gradient(90deg,rgba(158,228,147,.04) 0%,transparent 80%)}
+.note-band h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;margin-bottom:.7rem;letter-spacing:-.005em}
+.note-band p{font-size:.92rem;color:#B7BAB4;line-height:1.65;margin-bottom:.6rem}
+.note-band p strong{color:#F4F2EC;font-weight:500}
+
+/* ── CTA ── */
+.cm-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08)}
+.cm-cta h2{font-size:clamp(1.7rem,3vw,2.4rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;max-width:680px;margin:0 auto 1rem;color:#F4F2EC}
+.cm-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.cm-cta p{font-size:.95rem;color:#B7BAB4;max-width:560px;margin:0 auto 2rem;line-height:1.65}
+.cm-cta-buttons{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with animated trust seal
+══════════════════════════════════════════════════════════ -->
+<section class="cm-hero">
+  <div class="cm-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Legal</div>
-    <h1>How to Make a Complaint</h1>
-    <p>SOHANA takes all complaints seriously. Here is how to raise one and what to expect from our response.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="cm-eyebrow">Complaints &amp; Concerns</div>
+      <h1>If something <span class="ital">isn't right</span> — we want to hear about it.</h1>
+      <p>Trust is the foundation of everything we build. When something goes wrong, or feels unclear, our job is to listen, investigate, and resolve it fairly.</p>
+      <p>This page explains how to raise a concern, how we handle it, and what you can expect from us throughout the process.</p>
+      <div class="cta-row">
+        <a href="#submit-complaint" class="primary">Submit a complaint →</a>
+        <a href="#process" class="ghost">See our process</a>
+      </div>
+    </div>
+
+    <!-- Trust seal SVG -->
+    <svg class="trust-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="trustGrad" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
+          <stop offset="60%" stop-color="#9EE493" stop-opacity=".05"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="shieldStroke" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#9EE493"/>
+          <stop offset="100%" stop-color="#76E0A1"/>
+        </linearGradient>
+      </defs>
+
+      <!-- background glow -->
+      <circle cx="120" cy="120" r="92" fill="url(#trustGrad)"/>
+
+      <!-- outer rotating ring (dashed) -->
+      <g class="trust-orbit">
+        <circle cx="120" cy="120" r="106" fill="none" stroke="#9EE493" stroke-opacity=".3" stroke-width="1" stroke-dasharray="3 7"/>
+        <circle cx="120" cy="14"  r="3" fill="#9EE493"/>
+        <circle cx="226" cy="120" r="3" fill="#9EE493"/>
+        <circle cx="120" cy="226" r="3" fill="#9EE493"/>
+        <circle cx="14"  cy="120" r="3" fill="#9EE493"/>
+      </g>
+
+      <!-- mid ring -->
+      <g class="trust-orbit r2">
+        <circle cx="120" cy="120" r="86" fill="none" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.2"/>
+      </g>
+
+      <!-- dashed inner ring -->
+      <g class="trust-orbit r3">
+        <circle cx="120" cy="120" r="68" fill="none" stroke="#9EE493" stroke-opacity=".3" stroke-width="1" stroke-dasharray="2 4"/>
+      </g>
+
+      <!-- central shield -->
+      <g class="trust-shield-glow">
+        <path d="M120 56 L168 76 L168 124 Q168 156 120 184 Q72 156 72 124 L72 76 Z"
+              fill="rgba(158,228,147,.08)" stroke="url(#shieldStroke)" stroke-width="2" stroke-linejoin="round"/>
+        <!-- check mark -->
+        <path d="M96 122 L114 140 L146 104" fill="none" stroke="#9EE493" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+
+      <!-- floating particles -->
+      <circle class="trust-particle"     cx="50"  cy="60"  r="2" fill="#9EE493"/>
+      <circle class="trust-particle tp2" cx="190" cy="60"  r="2" fill="#9EE493"/>
+      <circle class="trust-particle tp3" cx="200" cy="170" r="2" fill="#9EE493"/>
+      <circle class="trust-particle tp4" cx="50"  cy="180" r="2" fill="#9EE493"/>
+      <circle class="trust-particle tp5" cx="30"  cy="120" r="2" fill="#9EE493"/>
+      <circle class="trust-particle tp6" cx="210" cy="120" r="2" fill="#9EE493"/>
+
+      <!-- connecting flow lines -->
+      <line class="trust-line" x1="50"  y1="60"  x2="100" y2="100" stroke="#9EE493" stroke-opacity=".35" stroke-width="1"/>
+      <line class="trust-line" x1="190" y1="60"  x2="140" y2="100" stroke="#9EE493" stroke-opacity=".35" stroke-width="1"/>
+      <line class="trust-line" x1="50"  y1="180" x2="100" y2="148" stroke="#9EE493" stroke-opacity=".35" stroke-width="1"/>
+      <line class="trust-line" x1="190" y1="170" x2="140" y2="148" stroke="#9EE493" stroke-opacity=".35" stroke-width="1"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PROMISE
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section">
+  <div class="container">
+    <div class="promise-band reveal">
+      <p class="pr-quote">"We listen carefully. We investigate fully. We <span class="em">explain clearly</span>. We respond <span class="em">fairly</span>. Every time, without exception."</p>
+      <span class="pr-byline">— The Sohana complaint-handling commitment</span>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">📬</div>
-      <h3>Step 1: Contact our support team</h3>
-      <p>Email support@sohana.app with a clear description of your complaint. Include your account phone number and any relevant dates or transaction references. We will acknowledge your complaint within 24 hours.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⏱️</div>
-      <h3>Step 2: Our investigation</h3>
-      <p>We aim to resolve all complaints within 15 business days. Complex cases may take up to 35 business days. We will keep you informed of progress throughout.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⚖️</div>
-      <h3>Step 3: If you are not satisfied</h3>
-      <p>If our resolution does not satisfy you, you may escalate to the relevant financial ombudsman or regulatory authority in your country of residence. Contact legal@sohana.app for the appropriate escalation path.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📋</div>
-      <h3>What makes a good complaint</h3>
-      <p>The more detail you provide — dates, amounts, screenshots, what you expected versus what happened — the faster we can investigate and resolve your issue.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS A COMPLAINT (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section warm">
+  <div class="container">
+    <div class="cm-eyebrow reveal">01 · What counts as a complaint</div>
+    <h2 class="cm-h2 reveal reveal-d1" style="color:#0E120F;">Anything that doesn't <span class="ital">meet your expectations</span>.</h2>
+    <p class="cm-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">A complaint is any expression of dissatisfaction, however small. You don't need formal language — if something doesn't feel right, we want to know.</p>
+
+    <div class="what-grid">
+      <ul class="what-list reveal reveal-d1">
+        <li>
+          <div class="ico">01</div>
+          <div class="txt"><strong>Account &amp; access issues</strong>Trouble logging in, account freezes, identity verification, or anything related to your account state.</div>
+        </li>
+        <li>
+          <div class="ico">02</div>
+          <div class="txt"><strong>Transactions, contributions &amp; payouts</strong>Missing transactions, incorrect amounts, delayed payouts, or any financial movement that doesn't look right.</div>
+        </li>
+        <li>
+          <div class="ico">03</div>
+          <div class="txt"><strong>Platform performance</strong>Bugs, errors, slowness, broken features, or anything that prevents you from using Sohana as expected.</div>
+        </li>
+        <li>
+          <div class="ico">04</div>
+          <div class="txt"><strong>Interactions with other members</strong>Issues with circle members, organisers, or any participant in a ROSCA, Pool, or Campaign.</div>
+        </li>
+        <li>
+          <div class="ico">05</div>
+          <div class="txt"><strong>Data privacy &amp; security</strong>Concerns about how your data is collected, stored, used — or if you suspect a security incident on your account.</div>
+        </li>
+        <li>
+          <div class="ico">06</div>
+          <div class="txt"><strong>Anything else</strong>Any aspect of our service that didn't meet your expectations. If in doubt, raise it.</div>
+        </li>
+      </ul>
+
+      <div class="what-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1573497019418-b400bb3ab074?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/photos/HiUe1jTUDhA" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     OUR 4-STEP PROCESS
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section" id="process">
+  <div class="container">
+    <div class="cm-eyebrow reveal">02 · Our process</div>
+    <h2 class="cm-h2 reveal reveal-d1">A <span class="ital">structured, accountable</span> path from concern to resolution.</h2>
+    <p class="cm-lead reveal reveal-d2">Every complaint goes through the same four stages. Same SLA expectations, same accountability, regardless of who you are or how complex the issue is.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <!-- Animated 4-step flow SVG -->
+    <div class="flow-wrap reveal reveal-d3">
+      <svg class="flow-svg" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="flowLine" x1="0%" x2="100%">
+            <stop offset="0%" stop-color="#9EE493" stop-opacity=".15"/>
+            <stop offset="50%" stop-color="#9EE493" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#9EE493" stop-opacity=".15"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Connecting line -->
+        <line x1="80" y1="100" x2="720" y2="100" stroke="url(#flowLine)" stroke-width="2"/>
+        <!-- Animated flow -->
+        <line class="flow-arrow" x1="80" y1="100" x2="720" y2="100" stroke="#9EE493" stroke-width="1.5" stroke-opacity=".7"/>
+
+        <!-- Stage 1: Acknowledge -->
+        <g class="flow-stage" transform="translate(80,100)">
+          <circle r="32" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">STEP 01</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="14" font-weight="700" fill="#F4F2EC">📥</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Acknowledge</text>
+          <text y="73" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#9EE493">1–2 days</text>
+        </g>
+
+        <!-- Stage 2: Review -->
+        <g class="flow-stage s2" transform="translate(293,100)">
+          <circle r="32" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">STEP 02</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="14" font-weight="700" fill="#F4F2EC">🔍</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Investigate</text>
+          <text y="73" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#9EE493">2–7 days</text>
+        </g>
+
+        <!-- Stage 3: Resolve -->
+        <g class="flow-stage s3" transform="translate(507,100)">
+          <circle r="32" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">STEP 03</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="14" font-weight="700" fill="#F4F2EC">✓</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Resolve</text>
+          <text y="73" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#9EE493">5–10 days</text>
+        </g>
+
+        <!-- Stage 4: Escalate -->
+        <g class="flow-stage s4" transform="translate(720,100)">
+          <circle r="32" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">STEP 04</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="14" font-weight="700" fill="#F4F2EC">⇈</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Escalate</text>
+          <text y="73" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#9EE493">if needed</text>
+        </g>
+
+        <!-- Travelling packets -->
+        <circle class="flow-pkt"     cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="flow-pkt fp2" cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="flow-pkt fp3" cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="flow-pkt fp4" cx="80" cy="100" r="3" fill="#9EE493"/>
+      </svg>
+
+      <!-- Detail cards for each step -->
+      <div class="flow-detail">
+        <div class="flow-detail-card">
+          <div class="num">STEP 01</div>
+          <h4>Acknowledge</h4>
+          <span class="sla">1–2 business days</span>
+          <p>We confirm receipt of your complaint and assign a reference number you can use to track it.</p>
+        </div>
+        <div class="flow-detail-card">
+          <div class="num">STEP 02</div>
+          <h4>Investigate</h4>
+          <span class="sla">2–7 business days</span>
+          <p>We do the work:</p>
+          <ul>
+            <li>Review transaction logs</li>
+            <li>Assess relevant user activity</li>
+            <li>Involve internal teams</li>
+            <li>Request more information</li>
+          </ul>
+        </div>
+        <div class="flow-detail-card">
+          <div class="num">STEP 03</div>
+          <h4>Resolve</h4>
+          <span class="sla">5–10 business days</span>
+          <p>You get a clear written response. Possible outcomes:</p>
+          <ul>
+            <li>Clarification of events</li>
+            <li>Correction of errors</li>
+            <li>Reversal or adjustment</li>
+            <li>Guidance on next steps</li>
+          </ul>
+        </div>
+        <div class="flow-detail-card">
+          <div class="num">STEP 04</div>
+          <h4>Escalate</h4>
+          <span class="sla">If you're not satisfied</span>
+          <p>Internal second review by a senior team member. As we obtain authorisations, we will also align with relevant external dispute-resolution bodies.</p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PRINCIPLES (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section warm">
+  <div class="container">
+    <div class="cm-eyebrow reveal">03 · How we handle complaints</div>
+    <h2 class="cm-h2 reveal reveal-d1" style="color:#0E120F;">Four principles, <span class="ital">applied every time</span>.</h2>
+    <p class="cm-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">These aren't slogans. They're how we measure ourselves on every complaint.</p>
+
+    <div class="principles-grid">
+      <!-- Fairness — animated balance scale -->
+      <div class="pp-card reveal reveal-d1">
+        <svg class="pp-icon icon-fair" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <line x1="24" y1="6"  x2="24" y2="42" stroke="#0E120F" stroke-width="2" stroke-linecap="round"/>
+          <g class="scale-arm">
+            <line x1="8"  y1="16" x2="40" y2="16" stroke="#0E120F" stroke-width="2" stroke-linecap="round"/>
+            <path d="M4 16 L12 16 L10 28 L6 28 Z" fill="rgba(158,228,147,.2)" stroke="#0E120F" stroke-width="1.2"/>
+            <path d="M36 16 L44 16 L42 28 L38 28 Z" fill="rgba(158,228,147,.2)" stroke="#0E120F" stroke-width="1.2"/>
+          </g>
+          <circle cx="24" cy="6" r="2.5" fill="#9EE493"/>
+        </svg>
+        <h4>Fairness</h4>
+        <p>Every complaint is reviewed objectively, on the facts, without bias toward us or against you.</p>
+      </div>
+
+      <!-- Transparency — animated eye -->
+      <div class="pp-card reveal reveal-d2">
+        <svg class="pp-icon icon-trans" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 24 Q16 10 24 10 Q32 10 44 24 Q32 38 24 38 Q16 38 4 24 Z" fill="rgba(158,228,147,.08)" stroke="#0E120F" stroke-width="1.8" stroke-linejoin="round"/>
+          <g class="trans-eye" style="transform-origin:24px 24px;">
+            <circle cx="24" cy="24" r="7" fill="#0E120F"/>
+            <circle cx="24" cy="24" r="3.5" fill="#9EE493"/>
+            <circle cx="26" cy="22" r="1" fill="#fff"/>
+          </g>
+        </svg>
+        <h4>Transparency</h4>
+        <p>We explain what happened, what we found, and how the decision was made — in plain language.</p>
+      </div>
+
+      <!-- Timeliness — animated clock -->
+      <div class="pp-card reveal reveal-d3">
+        <svg class="pp-icon icon-time" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="24" cy="24" r="18" fill="rgba(158,228,147,.06)" stroke="#0E120F" stroke-width="2"/>
+          <circle cx="24" cy="24" r="2" fill="#9EE493"/>
+          <line x1="24" y1="8"  x2="24" y2="11" stroke="#0E120F" stroke-width="1.5"/>
+          <line x1="40" y1="24" x2="37" y2="24" stroke="#0E120F" stroke-width="1.5"/>
+          <line x1="24" y1="40" x2="24" y2="37" stroke="#0E120F" stroke-width="1.5"/>
+          <line x1="8"  y1="24" x2="11" y2="24" stroke="#0E120F" stroke-width="1.5"/>
+          <g class="clock-hand">
+            <line x1="24" y1="24" x2="24" y2="14" stroke="#0E120F" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="24" y1="24" x2="32" y2="24" stroke="#9EE493" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </svg>
+        <h4>Timeliness</h4>
+        <p>We respond as quickly as possible — but never at the expense of a thorough review.</p>
+      </div>
+
+      <!-- Accountability — pulsing dot -->
+      <div class="pp-card reveal reveal-d4">
+        <svg class="pp-icon icon-acc" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="24" cy="24" r="18" fill="none" stroke="#0E120F" stroke-width="2"/>
+          <circle class="accent-pulse" cx="24" cy="24" r="13" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1.5"/>
+          <path d="M16 24 L22 30 L34 18" fill="none" stroke="#0E120F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h4>Accountability</h4>
+        <p>When errors happen, we own them. We correct them. We explain how we'll prevent recurrence.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     DATA PROTECTION & RIGHTS
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section">
+  <div class="container">
+    <div class="cm-eyebrow reveal">04 · Data &amp; privacy concerns</div>
+    <h2 class="cm-h2 reveal reveal-d1">Your data <span class="ital">rights</span> are not negotiable.</h2>
+    <p class="cm-lead reveal reveal-d2">If your complaint relates to personal data or privacy, we handle it under applicable data-protection regulations — including GDPR for users in the European Union, and local frameworks elsewhere.</p>
+
+    <div class="rights-grid">
+      <ul class="rights-list reveal reveal-d1">
+        <li><strong>Request access to your data</strong> — see what we hold about you, in a portable format</li>
+        <li><strong>Request correction of inaccurate data</strong> — fix what's wrong, on request, without friction</li>
+        <li><strong>Request deletion where applicable</strong> — your right to be forgotten, subject to regulatory retention</li>
+        <li><strong>Withdraw consent</strong> — for any processing where consent is the legal basis</li>
+        <li><strong>Lodge a complaint with a supervisory authority</strong> — your data protection authority is always the final word</li>
+      </ul>
+
+      <div class="rights-svg-wrap reveal reveal-d2">
+        <svg class="rights-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <radialGradient id="rGrad" cx="50%" cy="50%">
+              <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
+              <stop offset="60%" stop-color="#9EE493" stop-opacity=".05"/>
+            </radialGradient>
+          </defs>
+
+          <circle cx="100" cy="100" r="80" fill="url(#rGrad)"/>
+
+          <g class="ring-r">
+            <circle cx="100" cy="100" r="86" fill="none" stroke="#9EE493" stroke-opacity=".25" stroke-width="1" stroke-dasharray="4 6"/>
+          </g>
+          <g class="ring-r r2">
+            <circle cx="100" cy="100" r="68" fill="none" stroke="#9EE493" stroke-opacity=".4" stroke-width="1"/>
+            <circle cx="100" cy="32"  r="2" fill="#9EE493"/>
+            <circle cx="168" cy="100" r="2" fill="#9EE493"/>
+            <circle cx="100" cy="168" r="2" fill="#9EE493"/>
+            <circle cx="32"  cy="100" r="2" fill="#9EE493"/>
+          </g>
+
+          <g class="gdpr-shield">
+            <circle cx="100" cy="100" r="40" fill="#0E120F"/>
+            <rect x="86" y="96" width="28" height="22" rx="2" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+            <path d="M91 96 V88 Q91 80 100 80 Q109 80 109 88 V96" fill="none" stroke="#9EE493" stroke-width="1.5" stroke-linecap="round"/>
+            <text x="100" y="111" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" font-weight="600" fill="#9EE493" letter-spacing=".5">GDPR</text>
+          </g>
+
+          <text x="22"  y="46"  font-family="Geist Mono,monospace" font-size="7" fill="#0E120F" opacity=".5">EU</text>
+          <text x="160" y="46"  font-family="Geist Mono,monospace" font-size="7" fill="#0E120F" opacity=".5">UK</text>
+          <text x="22"  y="160" font-family="Geist Mono,monospace" font-size="7" fill="#0E120F" opacity=".5">CA</text>
+          <text x="160" y="160" font-family="Geist Mono,monospace" font-size="7" fill="#0E120F" opacity=".5">AF</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     COMMUNITY-BASED NOTE + CROSS-BORDER
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section">
+  <div class="container">
+    <div class="cm-eyebrow reveal">05 · Community-based context</div>
+    <h2 class="cm-h2 reveal reveal-d1">Some issues involve <span class="ital">other members</span> — here's how we approach those.</h2>
+
+    <div class="note-band reveal reveal-d2">
+      <h4>Our role in member-to-member issues</h4>
+      <p>Sohana facilitates group-based financial activity. Some issues involve interactions <strong>between members</strong> within a ROSCA, Pool, or Campaign. In those cases:</p>
+      <p>• <strong>We review platform data and activity logs</strong> to support fair resolution.</p>
+      <p>• <strong>We do not replace the shared responsibility</strong> between participants in a community agreement.</p>
+      <p>Our job is to provide structure, transparency, and support — not to override community agreements where the rules were clearly defined.</p>
+    </div>
+
+    <div class="note-band reveal reveal-d3" style="margin-top:1rem;">
+      <h4>Cross-border &amp; regulatory considerations</h4>
+      <p>Sohana serves users across Africa, Europe, and global diaspora communities. While we are not yet a fully authorised financial institution in all jurisdictions, we are building our processes to align with:</p>
+      <p>• <strong>Local consumer protection standards</strong> in every market we operate</p>
+      <p>• <strong>Financial service regulations</strong> as we integrate licensed payment systems</p>
+      <p>• <strong>Best practices in global fintech operations</strong> drawn from ACPR, FCA, FINTRAC frameworks</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SUBMIT COMPLAINT FORM
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section" id="submit-complaint">
+  <div class="container">
+    <div class="cm-eyebrow reveal">06 · Submit a complaint</div>
+    <h2 class="cm-h2 reveal reveal-d1">Tell us <span class="ital">what happened</span>.</h2>
+    <p class="cm-lead reveal reveal-d2">All complaints are logged, tracked, and reviewed. You'll receive a reference number for your records and follow-up.</p>
+
+    <div class="complaint-card reveal reveal-d3">
+      <h3>File your complaint</h3>
+      <p class="cs-sub">Required: name, email, category, and description. Optional fields help us investigate faster — but only share what you're comfortable with.</p>
+
+      <form class="cf-form" id="cf-form" onsubmit="return submitComplaint(event)">
+        <div class="cf-field">
+          <label for="cf-name">Your name</label>
+          <input class="cf-input" id="cf-name" type="text" placeholder="Marie Ngono" required>
+        </div>
+        <div class="cf-field">
+          <label for="cf-email">Email <span class="opt">(linked to your account if you have one)</span></label>
+          <input class="cf-input" id="cf-email" type="email" placeholder="you@email.com" required>
+        </div>
+        <div class="cf-field">
+          <label for="cf-phone">Phone <span class="opt">(optional)</span></label>
+          <input class="cf-input" id="cf-phone" type="tel" placeholder="+33 6 11 00 00 01">
+        </div>
+        <div class="cf-field">
+          <label for="cf-category">Category</label>
+          <select class="cf-input" id="cf-category" required>
+            <option value="account">Account &amp; access</option>
+            <option value="transaction">Transaction · contribution · payout</option>
+            <option value="platform">Platform performance · bugs</option>
+            <option value="member">Issue with another member or organiser</option>
+            <option value="data">Data privacy or security</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+        <div class="cf-field full">
+          <label for="cf-rosca">ROSCA / Pool / Campaign name <span class="opt">(if applicable)</span></label>
+          <input class="cf-input" id="cf-rosca" type="text" placeholder="e.g. London Chama or Brussels Tontine">
+        </div>
+        <div class="cf-field full">
+          <label for="cf-description">Description of the issue</label>
+          <textarea class="cf-input" id="cf-description" rows="6" placeholder="Tell us what happened, when, and what you'd expect to be done. Include dates, amounts, transaction IDs, or anything else that helps us investigate." required></textarea>
+        </div>
+        <div class="cf-field full">
+          <label for="cf-evidence">Links to evidence <span class="opt">(screenshots on Imgur, file shares, etc.)</span></label>
+          <input class="cf-input" id="cf-evidence" type="url" placeholder="https://...">
+        </div>
+        <div class="cf-field full">
+          <button type="submit" class="btn-cf-submit" id="cf-submit">
+            Submit complaint
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </button>
+          <div class="cf-error" id="cf-error"></div>
+        </div>
+      </form>
+
+      <div class="cf-success" id="cf-success">
+        <div class="cf-success-ico">✓</div>
+        <h4>Complaint received</h4>
+        <p>We've logged your complaint and will acknowledge receipt formally within 1–2 business days. Keep this reference number for your records:</p>
+        <div class="cf-ref" id="cf-ref-num">—</div>
+        <p style="margin-top:1rem;">For urgent matters, follow up at <a href="mailto:complaints@sohana.app" style="color:#9EE493;">complaints@sohana.app</a> with this reference number.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTINUOUS IMPROVEMENT (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="cm-section warm">
+  <div class="container">
+    <div class="cm-eyebrow reveal">07 · Continuous improvement</div>
+    <h2 class="cm-h2 reveal reveal-d1" style="color:#0E120F;">Every complaint <span class="ital">improves the platform</span>.</h2>
+    <p class="cm-lead reveal reveal-d2" style="color:rgba(20,19,15,.7);">Complaints are not a tax on growth. They are how we get better. Every issue you flag gets logged, categorised, and used to:</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1.5rem;">
+      <div class="reveal reveal-d1" style="padding:1.25rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;">
+        <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:rgba(20,19,15,.55);letter-spacing:.06em;margin-bottom:.4rem;">OUTCOME 01</div>
+        <strong style="font-size:.95rem;color:#0E120F;display:block;margin-bottom:.3rem;">Strengthen our systems</strong>
+        <p style="font-size:.83rem;color:rgba(20,19,15,.6);line-height:1.55;">Pattern detection across complaints reveals where the platform breaks before more users hit it.</p>
+      </div>
+      <div class="reveal reveal-d1" style="padding:1.25rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;">
+        <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:rgba(20,19,15,.55);letter-spacing:.06em;margin-bottom:.4rem;">OUTCOME 02</div>
+        <strong style="font-size:.95rem;color:#0E120F;display:block;margin-bottom:.3rem;">Improve product design</strong>
+        <p style="font-size:.83rem;color:rgba(20,19,15,.6);line-height:1.55;">Friction surfaced through complaints feeds directly into design and engineering priorities.</p>
+      </div>
+      <div class="reveal reveal-d2" style="padding:1.25rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;">
+        <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:rgba(20,19,15,.55);letter-spacing:.06em;margin-bottom:.4rem;">OUTCOME 03</div>
+        <strong style="font-size:.95rem;color:#0E120F;display:block;margin-bottom:.3rem;">Enhance user experience</strong>
+        <p style="font-size:.83rem;color:rgba(20,19,15,.6);line-height:1.55;">Onboarding, copy, support documentation — all evolve in response to real-world feedback.</p>
+      </div>
+      <div class="reveal reveal-d2" style="padding:1.25rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;">
+        <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:rgba(20,19,15,.55);letter-spacing:.06em;margin-bottom:.4rem;">OUTCOME 04</div>
+        <strong style="font-size:.95rem;color:#0E120F;display:block;margin-bottom:.3rem;">Reduce future issues</strong>
+        <p style="font-size:.83rem;color:rgba(20,19,15,.6);line-height:1.55;">Root-cause analysis on every complaint informs prevention work across the system.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="cm-cta">
+  <h2>Sohana is built on <span class="ital">trust</span>. Handling concerns properly is how we earn it.</h2>
+  <p>For all complaints and related inquiries — submit via the form above, or reach us directly.</p>
+  <div class="cm-cta-buttons">
+    <a href="mailto:complaints@sohana.app" class="btn-primary">complaints@sohana.app</a>
+    <a href="/security" class="btn-outline-white">Read about security</a>
+    <a href="/about" class="btn-outline-white">Read our story</a>
+  </div>
+</section>
+
+<script>
+async function submitComplaint(e){
+  e.preventDefault();
+  var btn=document.getElementById('cf-submit');
+  var err=document.getElementById('cf-error');
+  err.classList.remove('show');
+  var payload={
+    name:        document.getElementById('cf-name').value.trim(),
+    email:       document.getElementById('cf-email').value.trim(),
+    phone:       document.getElementById('cf-phone').value.trim(),
+    category:    document.getElementById('cf-category').value,
+    rosca:       document.getElementById('cf-rosca').value.trim(),
+    description: document.getElementById('cf-description').value.trim(),
+    evidence:    document.getElementById('cf-evidence').value.trim()
+  };
+  if(!payload.name||!payload.email||!payload.description){
+    err.textContent='Please fill in name, email, and description.';
+    err.classList.add('show'); return false;
+  }
+  if(payload.description.length<20){
+    err.textContent='Please provide at least a few sentences describing the issue.';
+    err.classList.add('show'); return false;
+  }
+  btn.disabled=true; btn.textContent='Submitting…';
+  try{
+    var r=await fetch('/api/complaints/submit',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var data=await r.json();
+    if(data.error){
+      err.textContent=data.error; err.classList.add('show');
+      btn.disabled=false; btn.innerHTML='Submit complaint <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+      return false;
+    }
+    document.getElementById('cf-form').style.display='none';
+    if(data.reference){document.getElementById('cf-ref-num').textContent=data.reference}
+    document.getElementById('cf-success').classList.add('show');
+    document.getElementById('cf-success').scrollIntoView({behavior:'smooth',block:'center'});
+  }catch(ex){
+    err.textContent='Connection error. Please email complaints@sohana.app instead.';
+    err.classList.add('show');
+    btn.disabled=false; btn.innerHTML='Submit complaint <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>';
+  }
+  return false;
+}
+
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}

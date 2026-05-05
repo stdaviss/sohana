@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% block title %}Complaints — SOHANA Admin{% endblock %}
+{% block topbar_title %}Complaints Management{% endblock %}
+
+{% block content %}
+<style>
+.cp-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1rem}
+.cp-header h2{font-size:1.25rem;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+.cp-header p{font-size:.825rem;color:var(--ink-3);margin-top:.25rem}
+
+.cp-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.875rem;margin-bottom:1.25rem}
+.cp-stat{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);padding:.875rem 1.1rem;position:relative}
+.cp-stat .lbl{font-size:.7rem;color:var(--ink-3);font-family:'Geist Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+.cp-stat .val{font-size:1.5rem;font-weight:700;font-family:'Geist Mono',monospace;letter-spacing:-.02em;color:var(--ink)}
+.cp-stat .val.new{color:var(--accent)}
+.cp-stat .val.high{color:#FF6A55}
+.cp-stat .val.resolved{color:#9EE493}
+.cp-stat.urgent{border-color:rgba(255,106,85,.4);background:linear-gradient(135deg,rgba(255,106,85,.06) 0%,var(--bg-2) 100%)}
+.cp-stat.urgent::before{content:"";position:absolute;top:.6rem;right:.6rem;width:7px;height:7px;border-radius:50%;background:#FF6A55;animation:cp-blink 1.5s ease-in-out infinite}
+@keyframes cp-blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+.cp-toolbar{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+.cp-search{flex:1;min-width:240px;max-width:340px;padding:.5rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.825rem;outline:none}
+.cp-search:focus{border-color:var(--accent)}
+.cp-filters{display:flex;gap:.4rem;flex-wrap:wrap}
+.cp-chip{padding:.4rem .75rem;background:transparent;border:1px solid var(--line-2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);cursor:pointer;letter-spacing:.04em;transition:all .15s}
+.cp-chip:hover{border-color:var(--accent);color:var(--accent)}
+.cp-chip.on{background:rgba(158,228,147,.12);border-color:var(--accent);color:var(--accent)}
+.btn-export{padding:.5rem 1rem;background:transparent;border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2);font-family:inherit;font-size:.78rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s}
+.btn-export:hover{border-color:var(--accent);color:var(--accent)}
+
+.cp-list{display:flex;flex-direction:column;gap:.875rem}
+.cp-row{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;transition:border-color .2s}
+.cp-row:hover{border-color:var(--line-2)}
+.cp-row.priority-high{border-left:3px solid #FF6A55}
+.cp-row.status-new{border-left:3px solid #9EE493}
+.cp-row.status-resolved{opacity:.7}
+.cp-row-head{padding:.875rem 1.25rem;display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;border-bottom:1px solid var(--line);cursor:pointer}
+.cp-row-head:hover{background:var(--bg-3)}
+.cp-ref{font-family:'Geist Mono',monospace;font-size:.78rem;color:var(--accent);font-weight:600;letter-spacing:.04em}
+.cp-row-info{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.cp-row-info .nm{color:var(--ink);font-weight:500;font-size:.92rem}
+.cp-row-info .meta{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);display:flex;gap:.5rem;flex-wrap:wrap}
+.cp-row-info .meta span::after{content:"·";margin-left:.5rem;color:var(--ink-3);opacity:.5}
+.cp-row-info .meta span:last-child::after{display:none}
+.cp-row-status{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+
+.cp-pill{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.18rem .55rem;border-radius:99px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.cp-pill.cat{background:var(--bg-3);color:var(--ink-2);border:1px solid var(--line)}
+.cp-pill.status-new{background:rgba(158,228,147,.12);color:var(--accent);border:1px solid rgba(158,228,147,.3)}
+.cp-pill.status-reviewing{background:rgba(244,242,236,.06);color:var(--ink-2);border:1px solid var(--line-2)}
+.cp-pill.status-escalated{background:rgba(255,138,80,.12);color:#FF8A50;border:1px solid rgba(255,138,80,.3)}
+.cp-pill.status-resolved{background:rgba(118,224,161,.15);color:#76E0A1;border:1px solid rgba(118,224,161,.3)}
+.cp-pill.status-closed{background:rgba(244,242,236,.04);color:var(--ink-3);border:1px solid var(--line)}
+.cp-pill.priority-high{background:rgba(255,106,85,.12);color:#FF6A55;border:1px solid rgba(255,106,85,.3)}
+.cp-pill.priority-high::before{content:"!";font-weight:700}
+
+.cp-row-body{padding:1rem 1.25rem 1.25rem;display:none;background:rgba(14,18,15,.4)}
+.cp-row.expanded .cp-row-body{display:block;animation:cp-fade .25s ease}
+@keyframes cp-fade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.cp-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+@media(max-width:680px){.cp-detail-grid{grid-template-columns:1fr}}
+.cp-detail{display:flex;flex-direction:column;gap:.25rem}
+.cp-detail .lbl{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.cp-detail .val{font-size:.85rem;color:var(--ink-2);word-break:break-word}
+.cp-detail .val a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(158,228,147,.3)}
+.cp-description{padding:1rem;background:var(--bg-3);border:1px solid var(--line);border-radius:var(--radius);font-size:.875rem;color:var(--ink-2);line-height:1.65;white-space:pre-wrap}
+.cp-resolution{padding:1rem;background:rgba(158,228,147,.04);border:1px solid rgba(158,228,147,.2);border-radius:var(--radius);font-size:.875rem;color:var(--ink-2);line-height:1.65;margin-top:.875rem}
+.cp-resolution .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.06em;display:block;margin-bottom:.4rem}
+
+.cp-actions{display:flex;gap:.5rem;margin-top:1.25rem;flex-wrap:wrap;padding-top:1rem;border-top:1px solid var(--line)}
+.cp-action-btn{padding:.4rem .85rem;border-radius:99px;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;transition:all .15s;font-weight:600}
+.cp-action-btn:hover{border-color:var(--accent);color:var(--accent)}
+.cp-action-btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cp-action-btn.primary:hover{background:#cef870}
+.cp-action-btn.danger:hover{border-color:#FF6A55;color:#FF6A55}
+.cp-action-btn.reply{background:rgba(158,228,147,.1);border-color:rgba(158,228,147,.3);color:var(--accent)}
+
+.cp-empty{padding:3rem 1.5rem;text-align:center;color:var(--ink-3);font-size:.9rem;border:1px dashed rgba(244,242,236,.12);border-radius:var(--radius-lg)}
+
+/* Resolution modal */
+.cp-modal-bd{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:1rem}
+.cp-modal-bd.on{display:flex}
+.cp-modal{background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-lg);max-width:520px;width:100%;padding:1.5rem;max-height:90vh;overflow-y:auto}
+.cp-modal h3{font-size:1.05rem;font-weight:700;margin-bottom:.4rem;color:var(--ink)}
+.cp-modal .modal-sub{font-size:.825rem;color:var(--ink-2);margin-bottom:1rem;line-height:1.55}
+.cp-modal .ref{font-family:'Geist Mono',monospace;color:var(--accent);font-size:.85rem;margin-bottom:1rem;padding:.4rem .75rem;background:rgba(158,228,147,.06);border-radius:var(--radius);border:1px solid rgba(158,228,147,.2);display:inline-block}
+.cp-mfield{margin-bottom:.875rem}
+.cp-mfield label{display:block;font-size:.7rem;color:var(--ink-2);font-family:'Geist Mono',monospace;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.cp-mfield select,.cp-mfield textarea{width:100%;padding:.55rem .85rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);color:var(--ink);font-family:inherit;font-size:.875rem;outline:none}
+.cp-mfield select:focus,.cp-mfield textarea:focus{border-color:var(--accent)}
+.cp-mfield textarea{resize:vertical;min-height:90px}
+.cp-modal-btns{display:flex;gap:.6rem;margin-top:1.25rem}
+.cp-modal-btns button{flex:1;padding:.6rem;border-radius:99px;border:none;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .15s}
+.cp-cancel{background:transparent;border:1.5px solid var(--line-2);color:var(--ink-2)}
+.cp-cancel:hover{border-color:var(--line);color:var(--ink)}
+.cp-save{background:var(--accent);color:var(--accent-ink)}
+.cp-save:hover{background:#cef870}
+
+.cp-flash{display:none;padding:.7rem 1rem;border-radius:var(--radius);margin-bottom:1rem;font-size:.85rem}
+.cp-flash.show{display:block}
+.cp-flash.success{background:rgba(158,228,147,.1);color:var(--accent);border:1px solid rgba(158,228,147,.25)}
+.cp-flash.error{background:rgba(255,106,85,.1);color:#FF6A55;border:1px solid rgba(255,106,85,.22)}
+</style>
+
+<div class="content-wrap" style="max-width:1200px;">
+
+  <div class="cp-header">
+    <div>
+      <h2>Complaints Management</h2>
+      <p>Review, investigate, and resolve user-submitted complaints. SLA: acknowledge in 1–2 days, resolve in 5–10 days.</p>
+    </div>
+  </div>
+
+  <div id="cp-flash" class="cp-flash"></div>
+
+  <!-- STATS -->
+  <div class="cp-stats">
+    <div class="cp-stat {% if counts.new %}urgent{% endif %}">
+      <div class="lbl">New</div>
+      <div class="val new">{{ counts.new or 0 }}</div>
+    </div>
+    <div class="cp-stat">
+      <div class="lbl">Reviewing</div>
+      <div class="val">{{ counts.reviewing or 0 }}</div>
+    </div>
+    <div class="cp-stat">
+      <div class="lbl">Escalated</div>
+      <div class="val">{{ counts.escalated or 0 }}</div>
+    </div>
+    <div class="cp-stat">
+      <div class="lbl">Resolved</div>
+      <div class="val resolved">{{ counts.resolved or 0 }}</div>
+    </div>
+    <div class="cp-stat {% if counts.high %}urgent{% endif %}">
+      <div class="lbl">High priority open</div>
+      <div class="val high">{{ counts.high or 0 }}</div>
+    </div>
+    <div class="cp-stat">
+      <div class="lbl">Total</div>
+      <div class="val">{{ complaints|length }}</div>
+    </div>
+  </div>
+
+  <div class="cp-toolbar">
+    <input type="text" class="cp-search" id="cp-search" placeholder="Search by reference, name, email, or category…" oninput="cpFilter()">
+    <div class="cp-filters">
+      <button class="cp-chip on" onclick="cpFilterStatus('all',this)">All</button>
+      <button class="cp-chip" onclick="cpFilterStatus('new',this)">New</button>
+      <button class="cp-chip" onclick="cpFilterStatus('reviewing',this)">Reviewing</button>
+      <button class="cp-chip" onclick="cpFilterStatus('escalated',this)">Escalated</button>
+      <button class="cp-chip" onclick="cpFilterStatus('resolved',this)">Resolved</button>
+    </div>
+    <a href="/admin/complaints/export" class="btn-export">⤓ Export CSV</a>
+  </div>
+
+  <!-- LIST -->
+  {% if complaints %}
+    <div class="cp-list" id="cp-list">
+      {% for c in complaints %}
+        <div class="cp-row status-{{ c.status }} priority-{{ c.priority }}"
+             id="cp-{{ c.id }}"
+             data-search="{{ c.reference|lower }} {{ c.name|lower }} {{ c.email }} {{ c.category }}"
+             data-status="{{ c.status }}">
+          <div class="cp-row-head" onclick="cpToggle('{{ c.id }}')">
+            <div class="cp-ref">{{ c.reference }}</div>
+            <div class="cp-row-info">
+              <span class="nm">{{ c.name }}</span>
+              <div class="meta">
+                <span>{{ c.email }}</span>
+                {% if c.phone %}<span>{{ c.phone }}</span>{% endif %}
+                <span>{{ c.created_at[:16].replace('T',' ') }}</span>
+              </div>
+            </div>
+            <div class="cp-row-status">
+              {% if c.priority == 'high' %}<span class="cp-pill priority-high">High</span>{% endif %}
+              <span class="cp-pill cat">{{ c.category }}</span>
+              <span class="cp-pill status-{{ c.status }}">{{ c.status }}</span>
+            </div>
+          </div>
+
+          <div class="cp-row-body">
+            <div class="cp-detail-grid">
+              <div class="cp-detail">
+                <span class="lbl">Reference</span>
+                <span class="val" style="font-family:'Geist Mono',monospace;color:var(--accent);">{{ c.reference }}</span>
+              </div>
+              <div class="cp-detail">
+                <span class="lbl">Submitted</span>
+                <span class="val">{{ c.created_at[:16].replace('T',' ') }}</span>
+              </div>
+              <div class="cp-detail">
+                <span class="lbl">Email</span>
+                <span class="val"><a href="mailto:{{ c.email }}?subject=Re%3A%20Complaint%20{{ c.reference }}">{{ c.email }}</a></span>
+              </div>
+              {% if c.phone %}
+              <div class="cp-detail">
+                <span class="lbl">Phone</span>
+                <span class="val">{{ c.phone }}</span>
+              </div>
+              {% endif %}
+              {% if c.rosca_name %}
+              <div class="cp-detail">
+                <span class="lbl">Group / circle</span>
+                <span class="val">{{ c.rosca_name }}</span>
+              </div>
+              {% endif %}
+              {% if c.evidence_url %}
+              <div class="cp-detail">
+                <span class="lbl">Evidence</span>
+                <span class="val"><a href="{{ c.evidence_url }}" target="_blank" rel="noopener">View link ↗</a></span>
+              </div>
+              {% endif %}
+              {% if c.user_id %}
+              <div class="cp-detail">
+                <span class="lbl">Linked account</span>
+                <span class="val" style="font-family:'Geist Mono',monospace;font-size:.78rem;">{{ c.user_id[:8] }}…</span>
+              </div>
+              {% endif %}
+              {% if c.reviewer_name %}
+              <div class="cp-detail">
+                <span class="lbl">Last touched by</span>
+                <span class="val">{{ c.reviewer_name }} · {{ c.reviewed_at[:16].replace('T',' ') if c.reviewed_at else '' }}</span>
+              </div>
+              {% endif %}
+            </div>
+
+            <div class="cp-detail">
+              <span class="lbl" style="margin-bottom:.5rem;">Description</span>
+              <div class="cp-description">{{ c.description }}</div>
+            </div>
+
+            {% if c.resolution %}
+              <div class="cp-resolution">
+                <span class="lbl">Resolution note</span>
+                {{ c.resolution }}
+              </div>
+            {% endif %}
+
+            <div class="cp-actions">
+              <a class="cp-action-btn reply" href="mailto:{{ c.email }}?subject=Re%3A%20Sohana%20complaint%20{{ c.reference }}">✉ Reply</a>
+              {% if c.status == 'new' %}
+                <button class="cp-action-btn primary" onclick="cpQuickStatus('{{ c.id }}','reviewing')">Mark reviewing</button>
+              {% endif %}
+              {% if c.status != 'resolved' and c.status != 'closed' %}
+                <button class="cp-action-btn primary" onclick="cpOpenResolve('{{ c.id }}','{{ c.reference }}')">Resolve</button>
+                <button class="cp-action-btn" onclick="cpQuickStatus('{{ c.id }}','escalated')">Escalate</button>
+              {% endif %}
+              {% if c.priority != 'high' %}
+                <button class="cp-action-btn" onclick="cpSetPriority('{{ c.id }}','high')">Mark high</button>
+              {% else %}
+                <button class="cp-action-btn" onclick="cpSetPriority('{{ c.id }}','normal')">Lower priority</button>
+              {% endif %}
+              {% if c.status == 'resolved' %}
+                <button class="cp-action-btn" onclick="cpQuickStatus('{{ c.id }}','closed')">Close</button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="cp-empty">
+      <p>No complaints yet — the form on /complaints is live and ready to receive submissions.</p>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- RESOLUTION MODAL -->
+<div class="cp-modal-bd" id="cp-resolve-modal">
+  <div class="cp-modal">
+    <h3>Mark complaint as resolved</h3>
+    <p class="modal-sub">Add a resolution note describing what was done. This is logged for audit and can be referenced when responding to the user.</p>
+    <div class="ref" id="cp-resolve-ref">—</div>
+    <div class="cp-mfield">
+      <label>Resolution note</label>
+      <textarea id="cp-resolve-text" placeholder="Briefly describe the outcome — what was investigated, what was found, what action was taken or recommended."></textarea>
+    </div>
+    <div class="cp-modal-btns">
+      <button class="cp-cancel" onclick="cpCloseModal()">Cancel</button>
+      <button class="cp-save" onclick="cpSubmitResolve()">Mark resolved</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var activeResolveId=null;
+
+function cpFlash(type,msg){
+  var el=document.getElementById('cp-flash');
+  el.className='cp-flash show '+type;
+  el.textContent=msg;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setTimeout(function(){el.classList.remove('show')},4000);
+}
+function cpToggle(id){
+  document.getElementById('cp-'+id).classList.toggle('expanded');
+}
+function cpFilter(){
+  var q=document.getElementById('cp-search').value.toLowerCase().trim();
+  document.querySelectorAll('#cp-list .cp-row').forEach(function(r){
+    var t=r.getAttribute('data-search')||'';
+    var matches=!q||t.indexOf(q)!==-1;
+    var statusOK=r.dataset.statusFilter!=='hide';
+    r.style.display=(matches&&statusOK)?'':'none';
+  });
+}
+function cpFilterStatus(status,btn){
+  document.querySelectorAll('.cp-chip').forEach(function(c){c.classList.remove('on')});
+  btn.classList.add('on');
+  document.querySelectorAll('#cp-list .cp-row').forEach(function(r){
+    if(status==='all'||r.dataset.status===status){r.dataset.statusFilter=''}
+    else{r.dataset.statusFilter='hide'}
+  });
+  cpFilter();
+}
+
+async function cpQuickStatus(id,status){
+  if(!confirm('Mark complaint as "'+status+'"?'))return;
+  await cpDoUpdate(id,{status:status},'Status updated to '+status);
+}
+async function cpSetPriority(id,priority){
+  await cpDoUpdate(id,{priority:priority},'Priority set to '+priority);
+}
+async function cpDoUpdate(id,payload,successMsg){
+  try{
+    var r=await fetch('/api/admin/complaints/'+id+'/update',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    var d=await r.json();
+    if(d.error){cpFlash('error',d.error);return}
+    cpFlash('success',successMsg);
+    setTimeout(function(){location.reload()},700);
+  }catch(e){cpFlash('error','Connection error.')}
+}
+
+function cpOpenResolve(id,ref){
+  activeResolveId=id;
+  document.getElementById('cp-resolve-ref').textContent=ref;
+  document.getElementById('cp-resolve-text').value='';
+  document.getElementById('cp-resolve-modal').classList.add('on');
+}
+function cpCloseModal(){
+  document.getElementById('cp-resolve-modal').classList.remove('on');
+}
+async function cpSubmitResolve(){
+  var note=document.getElementById('cp-resolve-text').value.trim();
+  if(!note){alert('Please add a resolution note.');return}
+  await cpDoUpdate(activeResolveId,{status:'resolved',resolution:note},'Complaint marked resolved.');
+  cpCloseModal();
+}
+
+document.querySelectorAll('.cp-modal-bd').forEach(function(bd){
+  bd.addEventListener('click',function(e){if(e.target===bd)bd.classList.remove('on')});
+});
+</script>
+{% endblock %}
