@@ -2,50 +2,1009 @@
 {% block title %}Contribution Pools{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── POOLS PAGE ── */
+.pl-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.pl-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.pl-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.pl-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.pl-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.pl-section.warm .pl-eyebrow{color:rgba(20,19,15,.55)}
+.pl-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.pl-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pl-section.warm .pl-h2 .ital{color:#0E120F}
+.pl-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.pl-section.warm .pl-p{color:rgba(20,19,15,.74)}
+.pl-p strong{color:#F4F2EC;font-weight:500}
+.pl-section.warm .pl-p strong{color:#0E120F}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO ── */
+.pl-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.pl-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 70% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.pl-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.pl-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.pl-hero .container{grid-template-columns:1fr;gap:48px}}
+.pl-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.pl-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pl-hero p.lead{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:.85rem}
+.pl-hero p.support{font-size:.95rem;color:#8A8E87;max-width:520px;margin-bottom:1.5rem;line-height:1.65}
+.pl-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
+.pl-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.pl-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.pl-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.pl-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO TREASURY SVG animations */
+.treasury-svg{width:100%;max-width:520px;margin:0 auto;display:block;aspect-ratio:1;filter:drop-shadow(0 0 28px rgba(158,228,147,.2))}
+.t-vault-pulse{animation:t-breath 4s ease-in-out infinite;transform-origin:center}
+@keyframes t-breath{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.02)}}
+.t-orbit{transform-origin:center;animation:t-spin 28s linear infinite}
+@keyframes t-spin{to{transform:rotate(360deg)}}
+.t-orbit.r2{animation:t-spin 18s linear infinite reverse}
+.t-coin{animation:t-coin-flow 4s ease-in-out infinite;transform-box:fill-box}
+.t-coin.tc1{animation-delay:0s}.t-coin.tc2{animation-delay:.4s}.t-coin.tc3{animation-delay:.8s}
+.t-coin.tc4{animation-delay:1.2s}.t-coin.tc5{animation-delay:1.6s}.t-coin.tc6{animation-delay:2s}
+@keyframes t-coin-flow{0%,3%{opacity:0;transform:scale(.5)}10%,40%{opacity:1;transform:scale(1)}80%,100%{opacity:0}}
+.t-out-coin{animation:t-out-flow 5s ease-in-out infinite}
+.t-out-coin.oc2{animation-delay:1.2s}.t-out-coin.oc3{animation-delay:2.4s}.t-out-coin.oc4{animation-delay:3.6s}
+@keyframes t-out-flow{0%,15%{opacity:0;transform:translate(0,0)}30%{opacity:1}80%{opacity:1;transform:translate(60px,40px)}100%{opacity:0;transform:translate(80px,55px)}}
+.t-key-glow{animation:t-key-pulse 3s ease-in-out infinite}
+.t-key-glow.k2{animation-delay:.7s}.t-key-glow.k3{animation-delay:1.4s}
+@keyframes t-key-pulse{0%,100%{filter:drop-shadow(0 0 4px rgba(158,228,147,.3))}50%{filter:drop-shadow(0 0 12px rgba(158,228,147,.7))}}
+.t-flow-line{stroke-dasharray:3 5;animation:t-flow 2.5s linear infinite}
+@keyframes t-flow{to{stroke-dashoffset:-32}}
+
+/* ── DEFINITION + photo ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── LIVE EXAMPLES with progress bars ── */
+.examples-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem;margin-top:2.5rem}
+@media(max-width:980px){.examples-grid{grid-template-columns:1fr}}
+.example-card{padding:0;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;overflow:hidden;display:flex;flex-direction:column;transition:all .3s}
+.example-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.example-img{aspect-ratio:16/10;background-size:cover;background-position:center;position:relative}
+.example-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(14,18,15,.85) 100%)}
+.example-status{position:absolute;top:12px;left:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.25rem .65rem;border-radius:99px;background:rgba(14,18,15,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#9EE493;border:1px solid rgba(158,228,147,.3);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.example-status::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;display:inline-block;margin-right:.4rem;vertical-align:middle;animation:ex-blink 2s ease-in-out infinite}
+@keyframes ex-blink{0%,100%{opacity:1}50%{opacity:.4}}
+.example-body{padding:1.5rem 1.5rem 1.6rem;display:flex;flex-direction:column;gap:.6rem;flex:1}
+.example-body h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3}
+.example-body .where{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.05em;text-transform:uppercase}
+.example-body p{font-size:.88rem;color:#B7BAB4;line-height:1.65;flex:1}
+.example-stats{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(244,242,236,.06)}
+.example-stat .v{font-family:'Geist Mono',monospace;font-size:1.05rem;color:#9EE493;font-weight:600;letter-spacing:-.02em;line-height:1}
+.example-stat .l{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;letter-spacing:.05em;text-transform:uppercase;margin-top:.3rem}
+.example-progress{margin-top:.85rem}
+.example-progress .lbl{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;margin-bottom:.4rem}
+.example-progress .lbl .pct{color:#9EE493;font-weight:600}
+.example-progress .bar{height:6px;background:rgba(244,242,236,.06);border-radius:99px;overflow:hidden;position:relative}
+.example-progress .fill{height:100%;background:linear-gradient(90deg,#9EE493 0%,#cef870 100%);border-radius:99px;width:0;transition:width 1.5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(158,228,147,.4)}
+.reveal.in .example-progress .fill[data-target]{width:var(--target-width)}
+
+/* ── 5-STAGE WALKTHROUGH ── */
+.stage{display:grid;grid-template-columns:auto 1fr;gap:2rem;padding:2rem 0;border-bottom:1px solid rgba(244,242,236,.06);align-items:start}
+.stage:last-child{border-bottom:none}
+.stage-num{font-family:'Geist Mono',monospace;font-size:2.4rem;font-weight:500;line-height:1;width:80px;flex-shrink:0;background:linear-gradient(135deg,#9EE493 0%,#76E0A1 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.03em}
+.stage-content h3{font-size:1.3rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.7rem;line-height:1.3}
+.stage-content p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:.8rem;max-width:700px}
+.stage-content p strong{color:#F4F2EC;font-weight:500}
+.stage-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.stage-meta span{font-family:'Geist Mono',monospace;font-size:.72rem;padding:.3rem .75rem;border-radius:99px;background:rgba(158,228,147,.06);color:#9EE493;border:1px solid rgba(158,228,147,.2);letter-spacing:.04em}
+@media(max-width:680px){.stage{grid-template-columns:1fr;gap:1rem}.stage-num{font-size:1.8rem;width:auto}}
+
+/* ── MULTI-SIG SECTION (the centerpiece) ── */
+.multisig-card{margin-top:2.5rem;padding:3rem 2rem;background:linear-gradient(180deg,rgba(158,228,147,.06) 0%,#161B17 100%);border:1px solid rgba(158,228,147,.25);border-radius:24px;position:relative;overflow:hidden}
+.multisig-card::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 350px at 50% 0%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.multisig-svg{width:100%;max-width:680px;margin:0 auto;display:block;height:auto;position:relative;z-index:2}
+.ms-key{transform-origin:center;animation:ms-key-pulse 4s ease-in-out infinite}
+.ms-key.k2{animation-delay:1.3s}.ms-key.k3{animation-delay:2.6s}
+@keyframes ms-key-pulse{0%,100%{opacity:.7;filter:drop-shadow(0 0 4px rgba(158,228,147,.3))}25%{opacity:1;filter:drop-shadow(0 0 16px rgba(158,228,147,.8))}}
+.ms-vault-glow{animation:ms-vault 4s ease-in-out infinite}
+@keyframes ms-vault{0%,100%{filter:drop-shadow(0 0 8px rgba(158,228,147,.3))}50%{filter:drop-shadow(0 0 20px rgba(158,228,147,.6))}}
+.ms-flow{stroke-dasharray:3 5;animation:t-flow 3s linear infinite}
+.ms-checkmark{transform-origin:center;animation:ms-check 4s ease-in-out infinite}
+.ms-checkmark.c2{animation-delay:1.3s}.ms-checkmark.c3{animation-delay:2.6s}
+@keyframes ms-check{0%,40%{opacity:0;transform:scale(0)}50%,80%{opacity:1;transform:scale(1)}90%,100%{opacity:.7;transform:scale(1)}}
+
+.ms-detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin-top:2rem;position:relative;z-index:2}
+@media(max-width:760px){.ms-detail-grid{grid-template-columns:1fr}}
+.ms-detail{padding:1.4rem 1.4rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.08);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.ms-detail .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+.ms-detail .num::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(158,228,147,.3) 0%,transparent 100%)}
+.ms-detail h4{font-size:1rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em}
+.ms-detail p{font-size:.85rem;color:#B7BAB4;line-height:1.6}
+
+.ms-promise{margin-top:2.25rem;padding:1.5rem 1.75rem;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.3);border-left:3px solid #9EE493;border-radius:0 14px 14px 0;position:relative;z-index:2}
+.ms-promise p{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.15rem;color:#F4F2EC;line-height:1.5;margin:0}
+.ms-promise p .em{color:#9EE493}
+
+/* ── VISIBILITY (member view vs admin view) ── */
+.visibility-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:2rem}
+@media(max-width:760px){.visibility-grid{grid-template-columns:1fr}}
+.vis-col{padding:2rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative}
+.vis-col.admin{border-color:rgba(158,228,147,.3);background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%)}
+.vis-col h4{display:flex;align-items:center;gap:.5rem;font-size:.78rem;font-family:'Geist Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A8E87;font-weight:600;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(244,242,236,.06)}
+.vis-col.admin h4{color:#9EE493}
+.vis-col h4::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.vis-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.85rem}
+.vis-list li{padding-left:1.6rem;position:relative;font-size:.92rem;color:#B7BAB4;line-height:1.65}
+.vis-list li::before{content:"✓";position:absolute;left:0;color:#9EE493;font-weight:700;top:.05rem}
+.vis-list li strong{color:#F4F2EC;font-weight:500}
+
+/* ── ANNUAL CAPACITY CALCULATOR ── */
+.calc-card{margin-top:2rem;padding:2.5rem 2rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.calc-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;position:relative;align-items:start}
+@media(max-width:760px){.calc-grid{grid-template-columns:1fr;gap:2rem}}
+.calc-controls{display:flex;flex-direction:column;gap:1.25rem}
+.calc-row{display:flex;flex-direction:column;gap:.4rem}
+.calc-row .lbl{display:flex;justify-content:space-between;align-items:baseline}
+.calc-row .lbl .label-text{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;text-transform:uppercase}
+.calc-row .lbl .value{font-family:'Geist Mono',monospace;font-size:1rem;color:#F4F2EC;font-weight:600;letter-spacing:-.01em}
+.calc-row .currency{font-size:.78rem;color:#8A8E87;margin-left:.3rem;font-weight:400}
+.calc-row input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:rgba(244,242,236,.1);border-radius:99px;outline:none;cursor:pointer}
+.calc-row input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;background:#9EE493;border-radius:50%;cursor:pointer;box-shadow:0 0 0 4px rgba(158,228,147,.15),0 2px 6px rgba(0,0,0,.3);transition:transform .15s,box-shadow .15s}
+.calc-row input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.1);box-shadow:0 0 0 6px rgba(158,228,147,.25),0 2px 8px rgba(0,0,0,.4)}
+.calc-row input[type="range"]::-moz-range-thumb{width:20px;height:20px;background:#9EE493;border:none;border-radius:50%;cursor:pointer;box-shadow:0 0 0 4px rgba(158,228,147,.15)}
+.calc-currency-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.calc-currency-row button{flex:1;min-width:50px;padding:.4rem .6rem;background:transparent;border:1px solid rgba(244,242,236,.15);color:#B7BAB4;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.74rem;cursor:pointer;transition:all .15s;font-weight:500}
+.calc-currency-row button:hover{border-color:rgba(158,228,147,.4);color:#F4F2EC}
+.calc-currency-row button.on{background:#9EE493;color:#0E120F;border-color:#9EE493;font-weight:600}
+.calc-freq-row{display:flex;gap:.3rem;flex-wrap:wrap}
+.calc-freq-row button{flex:1;padding:.45rem;background:transparent;border:1px solid rgba(244,242,236,.15);color:#B7BAB4;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.74rem;cursor:pointer;transition:all .15s;font-weight:500}
+.calc-freq-row button:hover{border-color:rgba(158,228,147,.4);color:#F4F2EC}
+.calc-freq-row button.on{background:rgba(158,228,147,.15);color:#9EE493;border-color:#9EE493}
+
+.calc-result{padding:1.75rem;background:rgba(14,18,15,.6);border:1px solid rgba(244,242,236,.08);border-radius:18px;display:flex;flex-direction:column;gap:.85rem;text-align:center}
+.calc-result .label{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;letter-spacing:.08em;text-transform:uppercase}
+.calc-figure{font-family:'Geist Mono',monospace;font-size:clamp(2.2rem,5.5vw,3.4rem);font-weight:500;line-height:1;letter-spacing:-.03em;background:linear-gradient(135deg,#9EE493 0%,#cef870 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.calc-summary{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding-top:1rem;border-top:1px solid rgba(244,242,236,.08);margin-top:.5rem}
+.calc-summary div{display:flex;flex-direction:column;gap:.2rem}
+.calc-summary .v{font-family:'Geist Mono',monospace;font-size:.95rem;color:#F4F2EC;font-weight:600}
+.calc-summary .l{font-size:.7rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.04em;text-transform:uppercase}
+
+.calc-projects{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(244,242,236,.08);text-align:left}
+.calc-projects .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.85rem}
+.calc-projects ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.calc-projects ul li{font-size:.85rem;color:#B7BAB4;line-height:1.55;padding-left:1.4rem;position:relative}
+.calc-projects ul li::before{content:"✓";position:absolute;left:0;color:#9EE493;font-weight:700}
+.calc-projects ul li strong{color:#F4F2EC;font-weight:500}
+
+/* ── ADVANTAGES (4-card grid, warm) ── */
+.advantages{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem;max-width:900px}
+@media(max-width:680px){.advantages{grid-template-columns:1fr}}
+.adv-card{padding:1.75rem;border:1px solid rgba(20,19,15,.08);border-radius:18px;background:#fff;display:flex;gap:1rem;align-items:flex-start;transition:all .2s}
+.adv-card:hover{border-color:rgba(20,19,15,.18);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.adv-ico{width:42px;height:42px;border-radius:11px;background:#0E120F;color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;flex-shrink:0;font-size:.95rem}
+.adv-card h4{font-size:1.05rem;font-weight:600;color:#0E120F;margin-bottom:.4rem;letter-spacing:-.005em}
+.adv-card p{font-size:.88rem;color:rgba(20,19,15,.65);line-height:1.65}
+
+/* ── FEES & PRICING ── */
+.fees-card{margin-top:2rem;padding:2.5rem 2rem;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px}
+.fees-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+@media(max-width:760px){.fees-grid{grid-template-columns:1fr}}
+.fee-tile{padding:1.4rem 1.4rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px}
+.fee-tile .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.6rem}
+.fee-tile .figure{font-family:'Geist Mono',monospace;font-size:1.5rem;color:#9EE493;font-weight:600;letter-spacing:-.02em;margin-bottom:.5rem}
+.fee-tile p{font-size:.8rem;color:#B7BAB4;line-height:1.55}
+.fees-fineprint{margin-top:1.5rem;padding:1.25rem 1.5rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:12px;font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;line-height:1.7;letter-spacing:.01em}
+.fees-fineprint strong{color:#9EE493;font-weight:500}
+.fees-fineprint .row{padding:.3rem 0;border-bottom:1px solid rgba(244,242,236,.04);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.fees-fineprint .row:last-child{border-bottom:none}
+
+/* ── USE CASES (warm) ── */
+.usecases-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.usecase{padding:1.5rem;border:1px solid rgba(20,19,15,.08);border-radius:14px;background:#fff;display:flex;flex-direction:column;gap:.55rem;transition:all .2s}
+.usecase:hover{border-color:rgba(20,19,15,.18);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.usecase-emoji{width:40px;height:40px;border-radius:10px;background:#0E120F;display:grid;place-items:center;font-size:1.1rem}
+.usecase h4{font-size:.95rem;font-weight:600;color:#0E120F;letter-spacing:-.005em}
+.usecase p{font-size:.82rem;color:rgba(20,19,15,.6);line-height:1.55}
+
+/* ── CTA ── */
+.pl-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.pl-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.pl-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.pl-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.pl-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.pl-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.pl-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with animated treasury graphic
+══════════════════════════════════════════════════════════ -->
+<section class="pl-hero">
+  <div class="pl-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>Contribution Pools</h1>
-    <p>A Contribution Pool is a permanent collective fund for your group or association — built over time, governed by consensus, and protected by three-admin co-authorisation on every disbursement.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="pl-eyebrow">Contribution Pools</div>
+      <h1>A digital <span class="ital">treasury</span> for your group.</h1>
+      <p class="lead">When members of an alumni network, a faith group, a workplace, or a community want to save together — and decide together how the money gets used — they need a treasury. Not a notebook, not a chat group, not one trusted person holding the cash.</p>
+      <p class="support">Pools turn group savings into a transparent, collectively-governed fund where every contribution is recorded, every withdrawal is approved by multiple admins, and every member can see what the group has built.</p>
+      <div class="pl-hero-cta-row">
+        <a href="/auth" class="pl-cta-primary">Start a pool →</a>
+        <a href="#calculator" class="pl-cta-ghost">See what's possible</a>
+      </div>
+    </div>
+
+    <!-- Hero treasury SVG — coins flowing in, then out to approved purposes -->
+    <svg class="treasury-svg" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="vGrad" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".5"/>
+          <stop offset="60%" stop-color="#9EE493" stop-opacity=".05"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="vaultGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity=".05"/>
+        </linearGradient>
+      </defs>
+
+      <!-- background glow -->
+      <circle cx="240" cy="240" r="180" fill="url(#vGrad)"/>
+
+      <!-- outer rotating dashed ring -->
+      <g class="t-orbit">
+        <circle cx="240" cy="240" r="200" fill="none" stroke="#9EE493" stroke-opacity=".2" stroke-width="1" stroke-dasharray="3 7"/>
+      </g>
+      <g class="t-orbit r2">
+        <circle cx="240" cy="240" r="170" fill="none" stroke="#9EE493" stroke-opacity=".3" stroke-width="1"/>
+      </g>
+
+      <!-- 5 contributing members positioned around the perimeter -->
+      <g>
+        <circle cx="240" cy="60"  r="20" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="240" y="65" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#F4F2EC">M1</text>
+        <circle cx="400" cy="160" r="20" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="400" y="165" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#F4F2EC">M2</text>
+        <circle cx="370" cy="350" r="20" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="370" y="355" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#F4F2EC">M3</text>
+        <circle cx="110" cy="350" r="20" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="110" y="355" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#F4F2EC">M4</text>
+        <circle cx="80"  cy="160" r="20" fill="rgba(158,228,147,.18)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="80" y="165" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#F4F2EC">M5</text>
+      </g>
+
+      <!-- flowing contribution lines from members → vault -->
+      <line class="t-flow-line" x1="240" y1="80"  x2="240" y2="195" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.5"/>
+      <line class="t-flow-line" x1="380" y1="172" x2="280" y2="220" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+      <line class="t-flow-line" x1="350" y1="335" x2="270" y2="265" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+      <line class="t-flow-line" x1="130" y1="335" x2="210" y2="265" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+      <line class="t-flow-line" x1="100" y1="172" x2="200" y2="220" stroke="#9EE493" stroke-opacity=".4" stroke-width="1.5"/>
+
+      <!-- Animated coins flowing inward -->
+      <circle class="t-coin tc1" cx="240" cy="100" r="3" fill="#cef870"/>
+      <circle class="t-coin tc2" cx="370" cy="180" r="3" fill="#cef870"/>
+      <circle class="t-coin tc3" cx="345" cy="320" r="3" fill="#cef870"/>
+      <circle class="t-coin tc4" cx="135" cy="320" r="3" fill="#cef870"/>
+      <circle class="t-coin tc5" cx="110" cy="180" r="3" fill="#cef870"/>
+      <circle class="t-coin tc6" cx="240" cy="120" r="3" fill="#cef870"/>
+
+      <!-- CENTRAL VAULT (the treasury) -->
+      <g class="t-vault-pulse">
+        <rect x="180" y="200" width="120" height="100" rx="10" fill="url(#vaultGrad)" stroke="#9EE493" stroke-width="2"/>
+        <rect x="190" y="210" width="100" height="35" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+        <text x="240" y="232" text-anchor="middle" font-family="Geist Mono,monospace" font-size="11" font-weight="600" fill="#9EE493" letter-spacing="1">POOL</text>
+        <!-- handle -->
+        <circle cx="240" cy="270" r="10" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+        <circle cx="240" cy="270" r="3" fill="#9EE493"/>
+        <line x1="232" y1="262" x2="248" y2="278" stroke="#9EE493" stroke-width="1.5"/>
+      </g>
+
+      <!-- 3 KEYS above the vault -->
+      <g class="t-key-glow"  transform="translate(195,170)">
+        <circle r="9" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+        <text y="3.5" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="700" fill="#9EE493">1</text>
+      </g>
+      <g class="t-key-glow k2" transform="translate(240,162)">
+        <circle r="10" fill="rgba(158,228,147,.25)" stroke="#9EE493" stroke-width="1.5"/>
+        <text y="3.5" text-anchor="middle" font-family="Geist Mono,monospace" font-size="10" font-weight="700" fill="#9EE493">2</text>
+      </g>
+      <g class="t-key-glow k3" transform="translate(285,170)">
+        <circle r="9" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+        <text y="3.5" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="700" fill="#9EE493">3</text>
+      </g>
+
+      <!-- "3 ADMINS" label -->
+      <text x="240" y="148" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#8A8E87" letter-spacing="1.5">3-ADMIN APPROVAL</text>
+
+      <!-- Output flow — coins going out (purposes) -->
+      <text x="335" y="320" font-family="Geist Mono,monospace" font-size="7" fill="#9EE493" letter-spacing=".5" opacity=".7">→ Project</text>
+      <text x="40"  y="225" font-family="Geist Mono,monospace" font-size="7" fill="#9EE493" letter-spacing=".5" opacity=".7">Emergency ←</text>
+      <text x="200" y="350" font-family="Geist Mono,monospace" font-size="7" fill="#9EE493" letter-spacing=".5" opacity=".7">↓ Investment</text>
+
+      <!-- Output coins -->
+      <circle class="t-out-coin"     cx="240" cy="250" r="4" fill="#9EE493" opacity="0"/>
+      <circle class="t-out-coin oc2" cx="240" cy="250" r="4" fill="#cef870" opacity="0"/>
+      <circle class="t-out-coin oc3" cx="240" cy="250" r="4" fill="#9EE493" opacity="0"/>
+      <circle class="t-out-coin oc4" cx="240" cy="250" r="4" fill="#cef870" opacity="0"/>
+
+      <!-- Audit trail tick marks -->
+      <g opacity=".5">
+        <text x="48"  y="425" font-family="Geist Mono,monospace" font-size="6.5" fill="#9EE493">[12:04] +€100</text>
+        <text x="48"  y="438" font-family="Geist Mono,monospace" font-size="6.5" fill="#9EE493">[12:08] +€100</text>
+        <text x="345" y="425" font-family="Geist Mono,monospace" font-size="6.5" fill="#9EE493">approved 3/3</text>
+        <text x="345" y="438" font-family="Geist Mono,monospace" font-size="6.5" fill="#9EE493">→ disbursed</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS A POOL — definition with photo
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section">
+  <div class="container">
+    <div class="pl-eyebrow reveal">01 · What is a Contribution Pool</div>
+    <h2 class="pl-h2 reveal reveal-d1">A shared fund. <span class="ital">Group governance</span>. Real continuity.</h2>
+
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="pl-p">A <strong>Contribution Pool</strong> is a shared treasury that members of a group fund together over time. Unlike a Njangi — where the rotation is fixed and every member receives one full payout — a Pool has no payout schedule. The money simply accumulates, and the group decides together how and when it gets used. <strong>Contribute regularly, grow the fund, draw on it when something matters.</strong></p>
+        <p class="pl-p">This is how alumni associations have always operated. It is how churches and faith communities run their building funds. It is how workplace groups arrange their leaving collections, and how cooperatives have managed working capital for centuries. The mechanics are not new. What is new is that they no longer require a single trusted person holding cash, a notebook that can be lost, or a WhatsApp group that nobody can audit six months later.</p>
+        <p class="pl-p">A Pool gives your group <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">continuity</em>. The fund is not built for a single payout — it is built to support whatever the group decides matters next. An emergency. A project. An investment. A community need. The money waits, transparently, for the moment the group agrees it is needed.</p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1531545514256-b1400bc00f31?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🏦</div>
-      <h3>Long-term collective funds</h3>
-      <p>Unlike a ROSCA where the pot rotates, a Contribution Pool is a permanent treasury your group builds over months or years — for funerals, weddings, medical emergencies, or community projects.</p>
+<!-- ══════════════════════════════════════════════════════════
+     LIVE EXAMPLES — animated cards with progress bars
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section">
+  <div class="container">
+    <div class="pl-eyebrow reveal">02 · What groups have built</div>
+    <h2 class="pl-h2 reveal reveal-d1">Real associations. <span class="ital">Real outcomes</span>.</h2>
+    <p class="pl-p reveal reveal-d2">Pooled-fund associations have quietly built schools, sponsored students, restored places of worship, financed cooperatives, and bought equipment for entire trades — for centuries. The examples below are illustrative of what well-run groups around the world have achieved when they pool consistently. The same mechanics, with the right structure, are within reach for any group of trusted members.</p>
+
+    <div class="examples-grid">
+
+      <!-- Example 1 — Alumni school-building -->
+      <div class="example-card reveal reveal-d1">
+        <div class="example-img" style="background-image:url('https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=900&q=80');">
+          <span class="example-status">Operational</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="example-body">
+          <span class="where">Cameroon · Bamenda alumni</span>
+          <h4>Building a primary school in their hometown</h4>
+          <p>An alumni association of 48 graduates pooled monthly contributions over 6 years to fund the construction of a 6-classroom primary school in their home village. The fund grew steadily, every disbursement was approved by 3 designated admins, and the school now serves 240 local children.</p>
+          <div class="example-stats">
+            <div class="example-stat">
+              <div class="v">48</div>
+              <div class="l">Members</div>
+            </div>
+            <div class="example-stat">
+              <div class="v">€87K</div>
+              <div class="l">Total raised</div>
+            </div>
+          </div>
+          <div class="example-progress">
+            <div class="lbl"><span>School fund</span><span class="pct">100%</span></div>
+            <div class="bar"><div class="fill" data-target="100" style="--target-width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Example 2 — Church renovation -->
+      <div class="example-card reveal reveal-d2">
+        <div class="example-img" style="background-image:url('https://images.unsplash.com/photo-1605543667606-52b0f1ee1b72?auto=format&fit=crop&w=900&q=80');">
+          <span class="example-status">In progress</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="example-body">
+          <span class="where">Nigeria · Lagos congregation</span>
+          <h4>Renovating their worship hall &amp; community kitchen</h4>
+          <p>A 320-member congregation pooling weekly contributions to fund a major renovation. The treasurer team — three respected elders — approves every withdrawal, and members see the live fund balance every Sunday. The congregation is on track to break ground next year.</p>
+          <div class="example-stats">
+            <div class="example-stat">
+              <div class="v">320</div>
+              <div class="l">Members</div>
+            </div>
+            <div class="example-stat">
+              <div class="v">€42K</div>
+              <div class="l">Of €60K target</div>
+            </div>
+          </div>
+          <div class="example-progress">
+            <div class="lbl"><span>Renovation fund</span><span class="pct">70%</span></div>
+            <div class="bar"><div class="fill" data-target="70" style="--target-width:70%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Example 3 — Workplace training fund -->
+      <div class="example-card reveal reveal-d3">
+        <div class="example-img" style="background-image:url('https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=80');">
+          <span class="example-status">Recurring</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="example-body">
+          <span class="where">UK · London tech workers</span>
+          <h4>A rolling professional-development fund</h4>
+          <p>A team of 15 software engineers — many from the diaspora — pool a small monthly contribution to subsidise certifications, conference travel, and short courses. Each member can request a withdrawal for an approved course; three colleagues review the request. Over 4 years, the fund has supported 38 individual courses.</p>
+          <div class="example-stats">
+            <div class="example-stat">
+              <div class="v">38</div>
+              <div class="l">Courses funded</div>
+            </div>
+            <div class="example-stat">
+              <div class="v">€18K</div>
+              <div class="l">Annual cycle</div>
+            </div>
+          </div>
+          <div class="example-progress">
+            <div class="lbl"><span>This year's cycle</span><span class="pct">85%</span></div>
+            <div class="bar"><div class="fill" data-target="85" style="--target-width:85%"></div></div>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <div class="info-card">
-      <div class="icon">✅</div>
-      <h3>Three-admin co-authorisation</h3>
-      <p>No single person can release funds from a Contribution Pool. All disbursements require approval from three designated pool admins, eliminating the risk of misappropriation.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📅</div>
-      <h3>Flexible payment schedules</h3>
-      <p>Members choose how they contribute: monthly, quarterly, bi-annually, or annually. The platform tracks who has paid and who has arrears automatically.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🤝</div>
-      <h3>Pay for another member</h3>
-      <p>When a fellow member is going through hardship, you can cover their contribution on their behalf. This earns you extra NCS points as a recognition of solidarity.</p>
+
+    <p class="pl-p reveal reveal-d4" style="margin-top:1.5rem;font-size:.88rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;">Examples are illustrative of patterns observed in real-world community pooling associations. Sohana is currently in beta and does not yet host these specific groups.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     5-STAGE WALKTHROUGH
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section">
+  <div class="container">
+    <div class="pl-eyebrow reveal">03 · How a pool works on Sohana</div>
+    <h2 class="pl-h2 reveal reveal-d1">From <span class="ital">setup</span> to <span class="ital">scale</span> — five stages.</h2>
+    <p class="pl-p reveal reveal-d2">Every Pool follows the same operational pattern. The platform handles the bookkeeping, the multi-admin approvals, and the audit trail — so your group can focus on the decisions that actually matter.</p>
+
+    <div style="margin-top:2rem;" class="reveal reveal-d3">
+
+      <div class="stage">
+        <div class="stage-num">01</div>
+        <div class="stage-content">
+          <h3>Create the pool</h3>
+          <p>The founding member starts by creating the pool — naming it, describing its purpose, and inviting the initial members and co-administrators. <strong>Pools are designed for groups that already exist</strong>: an alumni association, a faith community, a workplace team, a cooperative. Sohana does not introduce strangers to your group; it gives your existing group the structure it has been missing.</p>
+          <p>At creation, the founder appoints a co-administrator team — typically the most trusted members of the group, in line with whatever governance practice the group already uses. These admins will share responsibility for approving every withdrawal once the fund starts being used.</p>
+          <div class="stage-meta">
+            <span>Private by default</span>
+            <span>Founder appoints admins</span>
+            <span>Up to 8 currencies supported</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">02</div>
+        <div class="stage-content">
+          <h3>Define the contribution rules</h3>
+          <p>The group sets the contribution model in writing, once. <strong>How much each member contributes, on what schedule, and into which currency</strong>. Some pools run on flat monthly contributions; others let each member contribute what they can. Both work — the platform records every contribution against every member regardless of the model the group chooses.</p>
+          <p>Once the rules are visible to every member, no one can quietly change them. If the group later decides to adjust the contribution amount or frequency — for example, increasing it after a successful first year — the change is logged, transparent, and applied prospectively. Past contributions are never re-priced.</p>
+          <div class="stage-meta">
+            <span>Flat or flexible</span>
+            <span>Weekly · fortnightly · monthly</span>
+            <span>Visible to every member</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">03</div>
+        <div class="stage-content">
+          <h3>Members contribute &amp; the fund grows</h3>
+          <p>When a contribution period opens, members transfer their share into the pool's escrow. The platform tracks <strong>three numbers in real time</strong>: the total pool balance, each member's individual contribution history, and each member's current payment status (paid · pending · late).</p>
+          <p>This is the part that traditionally falls apart in informal pools: the bookkeeping. With every contribution logged automatically and visible to every member, there is no "did you pay last month?" conversation, no spreadsheet maintained by one tired volunteer, no end-of-year reconciliation drama. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">The ledger does the remembering.</em></p>
+          <div class="stage-meta">
+            <span>Real-time pool balance</span>
+            <span>Per-member tracking</span>
+            <span>Automated reminders</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">04</div>
+        <div class="stage-content">
+          <h3>Request, review &amp; approve withdrawals</h3>
+          <p>When the group needs to use the fund — for a project, an emergency, a planned investment — a withdrawal request is submitted. The request specifies <strong>the amount, the destination, and the purpose</strong>. The pool's administrators review the request, and the platform releases the funds only after the configured number of admins has approved.</p>
+          <p>This is the core trust mechanism. <strong>No single person can move money out of a pool, no matter their role.</strong> An organiser cannot bypass the approval. A treasurer cannot quietly disburse to themselves. The audit trail records who requested, who approved, and who declined — permanently, on every transaction.</p>
+          <div class="stage-meta">
+            <span>3-admin approval default</span>
+            <span>Permanent audit trail</span>
+            <span>Reject or approve with reasoning</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">05</div>
+        <div class="stage-content">
+          <h3>Continue building over time</h3>
+          <p>Unlike a Njangi, a Pool does not end. It is not built around a single payout cycle — it is built for <strong>continuity</strong>. Members keep contributing, the fund keeps growing, and the group keeps drawing on it whenever the next priority emerges. Some Pools run for decades.</p>
+          <p>Every disbursement leaves the pool balance lower; every contribution rebuilds it. Members can join or leave (with the group's consent), the admin team can be rotated, and the contribution model can be adapted. The pool itself is permanent — it belongs to the group, not to any single member or admin.</p>
+          <div class="stage-meta">
+            <span>No fixed end date</span>
+            <span>Members can join or leave</span>
+            <span>Admin rotation supported</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     MULTI-SIG TRUST ARCHITECTURE — CENTERPIECE
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section">
+  <div class="container">
+    <div class="pl-eyebrow reveal">04 · Why the money stays safe</div>
+    <h2 class="pl-h2 reveal reveal-d1">Three keys. <span class="ital">One vault</span>. No exceptions.</h2>
+    <p class="pl-p reveal reveal-d2">The single biggest reason informal group savings collapse is not theft. It is <strong>concentration</strong>. One person holds the cash. They get sick. They move away. They simply make a mistake. The structure that worked for years quietly fails because everything depended on a single point of trust.</p>
+    <p class="pl-p reveal reveal-d2">Sohana's Contribution Pools are built around a different principle: <strong>no single person ever holds the group's money, and no single person can move it</strong>. Every withdrawal requires approval from a configured number of pool administrators — three by default. The platform itself holds the funds in escrow. No exceptions, no override, no admin "trust me" mechanic.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="multisig-card reveal reveal-d3">
+      <!-- Animated 3-key approval SVG -->
+      <svg class="multisig-svg" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <radialGradient id="msVaultGrad" cx="50%" cy="50%">
+            <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
+            <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- 3 admin nodes on the left -->
+        <g class="ms-key" transform="translate(80,80)">
+          <circle r="36" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="2"/>
+          <text y="-46" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1.2">ADMIN 01</text>
+          <text y="6" text-anchor="middle" font-family="Geist,sans-serif" font-size="22" fill="#F4F2EC">🔑</text>
+          <text y="56" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#cef870">Approves</text>
+        </g>
+        <g class="ms-key k2" transform="translate(80,160)">
+          <circle r="36" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="2"/>
+          <text y="-46" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1.2">ADMIN 02</text>
+          <text y="6" text-anchor="middle" font-family="Geist,sans-serif" font-size="22" fill="#F4F2EC">🔑</text>
+          <text y="56" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#cef870">Approves</text>
+        </g>
+        <g class="ms-key k3" transform="translate(80,240)">
+          <circle r="36" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="2"/>
+          <text y="-46" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1.2">ADMIN 03</text>
+          <text y="6" text-anchor="middle" font-family="Geist,sans-serif" font-size="22" fill="#F4F2EC">🔑</text>
+          <text y="56" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#cef870">Approves</text>
+        </g>
+
+        <!-- approval flow lines from admins toward vault -->
+        <line class="ms-flow" x1="116" y1="80"  x2="280" y2="160" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.5"/>
+        <line class="ms-flow" x1="116" y1="160" x2="280" y2="160" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.5"/>
+        <line class="ms-flow" x1="116" y1="240" x2="280" y2="160" stroke="#9EE493" stroke-opacity=".5" stroke-width="1.5"/>
+
+        <!-- checkmarks above flow lines -->
+        <g class="ms-checkmark"    transform="translate(195,116)"><circle r="8" fill="#9EE493"/><path d="M-3 0 L-1 2 L4 -3" stroke="#0E120F" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g class="ms-checkmark c2" transform="translate(195,160)"><circle r="8" fill="#9EE493"/><path d="M-3 0 L-1 2 L4 -3" stroke="#0E120F" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g class="ms-checkmark c3" transform="translate(195,204)"><circle r="8" fill="#9EE493"/><path d="M-3 0 L-1 2 L4 -3" stroke="#0E120F" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+
+        <!-- VAULT in middle -->
+        <circle cx="350" cy="160" r="100" fill="url(#msVaultGrad)"/>
+        <g class="ms-vault-glow">
+          <rect x="305" y="120" width="90" height="80" rx="8" fill="rgba(14,18,15,.6)" stroke="#9EE493" stroke-width="2"/>
+          <rect x="313" y="128" width="74" height="26" fill="rgba(158,228,147,.15)" stroke="#9EE493" stroke-width="1"/>
+          <text x="350" y="146" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">POOL</text>
+          <text x="350" y="172" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#cef870">€42,500</text>
+          <circle cx="350" cy="190" r="8" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+          <circle cx="350" cy="190" r="2.5" fill="#9EE493"/>
+          <line x1="345" y1="185" x2="355" y2="195" stroke="#9EE493" stroke-width="1"/>
+        </g>
+
+        <!-- Right side: outflow with audit trail -->
+        <line class="ms-flow" x1="395" y1="160" x2="540" y2="120" stroke="#cef870" stroke-opacity=".7" stroke-width="2"/>
+        <line class="ms-flow" x1="395" y1="160" x2="540" y2="200" stroke="#cef870" stroke-opacity=".7" stroke-width="2"/>
+
+        <g transform="translate(545,90)">
+          <rect width="120" height="38" rx="6" fill="rgba(14,18,15,.7)" stroke="#9EE493" stroke-width="1"/>
+          <text x="60" y="15" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" font-weight="600" fill="#9EE493" letter-spacing=".8">DISBURSEMENT</text>
+          <text x="60" y="29" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">€8,200 → builders</text>
+        </g>
+        <g transform="translate(545,180)">
+          <rect width="120" height="38" rx="6" fill="rgba(14,18,15,.7)" stroke="#9EE493" stroke-width="1"/>
+          <text x="60" y="15" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" font-weight="600" fill="#9EE493" letter-spacing=".8">AUDIT LOG</text>
+          <text x="60" y="29" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">3/3 approved · permanent</text>
+        </g>
+
+        <!-- Bottom caption -->
+        <text x="340" y="298" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#8A8E87" letter-spacing=".8">3-OF-3 SIGNATURES · NO SINGLE POINT OF CONTROL</text>
+      </svg>
+
+      <!-- Three explanation tiles -->
+      <div class="ms-detail-grid">
+        <div class="ms-detail">
+          <div class="num">PROPERTY 01</div>
+          <h4>No single point of control</h4>
+          <p>The funds are held in escrow by the platform. No admin, organiser, or member has unilateral access to the pool balance. The platform only releases funds when the configured threshold of admin approvals is met.</p>
+        </div>
+        <div class="ms-detail">
+          <div class="num">PROPERTY 02</div>
+          <h4>Shared responsibility</h4>
+          <p>Every withdrawal requires explicit, recorded approvals from multiple admins. Each admin reviews the request independently — including the amount, destination, and purpose — before signing off or rejecting.</p>
+        </div>
+        <div class="ms-detail">
+          <div class="num">PROPERTY 03</div>
+          <h4>Protection against misuse</h4>
+          <p>Even if one admin is compromised, distracted, or coerced, they cannot move funds alone. Even if one admin disappears, the remaining admins can continue operating the pool. Resilience is built in.</p>
+        </div>
+      </div>
+
+      <div class="ms-promise">
+        <p>"It is the digital equivalent of <span class="em">multiple trusted signatories</span> managing a shared account — except the platform itself is the bank, the ledger, and the witness. Nobody can run away with the funds. <span class="em">There is no key under the mat.</span>"</p>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     VISIBILITY & CONTROL — member view vs admin view
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section warm">
+  <div class="container">
+    <div class="pl-eyebrow reveal">05 · Visibility &amp; control</div>
+    <h2 class="pl-h2 reveal reveal-d1" style="color:#0E120F;">Two views. <span class="ital">One source of truth</span>.</h2>
+    <p class="pl-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Members and admins see the same numbers — but with different powers. Both views are recorded permanently, and every action leaves an auditable trace. There is no hidden ledger, no separate "admin spreadsheet" running alongside the visible one.</p>
+
+    <div class="visibility-grid">
+      <div class="vis-col reveal reveal-d1" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <h4 style="color:rgba(20,19,15,.55);">Every member can</h4>
+        <ul class="vis-list">
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">See the total pool balance</strong> updated in real time, in the pool's chosen currency.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Track their own contribution history</strong> across the pool's full lifetime.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">View every approved withdrawal</strong> — amount, destination, purpose, approving admins.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">See member-level contribution status</strong> — who is current, who is late, who is paid up.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Submit withdrawal requests</strong> when the group's rules permit member-initiated requests.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Export their personal contribution record</strong> at any time, for their own bookkeeping.</li>
+        </ul>
+      </div>
+
+      <div class="vis-col admin reveal reveal-d2" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <h4 style="color:#0E120F;">Admins can additionally</h4>
+        <ul class="vis-list">
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Review pending withdrawal requests</strong> with full context — amount, destination, requestor, purpose.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Approve or reject disbursements</strong> with a recorded reason. Multi-admin threshold is enforced.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Monitor group-wide activity</strong> — contribution rate, late members, approval volume.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Approve new member admissions</strong> when someone applies to join the pool.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Adjust contribution rules</strong> with full transparency — every change is logged and notified.</li>
+          <li style="color:rgba(20,19,15,.7);"><strong style="color:#0E120F;">Rotate the admin team</strong> with the consent of existing admins, to keep governance fresh.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ANNUAL CAPACITY CALCULATOR
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section" id="calculator">
+  <div class="container">
+    <div class="pl-eyebrow reveal">06 · See what your group could build</div>
+    <h2 class="pl-h2 reveal reveal-d1">In one year, this is <span class="ital">what's possible</span>.</h2>
+    <p class="pl-p reveal reveal-d2">Adjust the numbers below to see what your group could collectively build in a year. The figure is the total annual contribution potential — what your treasury could reach before any disbursements. The list below shows real-world projects of comparable scale that pooled-fund associations around the world have actually completed.</p>
+
+    <div class="calc-card reveal reveal-d3">
+      <div class="calc-grid">
+
+        <div class="calc-controls">
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Members in your group</span>
+              <span class="value"><span id="cap-members-display">25</span></span>
+            </div>
+            <input type="range" id="cap-members" min="5" max="500" value="25" step="5" oninput="capRecalc()">
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Contribution per member</span>
+              <span class="value"><span id="cap-contrib-display">50</span><span class="currency" id="cap-currency-display">EUR</span></span>
+            </div>
+            <input type="range" id="cap-contrib" min="5" max="500" value="50" step="5" oninput="capRecalc()">
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Currency</span>
+            </div>
+            <div class="calc-currency-row" id="cap-curr-row">
+              <button onclick="capSetCurrency('EUR',this)" class="on">EUR</button>
+              <button onclick="capSetCurrency('GBP',this)">GBP</button>
+              <button onclick="capSetCurrency('USD',this)">USD</button>
+              <button onclick="capSetCurrency('CAD',this)">CAD</button>
+              <button onclick="capSetCurrency('XAF',this)">XAF</button>
+              <button onclick="capSetCurrency('GHC',this)">GHC</button>
+              <button onclick="capSetCurrency('NGN',this)">NGN</button>
+              <button onclick="capSetCurrency('ZAR',this)">ZAR</button>
+            </div>
+          </div>
+
+          <div class="calc-row">
+            <div class="lbl">
+              <span class="label-text">Frequency</span>
+            </div>
+            <div class="calc-freq-row" id="cap-freq-row">
+              <button onclick="capSetFreq(52,this)">Weekly</button>
+              <button onclick="capSetFreq(26,this)">Fortnightly</button>
+              <button onclick="capSetFreq(12,this)" class="on">Monthly</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="calc-result">
+          <div class="label">Annual treasury capacity</div>
+          <div class="calc-figure"><span id="cap-currency-symbol">€</span><span id="cap-annual">15,000</span></div>
+          <div class="calc-summary">
+            <div>
+              <span class="v" id="cap-monthly">€1,250</span>
+              <span class="l">Monthly inflow</span>
+            </div>
+            <div>
+              <span class="v" id="cap-per-member">€600</span>
+              <span class="l">Per member / yr</span>
+            </div>
+          </div>
+
+          <div class="calc-projects">
+            <div class="lbl">In one year, your group could realistically:</div>
+            <ul id="cap-projects">
+              <li>Fund a small <strong>community renovation</strong></li>
+              <li>Sponsor <strong>10–20 student scholarships</strong></li>
+              <li>Underwrite <strong>professional development</strong> for several members</li>
+              <li>Build an <strong>emergency reserve</strong> for the group</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ADVANTAGES (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section warm">
+  <div class="container">
+    <div class="pl-eyebrow reveal">07 · Why pools beat the alternatives</div>
+    <h2 class="pl-h2 reveal reveal-d1" style="color:#0E120F;">Four reasons groups <span class="ital">never go back</span>.</h2>
+    <p class="pl-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">A spreadsheet works until it doesn't. A trusted treasurer is fine until they move away. A WhatsApp group is convenient until someone asks for last year's records. Pools fix all of these — quietly, by design.</p>
+
+    <div class="advantages">
+      <div class="adv-card reveal reveal-d1">
+        <div class="adv-ico">↻</div>
+        <div>
+          <h4>Flexibility</h4>
+          <p>No fixed payout order or rotation. The fund is used whenever the group decides — for emergencies, projects, investments, or community needs as they arise.</p>
+        </div>
+      </div>
+      <div class="adv-card reveal reveal-d2">
+        <div class="adv-ico">◊</div>
+        <div>
+          <h4>Transparency</h4>
+          <p>Every contribution and every withdrawal is recorded in real time and visible to every member. No hidden ledger, no end-of-year reconciliation drama.</p>
+        </div>
+      </div>
+      <div class="adv-card reveal reveal-d3">
+        <div class="adv-ico">⊟</div>
+        <div>
+          <h4>Accountability</h4>
+          <p>Multi-admin approvals, complete audit trail, and per-member tracking eliminate the "who paid?" arguments and protect every admin from being blamed unfairly.</p>
+        </div>
+      </div>
+      <div class="adv-card reveal reveal-d4">
+        <div class="adv-ico">∞</div>
+        <div>
+          <h4>Continuity</h4>
+          <p>Pools don't end with one cycle. The fund grows over time, supports multiple needs, and survives admin rotations, member changes, and years of group evolution.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FEES & PRICING — honest fine print
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section">
+  <div class="container">
+    <div class="pl-eyebrow reveal">08 · Fees, in plain numbers</div>
+    <h2 class="pl-h2 reveal reveal-d1">No surprises. <span class="ital">No hidden cuts</span>.</h2>
+    <p class="pl-p reveal reveal-d2">Sohana is free to use during beta. When the platform launches with real-money operation, fees will be applied transparently — disclosed before they are charged, itemised on every transaction, and tied directly to the cost of providing the service. Here is exactly what to expect.</p>
+
+    <div class="fees-card reveal reveal-d3">
+      <div class="fees-grid">
+
+        <div class="fee-tile">
+          <div class="lbl">Pool creation</div>
+          <div class="figure">€0 – €5</div>
+          <p>One-time fee scaled to your NCS tier. <strong style="color:#9EE493;">€0 for exemplary tier</strong>, €1 for reliable, €3 for developing, €5 for probation. Reflects the credit risk we underwrite at creation.</p>
+        </div>
+
+        <div class="fee-tile">
+          <div class="lbl">Contributions</div>
+          <div class="figure">Free</div>
+          <p>Members never pay a fee to contribute to a pool they're a part of. The platform earns nothing on inflows — only on the operations that actually require service.</p>
+        </div>
+
+        <div class="fee-tile">
+          <div class="lbl">Withdrawals (to bank)</div>
+          <div class="figure">1.0 – 3.5%</div>
+          <p>Charged only when the pool disburses to an external bank account. Rate depends on destination: 1.0% to EU, 1.5% to UK, 2.0% to US, 3.5% on SWIFT. Mobile money: 1.5%.</p>
+        </div>
+
+      </div>
+
+      <div class="fees-fineprint" style="margin-top:1.5rem;">
+        <div class="row"><span><strong>Internal transfers between Sohana users</strong></span><span>0%</span></div>
+        <div class="row"><span><strong>Currency conversion</strong> (when crossing currencies)</span><span>0.7% · min 50 cents</span></div>
+        <div class="row"><span><strong>Minimum withdrawal fee</strong> (any external method)</span><span>50 cents</span></div>
+        <div class="row"><span><strong>Pay-fee threshold</strong> (large internal transfers)</span><span>2% above €5,000</span></div>
+        <div class="row"><span><strong>Failed payment / chargeback</strong></span><span>passed through at cost</span></div>
+        <div class="row"><span><strong>Hidden cuts on inflows</strong></span><span>0% · ever</span></div>
+      </div>
+
+      <p class="pl-p" style="margin-top:1.5rem;font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;">
+        Fees apply only after Sohana exits beta and processes real funds via our licensed payment partners. During beta, all operations are simulated and no fees are charged. Final fee schedule may be adjusted ahead of launch and will always be disclosed in-product before any charge is applied.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     BUILT FOR REAL COMMUNITIES
+══════════════════════════════════════════════════════════ -->
+<section class="pl-section warm">
+  <div class="container">
+    <div class="pl-eyebrow reveal">09 · Who pools are for</div>
+    <h2 class="pl-h2 reveal reveal-d1" style="color:#0E120F;">Groups that <span class="ital">already</span> operate this way.</h2>
+    <p class="pl-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Pools are not designed to introduce strangers to one another. They are designed for groups that already exist — already meet, already trust each other, already collect contributions in some form. We give those groups the structure their existing trust deserves.</p>
+
+    <div class="usecases-grid">
+      <div class="usecase reveal reveal-d1">
+        <div class="usecase-emoji">🎓</div>
+        <h4>School alumni associations</h4>
+        <p>Building scholarships, sponsoring projects, supporting your alma mater across borders.</p>
+      </div>
+      <div class="usecase reveal reveal-d1">
+        <div class="usecase-emoji">⛪</div>
+        <h4>Faith communities</h4>
+        <p>Building funds, charity initiatives, member support — with the audit trail every congregation deserves.</p>
+      </div>
+      <div class="usecase reveal reveal-d2">
+        <div class="usecase-emoji">💼</div>
+        <h4>Workplace teams</h4>
+        <p>Professional-development funds, leaving collections, team welfare pots — managed cleanly across departments.</p>
+      </div>
+      <div class="usecase reveal reveal-d2">
+        <div class="usecase-emoji">👥</div>
+        <h4>Social clubs &amp; friend groups</h4>
+        <p>Holiday funds, milestone celebrations, shared experiences — without one person doing all the chasing.</p>
+      </div>
+      <div class="usecase reveal reveal-d3">
+        <div class="usecase-emoji">🤝</div>
+        <h4>Cooperatives</h4>
+        <p>Working-capital pots, equipment funds, collective purchases — with the same governance principles as a board-managed organisation.</p>
+      </div>
+      <div class="usecase reveal reveal-d3">
+        <div class="usecase-emoji">🌍</div>
+        <h4>Diaspora associations</h4>
+        <p>Cross-border community funds, hometown projects, family coordination — across continents, in your home currency.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="pl-cta">
+  <div class="container">
+    <h2>Bring your group together. Define your rules. <span class="ital">Build with confidence.</span></h2>
+    <p>The structure is ready. The escrow is ready. The audit trail is ready. All that's missing is your group's first contribution.</p>
+    <div class="pl-cta-row">
+      <a href="/auth" class="pl-cta-primary">Start your pool →</a>
+      <a href="/njangi" class="pl-cta-ghost">Compare with Njangi</a>
+      <a href="/about" class="pl-cta-ghost">Read our story</a>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ──────── ANNUAL CAPACITY CALCULATOR ──────── */
+var capState = { members: 25, contrib: 50, frequency: 12, currency: 'EUR' };
+var capSymbols = { EUR:'€', GBP:'£', USD:'$', CAD:'C$', XAF:'CFA ', GHC:'₵', NGN:'₦', ZAR:'R' };
+
+function capSetCurrency(code, btn){
+  capState.currency = code;
+  document.querySelectorAll('#cap-curr-row button').forEach(function(b){ b.classList.remove('on') });
+  btn.classList.add('on');
+  capRecalc();
+}
+function capSetFreq(perYear, btn){
+  capState.frequency = perYear;
+  document.querySelectorAll('#cap-freq-row button').forEach(function(b){ b.classList.remove('on') });
+  btn.classList.add('on');
+  capRecalc();
+}
+function capFmt(n){ return n.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+function capRecalc(){
+  capState.members = parseInt(document.getElementById('cap-members').value);
+  capState.contrib = parseInt(document.getElementById('cap-contrib').value);
+
+  var annual    = capState.members * capState.contrib * capState.frequency;
+  var monthly   = annual / 12;
+  var perMember = capState.contrib * capState.frequency;
+  var sym       = capSymbols[capState.currency];
+
+  document.getElementById('cap-members-display').textContent  = capState.members;
+  document.getElementById('cap-contrib-display').textContent  = capFmt(capState.contrib);
+  document.getElementById('cap-currency-display').textContent = ' ' + capState.currency;
+  document.getElementById('cap-currency-symbol').textContent  = sym;
+  document.getElementById('cap-annual').textContent           = capFmt(annual);
+  document.getElementById('cap-monthly').textContent          = sym + capFmt(monthly);
+  document.getElementById('cap-per-member').textContent       = sym + capFmt(perMember);
+
+  // Realistic project suggestions based on EUR-equivalent ranges
+  var eurEquiv = annual; // Simplified — assumes user reads with their own purchasing power
+  var projects = [];
+  if (eurEquiv < 5000) {
+    projects = [
+      'Fund <strong>1–2 small grants</strong> or member emergencies',
+      'Cover <strong>group meeting venues</strong> for the year',
+      'Build a starting <strong>emergency reserve</strong>',
+      'Sponsor <strong>3–5 short courses</strong> for members'
+    ];
+  } else if (eurEquiv < 25000) {
+    projects = [
+      'Fund a small <strong>community renovation</strong>',
+      'Sponsor <strong>10–20 student scholarships</strong>',
+      'Underwrite <strong>professional development</strong> for several members',
+      'Build a <strong>structured emergency reserve</strong>'
+    ];
+  } else if (eurEquiv < 100000) {
+    projects = [
+      'Co-finance a <strong>small community building</strong>',
+      'Sponsor <strong>50+ scholarships</strong> annually',
+      'Buy <strong>equipment for a cooperative</strong>',
+      'Establish a <strong>permanent welfare fund</strong>'
+    ];
+  } else {
+    projects = [
+      'Co-finance a <strong>school or clinic construction</strong>',
+      'Sponsor <strong>hundreds of scholarships</strong> per year',
+      'Capitalise a <strong>major cooperative venture</strong>',
+      'Establish an <strong>endowment-scale community fund</strong>'
+    ];
+  }
+
+  var ul = document.getElementById('cap-projects');
+  ul.innerHTML = projects.map(function(p){ return '<li>' + p + '</li>' }).join('');
+}
+
+/* ──────── REVEAL OBSERVER ──────── */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
