@@ -1,51 +1,939 @@
 {% extends "page_base.html" %}
-{% block title %}Multicurrency Wallet{% endblock %}
+{% block title %}Wallet — multi-currency, instant, yours{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── WALLET PAGE ── */
+.wl-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.wl-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.wl-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.wl-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.wl-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.wl-section.warm .wl-eyebrow{color:rgba(20,19,15,.55)}
+.wl-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.wl-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.wl-section.warm .wl-h2 .ital{color:#0E120F}
+.wl-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.wl-section.warm .wl-p{color:rgba(20,19,15,.74)}
+.wl-p strong{color:#F4F2EC;font-weight:500}
+.wl-section.warm .wl-p strong{color:#0E120F}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO ── */
+.wl-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.wl-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 70% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.wl-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.wl-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.wl-hero .container{grid-template-columns:1fr;gap:48px}}
+.wl-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.wl-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.wl-hero p.lead{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:.85rem}
+.wl-hero p.support{font-size:.95rem;color:#8A8E87;max-width:520px;margin-bottom:1.5rem;line-height:1.65}
+.wl-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
+.wl-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.wl-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.wl-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.wl-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO WALLET CARD — 3D rotating multi-currency */
+.wallet-stage{position:relative;width:100%;max-width:440px;aspect-ratio:1.62;margin:0 auto;perspective:1200px}
+.wallet-card{position:relative;width:100%;height:100%;border-radius:24px;background:linear-gradient(135deg,#161B17 0%,#0E120F 100%);border:1px solid rgba(158,228,147,.3);box-shadow:0 30px 80px -20px rgba(0,0,0,.5),0 0 0 1px rgba(158,228,147,.08),0 0 60px rgba(158,228,147,.12);overflow:hidden;animation:card-tilt 8s ease-in-out infinite}
+.wallet-card::before{content:"";position:absolute;inset:-20%;background:radial-gradient(circle at 30% 20%,rgba(158,228,147,.18),transparent 50%);pointer-events:none}
+.wallet-card::after{content:"";position:absolute;top:-50%;right:-50%;width:120%;height:120%;background:radial-gradient(circle,rgba(207,248,112,.06),transparent 60%);pointer-events:none}
+@keyframes card-tilt{0%,100%{transform:rotateY(-3deg) rotateX(2deg)}50%{transform:rotateY(3deg) rotateX(-1deg)}}
+
+.wallet-inner{position:relative;width:100%;height:100%;padding:1.85rem 2rem;display:flex;flex-direction:column;justify-content:space-between;z-index:2}
+.wallet-top{display:flex;align-items:flex-start;justify-content:space-between}
+.wallet-brand{display:flex;align-items:center;gap:.5rem}
+.wallet-s-mark{width:26px;height:26px;background:#9EE493;color:#0E120F;border-radius:6px;display:grid;place-items:center;font-family:'Geist',sans-serif;font-weight:700;font-size:.95rem;letter-spacing:-.03em}
+.wallet-brand-text{font-family:'Geist Mono',monospace;font-size:.7rem;color:#B7BAB4;letter-spacing:.12em;text-transform:uppercase}
+.wallet-chip{width:32px;height:24px;border-radius:5px;background:linear-gradient(135deg,#cef870 0%,#9EE493 100%);position:relative;overflow:hidden}
+.wallet-chip::before,.wallet-chip::after{content:"";position:absolute;background:rgba(14,18,15,.3)}
+.wallet-chip::before{top:6px;left:4px;right:4px;height:1px}
+.wallet-chip::after{top:13px;left:4px;right:4px;height:1px}
+
+.wallet-balance{display:flex;flex-direction:column;gap:.25rem}
+.wallet-balance-lbl{font-family:'Geist Mono',monospace;font-size:.68rem;color:rgba(244,242,236,.55);letter-spacing:.08em;text-transform:uppercase}
+.wallet-amount{display:flex;align-items:baseline;gap:.6rem;font-family:'Geist Mono',monospace}
+.wallet-amount .symbol{font-size:1.6rem;color:#9EE493;font-weight:500}
+.wallet-amount .value{font-size:2.4rem;color:#F4F2EC;font-weight:500;letter-spacing:-.03em;line-height:1}
+.wallet-amount .currency-code{font-size:.85rem;color:#9EE493;letter-spacing:.06em;font-weight:600;align-self:flex-end;margin-bottom:.3rem}
+
+.wallet-flags-row{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.wallet-flag{width:24px;height:18px;border-radius:3px;border:1px solid rgba(244,242,236,.15);overflow:hidden;flex-shrink:0;transition:transform .2s}
+.wallet-flag:hover{transform:scale(1.15)}
+.wallet-flag-active{border-color:#9EE493;box-shadow:0 0 0 1px rgba(158,228,147,.3),0 0 8px rgba(158,228,147,.4)}
+
+/* Currency rotator animation */
+.currency-stack{position:relative;height:60px;overflow:hidden}
+.currency-line{position:absolute;inset:0;display:flex;align-items:baseline;gap:.6rem;animation:currency-rotate 16s ease-in-out infinite;opacity:0;font-family:'Geist Mono',monospace}
+.currency-line.cl1{animation-delay:0s}
+.currency-line.cl2{animation-delay:2s}
+.currency-line.cl3{animation-delay:4s}
+.currency-line.cl4{animation-delay:6s}
+.currency-line.cl5{animation-delay:8s}
+.currency-line.cl6{animation-delay:10s}
+.currency-line.cl7{animation-delay:12s}
+.currency-line.cl8{animation-delay:14s}
+@keyframes currency-rotate{
+  0%,1%   { opacity:0; transform:translateY(20px); }
+  3%,12%  { opacity:1; transform:translateY(0); }
+  14%,100%{ opacity:0; transform:translateY(-20px); }
+}
+
+/* ── DEFINITION ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── 4 CORE OPERATIONS — interactive tab switcher ── */
+.ops-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin:2rem 0 1.5rem;padding:.4rem;background:rgba(22,27,23,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px}
+@media(max-width:680px){.ops-tabs{grid-template-columns:repeat(2,1fr)}}
+.ops-tab{padding:.7rem .85rem;background:transparent;border:none;border-radius:10px;font-family:inherit;font-size:.85rem;color:#8A8E87;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.ops-tab:hover{color:#F4F2EC}
+.ops-tab.on{background:rgba(158,228,147,.12);color:#9EE493;font-weight:600;box-shadow:0 1px 0 rgba(158,228,147,.2) inset}
+.ops-tab .ops-ico{font-family:'Geist Mono',monospace;font-weight:600;width:18px;height:18px;border-radius:5px;background:rgba(244,242,236,.06);display:grid;place-items:center;font-size:.78rem}
+.ops-tab.on .ops-ico{background:rgba(158,228,147,.2);color:#9EE493}
+
+.ops-panel{display:none;animation:ops-fade .3s ease}
+.ops-panel.on{display:block}
+@keyframes ops-fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ops-content{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start;padding:2rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:18px}
+@media(max-width:880px){.ops-content{grid-template-columns:1fr}}
+.ops-narrative h3{font-size:1.3rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.85rem;line-height:1.3}
+.ops-narrative p{font-size:.95rem;color:#B7BAB4;line-height:1.75;margin-bottom:.9rem}
+.ops-narrative p strong{color:#F4F2EC;font-weight:500}
+.ops-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.85rem}
+.ops-meta span{font-family:'Geist Mono',monospace;font-size:.72rem;padding:.3rem .75rem;border-radius:99px;background:rgba(158,228,147,.06);color:#9EE493;border:1px solid rgba(158,228,147,.2);letter-spacing:.04em}
+
+.ops-mockup{padding:1.5rem 1.4rem;background:linear-gradient(180deg,#0E120F 0%,#161B17 100%);border:1px solid rgba(244,242,236,.08);border-radius:14px;display:flex;flex-direction:column;gap:.85rem;font-family:'Geist',sans-serif}
+.ops-mockup .mu-head{display:flex;align-items:center;gap:.5rem;padding-bottom:.85rem;border-bottom:1px solid rgba(244,242,236,.06)}
+.ops-mockup .mu-head .mu-ico{width:32px;height:32px;border-radius:8px;background:rgba(158,228,147,.1);color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:.85rem}
+.ops-mockup .mu-head .mu-title{font-size:.95rem;font-weight:600;color:#F4F2EC}
+.ops-mockup .mu-head .mu-sub{font-size:.7rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.04em;margin-left:auto}
+
+.mu-field{display:flex;flex-direction:column;gap:.35rem}
+.mu-field .mu-label{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase}
+.mu-field .mu-value{padding:.65rem .85rem;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:8px;font-size:.92rem;color:#F4F2EC;display:flex;align-items:center;gap:.5rem}
+.mu-field .mu-value.amount{font-family:'Geist Mono',monospace;font-size:1.1rem;font-weight:500}
+.mu-field .mu-value .at-h{color:#9EE493;font-family:'Geist Mono',monospace;font-weight:600}
+.mu-row-2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+
+.mu-method-row{display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem}
+.mu-method{padding:.55rem .7rem;background:rgba(244,242,236,.04);border:1px solid rgba(244,242,236,.08);border-radius:8px;display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:#B7BAB4;cursor:pointer;transition:all .15s}
+.mu-method.on{background:rgba(158,228,147,.1);border-color:rgba(158,228,147,.4);color:#F4F2EC}
+.mu-method .mu-method-ico{width:20px;height:20px;border-radius:5px;background:rgba(244,242,236,.08);display:grid;place-items:center;font-size:.7rem;font-weight:600;color:#8A8E87}
+.mu-method.on .mu-method-ico{background:rgba(158,228,147,.2);color:#9EE493}
+
+.mu-fee-row{padding:.6rem .85rem;background:rgba(14,18,15,.6);border-radius:8px;font-family:'Geist Mono',monospace;font-size:.75rem;color:#B7BAB4;line-height:1.55;display:flex;flex-direction:column;gap:.25rem}
+.mu-fee-row .row{display:flex;justify-content:space-between}
+.mu-fee-row .row .v{color:#9EE493}
+.mu-fee-row .row.total{padding-top:.35rem;margin-top:.15rem;border-top:1px solid rgba(244,242,236,.06);color:#F4F2EC;font-weight:600}
+.mu-fee-row .row.total .v{color:#cef870}
+
+.mu-cta-btn{padding:.7rem 1rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:'Geist',sans-serif;font-size:.85rem;font-weight:600;text-align:center;border:none}
+
+/* ── CURRENCY SHOWCASE — 8 cards with custom flag SVGs ── */
+.cur-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-top:2rem}
+@media(max-width:880px){.cur-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.cur-grid{grid-template-columns:1fr}}
+.cur-card{padding:1.5rem 1.25rem 1.4rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;display:flex;flex-direction:column;gap:.65rem;transition:all .25s;position:relative;overflow:hidden}
+.cur-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-2px)}
+.cur-card::before{content:"";position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(158,228,147,.06),transparent 70%);pointer-events:none}
+.cur-flag{width:56px;height:38px;border-radius:6px;border:1px solid rgba(244,242,236,.12);overflow:hidden;display:block;position:relative;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.cur-flag svg{width:100%;height:100%;display:block}
+.cur-card h4{font-size:1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.cur-card .code{font-family:'Geist Mono',monospace;font-size:.75rem;color:#9EE493;letter-spacing:.06em;font-weight:600}
+.cur-card .symbol{font-family:'Geist Mono',monospace;font-size:.8rem;color:#8A8E87}
+.cur-card .rate{padding-top:.85rem;margin-top:auto;border-top:1px solid rgba(244,242,236,.06);font-family:'Geist Mono',monospace;font-size:.78rem;color:#B7BAB4;letter-spacing:.02em}
+.cur-card .rate .num{color:#cef870;font-weight:500}
+
+/* Flag wave animation (gentle ripple on hover) */
+.cur-flag svg .wave-stripe{animation:flag-wave 4s ease-in-out infinite}
+.cur-flag svg .wave-stripe.ws2{animation-delay:.3s}
+.cur-flag svg .wave-stripe.ws3{animation-delay:.6s}
+@keyframes flag-wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-.5px)}}
+.cur-card:hover .cur-flag svg{filter:brightness(1.1) saturate(1.15)}
+
+/* ── INTERACTIVE CONVERSION CALCULATOR ── */
+.conv-card{margin-top:2rem;padding:2.5rem 2rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.conv-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.conv-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:1.5rem;align-items:start;position:relative}
+@media(max-width:760px){.conv-grid{grid-template-columns:1fr}}
+.conv-side{display:flex;flex-direction:column;gap:.85rem;padding:1.5rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px}
+.conv-label{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;text-transform:uppercase}
+.conv-input-row{display:flex;align-items:center;gap:.5rem;padding:.65rem .9rem;background:#0E120F;border:1.5px solid rgba(244,242,236,.12);border-radius:10px}
+.conv-input-row:focus-within{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.conv-input-row input{flex:1;background:none;border:none;outline:none;font-family:'Geist Mono',monospace;font-size:1.1rem;color:#F4F2EC;font-weight:500;letter-spacing:-.01em;min-width:0}
+.conv-input-row select{background:none;border:none;outline:none;font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;font-weight:600;letter-spacing:.04em;cursor:pointer;padding:.2rem .35rem}
+.conv-input-row select option{background:#161B17;color:#F4F2EC}
+.conv-flag-disp{width:24px;height:18px;border-radius:3px;background:rgba(158,228,147,.08);border:1px solid rgba(244,242,236,.15);overflow:hidden;flex-shrink:0;display:grid;place-items:center;font-size:.95rem}
+.conv-output-row{display:flex;align-items:center;gap:.5rem;padding:.65rem .9rem;background:#0E120F;border:1.5px solid rgba(158,228,147,.3);border-radius:10px}
+.conv-output-row .val{flex:1;font-family:'Geist Mono',monospace;font-size:1.1rem;color:#cef870;font-weight:600;letter-spacing:-.01em}
+.conv-arrow{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:rgba(158,228,147,.15);color:#9EE493;font-family:'Geist Mono',monospace;font-size:1.4rem;font-weight:600;align-self:center;animation:arrow-pulse 2s ease-in-out infinite}
+@keyframes arrow-pulse{0%,100%{opacity:.85;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+@media(max-width:760px){.conv-arrow{transform:rotate(90deg)}.conv-arrow{align-self:center;justify-self:center}}
+.conv-meta{padding:.7rem .85rem;background:rgba(14,18,15,.5);border-radius:10px;font-family:'Geist Mono',monospace;font-size:.75rem;color:#B7BAB4;line-height:1.6;letter-spacing:.01em;margin-top:.5rem}
+.conv-meta .row{display:flex;justify-content:space-between;padding:.1rem 0}
+.conv-meta .row .v{color:#9EE493;font-weight:500}
+
+/* ── DEBIT CARDS COMING SOON ── */
+.cards-band{margin-top:2rem;padding:3rem 2rem;background:linear-gradient(135deg,#161B17 0%,#0E120F 100%);border:1px solid rgba(158,228,147,.25);border-radius:28px;position:relative;overflow:hidden}
+.cards-band::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 0%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.cards-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;position:relative;z-index:2}
+@media(max-width:880px){.cards-grid{grid-template-columns:1fr;gap:2rem}}
+.cards-text h3{font-size:clamp(1.5rem,2.4vw,2rem);font-weight:500;letter-spacing:-.02em;line-height:1.2;color:#F4F2EC;margin-bottom:.85rem}
+.cards-text h3 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.cards-text .badge{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .85rem;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.3);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:1.25rem}
+.cards-text .badge::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;animation:badge-pulse 2s ease-in-out infinite}
+@keyframes badge-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+.cards-text p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem}
+.cards-text p strong{color:#F4F2EC;font-weight:500}
+.cards-features{list-style:none;padding:0;display:flex;flex-direction:column;gap:.6rem;margin-top:1rem}
+.cards-features li{padding-left:1.6rem;position:relative;font-size:.88rem;color:#B7BAB4;line-height:1.6}
+.cards-features li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.cards-features li strong{color:#F4F2EC;font-weight:500}
+
+/* PHYSICAL/VIRTUAL CARD STACK */
+.cards-stack{position:relative;width:100%;max-width:380px;aspect-ratio:1.62;margin:0 auto}
+.dcard{position:absolute;width:100%;height:100%;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.6),0 0 0 1px rgba(158,228,147,.08)}
+.dcard.virtual{transform:rotate(-7deg) translate(-15px,-8px);background:linear-gradient(135deg,#0E120F 0%,#161B17 100%);border:1px solid rgba(158,228,147,.4);animation:dcard-float-1 6s ease-in-out infinite}
+.dcard.physical{transform:rotate(5deg) translate(20px,15px);background:linear-gradient(135deg,#9EE493 0%,#76E0A1 100%);animation:dcard-float-2 6s ease-in-out infinite}
+@keyframes dcard-float-1{0%,100%{transform:rotate(-7deg) translate(-15px,-8px)}50%{transform:rotate(-6deg) translate(-12px,-12px)}}
+@keyframes dcard-float-2{0%,100%{transform:rotate(5deg) translate(20px,15px)}50%{transform:rotate(4deg) translate(18px,11px)}}
+.dcard-inner{padding:1.5rem 1.7rem;height:100%;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+.dcard.virtual .dcard-inner{color:#F4F2EC}
+.dcard.physical .dcard-inner{color:#0E120F}
+.dcard-tag{font-family:'Geist Mono',monospace;font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;align-self:flex-start;padding:.25rem .55rem;border-radius:99px}
+.dcard.virtual .dcard-tag{background:rgba(158,228,147,.18);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.dcard.physical .dcard-tag{background:rgba(14,18,15,.15);color:#0E120F;border:1px solid rgba(14,18,15,.25)}
+.dcard-chip{width:30px;height:24px;border-radius:5px;position:absolute;top:1.5rem;right:1.7rem}
+.dcard.virtual .dcard-chip{background:linear-gradient(135deg,#cef870 0%,#9EE493 100%)}
+.dcard.physical .dcard-chip{background:linear-gradient(135deg,#0E120F 0%,#161B17 100%)}
+.dcard-num{font-family:'Geist Mono',monospace;font-size:1rem;letter-spacing:.18em;font-weight:500}
+.dcard-bottom{display:flex;justify-content:space-between;align-items:flex-end}
+.dcard-bottom .name{font-family:'Geist',sans-serif;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.dcard-bottom .brand{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.3rem;font-weight:400}
+
+/* ── FUTURE CURRENCIES ── */
+.future-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.7rem;margin-top:2rem}
+.future-tile{padding:1rem 1.1rem;background:#fff;border:1px solid rgba(20,19,15,.08);border-radius:12px;display:flex;align-items:center;gap:.7rem;transition:all .2s}
+.future-tile:hover{border-color:rgba(158,228,147,.3);transform:translateY(-1px)}
+.future-flag{width:32px;height:22px;border-radius:4px;border:1px solid rgba(20,19,15,.1);overflow:hidden;flex-shrink:0;background:#0E120F}
+.future-flag svg{width:100%;height:100%;display:block}
+.future-tile .info{display:flex;flex-direction:column;gap:.1rem;min-width:0;flex:1}
+.future-tile .info .code{font-family:'Geist Mono',monospace;font-size:.75rem;color:#0E120F;font-weight:600;letter-spacing:.04em}
+.future-tile .info .name{font-size:.7rem;color:rgba(20,19,15,.55);line-height:1.3}
+.future-tile .when{font-family:'Geist Mono',monospace;font-size:.62rem;padding:.15rem .45rem;border-radius:99px;letter-spacing:.05em;background:rgba(255,179,80,.1);color:#c97800;border:1px solid rgba(255,179,80,.2);text-transform:uppercase;font-weight:600}
+
+/* ── SECURITY & LIMITS ── */
+.sec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.sec-card{padding:1.5rem 1.4rem;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:16px;display:flex;flex-direction:column;gap:.55rem}
+.sec-card .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.3rem}
+.sec-card h4{font-size:1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.sec-card .figure{font-family:'Geist Mono',monospace;font-size:1.4rem;color:#9EE493;font-weight:600;letter-spacing:-.02em;line-height:1.1;margin-bottom:.3rem}
+.sec-card p{font-size:.83rem;color:#B7BAB4;line-height:1.6}
+
+/* ── CTA ── */
+.wl-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.wl-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.wl-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.wl-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.wl-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.wl-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.wl-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO — multi-currency wallet card
+══════════════════════════════════════════════════════════ -->
+<section class="wl-hero">
+  <div class="wl-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>Multicurrency Wallet</h1>
-    <p>The SOHANA wallet holds up to eight currencies simultaneously and lets you deposit, withdraw, convert, and send money across borders — all from your phone.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="wl-eyebrow">Wallet · Multi-currency · Instant</div>
+      <h1>One wallet. <span class="ital">Eight currencies</span>. No friction.</h1>
+      <p class="lead">The Sohana wallet is the financial home for your money inside the platform — multi-currency, ready to top up from your bank or mobile money, and built to power every other product on Sohana from the moment you sign in.</p>
+      <p class="support">Hold balances in EUR, GBP, USD, CAD, XAF, GHC, NGN, and ZAR side by side. Convert between them at a transparent 0.7% fee. Pay anyone with a Hanatag in seconds. Contribute to circles and pools without leaving the app.</p>
+      <div class="wl-hero-cta-row">
+        <a href="/auth" class="wl-cta-primary">Open your wallet →</a>
+        <a href="#operations" class="wl-cta-ghost">See how it works</a>
+      </div>
+    </div>
+
+    <!-- ANIMATED MULTI-CURRENCY WALLET CARD -->
+    <div class="wallet-stage">
+      <div class="wallet-card">
+        <div class="wallet-inner">
+          <div class="wallet-top">
+            <div class="wallet-brand">
+              <div class="wallet-s-mark">S</div>
+              <div class="wallet-brand-text">Sohana Wallet</div>
+            </div>
+            <div class="wallet-chip"></div>
+          </div>
+
+          <div class="wallet-balance">
+            <span class="wallet-balance-lbl">Total balance</span>
+            <div class="currency-stack">
+              <div class="currency-line cl1">
+                <span class="symbol">€</span><span class="value">2,540.00</span><span class="currency-code">EUR</span>
+              </div>
+              <div class="currency-line cl2">
+                <span class="symbol">£</span><span class="value">2,175.30</span><span class="currency-code">GBP</span>
+              </div>
+              <div class="currency-line cl3">
+                <span class="symbol">$</span><span class="value">2,748.30</span><span class="currency-code">USD</span>
+              </div>
+              <div class="currency-line cl4">
+                <span class="symbol">C$</span><span class="value">3,736.30</span><span class="currency-code">CAD</span>
+              </div>
+              <div class="currency-line cl5">
+                <span class="symbol">Fr</span><span class="value">1,666,138</span><span class="currency-code">XAF</span>
+              </div>
+              <div class="currency-line cl6">
+                <span class="symbol">₵</span><span class="value">41,706</span><span class="currency-code">GHC</span>
+              </div>
+              <div class="currency-line cl7">
+                <span class="symbol">₦</span><span class="value">4,522,470</span><span class="currency-code">NGN</span>
+              </div>
+              <div class="currency-line cl8">
+                <span class="symbol">R</span><span class="value">51,180</span><span class="currency-code">ZAR</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="wallet-flags-row">
+            <span class="wallet-flag wallet-flag-active" title="EUR">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="18" fill="#003399"/><g transform="translate(12,9)"><circle r="4" fill="none" stroke="#FFCC00" stroke-width=".5"/><g fill="#FFCC00"><circle r=".7" cx="0" cy="-3.2"/><circle r=".7" cx="2" cy="-2.5"/><circle r=".7" cx="3.1" cy="-1"/><circle r=".7" cx="3.1" cy="1"/><circle r=".7" cx="2" cy="2.5"/><circle r=".7" cx="0" cy="3.2"/><circle r=".7" cx="-2" cy="2.5"/><circle r=".7" cx="-3.1" cy="1"/><circle r=".7" cx="-3.1" cy="-1"/><circle r=".7" cx="-2" cy="-2.5"/></g></g></svg>
+            </span>
+            <span class="wallet-flag" title="GBP">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="18" fill="#012169"/><path d="M0 0 L24 18 M24 0 L0 18" stroke="#fff" stroke-width="2"/><path d="M12 0 V18 M0 9 H24" stroke="#fff" stroke-width="3"/><path d="M12 0 V18 M0 9 H24" stroke="#C8102E" stroke-width="1.6"/></svg>
+            </span>
+            <span class="wallet-flag" title="USD">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="18" fill="#fff"/><g fill="#B22234"><rect width="24" height="1.4"/><rect y="2.8" width="24" height="1.4"/><rect y="5.5" width="24" height="1.4"/><rect y="8.3" width="24" height="1.4"/><rect y="11" width="24" height="1.4"/><rect y="13.8" width="24" height="1.4"/><rect y="16.6" width="24" height="1.4"/></g><rect width="10" height="9.7" fill="#3C3B6E"/></svg>
+            </span>
+            <span class="wallet-flag" title="CAD">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="18" fill="#fff"/><rect width="6" height="18" fill="#D52B1E"/><rect x="18" width="6" height="18" fill="#D52B1E"/><path d="M12 4 L13 6 L15 6 L13.3 7.5 L14 9.5 L12 8.5 L10 9.5 L10.7 7.5 L9 6 L11 6 Z" fill="#D52B1E"/></svg>
+            </span>
+            <span class="wallet-flag" title="XAF">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="18" fill="#007A5E"/><rect x="8" width="8" height="18" fill="#FCD116"/><rect x="16" width="8" height="18" fill="#CE1126"/><polygon points="12,7 13,9.5 15.5,9.5 13.5,11 14.3,13.5 12,12 9.7,13.5 10.5,11 8.5,9.5 11,9.5" fill="#CE1126"/></svg>
+            </span>
+            <span class="wallet-flag" title="GHC">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="6" fill="#CE1126"/><rect y="6" width="24" height="6" fill="#FCD116"/><rect y="12" width="24" height="6" fill="#006B3F"/><polygon points="12,7 13,9.5 15.5,9.5 13.5,11 14.3,13.5 12,12 9.7,13.5 10.5,11 8.5,9.5 11,9.5" fill="#000"/></svg>
+            </span>
+            <span class="wallet-flag" title="NGN">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="8" height="18" fill="#008751"/><rect x="8" width="8" height="18" fill="#fff"/><rect x="16" width="8" height="18" fill="#008751"/></svg>
+            </span>
+            <span class="wallet-flag" title="ZAR">
+              <svg viewBox="0 0 24 18" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="9" fill="#DE3831"/><rect y="9" width="24" height="9" fill="#002395"/><polygon points="0,0 0,18 12,9" fill="#007A4D"/><polygon points="0,1.5 0,16.5 10,9" fill="#000"/><rect width="24" height="2" y="7" fill="#fff"/><rect width="24" height="2" y="9" fill="#FFB612"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">🏦</div>
-      <h3>Eight currencies, one wallet</h3>
-      <p>Hold EUR, GBP, USD, CAD, XAF, GHC, NGN, and ZAR in a single account. Open new currency balances in seconds with no application or approval required.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📤</div>
-      <h3>Withdraw to any bank or mobile money</h3>
-      <p>Withdraw to EU SEPA accounts, UK bank accounts, US ACH, international SWIFT, or mobile money providers in West and East Africa — all from one interface.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">📊</div>
-      <h3>Full statement and history</h3>
-      <p>Every transaction is recorded in your permanent ledger. Download a statement at any time for tax purposes, visa applications, or personal records.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔐</div>
-      <h3>Protected by limits and OTP</h3>
-      <p>Daily deposit limits, withdrawal limits, and OTP verification on every outgoing transfer protect your balance from unauthorised access.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS THE WALLET — definition
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section warm">
+  <div class="container">
+    <div class="wl-eyebrow reveal">01 · What the wallet is</div>
+    <h2 class="wl-h2 reveal reveal-d1" style="color:#0E120F;">A multi-currency account, <span class="ital">designed for African and diaspora life</span>.</h2>
+
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="wl-p" style="color:rgba(20,19,15,.74);">Your Sohana wallet is the financial home for your money inside the platform. It is not a single account in a single currency — it is a <strong style="color:#0E120F;">multi-currency container</strong> that lets you hold balances in any of eight supported currencies side by side. EUR for your salary in Paris, GBP for the rent you receive in London, XAF for what you send home, NGN for what your cousin sends back. Each balance is real, segregated, and instantly available.</p>
+        <p class="wl-p" style="color:rgba(20,19,15,.74);">The wallet is more than storage. It is the financial engine that powers <strong style="color:#0E120F;">every other product on Sohana</strong>. When you join a Njangi circle, contributions move from your wallet. When a Pool admin approves a disbursement, funds land in the recipient's wallet. When someone sends a donation to a campaign, it leaves their wallet and arrives in the campaign escrow. When you pay a friend by Hanatag, your wallets handle the transfer in seconds.</p>
+        <p class="wl-p" style="color:rgba(20,19,15,.74);">The interface is built around the four operations you actually do: <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">top up, withdraw, convert, pay</em>. Every other action — contributing, donating, requesting, splitting — is a variation on those four primitives. Once you understand the wallet, you understand how money moves on Sohana.</p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1601597111158-2fceff292cdc?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     4 CORE OPERATIONS — interactive tab switcher
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section" id="operations">
+  <div class="container">
+    <div class="wl-eyebrow reveal">02 · The four operations</div>
+    <h2 class="wl-h2 reveal reveal-d1">Everything you can do, <span class="ital">in one screen</span>.</h2>
+    <p class="wl-p reveal reveal-d2">There are four primitive operations on the wallet. Tap each tab to see what the actual flow looks like — with the same forms, fees, and confirmations you will see when you log in. No marketing screenshots. The mockups below mirror the live interface.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <!-- Tab switcher -->
+    <div class="ops-tabs reveal reveal-d3">
+      <button class="ops-tab on" id="tab-topup"   onclick="opsShow('topup')"><span class="ops-ico">+</span>Top up</button>
+      <button class="ops-tab"    id="tab-withdraw" onclick="opsShow('withdraw')"><span class="ops-ico">↓</span>Withdraw</button>
+      <button class="ops-tab"    id="tab-convert" onclick="opsShow('convert')"><span class="ops-ico">⇄</span>Convert</button>
+      <button class="ops-tab"    id="tab-pay"     onclick="opsShow('pay')"><span class="ops-ico">→</span>Pay</button>
+    </div>
+
+    <!-- TOP UP panel -->
+    <div class="ops-panel on" id="panel-topup">
+      <div class="ops-content">
+        <div class="ops-narrative">
+          <h3>Adding money to your wallet</h3>
+          <p>You can fund your wallet using whichever method makes sense for the country you are in. <strong>Bank transfer</strong> is the default for users in EU, UK, US, and Canada — settle in one to two business days, no platform fee. <strong>Mobile money</strong> is available for users on the continent — instant settlement with provider fees passed through transparently.</p>
+          <p>You can also receive money instantly from any other Sohana user via their Hanatag — the simplest top-up, with zero fees and zero waiting. As long as the sender has a balance, your wallet receives it in seconds.</p>
+          <div class="ops-meta">
+            <span>Bank transfer · EU/UK/NA</span>
+            <span>Mobile money · Africa</span>
+            <span>Sohana-to-Sohana · 0%</span>
+            <span>Card top-up · coming soon</span>
+          </div>
+        </div>
+
+        <div class="ops-mockup">
+          <div class="mu-head">
+            <div class="mu-ico">+</div>
+            <div class="mu-title">Add money</div>
+            <div class="mu-sub">Step 1 of 2</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Amount</div>
+            <div class="mu-value amount">€500.00</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Method</div>
+            <div class="mu-method-row">
+              <div class="mu-method on"><div class="mu-method-ico">⌂</div>Bank transfer</div>
+              <div class="mu-method"><div class="mu-method-ico">M</div>Mobile money</div>
+            </div>
+          </div>
+          <div class="mu-fee-row">
+            <div class="row"><span>Top-up fee</span><span class="v">€0.00</span></div>
+            <div class="row"><span>Settlement</span><span class="v">1–2 business days</span></div>
+            <div class="row total"><span>You receive</span><span class="v">€500.00</span></div>
+          </div>
+          <div class="mu-cta-btn">Continue →</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WITHDRAW panel -->
+    <div class="ops-panel" id="panel-withdraw">
+      <div class="ops-content">
+        <div class="ops-narrative">
+          <h3>Sending money out of the wallet</h3>
+          <p>When you want to move funds off the platform — to your bank account, your mobile money wallet, or another Sohana user — the wallet handles the routing. Withdrawals to <strong>EU bank accounts cost 1.0%</strong>, UK 1.5%, US 2.0%, and SWIFT (anywhere else) 3.5%. Mobile money disbursements are flat 1.5%. Sending to another Sohana user is always free.</p>
+          <p>Every fee is itemised on screen <strong>before</strong> you confirm. The minimum withdrawal fee is 50 cents — the floor for processing costs. There are no hidden charges, no surprise FX markups, no "convenience fees" added at the last screen.</p>
+          <div class="ops-meta">
+            <span>EU bank · 1.0%</span>
+            <span>UK bank · 1.5%</span>
+            <span>US bank · 2.0%</span>
+            <span>Mobile money · 1.5%</span>
+            <span>Sohana → Sohana · 0%</span>
+          </div>
+        </div>
+
+        <div class="ops-mockup">
+          <div class="mu-head">
+            <div class="mu-ico">↓</div>
+            <div class="mu-title">Withdraw</div>
+            <div class="mu-sub">Confirm</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Amount</div>
+            <div class="mu-value amount">€1,000.00</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Destination</div>
+            <div class="mu-value"><span style="font-family:'Geist Mono',monospace;font-size:.75rem;color:#9EE493;">⌂</span>Crédit Agricole · ••••4729</div>
+          </div>
+          <div class="mu-fee-row">
+            <div class="row"><span>Withdrawal amount</span><span>€1,000.00</span></div>
+            <div class="row"><span>Withdrawal fee (EU bank · 1.0%)</span><span class="v">€10.00</span></div>
+            <div class="row total"><span>Total deducted</span><span class="v">€1,010.00</span></div>
+          </div>
+          <div class="mu-cta-btn">Confirm withdrawal</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONVERT panel -->
+    <div class="ops-panel" id="panel-convert">
+      <div class="ops-content">
+        <div class="ops-narrative">
+          <h3>Moving money between currencies</h3>
+          <p>Convert between any two of your Sohana wallets in seconds. The exchange rate shown is the live mid-market rate — the same rate banks use among themselves — with a single, transparent <strong>0.7% conversion fee</strong>. No hidden spread, no opaque "we use our own rate" clause, no per-transaction surcharge.</p>
+          <p>Conversions are useful all the time. A diaspora user receives a salary in EUR, converts a portion to XAF to send home, keeps the rest in EUR. A parent in Lagos converts NGN to GBP to top up their student's UK wallet. A small business converts USD client payments to local currency. The wallet handles all of it without you ever leaving the app.</p>
+          <div class="ops-meta">
+            <span>0.7% · all pairs</span>
+            <span>Mid-market rate</span>
+            <span>Min. 50 cent fee</span>
+            <span>Instant settlement</span>
+          </div>
+        </div>
+
+        <div class="ops-mockup">
+          <div class="mu-head">
+            <div class="mu-ico">⇄</div>
+            <div class="mu-title">Convert</div>
+            <div class="mu-sub">EUR → XAF</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">From</div>
+            <div class="mu-value amount" style="display:flex;justify-content:space-between;"><span>€500.00</span><span style="color:#9EE493;font-size:.78rem;align-self:center;">EUR</span></div>
+          </div>
+          <div style="text-align:center;color:#9EE493;font-family:'Geist Mono',monospace;font-size:.85rem;font-weight:600;padding:.2rem 0;">↓</div>
+          <div class="mu-field">
+            <div class="mu-label">To</div>
+            <div class="mu-value amount" style="display:flex;justify-content:space-between;border-color:rgba(158,228,147,.3);"><span style="color:#cef870;">Fr 325,706</span><span style="color:#9EE493;font-size:.78rem;align-self:center;">XAF</span></div>
+          </div>
+          <div class="mu-fee-row">
+            <div class="row"><span>Rate</span><span class="v">1 EUR = 655.96 XAF</span></div>
+            <div class="row"><span>Conversion fee (0.7%)</span><span class="v">Fr 2,294</span></div>
+            <div class="row total"><span>You receive</span><span class="v">Fr 325,706</span></div>
+          </div>
+          <div class="mu-cta-btn">Convert now</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAY panel -->
+    <div class="ops-panel" id="panel-pay">
+      <div class="ops-content">
+        <div class="ops-narrative">
+          <h3>Sending money to anyone on Sohana</h3>
+          <p>Pay any other Sohana user by their Hanatag. <strong>Sohana-to-Sohana transfers are always free</strong> within the same currency, settled instantly. If you and the recipient hold different base currencies, the standard 0.7% conversion fee applies — but you see it before confirming, and you choose which wallet to debit.</p>
+          <p>The same flow handles every payment situation: paying a friend, splitting a bill, contributing to a circle, donating to a campaign, settling with a small business, or supporting family. The platform routes the transaction correctly based on what you select. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">One screen. Many possibilities.</em></p>
+          <div class="ops-meta">
+            <span>Same-currency · 0%</span>
+            <span>Cross-currency · 0.7%</span>
+            <span>Instant within network</span>
+            <span>Recurring · coming soon</span>
+          </div>
+        </div>
+
+        <div class="ops-mockup">
+          <div class="mu-head">
+            <div class="mu-ico">→</div>
+            <div class="mu-title">Pay by Hanatag</div>
+            <div class="mu-sub">Same-currency</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">To</div>
+            <div class="mu-value"><span class="at-h">@</span>kofi.mensah</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Amount</div>
+            <div class="mu-value amount">€150.00</div>
+          </div>
+          <div class="mu-field">
+            <div class="mu-label">Note (optional)</div>
+            <div class="mu-value" style="font-size:.85rem;color:#B7BAB4;">Birthday gift 🎁</div>
+          </div>
+          <div class="mu-fee-row">
+            <div class="row"><span>Transfer fee</span><span class="v">€0.00</span></div>
+            <div class="row"><span>Settlement</span><span class="v">Instant</span></div>
+            <div class="row total"><span>Kofi receives</span><span class="v">€150.00</span></div>
+          </div>
+          <div class="mu-cta-btn">Send €150.00</div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     8 SUPPORTED CURRENCIES — animated flag SVGs + live rates
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section">
+  <div class="container">
+    <div class="wl-eyebrow reveal">03 · Currencies you can hold today</div>
+    <h2 class="wl-h2 reveal reveal-d1">Eight currencies. <span class="ital">Each one a real wallet</span>.</h2>
+    <p class="wl-p reveal reveal-d2">When you sign up, you start with a default base currency — usually the one your country uses. Additional currency wallets open on demand: tap the "Add wallet" button on your dashboard, pick a currency, and within seconds you have a new dedicated balance for that currency. Indicative rates below are live mid-market values used by the platform's converter.</p>
+
+    <div class="cur-grid">
+      <!-- EUR -->
+      <div class="cur-card reveal reveal-d1">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="38" fill="#003399"/><g transform="translate(28,19)"><circle r="9" fill="none" stroke="#FFCC00" stroke-width="1"/><g fill="#FFCC00"><circle r="1.4" cx="0" cy="-7"/><circle r="1.4" cx="4.4" cy="-5.4"/><circle r="1.4" cx="6.7" cy="-2.2"/><circle r="1.4" cx="6.7" cy="2.2"/><circle r="1.4" cx="4.4" cy="5.4"/><circle r="1.4" cx="0" cy="7"/><circle r="1.4" cx="-4.4" cy="5.4"/><circle r="1.4" cx="-6.7" cy="2.2"/><circle r="1.4" cx="-6.7" cy="-2.2"/><circle r="1.4" cx="-4.4" cy="-5.4"/></g></g></svg>
+        </div>
+        <h4>Euro</h4>
+        <div class="code">EUR · €</div>
+        <div class="rate">Base · <span class="num">1.0000</span></div>
+      </div>
+      <!-- GBP -->
+      <div class="cur-card reveal reveal-d1">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="38" fill="#012169"/><path d="M0 0 L56 38 M56 0 L0 38" stroke="#fff" stroke-width="4"/><path d="M0 0 L56 38 M56 0 L0 38" stroke="#C8102E" stroke-width="2.4" stroke-dasharray="0 56 56 0"/><path d="M28 0 V38 M0 19 H56" stroke="#fff" stroke-width="6"/><path d="M28 0 V38 M0 19 H56" stroke="#C8102E" stroke-width="3.5"/></svg>
+        </div>
+        <h4>British Pound</h4>
+        <div class="code">GBP · £</div>
+        <div class="rate">€1 = <span class="num">£0.856</span></div>
+      </div>
+      <!-- USD -->
+      <div class="cur-card reveal reveal-d2">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="38" fill="#fff"/><g fill="#B22234"><rect width="56" height="2.92"/><rect y="5.85" width="56" height="2.92"/><rect y="11.69" width="56" height="2.92"/><rect y="17.54" width="56" height="2.92"/><rect y="23.38" width="56" height="2.92"/><rect y="29.23" width="56" height="2.92"/><rect y="35.08" width="56" height="2.92"/></g><rect width="22.4" height="20.46" fill="#3C3B6E"/><g fill="#fff"><circle r=".7" cx="3.5" cy="3"/><circle r=".7" cx="7.5" cy="3"/><circle r=".7" cx="11.5" cy="3"/><circle r=".7" cx="15.5" cy="3"/><circle r=".7" cx="19" cy="3"/><circle r=".7" cx="5.5" cy="6"/><circle r=".7" cx="9.5" cy="6"/><circle r=".7" cx="13.5" cy="6"/><circle r=".7" cx="17.5" cy="6"/><circle r=".7" cx="3.5" cy="9"/><circle r=".7" cx="7.5" cy="9"/><circle r=".7" cx="11.5" cy="9"/><circle r=".7" cx="15.5" cy="9"/><circle r=".7" cx="19" cy="9"/><circle r=".7" cx="5.5" cy="12"/><circle r=".7" cx="9.5" cy="12"/><circle r=".7" cx="13.5" cy="12"/><circle r=".7" cx="17.5" cy="12"/><circle r=".7" cx="3.5" cy="15"/><circle r=".7" cx="7.5" cy="15"/><circle r=".7" cx="11.5" cy="15"/><circle r=".7" cx="15.5" cy="15"/><circle r=".7" cx="19" cy="15"/><circle r=".7" cx="5.5" cy="18"/><circle r=".7" cx="9.5" cy="18"/><circle r=".7" cx="13.5" cy="18"/><circle r=".7" cx="17.5" cy="18"/></g></svg>
+        </div>
+        <h4>US Dollar</h4>
+        <div class="code">USD · $</div>
+        <div class="rate">€1 = <span class="num">$1.082</span></div>
+      </div>
+      <!-- CAD -->
+      <div class="cur-card reveal reveal-d2">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="38" fill="#fff"/><rect width="14" height="38" fill="#D52B1E"/><rect x="42" width="14" height="38" fill="#D52B1E"/><g transform="translate(28,19)" fill="#D52B1E"><path d="M0 -10 L1.5 -6 L4 -7 L3 -3 L7 -3 L4 0 L7 3 L3 3 L4 7 L1.5 6 L0 10 L-1.5 6 L-4 7 L-3 3 L-7 3 L-4 0 L-7 -3 L-3 -3 L-4 -7 L-1.5 -6 Z"/></g></svg>
+        </div>
+        <h4>Canadian Dollar</h4>
+        <div class="code">CAD · C$</div>
+        <div class="rate">€1 = <span class="num">C$1.471</span></div>
+      </div>
+      <!-- XAF -->
+      <div class="cur-card reveal reveal-d3">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="18.67" height="38" fill="#007A5E"/><rect x="18.67" width="18.67" height="38" fill="#FCD116"/><rect x="37.33" width="18.67" height="38" fill="#CE1126"/><g transform="translate(28,19)" fill="#CE1126"><path d="M0 -7 L1.6 -2.2 L6.65 -2.2 L2.55 0.85 L4.1 5.6 L0 2.6 L-4.1 5.6 L-2.55 0.85 L-6.65 -2.2 L-1.6 -2.2 Z"/></g></svg>
+        </div>
+        <h4>CFA Franc</h4>
+        <div class="code">XAF · Fr</div>
+        <div class="rate">€1 = <span class="num">Fr 655.96</span></div>
+      </div>
+      <!-- GHC -->
+      <div class="cur-card reveal reveal-d3">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="12.67" fill="#CE1126"/><rect y="12.67" width="56" height="12.67" fill="#FCD116"/><rect y="25.33" width="56" height="12.67" fill="#006B3F"/><g transform="translate(28,19)" fill="#000"><path d="M0 -5 L1.2 -1.5 L4.75 -1.5 L1.85 0.6 L2.95 4.05 L0 1.95 L-2.95 4.05 L-1.85 0.6 L-4.75 -1.5 L-1.2 -1.5 Z"/></g></svg>
+        </div>
+        <h4>Ghanaian Cedi</h4>
+        <div class="code">GHC · ₵</div>
+        <div class="rate">€1 = <span class="num">₵16.42</span></div>
+      </div>
+      <!-- NGN -->
+      <div class="cur-card reveal reveal-d4">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="18.67" height="38" fill="#008751"/><rect x="18.67" width="18.67" height="38" fill="#fff"/><rect x="37.33" width="18.67" height="38" fill="#008751"/></svg>
+        </div>
+        <h4>Nigerian Naira</h4>
+        <div class="code">NGN · ₦</div>
+        <div class="rate">€1 = <span class="num">₦1,780.50</span></div>
+      </div>
+      <!-- ZAR -->
+      <div class="cur-card reveal reveal-d4">
+        <div class="cur-flag">
+          <svg viewBox="0 0 56 38" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="19" fill="#DE3831"/><rect y="19" width="56" height="19" fill="#002395"/><polygon points="0,0 0,38 28,19" fill="#fff"/><polygon points="0,4 0,34 22,19" fill="#007A4D"/><polygon points="0,9 0,29 14,19" fill="#000"/><rect width="56" height="3" y="14.5" fill="#fff"/><rect width="56" height="3" y="20.5" fill="#FFB612"/><rect width="56" height="3" y="17.5" fill="#007A4D"/></svg>
+        </div>
+        <h4>South African Rand</h4>
+        <div class="code">ZAR · R</div>
+        <div class="rate">€1 = <span class="num">R20.15</span></div>
+      </div>
+    </div>
+
+    <p class="wl-p reveal reveal-d4" style="margin-top:1.5rem;font-size:.82rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;">Indicative mid-market rates. Live rates inside the platform update in real time from Sohana's pricing engine. Conversion fee of 0.7% applies on every conversion (minimum 50 cents).</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CONVERSION CALCULATOR
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section">
+  <div class="container">
+    <div class="wl-eyebrow reveal">04 · Try a conversion</div>
+    <h2 class="wl-h2 reveal reveal-d1">See exactly what <span class="ital">you'd receive</span>.</h2>
+    <p class="wl-p reveal reveal-d2">Pick any two currencies and a starting amount. The calculator below uses the same exchange engine that powers the converter inside the live wallet — including the transparent 0.7% conversion fee, applied to the gross amount before settling.</p>
+
+    <div class="conv-card reveal reveal-d3">
+      <div class="conv-grid">
+        <div class="conv-side">
+          <div class="conv-label">You convert</div>
+          <div class="conv-input-row">
+            <span class="conv-flag-disp" id="conv-flag-from">🇪🇺</span>
+            <input type="number" id="conv-amount" value="500" min="1" oninput="recalcConv()">
+            <select id="conv-from" onchange="recalcConv()">
+              <option value="EUR" selected>EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="USD">USD</option>
+              <option value="CAD">CAD</option>
+              <option value="XAF">XAF</option>
+              <option value="GHC">GHC</option>
+              <option value="NGN">NGN</option>
+              <option value="ZAR">ZAR</option>
+            </select>
+          </div>
+          <div class="conv-meta">
+            <div class="row"><span>Rate</span><span class="v" id="conv-rate-disp">1 EUR = 655.96 XAF</span></div>
+            <div class="row"><span>Conversion fee (0.7%)</span><span class="v" id="conv-fee-disp">€3.50</span></div>
+            <div class="row"><span>Settlement</span><span class="v">Instant</span></div>
+          </div>
+        </div>
+
+        <div class="conv-arrow">⇄</div>
+
+        <div class="conv-side">
+          <div class="conv-label">You receive</div>
+          <div class="conv-output-row">
+            <span class="conv-flag-disp" id="conv-flag-to">🌍</span>
+            <span class="val" id="conv-result">325,706</span>
+            <select id="conv-to" onchange="recalcConv()">
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="USD">USD</option>
+              <option value="CAD">CAD</option>
+              <option value="XAF" selected>XAF</option>
+              <option value="GHC">GHC</option>
+              <option value="NGN">NGN</option>
+              <option value="ZAR">ZAR</option>
+            </select>
+          </div>
+          <div class="conv-meta">
+            <div class="row"><span>Mid-market rate</span><span class="v">No spread markup</span></div>
+            <div class="row"><span>Lock-in</span><span class="v">Confirmed at click</span></div>
+            <div class="row"><span>Min. fee</span><span class="v">50 cents equivalent</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     DEBIT CARDS — coming soon
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section">
+  <div class="container">
+    <div class="wl-eyebrow reveal">05 · Coming soon</div>
+    <h2 class="wl-h2 reveal reveal-d1">Spend straight from your wallet, <span class="ital">anywhere in the world</span>.</h2>
+
+    <div class="cards-band reveal reveal-d2">
+      <div class="cards-grid">
+
+        <div class="cards-text">
+          <span class="badge">In design · 2027</span>
+          <h3>The Sohana <span class="ital">debit card</span> is coming.</h3>
+          <p>Right now your wallet is for moving money inside the network — between friends, into circles, to family abroad. The next chapter is making that same balance spendable in the real world. We are building two card products that will sit on top of your existing wallet, with no separate account or top-up step required.</p>
+          <p><strong>The virtual card</strong> launches first — issued instantly to your phone, ready for online checkout, in-app purchases, and tap-to-pay through Apple Pay and Google Pay. <strong>The physical card</strong> follows shortly after — a beautifully designed contactless card that draws directly from your multi-currency wallet, automatically picking the right currency for the merchant.</p>
+          <ul class="cards-features">
+            <li><strong>Multi-currency by default</strong> — the card detects the merchant's currency and spends from the matching wallet, falling back to your base currency with the standard 0.7% conversion if needed.</li>
+            <li><strong>Real-time spending alerts</strong> — every transaction triggers an instant notification with full details, so you always know what's been spent.</li>
+            <li><strong>Freeze instantly</strong> — lock and unlock the card from the app in one tap. No call centre, no waiting.</li>
+            <li><strong>Spending controls</strong> — set per-category and per-merchant limits to keep your circle's pool funds protected from accidental overspend.</li>
+            <li><strong>Built on a regulated card network</strong> — issued through a licensed partner, with the same consumer protections you expect from any major card.</li>
+          </ul>
+        </div>
+
+        <div class="cards-stack">
+          <div class="dcard physical">
+            <div class="dcard-inner">
+              <span class="dcard-tag">Physical</span>
+              <span class="dcard-chip"></span>
+              <div class="dcard-num">5471 ••• ••• 2840</div>
+              <div class="dcard-bottom">
+                <span class="name">A. Diallo</span>
+                <span class="brand">sohana</span>
+              </div>
+            </div>
+          </div>
+          <div class="dcard virtual">
+            <div class="dcard-inner">
+              <span class="dcard-tag">Virtual · instant</span>
+              <span class="dcard-chip"></span>
+              <div class="dcard-num">4905 ••• ••• 1209</div>
+              <div class="dcard-bottom">
+                <span class="name">A. Diallo</span>
+                <span class="brand" style="color:#9EE493;">sohana</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FUTURE CURRENCIES (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section warm">
+  <div class="container">
+    <div class="wl-eyebrow reveal">06 · Currencies on the roadmap</div>
+    <h2 class="wl-h2 reveal reveal-d1" style="color:#0E120F;">More currencies, <span class="ital">as the platform grows</span>.</h2>
+    <p class="wl-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Eight currencies is where we are starting. Beyond that, we are mapping out the next wave of currencies based on diaspora corridors and partner integrations. Each new currency requires a licensed payment partner in the destination country — work that takes time, but ensures every wallet is real and regulated.</p>
+
+    <div class="future-grid">
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#000"/><rect y="7.33" width="32" height="7.33" fill="#BB0000"/><rect y="14.67" width="32" height="7.33" fill="#006A4E"/></svg></div>
+        <div class="info"><div class="code">KES</div><div class="name">Kenyan Shilling</div></div>
+        <span class="when">2026</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#fcdc04"/><rect y="3.7" width="32" height="3.7" fill="#000"/><rect y="11" width="32" height="3.7" fill="#000"/><rect y="18.3" width="32" height="3.7" fill="#000"/><rect y="0" width="32" height="3.7" fill="#d90000"/><rect y="7.4" width="32" height="3.7" fill="#d90000"/><rect y="14.7" width="32" height="3.7" fill="#d90000"/></svg></div>
+        <div class="info"><div class="code">UGX</div><div class="name">Ugandan Shilling</div></div>
+        <span class="when">2026</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#00A1DE"/><rect y="0" width="32" height="11" fill="#FAD201"/><rect y="11" width="32" height="11" fill="#00A1DE"/><rect y="18.3" width="32" height="3.7" fill="#20603D"/></svg></div>
+        <div class="info"><div class="code">RWF</div><div class="name">Rwandan Franc</div></div>
+        <span class="when">2026</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect y="0" width="32" height="7.33" fill="#078930"/><rect y="7.33" width="32" height="7.33" fill="#FCDD09"/><rect y="14.67" width="32" height="7.33" fill="#DA121A"/><circle cx="16" cy="11" r="3.5" fill="#0F47AF"/></svg></div>
+        <div class="info"><div class="code">ETB</div><div class="name">Ethiopian Birr</div></div>
+        <span class="when">2027</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#fff"/><rect y="0" width="32" height="11" fill="#078930"/><polygon points="0,0 0,22 16,11" fill="#000"/><circle cx="16" cy="11" r="2.5" fill="#FCDD09"/></svg></div>
+        <div class="info"><div class="code">TZS</div><div class="name">Tanzanian Shilling</div></div>
+        <span class="when">2027</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#CE1126"/><rect y="6.3" width="32" height="9.4" fill="#fff"/><polygon points="13,11 14.5,8.5 17.5,8.5 15,7 16,4 13.5,5.5 11,4 12,7 9.5,8.5 12.5,8.5" fill="#fff"/></svg></div>
+        <div class="info"><div class="code">MAD</div><div class="name">Moroccan Dirham</div></div>
+        <span class="when">2027</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#E70013"/><rect width="32" height="11" fill="#fff"/><rect y="0" width="32" height="22" fill="#E70013" mask="url(#mEgypt)"/></svg></div>
+        <div class="info"><div class="code">EGP</div><div class="name">Egyptian Pound</div></div>
+        <span class="when">2027</span>
+      </div>
+      <div class="future-tile">
+        <div class="future-flag"><svg viewBox="0 0 32 22" xmlns="http://www.w3.org/2000/svg"><rect width="32" height="22" fill="#fff"/><rect width="32" height="7.33" fill="#000"/><rect y="14.67" width="32" height="7.33" fill="#000"/><rect width="32" height="3.7" y="9.15" fill="#A60000"/></svg></div>
+        <div class="info"><div class="code">SLL</div><div class="name">Sierra Leonean Leone</div></div>
+        <span class="when">2028+</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SECURITY & LIMITS
+══════════════════════════════════════════════════════════ -->
+<section class="wl-section">
+  <div class="container">
+    <div class="wl-eyebrow reveal">07 · Security &amp; limits</div>
+    <h2 class="wl-h2 reveal reveal-d1">Built with <span class="ital">guardrails</span> by default.</h2>
+    <p class="wl-p reveal reveal-d2">Every wallet operates under sensible limits to protect users from mistakes, compromised devices, and fraud. Limits scale up with your KYC level — full verification unlocks higher daily and monthly thresholds. Beyond limits, the wallet is wrapped in the same security layer that protects every Sohana product: PBKDF2-hashed passwords, session controls, role-based access, and complete audit trails.</p>
+
+    <div class="sec-grid">
+      <div class="sec-card reveal reveal-d1">
+        <div class="num">DAILY LIMIT</div>
+        <h4>Top-up</h4>
+        <div class="figure">€10,000</div>
+        <p>Maximum daily inflow per wallet at standard KYC level. Higher tiers available for verified business accounts.</p>
+      </div>
+      <div class="sec-card reveal reveal-d1">
+        <div class="num">DAILY LIMIT</div>
+        <h4>Withdraw</h4>
+        <div class="figure">€3,000</div>
+        <p>Maximum daily outflow to external accounts. Can be raised for users with strong NCS scores and full KYC.</p>
+      </div>
+      <div class="sec-card reveal reveal-d2">
+        <div class="num">MONTHLY LIMIT</div>
+        <h4>Withdraw</h4>
+        <div class="figure">€10,000</div>
+        <p>Rolling 30-day cap on total withdrawals to external accounts. Resets daily on a 30-day window.</p>
+      </div>
+      <div class="sec-card reveal reveal-d2">
+        <div class="num">FREEZE</div>
+        <h4>Instant lock</h4>
+        <div class="figure">1 tap</div>
+        <p>Lock all wallet operations from your dashboard if you suspect unauthorised access. CCO-authorised admin can also freeze on suspicious activity.</p>
+      </div>
+      <div class="sec-card reveal reveal-d3">
+        <div class="num">PROTECTION</div>
+        <h4>Encrypted at rest</h4>
+        <div class="figure">100%</div>
+        <p>All wallet balances and transaction records are stored encrypted, with role-based access controls enforced at every layer.</p>
+      </div>
+      <div class="sec-card reveal reveal-d3">
+        <div class="num">PROTECTION</div>
+        <h4>Audit trail</h4>
+        <div class="figure">Permanent</div>
+        <p>Every wallet action — top-up, withdrawal, conversion, payment — is logged with timestamp, amount, and counterparty. Exportable on request.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="wl-cta">
+  <div class="container">
+    <h2>Open your wallet. <span class="ital">Hold your money.</span> Move it freely.</h2>
+    <p>Eight currencies. Transparent fees. Instant transfers. The card is coming. Everything that makes the rest of Sohana work runs on top of the wallet — and the wallet is ready when you are.</p>
+    <div class="wl-cta-row">
+      <a href="/auth" class="wl-cta-primary">Open your wallet →</a>
+      <a href="/hanapay" class="wl-cta-ghost">Learn about Hanapay</a>
+      <a href="/security" class="wl-cta-ghost">Read about security</a>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ──────── 4 OPERATION TABS ──────── */
+function opsShow(name){
+  ['topup','withdraw','convert','pay'].forEach(function(t){
+    document.getElementById('panel-'+t).classList.toggle('on', t===name);
+    document.getElementById('tab-'+t).classList.toggle('on', t===name);
+  });
+}
+
+/* ──────── CONVERSION CALCULATOR ──────── */
+var EXCHANGE_RATES = {
+  EUR: 1.0000, GBP: 0.8560, USD: 1.0820, CAD: 1.4710,
+  XAF: 655.96, GHC: 16.42,  NGN: 1780.50, ZAR: 20.15
+};
+var CURRENCY_SYMBOLS = {
+  EUR: '€', GBP: '£', USD: '$', CAD: 'C$',
+  XAF: 'Fr ', GHC: '₵', NGN: '₦', ZAR: 'R'
+};
+var CURRENCY_FLAGS = {
+  EUR: '🇪🇺', GBP: '🇬🇧', USD: '🇺🇸', CAD: '🇨🇦',
+  XAF: '🌍', GHC: '🇬🇭', NGN: '🇳🇬', ZAR: '🇿🇦'
+};
+
+function fmtNum(n, max){
+  if (max === undefined) max = 2;
+  if (n >= 10000) max = 0;
+  return n.toLocaleString('en-US', { maximumFractionDigits: max });
+}
+
+function recalcConv(){
+  var amount = parseFloat(document.getElementById('conv-amount').value) || 0;
+  var from   = document.getElementById('conv-from').value;
+  var to     = document.getElementById('conv-to').value;
+
+  // Convert from->EUR->to
+  var eurAmount = amount / EXCHANGE_RATES[from];
+  var grossTo   = eurAmount * EXCHANGE_RATES[to];
+  // Apply 0.7% fee on the gross amount
+  var feeFrom   = amount * 0.007;
+  var netTo     = grossTo * (1 - 0.007);
+
+  document.getElementById('conv-flag-from').textContent = CURRENCY_FLAGS[from];
+  document.getElementById('conv-flag-to').textContent   = CURRENCY_FLAGS[to];
+  document.getElementById('conv-result').textContent    = CURRENCY_SYMBOLS[to] + fmtNum(netTo);
+
+  // Display the rate (1 from = X to)
+  var rate = EXCHANGE_RATES[to] / EXCHANGE_RATES[from];
+  document.getElementById('conv-rate-disp').textContent =
+    '1 ' + from + ' = ' + fmtNum(rate, 4) + ' ' + to;
+
+  // Display fee in source currency
+  document.getElementById('conv-fee-disp').textContent =
+    CURRENCY_SYMBOLS[from] + fmtNum(feeFrom);
+}
+
+/* ──────── REVEAL OBSERVER ──────── */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
