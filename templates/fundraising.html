@@ -1,51 +1,954 @@
 {% extends "page_base.html" %}
-{% block title %}Fundraising & Donations{% endblock %}
+{% block title %}Fundraising &amp; Donations{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── FUNDRAISING PAGE ── */
+.fr-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.fr-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.fr-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.fr-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.fr-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.fr-section.warm .fr-eyebrow{color:rgba(20,19,15,.55)}
+.fr-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.fr-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.fr-section.warm .fr-h2 .ital{color:#0E120F}
+.fr-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.fr-section.warm .fr-p{color:rgba(20,19,15,.74)}
+.fr-p strong{color:#F4F2EC;font-weight:500}
+.fr-section.warm .fr-p strong{color:#0E120F}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO ── */
+.fr-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.fr-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 70% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.fr-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.fr-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.fr-hero .container{grid-template-columns:1fr;gap:48px}}
+.fr-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.fr-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.fr-hero p.lead{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:.85rem}
+.fr-hero p.support{font-size:.95rem;color:#8A8E87;max-width:520px;margin-bottom:1.5rem;line-height:1.65}
+.fr-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
+.fr-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.fr-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.fr-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.fr-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO CROSS-CONTINENT FLOW SVG */
+.flow-svg{width:100%;max-width:540px;margin:0 auto;display:block;aspect-ratio:1.05;filter:drop-shadow(0 0 24px rgba(158,228,147,.18))}
+.fl-glow{filter:drop-shadow(0 0 6px rgba(158,228,147,.5))}
+.fl-flow{stroke-dasharray:4 6;animation:fl-dash 2.4s linear infinite}
+@keyframes fl-dash{to{stroke-dashoffset:-40}}
+.fl-pulse{animation:fl-breath 3s ease-in-out infinite}
+.fl-pulse.p2{animation-delay:.5s}.fl-pulse.p3{animation-delay:1s}.fl-pulse.p4{animation-delay:1.5s}
+@keyframes fl-breath{0%,100%{opacity:.7}50%{opacity:1}}
+.fl-coin{animation:fl-coin-travel 4s ease-in-out infinite}
+.fl-coin.fc1{animation-delay:0s}
+.fl-coin.fc2{animation-delay:.8s}
+.fl-coin.fc3{animation-delay:1.6s}
+.fl-coin.fc4{animation-delay:2.4s}
+.fl-coin.fc5{animation-delay:3.2s}
+@keyframes fl-coin-travel{
+  0%   { offset-distance: 0%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { offset-distance: 100%; opacity: 0; }
+}
+.fl-verify-stamp{transform-origin:center;animation:fl-stamp 5s ease-in-out infinite}
+@keyframes fl-stamp{0%,80%{opacity:.85;transform:scale(1) rotate(-8deg)}90%{opacity:1;transform:scale(1.08) rotate(-8deg)}100%{opacity:.85;transform:scale(1) rotate(-8deg)}}
+.fl-rotate{transform-origin:center;animation:fl-rot 32s linear infinite}
+@keyframes fl-rot{to{transform:rotate(360deg)}}
+
+/* ── TRUST PROBLEM section ── */
+.problem-band{margin-top:2rem;padding:2.5rem 2rem;border:1px solid rgba(255,138,80,.2);border-left:3px solid #FF8A50;border-radius:0 18px 18px 0;background:linear-gradient(90deg,rgba(255,138,80,.05) 0%,rgba(255,138,80,.01) 100%)}
+.problem-band h3{font-size:1.2rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.85rem}
+.problem-band h3 .em{color:#FF8A50;font-family:'Instrument Serif',serif;font-style:italic;font-weight:400}
+.problem-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid rgba(244,242,236,.06)}
+.problem-stat{padding:1.1rem 1.2rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:12px}
+.problem-stat .v{font-family:'Geist Mono',monospace;font-size:1.5rem;font-weight:600;color:#FF8A50;letter-spacing:-.02em;line-height:1}
+.problem-stat .l{font-size:.78rem;color:#B7BAB4;line-height:1.55;margin-top:.5rem}
+
+/* ── DEFINITION + photo ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── VERIFICATION PIPELINE — animated 5-step ── */
+.verify-card{margin-top:2.5rem;padding:2.5rem 2rem;background:linear-gradient(180deg,rgba(158,228,147,.05) 0%,#161B17 100%);border:1px solid rgba(158,228,147,.25);border-radius:24px;position:relative;overflow:hidden}
+.verify-card::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 0%,rgba(158,228,147,.08),transparent 60%);pointer-events:none}
+.verify-svg{width:100%;height:auto;display:block;position:relative;z-index:2;max-width:880px;margin:0 auto}
+.vf-step{animation:vf-pulse 4s ease-in-out infinite}
+.vf-step.s2{animation-delay:.6s}
+.vf-step.s3{animation-delay:1.2s}
+.vf-step.s4{animation-delay:1.8s}
+.vf-step.s5{animation-delay:2.4s}
+@keyframes vf-pulse{0%,100%{opacity:.85}50%{opacity:1}}
+.vf-flow{stroke-dasharray:3 4;animation:vf-flow-dash 2s linear infinite}
+@keyframes vf-flow-dash{to{stroke-dashoffset:-28}}
+.vf-pkt{animation:vf-pkt-travel 4s linear infinite}
+.vf-pkt.fp2{animation-delay:1s}.vf-pkt.fp3{animation-delay:2s}.vf-pkt.fp4{animation-delay:3s}
+@keyframes vf-pkt-travel{0%{opacity:0;transform:translateX(0)}10%{opacity:1}90%{opacity:1}100%{opacity:0;transform:translateX(800px)}}
+
+.verify-detail{display:grid;grid-template-columns:repeat(5,1fr);gap:.85rem;margin-top:2rem;position:relative;z-index:2}
+@media(max-width:880px){.verify-detail{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.verify-detail{grid-template-columns:1fr}}
+.verify-detail-card{padding:1.2rem 1.2rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.08);border-radius:14px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.verify-detail-card .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+.verify-detail-card h4{font-size:.95rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em}
+.verify-detail-card .sla{font-family:'Geist Mono',monospace;font-size:.68rem;color:#9EE493;background:rgba(158,228,147,.08);padding:.15rem .45rem;border-radius:99px;display:inline-block;margin-bottom:.5rem}
+.verify-detail-card p{font-size:.8rem;color:#B7BAB4;line-height:1.6}
+
+/* ── LIVE CAMPAIGN EXAMPLES ── */
+.camp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;margin-top:2.5rem}
+.camp-card{padding:0;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;overflow:hidden;display:flex;flex-direction:column;transition:all .3s}
+.camp-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-3px)}
+.camp-img{aspect-ratio:16/10;background-size:cover;background-position:center;position:relative}
+.camp-img::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(14,18,15,.85) 100%)}
+.camp-cat{position:absolute;top:12px;left:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.25rem .65rem;border-radius:99px;background:rgba(14,18,15,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#F4F2EC;letter-spacing:.06em;text-transform:uppercase}
+.camp-verify{position:absolute;top:12px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:.65rem;padding:.25rem .55rem;border-radius:99px;background:rgba(14,18,15,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#9EE493;border:1px solid rgba(158,228,147,.35);letter-spacing:.05em;display:inline-flex;align-items:center;gap:.3rem}
+.camp-verify::before{content:"✓";font-weight:700}
+.camp-body{padding:1.4rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.55rem;flex:1}
+.camp-body .where{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.05em;text-transform:uppercase}
+.camp-body h4{font-size:1.02rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3}
+.camp-body p{font-size:.85rem;color:#B7BAB4;line-height:1.6;flex:1}
+.camp-progress{margin-top:.7rem}
+.camp-progress .lbl{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;margin-bottom:.4rem}
+.camp-progress .lbl .raised{color:#9EE493;font-weight:600}
+.camp-progress .bar{height:6px;background:rgba(244,242,236,.06);border-radius:99px;overflow:hidden}
+.camp-progress .fill{height:100%;background:linear-gradient(90deg,#9EE493 0%,#cef870 100%);border-radius:99px;width:0;transition:width 1.5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(158,228,147,.4)}
+.reveal.in .camp-progress .fill[data-target]{width:var(--target-width)}
+.camp-stats{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;margin-top:.4rem}
+.camp-stats .v{color:#F4F2EC;font-weight:600;font-size:.78rem}
+
+/* ── 5-STAGE WALKTHROUGH ── */
+.stage{display:grid;grid-template-columns:auto 1fr;gap:2rem;padding:2rem 0;border-bottom:1px solid rgba(244,242,236,.06);align-items:start}
+.stage:last-child{border-bottom:none}
+.stage-num{font-family:'Geist Mono',monospace;font-size:2.4rem;font-weight:500;line-height:1;width:80px;flex-shrink:0;background:linear-gradient(135deg,#9EE493 0%,#76E0A1 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-.03em}
+.stage-content h3{font-size:1.3rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.7rem;line-height:1.3}
+.stage-content p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:.8rem;max-width:700px}
+.stage-content p strong{color:#F4F2EC;font-weight:500}
+.stage-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem}
+.stage-meta span{font-family:'Geist Mono',monospace;font-size:.72rem;padding:.3rem .75rem;border-radius:99px;background:rgba(158,228,147,.06);color:#9EE493;border:1px solid rgba(158,228,147,.2);letter-spacing:.04em}
+@media(max-width:680px){.stage{grid-template-columns:1fr;gap:1rem}.stage-num{font-size:1.8rem;width:auto}}
+
+/* ── 8 CATEGORY GRID ── */
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-top:2rem}
+@media(max-width:880px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.cat-grid{grid-template-columns:1fr}}
+.cat-card{padding:1.5rem 1.4rem;border:1px solid rgba(20,19,15,.08);border-radius:16px;background:#fff;display:flex;flex-direction:column;gap:.5rem;transition:all .25s}
+.cat-card:hover{border-color:rgba(158,228,147,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.cat-emoji{width:46px;height:46px;border-radius:12px;background:#0E120F;display:grid;place-items:center;font-size:1.3rem;margin-bottom:.4rem}
+.cat-card h4{font-size:.95rem;font-weight:600;color:#0E120F;letter-spacing:-.005em}
+.cat-card p{font-size:.8rem;color:rgba(20,19,15,.6);line-height:1.55}
+
+/* ── TRUST PILLARS (4-card with animated icons) ── */
+.trust-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem;max-width:900px}
+@media(max-width:680px){.trust-grid{grid-template-columns:1fr}}
+.trust-card{padding:1.75rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;display:flex;gap:1rem;align-items:flex-start;transition:all .25s}
+.trust-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-2px)}
+.trust-icon{width:52px;height:52px;flex-shrink:0}
+.trust-card h4{font-size:1.05rem;font-weight:600;color:#F4F2EC;margin-bottom:.4rem;letter-spacing:-.005em}
+.trust-card p{font-size:.88rem;color:#B7BAB4;line-height:1.65}
+/* Trust icon animations */
+.icon-shield .sh-pulse{animation:t-breath 3s ease-in-out infinite}
+@keyframes t-breath{0%,100%{opacity:.85}50%{opacity:1}}
+.icon-stamp .st-stamp{transform-origin:center;animation:st-press 4s ease-in-out infinite}
+@keyframes st-press{0%,80%{transform:scale(1) rotate(-6deg);opacity:.85}90%{transform:scale(1.15) rotate(-6deg);opacity:1}100%{transform:scale(1) rotate(-6deg);opacity:.85}}
+.icon-eye .ey-eye{transform-origin:center;animation:ey-blink 4s ease-in-out infinite}
+@keyframes ey-blink{0%,90%,100%{transform:scaleY(1)}93%{transform:scaleY(.1)}}
+.icon-flow .fl-circle{animation:t-breath 2.5s ease-in-out infinite}
+.icon-flow .fl-circle.f2{animation-delay:.6s}
+.icon-flow .fl-circle.f3{animation-delay:1.2s}
+
+/* ── INNOVATIONS ROADMAP ── */
+.innov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:2rem}
+.innov-card{padding:1.75rem 1.5rem;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;position:relative;display:flex;flex-direction:column;gap:.7rem}
+.innov-card.future{border-color:rgba(158,228,147,.25);background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%)}
+.innov-tag{position:absolute;top:14px;right:14px;font-family:'Geist Mono',monospace;font-size:.62rem;padding:.18rem .55rem;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.innov-tag.live{background:rgba(158,228,147,.15);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.innov-tag.soon{background:rgba(255,179,80,.12);color:#FFB350;border:1px solid rgba(255,179,80,.3)}
+.innov-tag.q3{background:rgba(118,224,161,.12);color:#76E0A1;border:1px solid rgba(118,224,161,.3)}
+.innov-tag.future{background:rgba(244,242,236,.06);color:#8A8E87;border:1px solid rgba(244,242,236,.12)}
+.innov-card .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600}
+.innov-card h4{font-size:1.02rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3;padding-right:60px}
+.innov-card p{font-size:.85rem;color:#B7BAB4;line-height:1.65}
+
+/* ── FEES card (single transparent breakdown) ── */
+.fees-card{margin-top:2rem;padding:2.5rem 2rem;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%);border:1px solid rgba(158,228,147,.25);border-radius:24px;position:relative;overflow:hidden}
+.fees-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.fees-headline{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;position:relative}
+.fees-headline .figure{font-family:'Geist Mono',monospace;font-size:clamp(2.4rem,5vw,3.4rem);font-weight:500;letter-spacing:-.03em;background:linear-gradient(135deg,#9EE493 0%,#cef870 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.fees-headline .desc{font-size:1rem;color:#B7BAB4;line-height:1.5}
+.fees-headline .desc strong{color:#F4F2EC;font-weight:500}
+.fees-breakdown{padding:1.25rem 1.5rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px;font-family:'Geist Mono',monospace;font-size:.82rem;color:#B7BAB4;line-height:1.7;letter-spacing:.01em;position:relative}
+.fees-breakdown .row{padding:.4rem 0;border-bottom:1px solid rgba(244,242,236,.04);display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+.fees-breakdown .row:last-child{border-bottom:none}
+.fees-breakdown .row strong{color:#F4F2EC;font-weight:500}
+.fees-breakdown .row .v{color:#9EE493;font-weight:600}
+.fees-vs{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem;position:relative}
+@media(max-width:560px){.fees-vs{grid-template-columns:1fr}}
+.fees-vs-tile{padding:1.1rem 1.2rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:12px}
+.fees-vs-tile.us{border-color:rgba(158,228,147,.3)}
+.fees-vs-tile .lbl{font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem}
+.fees-vs-tile .v{font-family:'Geist Mono',monospace;font-size:1.3rem;font-weight:600;letter-spacing:-.02em;line-height:1}
+.fees-vs-tile.them .v{color:#FF8A50}
+.fees-vs-tile.us .v{color:#9EE493}
+.fees-vs-tile p{font-size:.78rem;color:#B7BAB4;margin-top:.5rem;line-height:1.55}
+
+/* ── CTA ── */
+.fr-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.fr-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.fr-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.fr-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.fr-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.fr-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.fr-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with cross-continent donation flow
+══════════════════════════════════════════════════════════ -->
+<section class="fr-hero">
+  <div class="fr-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>Fundraising & Donations</h1>
-    <p>SOHANA Fundraising is the community-native alternative to GoFundMe — built for African diaspora communities who already trust each other, and want that trust to be transparent.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="fr-eyebrow">Fundraising &amp; Donations</div>
+      <h1>Transparent giving, <span class="ital">verified causes</span>.</h1>
+      <p class="lead">When your cousin's hospital bill, your village's school project, or your community's emergency response needs to reach the people who need it — every donor wants to know two things: <strong>that the cause is real, and that the money got there.</strong></p>
+      <p class="support">Sohana is building the donation infrastructure Africa and the diaspora deserve — campaigns verified by our team before they go live, contributions tracked transparently, and disbursements that land where they were promised.</p>
+      <div class="fr-hero-cta-row">
+        <a href="/auth" class="fr-cta-primary">Start a campaign →</a>
+        <a href="#examples" class="fr-cta-ghost">Browse causes</a>
+      </div>
+    </div>
+
+    <!-- Cross-continent flow SVG: Europe → Africa with verification stamp -->
+    <svg class="flow-svg" viewBox="0 0 540 520" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <radialGradient id="globeGrad" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".25"/>
+          <stop offset="60%" stop-color="#9EE493" stop-opacity=".06"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="continentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".18"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity=".05"/>
+        </linearGradient>
+        <!-- Path for coin flow -->
+        <path id="flowPath" d="M 130 130 Q 270 80 410 200 Q 480 280 380 380" fill="none"/>
+      </defs>
+
+      <!-- background glow -->
+      <circle cx="270" cy="260" r="220" fill="url(#globeGrad)"/>
+
+      <!-- rotating outer dashed ring (suggests the globe) -->
+      <g class="fl-rotate">
+        <circle cx="270" cy="260" r="240" fill="none" stroke="#9EE493" stroke-opacity=".2" stroke-width="1" stroke-dasharray="3 6"/>
+      </g>
+
+      <!-- EUROPE / DIASPORA NODE (top-left) -->
+      <g class="fl-pulse">
+        <circle cx="130" cy="130" r="55" fill="url(#continentGrad)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="130" y="118" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1.5">DIASPORA</text>
+        <text x="130" y="135" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="500" fill="#F4F2EC">Donors</text>
+        <text x="130" y="150" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#cef870">€50 · £100 · $200</text>
+      </g>
+
+      <!-- Smaller donor nodes -->
+      <g class="fl-pulse p2">
+        <circle cx="60" cy="220" r="22" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="1"/>
+        <text x="60" y="225" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">EU</text>
+      </g>
+      <g class="fl-pulse p3">
+        <circle cx="220" cy="60" r="20" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="1"/>
+        <text x="220" y="65" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">UK</text>
+      </g>
+      <g class="fl-pulse p4">
+        <circle cx="60" cy="350" r="22" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="1"/>
+        <text x="60" y="355" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">CA</text>
+      </g>
+
+      <!-- VERIFICATION STAMP (centerpiece) -->
+      <g class="fl-verify-stamp" transform="translate(270,260)">
+        <circle r="68" fill="rgba(14,18,15,.85)" stroke="#9EE493" stroke-width="2" stroke-dasharray="3 3"/>
+        <circle r="56" fill="rgba(158,228,147,.05)" stroke="#9EE493" stroke-width="1"/>
+        <text y="-18" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7.5" font-weight="600" fill="#9EE493" letter-spacing="1.4">SOHANA</text>
+        <text y="-2" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7.5" font-weight="600" fill="#9EE493" letter-spacing="1.4">VERIFIED</text>
+        <!-- big check -->
+        <path d="M-18 12 L-6 24 L20 -2" fill="none" stroke="#9EE493" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" class="fl-glow"/>
+        <text y="42" text-anchor="middle" font-family="Geist Mono,monospace" font-size="6.5" fill="#cef870" letter-spacing="1">CAMPAIGN ID · 0x7A3F</text>
+      </g>
+
+      <!-- AFRICA / RECIPIENT NODE (bottom-right) -->
+      <g class="fl-pulse">
+        <circle cx="410" cy="380" r="55" fill="url(#continentGrad)" stroke="#9EE493" stroke-width="1.5"/>
+        <text x="410" y="368" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1.5">VERIFIED</text>
+        <text x="410" y="385" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="500" fill="#F4F2EC">Recipient</text>
+        <text x="410" y="400" text-anchor="middle" font-family="Geist Mono,monospace" font-size="7" fill="#cef870">Hospital · Lagos</text>
+      </g>
+
+      <!-- Recipient surrounding nodes -->
+      <g class="fl-pulse p2">
+        <circle cx="480" cy="290" r="22" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="1"/>
+        <text x="480" y="295" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">NG</text>
+      </g>
+      <g class="fl-pulse p3">
+        <circle cx="320" cy="450" r="22" fill="rgba(158,228,147,.12)" stroke="#9EE493" stroke-width="1"/>
+        <text x="320" y="455" text-anchor="middle" font-family="Geist,sans-serif" font-size="9" fill="#F4F2EC">CM</text>
+      </g>
+
+      <!-- The flow path (visible) -->
+      <path d="M 130 130 Q 270 80 410 200 Q 480 280 380 380" fill="none" stroke="#9EE493" stroke-opacity=".25" stroke-width="2" stroke-dasharray="4 5" class="fl-flow"/>
+
+      <!-- Animated coins traveling along the path -->
+      <circle class="fl-coin fc1" r="5" fill="#cef870" style="offset-path:path('M 130 130 Q 270 80 410 200 Q 480 280 380 380');offset-rotate:0deg;"/>
+      <circle class="fl-coin fc2" r="5" fill="#9EE493" style="offset-path:path('M 130 130 Q 270 80 410 200 Q 480 280 380 380');offset-rotate:0deg;"/>
+      <circle class="fl-coin fc3" r="5" fill="#cef870" style="offset-path:path('M 130 130 Q 270 80 410 200 Q 480 280 380 380');offset-rotate:0deg;"/>
+      <circle class="fl-coin fc4" r="5" fill="#9EE493" style="offset-path:path('M 130 130 Q 270 80 410 200 Q 480 280 380 380');offset-rotate:0deg;"/>
+      <circle class="fl-coin fc5" r="5" fill="#cef870" style="offset-path:path('M 130 130 Q 270 80 410 200 Q 480 280 380 380');offset-rotate:0deg;"/>
+
+      <!-- Audit log markers -->
+      <g opacity=".5">
+        <text x="20"  y="490" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">[14:02] €50 · verified</text>
+        <text x="20"  y="502" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">[14:08] £100 · verified</text>
+        <text x="320" y="490" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">→ disbursed €4,200</text>
+        <text x="320" y="502" font-family="Geist Mono,monospace" font-size="6" fill="#9EE493">receipt #0x7A3F</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     THE TRUST PROBLEM
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section">
+  <div class="container">
+    <div class="fr-eyebrow reveal">01 · The trust gap</div>
+    <h2 class="fr-h2 reveal reveal-d1">Why African causes are <span class="ital">underfunded</span> on global platforms.</h2>
+    <p class="fr-p reveal reveal-d2">There is no shortage of generosity in the African diaspora — there is a shortage of confidence. Every year, hundreds of millions of euros leave Europe, the UK, and North America heading toward family medical bills, school fees, village projects, and emergency relief on the continent. <strong>The problem is rarely the cause. It is the lack of structured, verifiable infrastructure to move that money with confidence.</strong></p>
+    <p class="fr-p reveal reveal-d2">Existing global crowdfunding platforms were not built with African campaigns in mind. They struggle to verify African organisers, often refuse African bank accounts as withdrawal destinations, and offer little visibility into where donated funds actually land. Donors hesitate. Organisers face barriers. The causes that need the most support get the least friction-free path to receive it.</p>
+
+    <div class="problem-band reveal reveal-d3">
+      <h3>The numbers tell the story <span class="em">— and the opportunity</span>.</h3>
+      <p style="font-size:.92rem;color:#B7BAB4;line-height:1.7;margin-bottom:0;">Across the African diaspora, generosity outpaces infrastructure by an order of magnitude. The flows are massive, but the structure to channel them transparently is largely missing. Sohana exists to close that gap.</p>
+      <div class="problem-stats">
+        <div class="problem-stat">
+          <div class="v">$54B+</div>
+          <div class="l">Annual remittances from diaspora to sub-Saharan Africa <span style="color:#8A8E87;">(World Bank, 2023)</span></div>
+        </div>
+        <div class="problem-stat">
+          <div class="v">7-9%</div>
+          <div class="l">Average remittance fee — among the highest in the world</div>
+        </div>
+        <div class="problem-stat">
+          <div class="v">~30%</div>
+          <div class="l">Of African crowdfunding campaigns rejected or restricted on global platforms</div>
+        </div>
+        <div class="problem-stat">
+          <div class="v">800M+</div>
+          <div class="l">Africans without access to formal banking — most cannot receive global donations directly</div>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">💚</div>
-      <h3>Start a campaign in minutes</h3>
-      <p>Create a public fundraising page for any cause — medical bills, school fees, funerals, community projects, or business startups. Every campaign gets a shareable link.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🔍</div>
-      <h3>Full transparency for donors</h3>
-      <p>Donors can see every contribution received, the total raised, and the goal progress in real time. No mystery. No middleman.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">💳</div>
-      <h3>One-click donations from your wallet</h3>
-      <p>SOHANA members donate directly from their wallet balance — no card entry, no friction. Funds reach the campaign creator instantly after the 2.5% platform fee.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⭐</div>
-      <h3>Earn NCS points for giving</h3>
-      <p>Every donation earns you NCS points. Generosity on SOHANA is not just a moral act — it is a verifiable financial behaviour that strengthens your credit identity.</p>
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS SOHANA FUNDRAISING — definition with photo
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section warm">
+  <div class="container">
+    <div class="fr-eyebrow reveal">02 · What we're building</div>
+    <h2 class="fr-h2 reveal reveal-d1" style="color:#0E120F;">A fundraising platform built <span class="ital">for the continent</span>, by the continent.</h2>
+
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="fr-p" style="color:rgba(20,19,15,.74);">Sohana Fundraising is a campaign platform purpose-built for causes that exist on, are connected to, or serve Africa and its diaspora. The mechanics will feel familiar to anyone who has used a global crowdfunding service — you create a campaign, share its story, and accept donations from anywhere in the world. <strong style="color:#0E120F;">What is different is everything underneath.</strong></p>
+        <p class="fr-p" style="color:rgba(20,19,15,.74);">Every campaign on Sohana goes through a verification pipeline before it can accept its first donation. Our team reviews the organiser's identity, the documented purpose of the campaign, and the destination where funds will land. We work in eight currencies including XAF, GHC, NGN, and ZAR — meaning your campaign's beneficiary in Yaoundé, Accra, Lagos, or Johannesburg can receive funds in their local currency, with transparent conversion fees disclosed before donors confirm.</p>
+        <p class="fr-p" style="color:rgba(20,19,15,.74);">Behind every campaign sits the same infrastructure that powers Sohana's other products: identity verification, escrowed funds, audit trails, fraud screening, and a dispute-resolution process. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">It is not a marketing platform with a payment button bolted on. It is a financial platform with campaigns built into it.</em></p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     VERIFICATION PIPELINE — the differentiator
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section">
+  <div class="container">
+    <div class="fr-eyebrow reveal">03 · How every campaign is verified</div>
+    <h2 class="fr-h2 reveal reveal-d1">Every campaign passes through <span class="ital">five checks</span> before going live.</h2>
+    <p class="fr-p reveal reveal-d2">The single biggest reason donors hesitate to give to African causes is doubt. Doubt about whether the organiser is real, whether the cause is real, whether the money will actually reach the people described. Sohana's verification pipeline is designed to remove that doubt — campaign by campaign, before the first donation is collected.</p>
+    <p class="fr-p reveal reveal-d2">No campaign is published until our team has completed all five checks. The pipeline takes 24–72 hours for most campaigns; emergency campaigns can be fast-tracked to under 24 hours when the documentation is clean and the cause is time-sensitive.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="verify-card reveal reveal-d3">
+      <!-- Animated 5-step verification SVG -->
+      <svg class="verify-svg" viewBox="0 0 880 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="verifyLine" x1="0%" x2="100%">
+            <stop offset="0%"  stop-color="#9EE493" stop-opacity=".15"/>
+            <stop offset="50%" stop-color="#9EE493" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#9EE493" stop-opacity=".15"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Connecting line -->
+        <line x1="80" y1="100" x2="800" y2="100" stroke="url(#verifyLine)" stroke-width="2"/>
+        <line x1="80" y1="100" x2="800" y2="100" stroke="#9EE493" stroke-width="1.5" stroke-opacity=".7" class="vf-flow"/>
+
+        <!-- Step 1: Identity -->
+        <g class="vf-step" transform="translate(80,100)">
+          <circle r="34" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">CHECK 01</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="13" fill="#F4F2EC">🪪</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Identity</text>
+        </g>
+
+        <!-- Step 2: Story -->
+        <g class="vf-step s2" transform="translate(260,100)">
+          <circle r="34" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">CHECK 02</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="13" fill="#F4F2EC">📋</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Story</text>
+        </g>
+
+        <!-- Step 3: Documents -->
+        <g class="vf-step s3" transform="translate(440,100)">
+          <circle r="34" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">CHECK 03</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="13" fill="#F4F2EC">📎</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Evidence</text>
+        </g>
+
+        <!-- Step 4: Beneficiary -->
+        <g class="vf-step s4" transform="translate(620,100)">
+          <circle r="34" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">CHECK 04</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="13" fill="#F4F2EC">🎯</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Beneficiary</text>
+        </g>
+
+        <!-- Step 5: Approve -->
+        <g class="vf-step s5" transform="translate(800,100)">
+          <circle r="34" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+          <circle r="22" fill="#0E120F"/>
+          <text y="-50" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" font-weight="600" fill="#9EE493" letter-spacing="1">CHECK 05</text>
+          <text y="5" text-anchor="middle" font-family="Geist,sans-serif" font-size="13" fill="#F4F2EC">✓</text>
+          <text y="58" text-anchor="middle" font-family="Geist,sans-serif" font-size="11" font-weight="600" fill="#F4F2EC">Live</text>
+        </g>
+
+        <!-- Travelling packets along the line -->
+        <circle class="vf-pkt"     cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="vf-pkt fp2" cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="vf-pkt fp3" cx="80" cy="100" r="3" fill="#9EE493"/>
+        <circle class="vf-pkt fp4" cx="80" cy="100" r="3" fill="#9EE493"/>
+      </svg>
+
+      <!-- Detail cards for each check -->
+      <div class="verify-detail">
+        <div class="verify-detail-card">
+          <div class="num">CHECK 01</div>
+          <h4>Identity</h4>
+          <span class="sla">Required</span>
+          <p>Organiser must complete full KYC — government ID, address verification, and source-of-funds attestation before creating any campaign.</p>
+        </div>
+        <div class="verify-detail-card">
+          <div class="num">CHECK 02</div>
+          <h4>Story</h4>
+          <span class="sla">Manual review</span>
+          <p>Our team reads every campaign narrative. We check for clarity, plausibility, and consistency. Vague or boilerplate stories are sent back for revision.</p>
+        </div>
+        <div class="verify-detail-card">
+          <div class="num">CHECK 03</div>
+          <h4>Evidence</h4>
+          <span class="sla">Where applicable</span>
+          <p>Medical bills, school invoices, registration documents, photos from the project site — proof to back the story. Required for medical, education, charity.</p>
+        </div>
+        <div class="verify-detail-card">
+          <div class="num">CHECK 04</div>
+          <h4>Beneficiary</h4>
+          <span class="sla">Bank-grade</span>
+          <p>Where funds will be disbursed — beneficiary identity, account details, relationship to the organiser. Cross-checked against sanctions and PEP lists.</p>
+        </div>
+        <div class="verify-detail-card">
+          <div class="num">CHECK 05</div>
+          <h4>Approval</h4>
+          <span class="sla">24–72 hrs</span>
+          <p>Approved campaigns receive a verification badge. Rejected campaigns get a written explanation and a chance to resubmit. Emergency causes are fast-tracked.</p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     LIVE CAMPAIGN EXAMPLES
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section" id="examples">
+  <div class="container">
+    <div class="fr-eyebrow reveal">04 · What you can fund</div>
+    <h2 class="fr-h2 reveal reveal-d1">From medical bills to <span class="ital">whole communities</span>.</h2>
+    <p class="fr-p reveal reveal-d2">The campaigns below illustrate the kinds of causes Sohana is built to support. Once we exit beta, every campaign you see here will carry the green verified badge — meaning our team has reviewed the organiser, story, evidence, and disbursement destination before a single donation was accepted.</p>
+
+    <div class="camp-grid">
+
+      <!-- 1: Medical -->
+      <div class="camp-card reveal reveal-d1">
+        <div class="camp-img" style="background-image:url('https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=900&q=80');">
+          <span class="camp-cat">Personal · Medical</span>
+          <span class="camp-verify">Verified</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="camp-body">
+          <span class="where">Lagos · Nigeria</span>
+          <h4>Help Mama Adaeze cover her surgery</h4>
+          <p>A 62-year-old grandmother needs urgent cardiac surgery. Her family in Lagos and her children in London and Toronto are pooling resources, but they need community support to close the gap.</p>
+          <div class="camp-progress">
+            <div class="lbl"><span>€8,400 of €12,000</span><span class="raised">70%</span></div>
+            <div class="bar"><div class="fill" data-target="70" style="--target-width:70%"></div></div>
+          </div>
+          <div class="camp-stats">
+            <span><span class="v">187</span> donors</span>
+            <span><span class="v">12 days</span> left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2: Education -->
+      <div class="camp-card reveal reveal-d2">
+        <div class="camp-img" style="background-image:url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=80');">
+          <span class="camp-cat">Education · Scholarship</span>
+          <span class="camp-verify">Verified</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="camp-body">
+          <span class="where">Yaoundé · Cameroon</span>
+          <h4>40 girls' tuition for the academic year</h4>
+          <p>A community-led scholarship fund covering full-year tuition for 40 girls from low-income families to complete secondary school. Includes books, uniforms, and exam fees.</p>
+          <div class="camp-progress">
+            <div class="lbl"><span>€14,250 of €18,000</span><span class="raised">79%</span></div>
+            <div class="bar"><div class="fill" data-target="79" style="--target-width:79%"></div></div>
+          </div>
+          <div class="camp-stats">
+            <span><span class="v">312</span> donors</span>
+            <span><span class="v">28 days</span> left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3: Community / infrastructure -->
+      <div class="camp-card reveal reveal-d3">
+        <div class="camp-img" style="background-image:url('https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=900&q=80');">
+          <span class="camp-cat">Community · Infrastructure</span>
+          <span class="camp-verify">Verified</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="camp-body">
+          <span class="where">Bamenda · Cameroon</span>
+          <h4>Solar borehole for 800 villagers</h4>
+          <p>A solar-powered water borehole serving 800 residents and 4 schools. Built to last 20+ years, maintained by a trained local technician. Construction begins once funded.</p>
+          <div class="camp-progress">
+            <div class="lbl"><span>€21,500 of €28,000</span><span class="raised">77%</span></div>
+            <div class="bar"><div class="fill" data-target="77" style="--target-width:77%"></div></div>
+          </div>
+          <div class="camp-stats">
+            <span><span class="v">441</span> donors</span>
+            <span><span class="v">21 days</span> left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4: Emergency -->
+      <div class="camp-card reveal reveal-d4">
+        <div class="camp-img" style="background-image:url('https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?auto=format&fit=crop&w=900&q=80');">
+          <span class="camp-cat">Emergency · Disaster</span>
+          <span class="camp-verify">Verified</span>
+          <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+        </div>
+        <div class="camp-body">
+          <span class="where">Accra · Ghana</span>
+          <h4>Flood relief for 60 affected families</h4>
+          <p>A coordinated emergency response after severe flooding displaced families across three neighbourhoods. Funds cover temporary shelter, food, water, and rebuilding supplies.</p>
+          <div class="camp-progress">
+            <div class="lbl"><span>€11,200 of €15,000</span><span class="raised">75%</span></div>
+            <div class="bar"><div class="fill" data-target="75" style="--target-width:75%"></div></div>
+          </div>
+          <div class="camp-stats">
+            <span><span class="v">298</span> donors</span>
+            <span><span class="v">5 days</span> left</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="fr-p reveal reveal-d4" style="margin-top:1.5rem;font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;">Examples illustrative of the kinds of campaigns Sohana is built to support. Real campaigns will be available once we exit beta and the verification pipeline is fully operational.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     8 CAMPAIGN CATEGORIES (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section warm">
+  <div class="container">
+    <div class="fr-eyebrow reveal">05 · Categories supported</div>
+    <h2 class="fr-h2 reveal reveal-d1" style="color:#0E120F;">Eight categories. <span class="ital">Each one verified differently</span>.</h2>
+    <p class="fr-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Different categories carry different verification requirements. A medical campaign needs different evidence from a community infrastructure project. A registered charity follows a different review path from an individual organiser. The pipeline adapts to the cause.</p>
+
+    <div class="cat-grid">
+      <div class="cat-card reveal reveal-d1">
+        <div class="cat-emoji">🙏</div>
+        <h4>Personal</h4>
+        <p>Medical bills, school fees, personal hardship</p>
+      </div>
+      <div class="cat-card reveal reveal-d1">
+        <div class="cat-emoji">🚨</div>
+        <h4>Emergency</h4>
+        <p>Urgent crisis relief, disaster response</p>
+      </div>
+      <div class="cat-card reveal reveal-d2">
+        <div class="cat-emoji">🕊️</div>
+        <h4>Memorial &amp; Funeral</h4>
+        <p>Funeral costs, bereavement support</p>
+      </div>
+      <div class="cat-card reveal reveal-d2">
+        <div class="cat-emoji">🏗️</div>
+        <h4>Community Project</h4>
+        <p>Village development, infrastructure, renovation</p>
+      </div>
+      <div class="cat-card reveal reveal-d3">
+        <div class="cat-emoji">🎓</div>
+        <h4>Education</h4>
+        <p>School fees, scholarships, study support</p>
+      </div>
+      <div class="cat-card reveal reveal-d3">
+        <div class="cat-emoji">💚</div>
+        <h4>Charity &amp; NGO</h4>
+        <p>Registered charities and non-profits</p>
+      </div>
+      <div class="cat-card reveal reveal-d4">
+        <div class="cat-emoji">🚀</div>
+        <h4>Business Startup</h4>
+        <p>Launch or grow a small business</p>
+      </div>
+      <div class="cat-card reveal reveal-d4">
+        <div class="cat-emoji">🎉</div>
+        <h4>Celebration</h4>
+        <p>Wedding gift, baby shower, milestone</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     5-STAGE WALKTHROUGH — How it works for organisers
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section">
+  <div class="container">
+    <div class="fr-eyebrow reveal">06 · Starting your campaign</div>
+    <h2 class="fr-h2 reveal reveal-d1">From <span class="ital">idea</span> to <span class="ital">funded</span> — five stages.</h2>
+    <p class="fr-p reveal reveal-d2">If you are starting a campaign, here is exactly what the process looks like — from the moment you decide to raise funds to the moment you disburse them. No surprises, no hidden steps, no algorithmic black box.</p>
+
+    <div style="margin-top:2rem;" class="reveal reveal-d3">
+
+      <div class="stage">
+        <div class="stage-num">01</div>
+        <div class="stage-content">
+          <h3>Verify your identity</h3>
+          <p>Before you can create a campaign, you complete Sohana's standard KYC — government-issued ID, proof of address, and a short attestation about your source of funds. This is the same process that protects every Sohana product. <strong>Verified organisers are the foundation that makes verified campaigns possible.</strong></p>
+          <p>If you already have a Sohana account in good standing, this step is already done. Returning organisers with a track record of completed campaigns and clean disbursements move through subsequent campaigns faster — your past behaviour matters.</p>
+          <div class="stage-meta">
+            <span>Government ID required</span>
+            <span>Proof of address</span>
+            <span>NCS supported</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">02</div>
+        <div class="stage-content">
+          <h3>Tell the story properly</h3>
+          <p>Write the campaign story in your own words. <strong>Be specific.</strong> Vague descriptions ("help my family with bills") are sent back. Strong descriptions explain what happened, who is affected, what the funds will pay for, and what success looks like. The story is read by our team during verification and by every donor before they give. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">Detail builds trust.</em></p>
+          <p>Set your goal amount, deadline, and currency. Choose a category. Upload supporting evidence — medical bills for a health campaign, school invoices for an education campaign, registration documents for an NGO, photos from the project site for community work. The more documented the cause, the faster the review.</p>
+          <div class="stage-meta">
+            <span>8 currencies supported</span>
+            <span>Custom deadline</span>
+            <span>8 campaign categories</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">03</div>
+        <div class="stage-content">
+          <h3>Pass the verification pipeline</h3>
+          <p>Your campaign goes into the queue. Our team works through the five-check pipeline within <strong>24–72 hours</strong> for standard campaigns and under 24 hours for urgent emergency causes with clean documentation. We may reach out for clarification, additional evidence, or revisions — this is normal and not a sign of rejection.</p>
+          <p>Approved campaigns receive a green <strong>Verified</strong> badge that appears on every public listing and donation page. Rejected campaigns receive a written explanation and the opportunity to resubmit. <strong>Verification is one-time per campaign</strong> — once approved, you do not have to go through it again unless you make material changes to the goal, beneficiary, or category.</p>
+          <div class="stage-meta">
+            <span>24–72hr standard SLA</span>
+            <span>Emergency fast-track</span>
+            <span>Written rejection reasons</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">04</div>
+        <div class="stage-content">
+          <h3>Receive donations transparently</h3>
+          <p>Once live, your campaign accepts donations from anywhere in the world, in any of Sohana's eight supported currencies. Donors who already have Sohana wallets contribute in seconds; new donors register, verify, and donate in a single flow. Every donation is logged, attributed (or kept anonymous if the donor prefers), and visible on the campaign's public ledger.</p>
+          <p>You see your raised total, your individual donor list (with messages), and your platform-fee breakdown updating in real time. <strong>Sohana takes 2.5% on each donation</strong> — significantly lower than most international fundraising platforms — and that fee is itemised on every transaction so donors can see the net amount your campaign actually receives.</p>
+          <div class="stage-meta">
+            <span>2.5% platform fee</span>
+            <span>€1 minimum donation</span>
+            <span>Anonymous donations supported</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-num">05</div>
+        <div class="stage-content">
+          <h3>Disburse to where it's needed</h3>
+          <p>When your campaign closes — or whenever you reach a milestone, depending on the campaign type — funds are disbursed to the verified beneficiary destination. Local bank accounts in supported African currencies, mobile money where available, or another verified Sohana wallet. <strong>The destination was confirmed during the verification pipeline; it cannot be changed at the disbursement stage without a new review.</strong></p>
+          <p>Every disbursement generates a permanent receipt, available to the organiser and to any donor who wants to see where their contribution landed. This is the part that closes the trust loop — donors don't just hope the money got there; they can see it.</p>
+          <div class="stage-meta">
+            <span>Local bank · mobile money · Sohana wallet</span>
+            <span>Public disbursement receipts</span>
+            <span>Withdrawal fees apply</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHY DONORS TRUST SOHANA — 4 pillars with animated icons
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section">
+  <div class="container">
+    <div class="fr-eyebrow reveal">07 · Why donors give with confidence</div>
+    <h2 class="fr-h2 reveal reveal-d1">Four guarantees, <span class="ital">written into the platform</span>.</h2>
+    <p class="fr-p reveal reveal-d2">When a donor lands on a Sohana campaign page, they are not relying on the organiser's word alone. They are relying on infrastructure that has already done the work of verifying the cause, holding the funds in escrow, and producing the audit trail that proves where everything went. These four guarantees are not marketing language — they are how the platform is built.</p>
+
+    <div class="trust-grid">
+      <div class="trust-card reveal reveal-d1">
+        <svg class="trust-icon icon-shield" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M26 6 L42 14 L42 30 Q42 42 26 48 Q10 42 10 30 L10 14 Z" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2" stroke-linejoin="round"/>
+          <path class="sh-pulse" d="M16 26 L23 33 L36 18" fill="none" stroke="#9EE493" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div>
+          <h4>Every campaign verified</h4>
+          <p>No campaign goes live until our team has reviewed the organiser, the story, the supporting evidence, and the disbursement destination. The green badge on every listing is earned, not automatic.</p>
+        </div>
+      </div>
+
+      <div class="trust-card reveal reveal-d2">
+        <svg class="trust-icon icon-stamp" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="st-stamp">
+            <circle cx="26" cy="26" r="20" fill="rgba(158,228,147,.1)" stroke="#9EE493" stroke-width="2"/>
+            <circle cx="26" cy="26" r="14" fill="none" stroke="#9EE493" stroke-width="1" stroke-dasharray="2 2"/>
+            <path d="M18 27 L24 33 L34 21" fill="none" stroke="#9EE493" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </svg>
+        <div>
+          <h4>Funds escrowed, not pooled</h4>
+          <p>Donations sit in the campaign's escrow account — they are not pooled with other campaigns or platform funds. Disbursement happens only to the beneficiary destination verified at campaign creation.</p>
+        </div>
+      </div>
+
+      <div class="trust-card reveal reveal-d3">
+        <svg class="trust-icon icon-eye" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 26 Q16 12 26 12 Q36 12 48 26 Q36 40 26 40 Q16 40 4 26 Z" fill="rgba(158,228,147,.08)" stroke="#9EE493" stroke-width="2" stroke-linejoin="round"/>
+          <g class="ey-eye" style="transform-origin:26px 26px;">
+            <circle cx="26" cy="26" r="8" fill="#0E120F"/>
+            <circle cx="26" cy="26" r="4" fill="#9EE493"/>
+            <circle cx="28" cy="24" r="1.2" fill="#fff"/>
+          </g>
+        </svg>
+        <div>
+          <h4>Every transaction visible</h4>
+          <p>The donor list, contribution amounts (where not anonymised), platform-fee breakdown, and final disbursement are all visible on the campaign's public ledger. No off-platform side-channels.</p>
+        </div>
+      </div>
+
+      <div class="trust-card reveal reveal-d4">
+        <svg class="trust-icon icon-flow" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle class="fl-circle" cx="12" cy="26" r="6" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+          <circle class="fl-circle f2" cx="26" cy="26" r="6" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+          <circle class="fl-circle f3" cx="40" cy="26" r="6" fill="rgba(158,228,147,.2)" stroke="#9EE493" stroke-width="1.5"/>
+          <line x1="18" y1="26" x2="20" y2="26" stroke="#9EE493" stroke-width="1.5"/>
+          <line x1="32" y1="26" x2="34" y2="26" stroke="#9EE493" stroke-width="1.5"/>
+          <path d="M9 26 L11 24 M9 26 L11 28" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+          <path d="M37 26 L39 24 M37 26 L39 28" fill="none" stroke="#9EE493" stroke-width="1.5"/>
+        </svg>
+        <div>
+          <h4>Disbursement is provable</h4>
+          <p>Every disbursement to a verified beneficiary generates a public receipt — searchable by campaign ID. Donors don't have to wonder where their money went; the receipt is right there.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     INNOVATIONS ROADMAP
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section warm">
+  <div class="container">
+    <div class="fr-eyebrow reveal">08 · What's already in motion</div>
+    <h2 class="fr-h2 reveal reveal-d1" style="color:#0E120F;">A platform that <span class="ital">keeps building forward</span>.</h2>
+    <p class="fr-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Verified campaigns and transparent disbursement are the foundation. Beyond that, we are actively building a roadmap of donation innovations specifically designed for African and diaspora giving — features that go far beyond what global crowdfunding platforms currently support. Some are already live in beta; others are scheduled for rollout as the platform matures.</p>
+
+    <div class="innov-grid">
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag live">Live in beta</span>
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Verified campaigns &amp; identity</h4>
+        <p style="color:rgba(20,19,15,.65);">Five-check verification pipeline, KYC-anchored organiser identity, evidence-backed approval. Every campaign carries the badge it earns.</p>
+      </div>
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag live">Live in beta</span>
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Multi-currency donations</h4>
+        <p style="color:rgba(20,19,15,.65);">Donors give in EUR, GBP, USD, CAD; recipients receive in XAF, GHC, NGN, ZAR. Conversion fee disclosed before donation confirmation.</p>
+      </div>
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag live">Live in beta</span>
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Public donor ledger</h4>
+        <p style="color:rgba(20,19,15,.65);">Anonymous-friendly donation register visible to all viewers. Builds confidence by showing real momentum from real donors, not fake counters.</p>
+      </div>
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag soon">Q3 · 2026</span>
+        <div class="num" style="color:#0E120F;">NEXT</div>
+        <h4 style="color:#0E120F;">Milestone disbursement</h4>
+        <p style="color:rgba(20,19,15,.65);">For larger campaigns, funds release in stages tied to documented milestones (e.g. construction phases) with photo evidence required between disbursements.</p>
+      </div>
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag soon">Q3 · 2026</span>
+        <div class="num" style="color:#0E120F;">NEXT</div>
+        <h4 style="color:#0E120F;">Live impact tracking</h4>
+        <p style="color:rgba(20,19,15,.65);">Post-campaign updates from organisers — photos, videos, testimonials, receipts — pushed to donors who contributed, so the story doesn't end at the disbursement.</p>
+      </div>
+
+      <div class="innov-card future" style="background:#fff;border-color:rgba(158,228,147,.4);">
+        <span class="innov-tag q3">Q4 · 2026</span>
+        <div class="num" style="color:#0E120F;">NEXT</div>
+        <h4 style="color:#0E120F;">Tax receipts for charities</h4>
+        <p style="color:rgba(20,19,15,.65);">Registered charities on Sohana issue automatic tax-deductible receipts to donors in eligible jurisdictions, generated and archived on the platform.</p>
+      </div>
+
+      <div class="innov-card" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <span class="innov-tag future" style="background:rgba(20,19,15,.04);color:rgba(20,19,15,.55);border-color:rgba(20,19,15,.1);">2027</span>
+        <div class="num" style="color:rgba(20,19,15,.5);">FUTURE</div>
+        <h4 style="color:#0E120F;">NGO partnerships</h4>
+        <p style="color:rgba(20,19,15,.65);">Vetted partnerships with established African NGOs — rapid deployment for emergency response, with pre-approved disbursement channels and matched-giving options.</p>
+      </div>
+
+      <div class="innov-card" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <span class="innov-tag future" style="background:rgba(20,19,15,.04);color:rgba(20,19,15,.55);border-color:rgba(20,19,15,.1);">2027</span>
+        <div class="num" style="color:rgba(20,19,15,.5);">FUTURE</div>
+        <h4 style="color:#0E120F;">Recurring giving subscriptions</h4>
+        <p style="color:rgba(20,19,15,.65);">Set up automatic monthly donations to a chosen cause or charity. Pause, adjust, or cancel anytime. Platform fees apply once, not per donation.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     FEES — transparent breakdown
+══════════════════════════════════════════════════════════ -->
+<section class="fr-section">
+  <div class="container">
+    <div class="fr-eyebrow reveal">09 · The pricing</div>
+    <h2 class="fr-h2 reveal reveal-d1">A flat fee. <span class="ital">No tricks</span>.</h2>
+    <p class="fr-p reveal reveal-d2">Every donation is charged a single, transparent platform fee — disclosed before the donor confirms, itemised on the receipt, and unchanged regardless of the campaign's size, category, or country. The fee covers verification, escrow, fraud protection, customer support, and the infrastructure that makes the platform work.</p>
+
+    <div class="fees-card reveal reveal-d3">
+      <div class="fees-headline">
+        <div class="figure">2.5%</div>
+        <div class="desc">
+          <strong>Platform fee on each donation.</strong><br>
+          €1.00 minimum donation. No hidden cuts. No tip-jar surcharges. No "voluntary contributions" added at checkout.
+        </div>
+      </div>
+
+      <div class="fees-breakdown">
+        <div class="row"><span><strong>Platform fee on donation</strong></span><span class="v">2.5%</span></div>
+        <div class="row"><span><strong>Currency conversion</strong> (when crossing currencies)</span><span class="v">0.7% · min 50 cents</span></div>
+        <div class="row"><span><strong>Withdrawal to bank</strong> (when disbursing)</span><span class="v">1.0–3.5%</span></div>
+        <div class="row"><span><strong>Mobile-money disbursement</strong></span><span class="v">1.5%</span></div>
+        <div class="row"><span><strong>Internal Sohana-to-Sohana transfer</strong></span><span class="v">0%</span></div>
+        <div class="row"><span><strong>Donor-facing surprise fees</strong></span><span class="v">0% · ever</span></div>
+      </div>
+
+      <div class="fees-vs">
+        <div class="fees-vs-tile them">
+          <div class="lbl">Typical global crowdfunding</div>
+          <div class="v">5–8% +</div>
+          <p>Platform fee plus payment-processor fees plus suggested "tip" stacked at checkout, especially for international transfers.</p>
+        </div>
+        <div class="fees-vs-tile us">
+          <div class="lbl">Sohana</div>
+          <div class="v">2.5%</div>
+          <p>One flat platform fee. Conversion and disbursement fees disclosed separately and charged only when applicable.</p>
+        </div>
+      </div>
+
+      <p class="fr-p" style="margin-top:1.25rem;font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;">
+        Fees apply only after Sohana exits beta and processes real funds via licensed payment partners. During beta, all operations are simulated and no fees are charged. Final fee schedule may be adjusted before launch and will always be disclosed in-product before any charge is applied.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="fr-cta">
+  <div class="container">
+    <h2>Your cause deserves a platform <span class="ital">built for it</span>.</h2>
+    <p>Whether you are raising for a medical bill in Lagos, a school project in Bamenda, or an emergency response in Accra — the infrastructure is ready, the verification is rigorous, and the donors are waiting for a reason to trust again.</p>
+    <div class="fr-cta-row">
+      <a href="/auth" class="fr-cta-primary">Start your campaign →</a>
+      <a href="/njangi" class="fr-cta-ghost">Compare with Njangi</a>
+      <a href="/security" class="fr-cta-ghost">Read about security</a>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
