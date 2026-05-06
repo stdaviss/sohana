@@ -1,51 +1,819 @@
 {% extends "page_base.html" %}
-{% block title %}HanaPay{% endblock %}
+{% block title %}Hanapay — Your Identity. Your Money.{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── HANAPAY PAGE ── */
+.hp-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.hp-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.hp-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.hp-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.hp-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.hp-section.warm .hp-eyebrow{color:rgba(20,19,15,.55)}
+.hp-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.hp-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.hp-section.warm .hp-h2 .ital{color:#0E120F}
+.hp-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.hp-section.warm .hp-p{color:rgba(20,19,15,.74)}
+.hp-p strong{color:#F4F2EC;font-weight:500}
+.hp-section.warm .hp-p strong{color:#0E120F}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with animated handle ── */
+.hp-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.hp-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 70% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.hp-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.hp-hero .container{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.hp-hero .container{grid-template-columns:1fr;gap:48px}}
+.hp-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.hp-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.hp-hero p.lead{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:.85rem}
+.hp-hero p.support{font-size:.95rem;color:#8A8E87;max-width:520px;margin-bottom:1.5rem;line-height:1.65}
+.hp-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
+.hp-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.hp-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.hp-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.hp-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO HANDLE BUBBLE animation — "chat" style with handle exchange */
+.handle-stage{width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px;align-items:stretch;font-family:'Geist Mono',monospace;position:relative}
+.handle-stage::before{content:"";position:absolute;inset:-30px -20px;background:radial-gradient(400px 300px at 50% 50%,rgba(158,228,147,.12),transparent 70%);pointer-events:none;z-index:-1}
+
+.bubble{padding:14px 18px;border-radius:18px;font-size:.95rem;line-height:1.5;position:relative;animation:bubble-in .6s cubic-bezier(.25,.85,.4,1) backwards;max-width:84%}
+.bubble.them{background:rgba(244,242,236,.06);border:1px solid rgba(244,242,236,.1);color:#B7BAB4;border-top-left-radius:6px;align-self:flex-start;animation-delay:.2s}
+.bubble.you{background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.3);color:#F4F2EC;border-top-right-radius:6px;align-self:flex-end;animation-delay:.7s}
+.bubble.handle{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.45rem;background:linear-gradient(135deg,rgba(158,228,147,.15) 0%,rgba(207,248,112,.12) 100%);border:1px solid rgba(158,228,147,.4);color:#F4F2EC;letter-spacing:.005em;font-weight:400;animation-delay:1.3s}
+.bubble.handle .at{color:#9EE493;font-style:normal;font-family:'Geist Mono',monospace;font-size:1.1rem;margin-right:.15rem}
+.bubble.payment{background:rgba(158,228,147,.18);border:1.5px solid #9EE493;color:#F4F2EC;animation-delay:2s;font-family:'Geist',sans-serif;display:flex;align-items:center;gap:.65rem;padding:14px 16px}
+.bubble.payment .check{width:24px;height:24px;background:#9EE493;color:#0E120F;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+.bubble.payment .info{display:flex;flex-direction:column;gap:.15rem;line-height:1.3}
+.bubble.payment .info strong{font-size:.95rem;font-weight:600;color:#9EE493}
+.bubble.payment .info span{font-size:.74rem;color:#8A8E87;letter-spacing:.04em}
+@keyframes bubble-in{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:none}}
+.typing-dots{display:inline-flex;gap:3px;align-items:center;padding:0 4px}
+.typing-dots span{width:5px;height:5px;border-radius:50%;background:#8A8E87;animation:typing 1.4s ease-in-out infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typing{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* ── PROBLEM section ── */
+.problem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.85rem;margin-top:1.5rem}
+.problem-tile{padding:1.25rem 1.4rem;background:rgba(255,138,80,.04);border:1px solid rgba(255,138,80,.18);border-radius:14px}
+.problem-tile .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#FF8A50;letter-spacing:.06em;font-weight:600;margin-bottom:.5rem;text-transform:uppercase}
+.problem-tile .v{font-family:'Geist Mono',monospace;font-size:1rem;color:#F4F2EC;font-weight:500;letter-spacing:-.005em;line-height:1.3;margin-bottom:.4rem;word-break:break-all}
+.problem-tile p{font-size:.78rem;color:#B7BAB4;line-height:1.55;margin:0}
+
+/* ── DEFINITION + photo ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+.img-credit:hover{color:rgba(244,242,236,.9)}
+
+/* ── HANATAG SETUP — 3-step UI walkthrough ── */
+.setup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:2.5rem;align-items:start}
+@media(max-width:880px){.setup-grid{grid-template-columns:1fr}}
+.setup-step{position:relative;padding:0;border:1px solid rgba(244,242,236,.1);border-radius:18px;background:#161B17;overflow:hidden;display:flex;flex-direction:column;transition:border-color .25s,transform .25s}
+.setup-step:hover{border-color:rgba(158,228,147,.3);transform:translateY(-2px)}
+.setup-mockup{padding:1.5rem 1.25rem 1.25rem;background:linear-gradient(180deg,#0E120F 0%,#161B17 100%);border-bottom:1px solid rgba(244,242,236,.08);min-height:200px;display:flex;flex-direction:column;justify-content:center;font-family:'Geist',sans-serif}
+.setup-step-num{position:absolute;top:14px;right:16px;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.08em;font-weight:600;z-index:2}
+.setup-body{padding:1.25rem 1.4rem 1.4rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+.setup-body h4{font-size:1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.setup-body p{font-size:.85rem;color:#B7BAB4;line-height:1.6}
+.setup-body .where{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;margin-top:.4rem;padding-top:.6rem;border-top:1px solid rgba(244,242,236,.06)}
+.setup-body .where strong{color:#9EE493;font-weight:600}
+
+/* Mockup elements (lightweight UI replicas) */
+.mu-label{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.5rem}
+.mu-input{padding:.55rem .85rem;background:#0E120F;border:1px solid rgba(244,242,236,.15);border-radius:8px;font-family:'Geist Mono',monospace;font-size:.85rem;color:#F4F2EC;display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem}
+.mu-input.focused{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.12)}
+.mu-input .at-prefix{color:#9EE493;font-weight:600}
+.mu-input .cursor{display:inline-block;width:1.5px;height:14px;background:#9EE493;margin-left:1px;animation:cursor-blink 1.1s ease-in-out infinite}
+@keyframes cursor-blink{0%,100%{opacity:1}50%{opacity:0}}
+.mu-suggestion{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;background:rgba(158,228,147,.08);padding:.3rem .55rem;border-radius:6px;display:inline-block;margin-right:.3rem;margin-bottom:.3rem;border:1px solid rgba(158,228,147,.2)}
+.mu-button{padding:.55rem 1rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:'Geist',sans-serif;font-size:.78rem;font-weight:600;display:inline-block;text-align:center;margin-top:.4rem}
+.mu-tag-display{padding:.85rem 1rem;background:linear-gradient(135deg,rgba(158,228,147,.15) 0%,rgba(207,248,112,.08) 100%);border:1px solid rgba(158,228,147,.4);border-radius:10px;font-family:'Instrument Serif',serif;font-style:italic;font-size:1.3rem;color:#F4F2EC;text-align:center;margin:.4rem 0}
+.mu-tag-display .at{color:#9EE493;font-style:normal;font-family:'Geist Mono',monospace;font-size:1rem}
+.mu-status{display:flex;align-items:center;gap:.4rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.04em;margin-top:.3rem}
+.mu-status::before{content:"✓";font-weight:700}
+.mu-share{display:flex;gap:.4rem;margin-top:.4rem}
+.mu-share-btn{padding:.4rem .65rem;background:rgba(244,242,236,.06);border:1px solid rgba(244,242,236,.12);border-radius:6px;font-family:'Geist Mono',monospace;font-size:.65rem;color:#B7BAB4;letter-spacing:.04em;display:flex;align-items:center;gap:.3rem}
+.mu-qr{width:64px;height:64px;background:repeating-linear-gradient(45deg,#9EE493 0 4px,transparent 4px 8px),repeating-linear-gradient(-45deg,rgba(158,228,147,.4) 0 4px,transparent 4px 8px);background-color:#0E120F;border:1px solid rgba(158,228,147,.3);border-radius:6px;margin:.4rem auto}
+
+/* ── SEND/RECEIVE flow demos ── */
+.flow-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:2rem}
+@media(max-width:880px){.flow-grid{grid-template-columns:1fr}}
+.flow-demo{padding:0;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;overflow:hidden;display:flex;flex-direction:column}
+.flow-demo .head{padding:1.1rem 1.4rem;border-bottom:1px solid rgba(244,242,236,.08);display:flex;align-items:center;gap:.5rem;background:rgba(14,18,15,.6)}
+.flow-demo .head .ico{width:28px;height:28px;border-radius:8px;background:rgba(158,228,147,.1);color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:.78rem}
+.flow-demo .head h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.flow-demo .head .step{margin-left:auto;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.05em}
+.flow-screen{padding:1.5rem 1.4rem;display:flex;flex-direction:column;gap:.6rem;min-height:260px;background:linear-gradient(180deg,#0E120F 0%,#161B17 100%)}
+.flow-screen .step{display:flex;align-items:flex-start;gap:.65rem;padding:.5rem 0;animation:flow-step-in .6s cubic-bezier(.25,.85,.4,1) backwards}
+.flow-screen .step.s2{animation-delay:.6s}
+.flow-screen .step.s3{animation-delay:1.2s}
+.flow-screen .step.s4{animation-delay:1.8s}
+@keyframes flow-step-in{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.flow-screen .step .marker{width:18px;height:18px;border-radius:50%;background:rgba(158,228,147,.12);border:1.5px solid #9EE493;display:grid;place-items:center;font-size:.62rem;font-weight:700;color:#9EE493;flex-shrink:0;margin-top:.15rem}
+.flow-screen .step .body{flex:1}
+.flow-screen .step .body .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.2rem}
+.flow-screen .step .body .v{font-size:.92rem;color:#F4F2EC;font-weight:500;line-height:1.4}
+.flow-screen .step .body .v .at{color:#9EE493;font-family:'Geist Mono',monospace;font-weight:600}
+.flow-screen .step .body .v .amount{font-family:'Geist Mono',monospace;color:#cef870;font-weight:600}
+
+.flow-confirmation{padding:.85rem 1rem;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.35);border-radius:10px;display:flex;align-items:center;gap:.6rem;margin-top:.4rem}
+.flow-confirmation .check-circle{width:22px;height:22px;border-radius:50%;background:#9EE493;color:#0E120F;display:grid;place-items:center;font-weight:700;font-size:.75rem;flex-shrink:0}
+.flow-confirmation .text{font-size:.82rem;color:#F4F2EC;line-height:1.4}
+.flow-confirmation .text strong{color:#9EE493}
+
+/* ── USE CASE GRID ── */
+.uc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:2rem}
+.uc-card{padding:1.75rem;border:1px solid rgba(20,19,15,.08);border-radius:18px;background:#fff;display:flex;flex-direction:column;gap:.7rem;transition:all .25s}
+.uc-card:hover{border-color:rgba(158,228,147,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.uc-emoji{width:48px;height:48px;border-radius:12px;background:#0E120F;display:grid;place-items:center;font-size:1.3rem;margin-bottom:.4rem}
+.uc-card .where{font-family:'Geist Mono',monospace;font-size:.7rem;color:rgba(20,19,15,.55);letter-spacing:.05em;text-transform:uppercase}
+.uc-card h4{font-size:1.02rem;font-weight:600;color:#0E120F;letter-spacing:-.005em;line-height:1.3}
+.uc-card p{font-size:.85rem;color:rgba(20,19,15,.65);line-height:1.65}
+.uc-card .scenario{font-family:'Geist Mono',monospace;font-size:.74rem;color:#0E120F;background:rgba(158,228,147,.18);padding:.5rem .75rem;border-radius:8px;border:1px solid rgba(158,228,147,.4);line-height:1.5;letter-spacing:.01em;margin-top:auto}
+.uc-card .scenario strong{font-weight:600}
+.uc-card .scenario .at{color:#0E120F;font-weight:600}
+
+/* ── COMPARISON TABLE ── */
+.cmp-card{margin-top:2rem;padding:0;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:20px;overflow:hidden;overflow-x:auto}
+.cmp-table{width:100%;border-collapse:collapse;min-width:760px}
+.cmp-table thead th{padding:1.1rem 1rem;background:rgba(14,18,15,.7);font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase;font-weight:600;text-align:center;border-bottom:1px solid rgba(244,242,236,.1);position:sticky;top:0}
+.cmp-table thead th:first-child{text-align:left;color:#B7BAB4;padding-left:1.4rem;background:rgba(14,18,15,.7)}
+.cmp-table thead th.us{background:linear-gradient(180deg,rgba(158,228,147,.15) 0%,rgba(158,228,147,.05) 100%);color:#9EE493;font-weight:700;border-bottom:1px solid rgba(158,228,147,.3)}
+.cmp-table tbody td{padding:.85rem 1rem;font-size:.83rem;color:#B7BAB4;border-bottom:1px solid rgba(244,242,236,.05);text-align:center;line-height:1.5;vertical-align:middle}
+.cmp-table tbody td:first-child{text-align:left;padding-left:1.4rem;color:#F4F2EC;font-weight:500;font-size:.86rem}
+.cmp-table tbody td.us{background:rgba(158,228,147,.04);color:#F4F2EC}
+.cmp-table tbody tr:hover td{background:rgba(244,242,236,.02)}
+.cmp-table tbody tr:hover td.us{background:rgba(158,228,147,.06)}
+.cmp-table tbody tr:last-child td{border-bottom:none}
+.cmp-tick{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:.78rem;font-weight:700;line-height:1}
+.cmp-tick.yes{background:rgba(158,228,147,.18);color:#9EE493;border:1px solid rgba(158,228,147,.35)}
+.cmp-tick.no{background:rgba(255,138,80,.1);color:#FF8A50;border:1px solid rgba(255,138,80,.25)}
+.cmp-tick.partial{background:rgba(255,179,80,.1);color:#FFB350;border:1px solid rgba(255,179,80,.25)}
+.cmp-section-head td{padding:.75rem 1.4rem !important;font-family:'Geist Mono',monospace;font-size:.68rem !important;color:#9EE493 !important;letter-spacing:.06em;text-transform:uppercase;background:rgba(158,228,147,.05) !important;font-weight:600;text-align:left !important;border-bottom:1px solid rgba(158,228,147,.15)}
+.cmp-fee-cell{font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:-.005em}
+.cmp-fee-cell.good{color:#9EE493;font-weight:600}
+.cmp-fee-cell.bad{color:#FF8A50}
+.cmp-fee-cell.mid{color:#FFB350}
+.cmp-legend{padding:1rem 1.4rem;background:rgba(14,18,15,.5);border-top:1px solid rgba(244,242,236,.06);font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;display:flex;gap:1.4rem;flex-wrap:wrap;letter-spacing:.04em}
+.cmp-legend span{display:inline-flex;align-items:center;gap:.4rem}
+
+/* ── IDENTITY (more than payments) ── */
+.identity-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:2rem}
+.id-card{padding:1.5rem 1.4rem;border:1px solid rgba(244,242,236,.1);border-radius:16px;background:#161B17;display:flex;flex-direction:column;gap:.5rem;transition:all .2s}
+.id-card:hover{border-color:rgba(158,228,147,.35);transform:translateY(-2px)}
+.id-card .num{font-family:'Geist Mono',monospace;font-size:.7rem;color:#9EE493;letter-spacing:.06em;font-weight:600;margin-bottom:.3rem}
+.id-card h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3}
+.id-card p{font-size:.83rem;color:#B7BAB4;line-height:1.6}
+
+/* ── ROADMAP (today vs tomorrow) ── */
+.roadmap{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:2rem}
+@media(max-width:680px){.roadmap{grid-template-columns:1fr}}
+.rm-col{padding:2rem;border:1px solid rgba(244,242,236,.1);border-radius:20px;background:#161B17;position:relative}
+.rm-col.future{border-color:rgba(158,228,147,.3);background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,#161B17 100%)}
+.rm-tag{font-family:'Geist Mono',monospace;font-size:.68rem;padding:.18rem .55rem;border-radius:99px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;display:inline-block;margin-bottom:1rem}
+.rm-tag.now{background:rgba(158,228,147,.15);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.rm-tag.next{background:rgba(118,224,161,.12);color:#76E0A1;border:1px solid rgba(118,224,161,.3)}
+.rm-col h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.85rem;line-height:1.3}
+.rm-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:.7rem}
+.rm-list li{padding-left:1.6rem;position:relative;font-size:.9rem;color:#B7BAB4;line-height:1.6}
+.rm-list li::before{content:"→";position:absolute;left:0;color:#9EE493;font-weight:600}
+.rm-list li strong{color:#F4F2EC;font-weight:500}
+
+/* ── CTA ── */
+.hp-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.hp-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.hp-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.hp-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.hp-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.hp-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.hp-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO with handle exchange chat
+══════════════════════════════════════════════════════════ -->
+<section class="hp-hero">
+  <div class="hp-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>HanaPay — Instant Payments</h1>
-    <p>HanaPay is SOHANA's internal payment system — instant, free under €5,000, and built on a trust layer that no traditional payment provider can replicate.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="hp-eyebrow">Hanapay · Identity-based payments</div>
+      <h1>Sending money should feel as natural as <span class="ital">sending a message</span>.</h1>
+      <p class="lead">Hanapay is your personal financial identity on Sohana — a clean, human handle that replaces IBANs, account numbers, and SWIFT codes for every transaction inside the network.</p>
+      <p class="support">No more screenshots of bank details. No more "what's your number again?" voice notes. Just one handle, shared like a username, used like a memory.</p>
+      <div class="hp-hero-cta-row">
+        <a href="/auth" class="hp-cta-primary">Claim your handle →</a>
+        <a href="#setup" class="hp-cta-ghost">See how it works</a>
+      </div>
+    </div>
+
+    <!-- Chat-style handle exchange animation -->
+    <div class="handle-stage" aria-label="Demonstration of Hanapay handle exchange">
+      <div class="bubble them">Hey, let me send you the money for the trip 🌍 — what's your account?</div>
+      <div class="bubble them">
+        <span class="typing-dots"><span></span><span></span><span></span></span>
+      </div>
+      <div class="bubble you">Just send to my Hanatag</div>
+      <div class="bubble handle"><span class="at">@</span>aïcha.diallo</div>
+      <div class="bubble payment">
+        <div class="check">✓</div>
+        <div class="info">
+          <strong>€250.00 received</strong>
+          <span>From @marc.dubois · just now</span>
+        </div>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">@</div>
-      <h3>Your Hanatag is your payment identity</h3>
-      <p>Every SOHANA account gets a unique @username called a Hanatag. Share it with anyone, and they can send you money instantly — no bank details, no account numbers.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⚡</div>
-      <h3>Instant internal transfers</h3>
-      <p>Payments between SOHANA users settle instantly, 24/7, with no weekends or banking hours. Send money the moment someone needs it.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">💰</div>
-      <h3>Free under €5,000</h3>
-      <p>All HanaPay transfers under €5,000 are completely free. A 2% fee applies above that threshold — still significantly cheaper than any international wire.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🌍</div>
-      <h3>Across 8 currencies</h3>
-      <p>Send EUR to someone whose wallet holds GBP. SOHANA handles the conversion automatically at 0.7% — the fairest rate in the corridor.</p>
+<!-- ══════════════════════════════════════════════════════════
+     THE PROBLEM — how we send money now
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section">
+  <div class="container">
+    <div class="hp-eyebrow reveal">01 · The way we move money is broken</div>
+    <h2 class="hp-h2 reveal reveal-d1">Account numbers were designed for <span class="ital">computers</span>, not people.</h2>
+    <p class="hp-p reveal reveal-d2">When you ask someone to send you money today, you typically have to share a string of details that nobody can remember and most people enter incorrectly at least once. An IBAN is 22 to 34 characters of pure friction. A SWIFT/BIC code is another 8–11 characters of bank-routing arcana. A US routing number is 9 digits with no margin for error. These identifiers were designed in the 1970s for batch processing between bank mainframes — not for one human asking another for a few hundred euros.</p>
+    <p class="hp-p reveal reveal-d2">For African and diaspora users, this gets worse. Cross-border transfers add SWIFT fees, intermediary bank charges, currency markups, and a delay measured in days. Mobile money offers speed but locks you to a phone number tied to one provider in one country. Remittance apps add app downloads, KYC re-verification, and per-transaction friction. <strong>Every solution requires you to memorise something you shouldn't have to memorise.</strong></p>
+
+    <div class="problem-grid reveal reveal-d3">
+      <div class="problem-tile">
+        <div class="lbl">IBAN</div>
+        <div class="v">FR76 3000 6000 0123 4567 8901 234</div>
+        <p>27 characters. Used across the EU. One typo and your money goes nowhere.</p>
+      </div>
+      <div class="problem-tile">
+        <div class="lbl">SWIFT / BIC</div>
+        <div class="v">BNPAFRPPXXX</div>
+        <p>11 characters of bank-routing code. Required for any cross-border bank transfer.</p>
+      </div>
+      <div class="problem-tile">
+        <div class="lbl">US Routing</div>
+        <div class="v">021000089 · 1234567890</div>
+        <p>9-digit routing number plus your account number. No spaces, no dashes, no forgiveness.</p>
+      </div>
+      <div class="problem-tile">
+        <div class="lbl">Mobile money</div>
+        <div class="v">+237 6 99 12 34 56</div>
+        <p>Tied to a SIM in a single country. Lose the phone, lose the wallet.</p>
+      </div>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS HANAPAY — definition
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section warm">
+  <div class="container">
+    <div class="hp-eyebrow reveal">02 · What is Hanapay</div>
+    <h2 class="hp-h2 reveal reveal-d1" style="color:#0E120F;">A username, <span class="ital">but for your money</span>.</h2>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="hp-p" style="color:rgba(20,19,15,.74);">A <strong style="color:#0E120F;">Hanatag</strong> is your unique payment identity on Sohana — a single handle that lets anyone, anywhere on the network send you money in seconds. Your handle is yours alone. It looks like an Instagram username, behaves like an email address, and works like an account number. Examples: <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">@dave</em>, <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">@amina.koroma</em>, <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">@sohana.james</em>.</p>
+        <p class="hp-p" style="color:rgba(20,19,15,.74);">When somebody wants to pay you, they don't ask for an IBAN. They don't ask for your bank. They don't ask which country your account is in. They just type your <strong style="color:#0E120F;">@handle</strong>, the amount, and confirm. The platform handles everything underneath — finding you, checking your wallet, settling the transfer, generating the receipt. The whole flow takes about as long as sending a WhatsApp message.</p>
+        <p class="hp-p" style="color:rgba(20,19,15,.74);">Your Hanatag is more than an alias. It is a <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">verified, identity-anchored payment address</em>. Every Hanatag belongs to a real, KYC-verified person or organisation. When someone sends to <strong style="color:#0E120F;">@aïcha.diallo</strong>, they know they are sending to the actual Aïcha Diallo on the platform — not someone with a confusingly similar account number, not a typo'd routing detail.</p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1556742502-ec7c0e9f34b1?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SET UP YOUR HANATAG — 3-step UI walkthrough
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section" id="setup">
+  <div class="container">
+    <div class="hp-eyebrow reveal">03 · Setting up your Hanatag</div>
+    <h2 class="hp-h2 reveal reveal-d1">Three taps. <span class="ital">Done forever</span>.</h2>
+    <p class="hp-p reveal reveal-d2">When you sign up to Sohana, you receive an auto-generated handle right away — something like <strong>@daviss4218</strong> — so you can start receiving payments from day one. But your real handle is the one you choose. Most users claim a custom Hanatag during their first 24 hours on the platform. The process takes under a minute and looks like this on the current Sohana interface.</p>
+
+    <div class="setup-grid reveal reveal-d3">
+
+      <!-- STEP 1: Open Hanatag tab -->
+      <div class="setup-step">
+        <div class="setup-step-num">STEP 01</div>
+        <div class="setup-mockup">
+          <div class="mu-label">Profile · Hanatag &amp; QR</div>
+          <div style="display:flex;gap:.4rem;margin-bottom:.8rem;font-family:'Geist Mono',monospace;font-size:.7rem;">
+            <span style="padding:.35rem .65rem;border-radius:6px;background:rgba(244,242,236,.05);color:#8A8E87;">Badges</span>
+            <span style="padding:.35rem .65rem;border-radius:6px;background:rgba(244,242,236,.05);color:#8A8E87;">Settings</span>
+            <span style="padding:.35rem .65rem;border-radius:6px;background:rgba(158,228,147,.15);color:#9EE493;border:1px solid rgba(158,228,147,.3);">Hanatag</span>
+          </div>
+          <div style="padding:.85rem 1rem;background:rgba(14,18,15,.6);border:1px solid rgba(244,242,236,.08);border-radius:10px;">
+            <div class="mu-label" style="margin-bottom:.4rem;">Current handle</div>
+            <div style="font-family:'Geist Mono',monospace;font-size:.95rem;color:#B7BAB4;">@daviss4218</div>
+            <div style="font-size:.7rem;color:#8A8E87;margin-top:.4rem;font-family:'Geist Mono',monospace;letter-spacing:.04em;">Auto-generated · tap to customise</div>
+          </div>
+        </div>
+        <div class="setup-body">
+          <h4>Open the Hanatag tab</h4>
+          <p>From your profile, tap the <strong>Hanatag &amp; QR</strong> tab. You'll see your current auto-generated handle and a button to customise it. This is where everything happens.</p>
+          <div class="where">Where: <strong>Profile → Hanatag &amp; QR</strong></div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Pick your handle -->
+      <div class="setup-step">
+        <div class="setup-step-num">STEP 02</div>
+        <div class="setup-mockup">
+          <div class="mu-label">Choose your custom handle</div>
+          <div class="mu-input focused">
+            <span class="at-prefix">@</span>
+            <span style="color:#F4F2EC">aïcha.diallo</span>
+            <span class="cursor"></span>
+          </div>
+          <div class="mu-status">Available · letters, numbers, dots, 3–20 chars</div>
+          <div style="margin-top:.7rem;">
+            <div class="mu-label">Suggestions</div>
+            <span class="mu-suggestion">@aichadiallo</span>
+            <span class="mu-suggestion">@a.diallo</span>
+            <span class="mu-suggestion">@diallo.a</span>
+          </div>
+        </div>
+        <div class="setup-body">
+          <h4>Pick your handle</h4>
+          <p>Type the handle you want — letters, numbers, or dots. The platform checks availability in real time and suggests alternatives if your first choice is taken. Names are unique across the entire network.</p>
+          <div class="where">Tip: <strong>shorter is better</strong>. Your handle is for life.</div>
+        </div>
+      </div>
+
+      <!-- STEP 3: Share -->
+      <div class="setup-step">
+        <div class="setup-step-num">STEP 03</div>
+        <div class="setup-mockup">
+          <div class="mu-label">Your Hanatag is live</div>
+          <div class="mu-tag-display"><span class="at">@</span>aïcha.diallo</div>
+          <div class="mu-status" style="margin-bottom:.7rem;">Verified · linked to your account</div>
+          <div class="mu-qr"></div>
+          <div class="mu-share">
+            <span class="mu-share-btn">📋 Copy</span>
+            <span class="mu-share-btn">📤 Share</span>
+            <span class="mu-share-btn">🖼 QR</span>
+          </div>
+        </div>
+        <div class="setup-body">
+          <h4>Share it anywhere</h4>
+          <p>Once claimed, your Hanatag works immediately. Copy it to a chat, share the QR code in person, or post it on your bio. Anyone with a Sohana account can send to it from anywhere in the network.</p>
+          <div class="where">Share via: <strong>Copy · QR · Direct link</strong></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SEND & RECEIVE — animated flow demos
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section">
+  <div class="container">
+    <div class="hp-eyebrow reveal">04 · Sending and receiving</div>
+    <h2 class="hp-h2 reveal reveal-d1">Three fields. <span class="ital">No surprises</span>.</h2>
+    <p class="hp-p reveal reveal-d2">Whether you're paying back a friend, sending help to family, or splitting a bill across continents — the entire flow fits on one screen. Here is exactly what sending and receiving look like on Sohana today.</p>
+
+    <div class="flow-grid reveal reveal-d3">
+
+      <!-- SEND demo -->
+      <div class="flow-demo">
+        <div class="head">
+          <div class="ico">→</div>
+          <h4>Sending money</h4>
+          <span class="step">3 steps</span>
+        </div>
+        <div class="flow-screen">
+          <div class="step">
+            <div class="marker">1</div>
+            <div class="body">
+              <div class="lbl">Recipient</div>
+              <div class="v">Type <span class="at">@kofi.mensah</span></div>
+            </div>
+          </div>
+          <div class="step s2">
+            <div class="marker">2</div>
+            <div class="body">
+              <div class="lbl">Amount</div>
+              <div class="v"><span class="amount">€150.00</span> from your EUR wallet</div>
+            </div>
+          </div>
+          <div class="step s3">
+            <div class="marker">3</div>
+            <div class="body">
+              <div class="lbl">Confirm</div>
+              <div class="v">Tap once. Done.</div>
+            </div>
+          </div>
+          <div class="flow-confirmation">
+            <div class="check-circle">✓</div>
+            <div class="text"><strong>Sent.</strong> Kofi just received €150.00 — instantly.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECEIVE demo -->
+      <div class="flow-demo">
+        <div class="head">
+          <div class="ico">←</div>
+          <h4>Receiving money</h4>
+          <span class="step">Automatic</span>
+        </div>
+        <div class="flow-screen">
+          <div class="step">
+            <div class="marker">1</div>
+            <div class="body">
+              <div class="lbl">Notification</div>
+              <div class="v"><span class="amount">€250</span> from <span class="at">@marc.dubois</span></div>
+            </div>
+          </div>
+          <div class="step s2">
+            <div class="marker">2</div>
+            <div class="body">
+              <div class="lbl">Wallet</div>
+              <div class="v">Funds appear in your <strong style="color:#9EE493;">EUR wallet</strong> instantly</div>
+            </div>
+          </div>
+          <div class="step s3">
+            <div class="marker">3</div>
+            <div class="body">
+              <div class="lbl">Receipt</div>
+              <div class="v">Permanent ledger entry · message + amount</div>
+            </div>
+          </div>
+          <div class="flow-confirmation">
+            <div class="check-circle">✓</div>
+            <div class="text"><strong>Received.</strong> No bank delay. No "pending 1–3 business days".</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     BUILT FOR REAL LIFE (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section warm">
+  <div class="container">
+    <div class="hp-eyebrow reveal">05 · Built for real life</div>
+    <h2 class="hp-h2 reveal reveal-d1" style="color:#0E120F;">The everyday transactions that <span class="ital">already define</span> diaspora life.</h2>
+    <p class="hp-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Hanapay is not a product looking for a use case. It is built around the financial conversations that already happen every day across African and diaspora households — the ones currently held together with Western Union queues, screenshot exchanges of bank details, and "is the money there yet?" voice notes.</p>
+
+    <div class="uc-grid">
+
+      <div class="uc-card reveal reveal-d1">
+        <div class="uc-emoji">📚</div>
+        <span class="where">Yaoundé → London</span>
+        <h4>Parents sending tuition to a student abroad</h4>
+        <p>Instead of a SWIFT transfer that takes 3–5 days and costs 7%, send to your child's <span style="color:#0E120F;font-family:'Geist Mono',monospace;font-weight:600;">@handle</span> directly. Money lands in seconds, in their local currency, with a note attached.</p>
+        <div class="scenario"><strong>Mama Diallo sends</strong> €2,400 to <span class="at">@aïcha.uni</span> · arrives instantly · receipt automatically logged for both</div>
+      </div>
+
+      <div class="uc-card reveal reveal-d1">
+        <div class="uc-emoji">🏠</div>
+        <span class="where">Paris → Yaoundé</span>
+        <h4>Diaspora sending support home</h4>
+        <p>Monthly support to family in Cameroon, weekly help with grandparents' medication, contributions for funerals or weddings — sent directly to a verified handle, not a remittance agent's counter.</p>
+        <div class="scenario"><strong>Marc supports his mother</strong> with €300 monthly to <span class="at">@maman.dubois</span> · standing send · zero friction</div>
+      </div>
+
+      <div class="uc-card reveal reveal-d2">
+        <div class="uc-emoji">🍽️</div>
+        <span class="where">Brussels</span>
+        <h4>Friends splitting a bill</h4>
+        <p>Five friends, one dinner, one bill. The host pays, then collects each share in seconds — no "I'll send tomorrow when I'm at my computer," no chasing the slowest payer for a week.</p>
+        <div class="scenario"><strong>4 × €45.00</strong> requests sent to friends · all paid in under 10 minutes · no awkward reminders</div>
+      </div>
+
+      <div class="uc-card reveal reveal-d2">
+        <div class="uc-emoji">👥</div>
+        <span class="where">Cross-border</span>
+        <h4>Coordinating group contributions</h4>
+        <p>Pool members, ROSCA participants, and campaign donors all use Hanatags to contribute. The platform attributes every transfer correctly, even when members are in three different countries with three different currencies.</p>
+        <div class="scenario"><strong>12 ROSCA members</strong> contribute €100 each · platform tracks every payment · admins approve disbursements</div>
+      </div>
+
+      <div class="uc-card reveal reveal-d3">
+        <div class="uc-emoji">🛍️</div>
+        <span class="where">Lagos · Accra · Nairobi</span>
+        <h4>Small businesses getting paid</h4>
+        <p>Hairdressers, tailors, market traders, freelancers — anyone who currently shouts "send to my MTN momo" can now share a single Hanatag that works regardless of which country the customer is paying from.</p>
+        <div class="scenario"><strong>Ama's salon</strong> shares <span class="at">@amas.salon</span> · diaspora clients pay in EUR · she receives in GHC</div>
+      </div>
+
+      <div class="uc-card reveal reveal-d3">
+        <div class="uc-emoji">🎁</div>
+        <span class="where">Anywhere</span>
+        <h4>Gifting across distance</h4>
+        <p>Birthdays, weddings, baby gifts, condolence support — moments where the gesture matters more than the amount, but where currently the friction of sending money internationally takes the shine off it.</p>
+        <div class="scenario"><strong>Grandma in Douala</strong> sends a birthday gift of €50 to <span class="at">@noah.10years</span> in Toronto · with a note · in seconds</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     COMPARISON TABLE — Hanapay vs everyone else
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section">
+  <div class="container">
+    <div class="hp-eyebrow reveal">06 · How Hanapay compares</div>
+    <h2 class="hp-h2 reveal reveal-d1">Hanapay vs every <span class="ital">other way</span> to send money.</h2>
+    <p class="hp-p reveal reveal-d2">There is no shortage of ways to move money internationally. Each has its strengths. The honest comparison below shows where Hanapay sits today, where it leads, and where competing solutions still hold an advantage. Built for African and diaspora users, but evaluated against every realistic alternative they would actually consider.</p>
+
+    <div class="cmp-card reveal reveal-d3">
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="us">Hanapay</th>
+            <th>Bank transfer (SWIFT)</th>
+            <th>Remittance apps<br><span style="font-weight:400;color:#8A8E87;font-size:.65rem;">(Wise, WorldRemit)</span></th>
+            <th>Mobile money<br><span style="font-weight:400;color:#8A8E87;font-size:.65rem;">(MTN, Orange, M-Pesa)</span></th>
+            <th>Crypto wallets</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <!-- IDENTITY -->
+          <tr class="cmp-section-head"><td colspan="6">Identity &amp; ease of use</td></tr>
+          <tr>
+            <td>Send via username (@handle)</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+          </tr>
+          <tr>
+            <td>No bank details required</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Verified identity per handle</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+          </tr>
+          <tr>
+            <td>QR code share / in-person payment</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+          </tr>
+
+          <!-- SPEED -->
+          <tr class="cmp-section-head"><td colspan="6">Speed</td></tr>
+          <tr>
+            <td>Settlement time (within network)</td>
+            <td class="us"><span class="cmp-fee-cell good">Instant</span></td>
+            <td><span class="cmp-fee-cell bad">1–5 days</span></td>
+            <td><span class="cmp-fee-cell mid">Mins–hrs</span></td>
+            <td><span class="cmp-fee-cell good">Instant</span></td>
+            <td><span class="cmp-fee-cell mid">Mins–hrs</span></td>
+          </tr>
+          <tr>
+            <td>Settlement time (cross-border)</td>
+            <td class="us"><span class="cmp-fee-cell good">Instant<sup style="font-size:.55rem;color:#8A8E87;">*</sup></span></td>
+            <td><span class="cmp-fee-cell bad">2–5 days</span></td>
+            <td><span class="cmp-fee-cell mid">Mins–hrs</span></td>
+            <td><span class="cmp-fee-cell bad">N/A</span></td>
+            <td><span class="cmp-fee-cell mid">10 min–hrs</span></td>
+          </tr>
+
+          <!-- COST -->
+          <tr class="cmp-section-head"><td colspan="6">Cost (typical fee)</td></tr>
+          <tr>
+            <td>Internal transfer (same network)</td>
+            <td class="us"><span class="cmp-fee-cell good">0%</span></td>
+            <td><span class="cmp-fee-cell mid">€0–5 flat</span></td>
+            <td><span class="cmp-fee-cell mid">0.5–1%</span></td>
+            <td><span class="cmp-fee-cell mid">1–3%</span></td>
+            <td><span class="cmp-fee-cell mid">Network fee</span></td>
+          </tr>
+          <tr>
+            <td>Currency conversion</td>
+            <td class="us"><span class="cmp-fee-cell good">0.7%</span></td>
+            <td><span class="cmp-fee-cell bad">3–6% markup</span></td>
+            <td><span class="cmp-fee-cell good">0.5–1%</span></td>
+            <td><span class="cmp-fee-cell bad">3–7%</span></td>
+            <td><span class="cmp-fee-cell mid">Spread + gas</span></td>
+          </tr>
+          <tr>
+            <td>Cross-border to African bank</td>
+            <td class="us"><span class="cmp-fee-cell good">1.0–3.5%</span></td>
+            <td><span class="cmp-fee-cell bad">5–10% +</span></td>
+            <td><span class="cmp-fee-cell mid">2–5%</span></td>
+            <td><span class="cmp-fee-cell bad">N/A</span></td>
+            <td><span class="cmp-fee-cell mid">Off-ramp fee</span></td>
+          </tr>
+
+          <!-- PARENT/STUDENT/DIASPORA SPECIFIC -->
+          <tr class="cmp-section-head"><td colspan="6">For diaspora &amp; parents sending to students</td></tr>
+          <tr>
+            <td>Parent in Africa → student in EU/UK/CA</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+          </tr>
+          <tr>
+            <td>Diaspora → family on the continent</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+          </tr>
+          <tr>
+            <td>Recipient receives in local currency</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Works without recipient's bank account</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Recurring / standing transfers</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+          </tr>
+
+          <!-- TRUST & GROUP -->
+          <tr class="cmp-section-head"><td colspan="6">Trust &amp; group features</td></tr>
+          <tr>
+            <td>Built for community finance (ROSCAs, pools)</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Transparent transaction history</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Builds verifiable financial reputation</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Lightweight onboarding</td>
+            <td class="us"><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick no">✕</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+            <td><span class="cmp-tick yes">✓</span></td>
+            <td><span class="cmp-tick partial">~</span></td>
+          </tr>
+
+        </tbody>
+      </table>
+      <div class="cmp-legend">
+        <span><span class="cmp-tick yes">✓</span> Strong support</span>
+        <span><span class="cmp-tick partial">~</span> Partial / conditional</span>
+        <span><span class="cmp-tick no">✕</span> Not supported</span>
+        <span style="margin-left:auto;color:rgba(244,242,236,.4);">* Cross-border via Hanapay is instant within the Sohana network. External off-ramp fees apply for bank/mobile-money disbursement.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     MORE THAN PAYMENTS — identity layer
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section warm">
+  <div class="container">
+    <div class="hp-eyebrow reveal">07 · More than payments</div>
+    <h2 class="hp-h2 reveal reveal-d1" style="color:#0E120F;">Your handle becomes <span class="ital">your reputation</span>.</h2>
+    <p class="hp-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Every contribution you make to a savings circle, every on-time payment, every campaign you support — all of it sits behind your Hanatag. Over time, your handle stops being just an address. It becomes a financial credential. Other Sohana users can see whether someone is trusted, active, and in good standing — without seeing private details.</p>
+
+    <div class="identity-grid" style="margin-top:2rem;">
+      <div class="id-card reveal reveal-d1" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Your activity history</h4>
+        <p style="color:rgba(20,19,15,.65);">Every contribution, payout, and payment is logged against your Hanatag. Permanent ledger entry per transaction.</p>
+      </div>
+      <div class="id-card reveal reveal-d2" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Your trust score (NCS)</h4>
+        <p style="color:rgba(20,19,15,.65);">Your Njangi Credit Score — calculated from on-time contribution rate, completion rate, and tenure — is anchored to your handle.</p>
+      </div>
+      <div class="id-card reveal reveal-d3" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Your verified identity</h4>
+        <p style="color:rgba(20,19,15,.65);">Every Hanatag is backed by completed KYC. When you send to a handle, you're sending to a real, verified person.</p>
+      </div>
+      <div class="id-card reveal reveal-d4" style="background:#fff;border-color:rgba(20,19,15,.08);">
+        <div class="num" style="color:#0E120F;">FOUNDATION</div>
+        <h4 style="color:#0E120F;">Your social graph</h4>
+        <p style="color:rgba(20,19,15,.65);">Circles you've completed, pools you administer, campaigns you've supported — your network speaks for you in every new relationship.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ROADMAP — today vs tomorrow
+══════════════════════════════════════════════════════════ -->
+<section class="hp-section">
+  <div class="container">
+    <div class="hp-eyebrow reveal">08 · Where Hanapay is going</div>
+    <h2 class="hp-h2 reveal reveal-d1">A platform <span class="ital">today</span>. A protocol <span class="ital">tomorrow</span>.</h2>
+    <p class="hp-p reveal reveal-d2">Hanapay starts as the simplest, most human way to move money inside the Sohana network. As we obtain regulatory authorisations and integrate with licensed payment partners, the same handle becomes the universal address through which value moves between Sohana and the rest of the financial world.</p>
+
+    <div class="roadmap">
+
+      <div class="rm-col reveal reveal-d1">
+        <span class="rm-tag now">Live · today</span>
+        <h3>What works right now</h3>
+        <ul class="rm-list">
+          <li><strong>Instant transfers</strong> between any two Sohana wallets, in any of 8 supported currencies, settled in real time.</li>
+          <li><strong>Custom @handles</strong> chosen during onboarding, anchored to your verified KYC identity.</li>
+          <li><strong>QR codes</strong> generated automatically from your Hanatag for in-person payments and easy sharing.</li>
+          <li><strong>Group routing</strong> — your handle is the address used inside ROSCAs, Pools, and campaign donations.</li>
+          <li><strong>Permanent receipts</strong> for every transaction, with an optional message field and full audit trail.</li>
+        </ul>
+      </div>
+
+      <div class="rm-col future reveal reveal-d2">
+        <span class="rm-tag next">Building toward · 2026–2027</span>
+        <h3>What's coming as we scale</h3>
+        <ul class="rm-list">
+          <li><strong>Bank account integration</strong> — link your local bank account (EU, UK, NA, Africa) to top up and withdraw without leaving the app.</li>
+          <li><strong>Mobile-money interoperability</strong> — bridge Hanapay handles to MTN, Orange, M-Pesa, MoMo so off-platform recipients can be paid via their existing wallet.</li>
+          <li><strong>Recurring transfers</strong> — set up monthly tuition, support, or contribution payments that run on a schedule you control.</li>
+          <li><strong>Merchant Hanatags</strong> — verified business handles for African small businesses, with payment links and lightweight invoicing.</li>
+          <li><strong>Cross-platform Hanatag protocol</strong> — long-term, your handle becomes a portable, interoperable identity recognised by partner platforms across the continent.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="hp-cta">
+  <div class="container">
+    <h2>Your identity starts <span class="ital">here</span>.</h2>
+    <p>Claim your handle. Share it like a username. Use it like a memory. Sending money should feel as natural as sending a message — and on Sohana, it finally does.</p>
+    <div class="hp-cta-row">
+      <a href="/auth" class="hp-cta-primary">Claim your Hanatag →</a>
+      <a href="/wallet-page" class="hp-cta-ghost">See the wallet</a>
+      <a href="/njangi" class="hp-cta-ghost">Compare with Njangi</a>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
