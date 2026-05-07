@@ -1,51 +1,1130 @@
 {% extends "page_base.html" %}
-{% block title %}NCS Credit Score{% endblock %}
+{% block title %}Njangi Credit Score — your behavioural credential{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+/* ── NCS PAGE ── */
+.nc-section{padding:96px 5%;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.nc-section.warm{background:#F4F2EC;color:#14130F;border-color:rgba(20,19,15,.08)}
+.nc-section .container{max-width:1100px;margin:0 auto;position:relative;z-index:2}
+.nc-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;display:inline-flex;align-items:center;gap:8px;margin-bottom:1rem}
+.nc-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.nc-section.warm .nc-eyebrow{color:rgba(20,19,15,.55)}
+.nc-h2{font-size:clamp(1.8rem,3.2vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;margin-bottom:1.25rem;max-width:780px}
+.nc-h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.nc-section.warm .nc-h2 .ital{color:#0E120F}
+.nc-p{font-size:1rem;color:#B7BAB4;line-height:1.78;margin-bottom:1.1rem;max-width:780px}
+.nc-section.warm .nc-p{color:rgba(20,19,15,.74)}
+.nc-p strong{color:#F4F2EC;font-weight:500}
+.nc-section.warm .nc-p strong{color:#0E120F}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .9s ease,transform .9s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-d1{transition-delay:.1s}.reveal-d2{transition-delay:.2s}.reveal-d3{transition-delay:.3s}.reveal-d4{transition-delay:.4s}
+
+/* ── HERO with gauge dial ── */
+.nc-hero{padding:120px 5% 80px;position:relative;overflow:hidden}
+.nc-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(900px 540px at 70% 30%,rgba(158,228,147,.13),transparent 60%);pointer-events:none}
+.nc-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(244,242,236,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(244,242,236,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 70% 60% at 60% 40%,black 25%,transparent 80%);pointer-events:none}
+.nc-hero .container{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+@media(max-width:980px){.nc-hero .container{grid-template-columns:1fr;gap:48px}}
+.nc-hero h1{font-size:clamp(2.5rem,5.5vw,4rem);font-weight:500;line-height:1.02;letter-spacing:-.035em;margin:1rem 0 1.5rem;color:#F4F2EC}
+.nc-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.nc-hero p.lead{font-size:clamp(1.05rem,1.3vw,1.2rem);color:#B7BAB4;line-height:1.65;max-width:520px;margin-bottom:.85rem}
+.nc-hero p.support{font-size:.95rem;color:#8A8E87;max-width:520px;margin-bottom:1.5rem;line-height:1.65}
+.nc-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
+.nc-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s;display:inline-flex;align-items:center;gap:.45rem}
+.nc-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.nc-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.nc-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+
+/* HERO GAUGE — animated score dial */
+.gauge-stage{width:100%;max-width:460px;aspect-ratio:1;margin:0 auto;position:relative;filter:drop-shadow(0 0 28px rgba(158,228,147,.2))}
+.gauge-svg{width:100%;height:100%;display:block}
+.gauge-arc-bg{stroke:rgba(244,242,236,.08);fill:none}
+.gauge-arc-tier{fill:none;stroke-linecap:round}
+.gauge-needle{transform-origin:200px 200px;animation:needle-sweep 8s ease-in-out infinite;transition:transform 1s cubic-bezier(.25,.85,.4,1)}
+@keyframes needle-sweep{
+  0%   { transform:rotate(-110deg); }
+  20%  { transform:rotate(-70deg); }
+  40%  { transform:rotate(0deg); }
+  55%  { transform:rotate(40deg); }
+  70%  { transform:rotate(80deg); }
+  85%  { transform:rotate(95deg); }
+  100% { transform:rotate(110deg); }
+}
+.gauge-score-num{font-family:'Geist Mono',monospace;font-size:3.6rem;font-weight:500;fill:#F4F2EC;letter-spacing:-.04em;animation:score-count 8s ease-in-out infinite}
+@keyframes score-count{0%{opacity:.6}5%{opacity:1}100%{opacity:.6}}
+.gauge-tier-label{font-family:'Geist Mono',monospace;font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+.gauge-tier-flash{animation:tier-flash 8s ease-in-out infinite}
+@keyframes tier-flash{0%,100%{opacity:.5}5%{opacity:1}}
+.gauge-tick{stroke:rgba(244,242,236,.25);stroke-width:1.5}
+.gauge-pulse{animation:gauge-breath 3s ease-in-out infinite}
+@keyframes gauge-breath{0%,100%{opacity:.8}50%{opacity:1}}
+
+/* ── MISSION BAND ── */
+.mission-band{margin-top:2rem;padding:3rem 2.5rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.06) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.mission-band::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 350px at 50% 0%,rgba(158,228,147,.08),transparent 60%);pointer-events:none}
+.mission-band .quote{font-family:'Instrument Serif',serif;font-style:italic;font-size:clamp(1.4rem,2.4vw,1.85rem);color:#F4F2EC;line-height:1.45;max-width:880px;margin:0 auto;text-align:center;position:relative}
+.mission-band .quote .em{color:#9EE493}
+.mission-band .credit{display:block;text-align:center;font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;letter-spacing:.05em;margin-top:1.5rem;position:relative;text-transform:uppercase}
+.mission-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-top:2rem;position:relative}
+.mission-stat{padding:1.25rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px;text-align:center}
+.mission-stat .v{font-family:'Geist Mono',monospace;font-size:1.6rem;font-weight:600;color:#9EE493;letter-spacing:-.02em;line-height:1}
+.mission-stat .l{font-size:.78rem;color:#B7BAB4;line-height:1.5;margin-top:.5rem}
+
+/* ── DEFINITION ── */
+.def-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center;margin-top:2rem}
+@media(max-width:880px){.def-grid{grid-template-columns:1fr;gap:40px}}
+.def-photo{aspect-ratio:5/4;border-radius:24px;background-size:cover;background-position:center;border:1px solid rgba(244,242,236,.1);position:relative;overflow:hidden}
+.def-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(14,18,15,.5) 100%)}
+.img-credit{position:absolute;bottom:10px;right:12px;z-index:2;font-family:'Geist Mono',monospace;font-size:9px;color:rgba(244,242,236,.6);letter-spacing:.04em;background:rgba(0,0,0,.4);padding:3px 7px;border-radius:3px;text-decoration:none}
+
+/* ── 5 COMPONENTS — animated weighting bars ── */
+.comp-card{margin-top:2rem;padding:2.5rem 2rem;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:24px}
+.comp-grid{display:grid;grid-template-columns:1fr;gap:1.1rem}
+.comp-row{display:grid;grid-template-columns:auto 1fr auto;gap:1.25rem;align-items:center;padding:1.1rem 1.4rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:14px;transition:border-color .25s}
+.comp-row:hover{border-color:rgba(158,228,147,.3)}
+.comp-name-block{display:flex;align-items:center;gap:.85rem;min-width:200px}
+.comp-icon{width:36px;height:36px;border-radius:10px;background:rgba(158,228,147,.1);color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:.95rem;flex-shrink:0}
+.comp-name{display:flex;flex-direction:column;gap:.15rem;min-width:0}
+.comp-name h4{font-size:.95rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em}
+.comp-name .desc{font-size:.78rem;color:#8A8E87;line-height:1.4}
+.comp-bar-wrap{flex:1;display:flex;flex-direction:column;gap:.4rem}
+.comp-bar{height:10px;background:rgba(244,242,236,.06);border-radius:99px;overflow:hidden;position:relative}
+.comp-bar-fill{height:100%;background:linear-gradient(90deg,#9EE493 0%,#cef870 100%);border-radius:99px;width:0;transition:width 1.5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(158,228,147,.4)}
+.reveal.in .comp-bar-fill[data-w]{width:var(--target-width)}
+.comp-weight{font-family:'Geist Mono',monospace;font-size:1.4rem;font-weight:600;color:#9EE493;letter-spacing:-.02em;min-width:60px;text-align:right}
+
+/* ── 4 TIERS — cards using real tier colors ── */
+.tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-top:2rem}
+@media(max-width:880px){.tier-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.tier-grid{grid-template-columns:1fr}}
+.tier-card{padding:1.75rem 1.35rem 1.5rem;border-radius:18px;background:#fff;display:flex;flex-direction:column;gap:.55rem;position:relative;overflow:hidden;transition:all .25s;border:1px solid rgba(20,19,15,.06)}
+.tier-card:hover{transform:translateY(-3px);box-shadow:0 20px 40px -10px rgba(20,19,15,.12)}
+.tier-card.t-prob   {background:#FAECE7;border-color:rgba(216,90,48,.2)}
+.tier-card.t-dev    {background:#FAEEDA;border-color:rgba(186,117,23,.2)}
+.tier-card.t-rel    {background:#E1F5EE;border-color:rgba(15,110,86,.2)}
+.tier-card.t-exemp  {background:#EEEDFE;border-color:rgba(83,74,183,.25)}
+.tier-card .tier-band{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:.2rem .55rem;border-radius:99px;display:inline-block;align-self:flex-start}
+.t-prob   .tier-band{background:rgba(216,90,48,.18);color:#A04020}
+.t-dev    .tier-band{background:rgba(186,117,23,.18);color:#925612}
+.t-rel    .tier-band{background:rgba(15,110,86,.18);color:#0F6E56}
+.t-exemp  .tier-band{background:rgba(83,74,183,.18);color:#534AB7}
+.tier-card .range{font-family:'Geist Mono',monospace;font-size:1.6rem;font-weight:600;letter-spacing:-.02em;line-height:1}
+.t-prob   .range{color:#A04020}.t-dev .range{color:#925612}
+.t-rel    .range{color:#0F6E56}.t-exemp .range{color:#534AB7}
+.tier-card h4{font-size:1.05rem;font-weight:700;color:#0E120F;letter-spacing:-.01em;margin-top:.3rem}
+.tier-card .summary{font-size:.85rem;color:rgba(20,19,15,.65);line-height:1.55;min-height:2.6rem}
+.tier-card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.4rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(20,19,15,.08)}
+.tier-card ul li{font-size:.78rem;color:rgba(20,19,15,.7);line-height:1.5;padding-left:1.2rem;position:relative}
+.tier-card ul li::before{content:"→";position:absolute;left:0;font-weight:700}
+.t-prob ul li::before{color:#A04020}.t-dev ul li::before{color:#925612}
+.t-rel ul li::before{color:#0F6E56}.t-exemp ul li::before{color:#534AB7}
+
+/* ── EVENTS table ── */
+.events-card{margin-top:2rem;background:#161B17;border:1px solid rgba(244,242,236,.1);border-radius:20px;overflow:hidden}
+.events-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+@media(max-width:680px){.events-grid{grid-template-columns:1fr}}
+.events-col{padding:2rem 1.75rem}
+.events-col.gain{background:linear-gradient(135deg,rgba(158,228,147,.04) 0%,transparent 100%);border-right:1px solid rgba(244,242,236,.06)}
+.events-col.loss{background:linear-gradient(225deg,rgba(255,138,80,.04) 0%,transparent 100%)}
+@media(max-width:680px){.events-col.gain{border-right:none;border-bottom:1px solid rgba(244,242,236,.06)}}
+.events-col h3{font-family:'Geist Mono',monospace;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-bottom:1.25rem;display:flex;align-items:center;gap:.55rem}
+.events-col.gain h3{color:#9EE493}
+.events-col.loss h3{color:#FF8A50}
+.events-col h3 .count{font-family:'Geist Mono',monospace;font-size:.7rem;padding:.15rem .5rem;border-radius:99px;font-weight:600}
+.events-col.gain h3 .count{background:rgba(158,228,147,.12);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.events-col.loss h3 .count{background:rgba(255,138,80,.1);color:#FF8A50;border:1px solid rgba(255,138,80,.3)}
+.event-row{display:flex;justify-content:space-between;align-items:center;padding:.7rem 0;border-bottom:1px solid rgba(244,242,236,.05);gap:.85rem}
+.event-row:last-child{border-bottom:none}
+.event-row .event-info{flex:1;min-width:0}
+.event-row .event-info .nm{font-size:.92rem;color:#F4F2EC;font-weight:500;letter-spacing:-.005em;line-height:1.3}
+.event-row .event-info .desc{font-size:.76rem;color:#8A8E87;line-height:1.45;margin-top:.2rem}
+.event-delta{font-family:'Geist Mono',monospace;font-size:1.05rem;font-weight:600;letter-spacing:-.01em;padding:.25rem .65rem;border-radius:99px;flex-shrink:0;line-height:1}
+.event-delta.pos{background:rgba(158,228,147,.12);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.event-delta.neg{background:rgba(255,138,80,.1);color:#FF8A50;border:1px solid rgba(255,138,80,.3)}
+
+/* ── CIRCLE PASSPORT ── */
+.passport-band{margin-top:2.5rem;padding:3.5rem 2.5rem;background:linear-gradient(135deg,#0E120F 0%,#161B17 100%);border:1px solid rgba(158,228,147,.3);border-radius:28px;position:relative;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.5),0 0 60px rgba(158,228,147,.08)}
+.passport-band::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 350px at 50% 0%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.passport-band::after{content:"";position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:repeating-linear-gradient(45deg,rgba(158,228,147,.04) 0 4px,transparent 4px 20px);pointer-events:none}
+
+/* Passport Card itself — 3D perspective */
+.passport-card{position:relative;max-width:680px;margin:0 auto;background:linear-gradient(135deg,rgba(22,27,23,.95) 0%,rgba(14,18,15,.95) 100%);border:1px solid rgba(158,228,147,.4);border-radius:20px;overflow:hidden;box-shadow:0 25px 60px -15px rgba(0,0,0,.6),inset 0 0 0 1px rgba(158,228,147,.08)}
+.passport-card::before{content:"";position:absolute;top:-30%;right:-30%;width:80%;height:80%;background:radial-gradient(circle,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+
+.passport-header{display:grid;grid-template-columns:auto 1fr auto;gap:1.5rem;align-items:center;padding:1.75rem 2rem;border-bottom:1px solid rgba(244,242,236,.08);position:relative;background:rgba(14,18,15,.4)}
+.passport-photo-frame{width:88px;height:110px;border-radius:8px;border:1px solid rgba(158,228,147,.3);overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,rgba(158,228,147,.15),rgba(158,228,147,.05));display:grid;place-items:center;color:#9EE493;font-family:'Geist',sans-serif;font-weight:500;font-size:1.6rem;letter-spacing:.05em}
+.passport-stamp{width:80px;height:80px;border-radius:50%;border:2px dashed rgba(158,228,147,.4);display:grid;place-items:center;transform:rotate(-12deg);position:relative;flex-shrink:0}
+.passport-stamp::before{content:"";position:absolute;inset:6px;border:1.5px solid rgba(158,228,147,.3);border-radius:50%}
+.passport-stamp .stamp-text{font-family:'Geist Mono',monospace;font-size:.55rem;letter-spacing:.12em;color:#9EE493;font-weight:700;text-transform:uppercase;text-align:center;line-height:1.2;position:relative;z-index:2}
+
+.passport-id{display:flex;flex-direction:column;gap:.35rem;min-width:0}
+.passport-id .doc-type{font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.passport-id .doc-name{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.5rem;color:#F4F2EC;font-weight:400;line-height:1.1;letter-spacing:-.01em}
+.passport-id .doc-name .em{color:#9EE493}
+.passport-id .doc-meta{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.4rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em}
+.passport-id .doc-meta span::before{content:"·";margin-right:.5rem;opacity:.5}
+.passport-id .doc-meta span:first-child::before{display:none}
+
+.passport-body{padding:2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem;position:relative}
+@media(max-width:680px){.passport-body{grid-template-columns:1fr;gap:1.5rem}}
+
+.pp-section{display:flex;flex-direction:column;gap:.85rem}
+.pp-section .pp-label{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+
+/* Score block within passport */
+.pp-score-block{display:flex;align-items:baseline;gap:.5rem}
+.pp-score-block .num{font-family:'Geist Mono',monospace;font-size:3rem;font-weight:500;color:#9EE493;letter-spacing:-.04em;line-height:1;background:linear-gradient(135deg,#9EE493 0%,#cef870 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.pp-score-block .of{font-family:'Geist Mono',monospace;font-size:.85rem;color:#8A8E87}
+.pp-score-block .tier-pill{margin-left:auto;padding:.3rem .85rem;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;background:rgba(15,110,86,.18);color:#0F6E56;border:1px solid rgba(15,110,86,.3)}
+
+/* Score sparkline (history) */
+.pp-spark{height:48px;width:100%;display:block}
+.pp-spark .area{fill:url(#sparkGrad)}
+.pp-spark .line{fill:none;stroke:#9EE493;stroke-width:2}
+.pp-spark .point{fill:#cef870;stroke:#0E120F;stroke-width:1.5}
+.pp-spark .point.latest{fill:#9EE493;animation:gauge-breath 2s ease-in-out infinite}
+
+.pp-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+.pp-stat{padding:.85rem .95rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:10px}
+.pp-stat .v{font-family:'Geist Mono',monospace;font-size:1.15rem;color:#F4F2EC;font-weight:600;letter-spacing:-.01em;line-height:1}
+.pp-stat .l{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;letter-spacing:.05em;text-transform:uppercase;margin-top:.3rem}
+
+/* Badges within passport */
+.pp-badges{display:flex;flex-wrap:wrap;gap:.45rem}
+.pp-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.4rem .7rem;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.7rem;color:#cef870;letter-spacing:.02em}
+.pp-badge .ico{font-size:.85rem}
+
+.passport-footer{padding:1rem 2rem;background:rgba(14,18,15,.5);border-top:1px solid rgba(244,242,236,.06);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.04em}
+.passport-footer .verify-row{display:flex;align-items:center;gap:.5rem;color:#9EE493}
+.passport-footer .verify-row::before{content:"✓";font-weight:700}
+.passport-mrz{padding:1rem 2rem;background:rgba(0,0,0,.4);font-family:'Geist Mono',monospace;font-size:.78rem;color:#9EE493;letter-spacing:.18em;line-height:1.6;border-top:1px solid rgba(244,242,236,.04);word-break:break-all;overflow-wrap:break-word}
+
+/* ── SCORE SIMULATOR ── */
+.sim-card{margin-top:2rem;padding:2.5rem 2rem;border:1px solid rgba(158,228,147,.25);border-radius:24px;background:linear-gradient(180deg,rgba(158,228,147,.04) 0%,rgba(158,228,147,.01) 100%);position:relative;overflow:hidden}
+.sim-card::before{content:"";position:absolute;top:-100px;right:-100px;width:300px;height:300px;background:radial-gradient(circle,rgba(158,228,147,.1) 0%,transparent 60%);pointer-events:none}
+.sim-grid{display:grid;grid-template-columns:1fr .9fr;gap:2rem;position:relative}
+@media(max-width:760px){.sim-grid{grid-template-columns:1fr;gap:1.5rem}}
+.sim-actions{display:flex;flex-direction:column;gap:.6rem}
+.sim-actions h4{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:#8A8E87;font-weight:600;margin-bottom:.4rem}
+.sim-btn{display:flex;justify-content:space-between;align-items:center;padding:.75rem 1rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.08);border-radius:10px;font-family:inherit;font-size:.88rem;color:#F4F2EC;cursor:pointer;transition:all .15s;text-align:left;gap:.85rem}
+.sim-btn:hover{border-color:rgba(158,228,147,.4);background:rgba(158,228,147,.04)}
+.sim-btn .nm{flex:1;line-height:1.4}
+.sim-btn .delta{font-family:'Geist Mono',monospace;font-weight:600;font-size:.85rem;padding:.2rem .55rem;border-radius:99px;flex-shrink:0}
+.sim-btn .delta.pos{background:rgba(158,228,147,.15);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+.sim-btn .delta.neg{background:rgba(255,138,80,.1);color:#FF8A50;border:1px solid rgba(255,138,80,.3)}
+.sim-display{padding:1.75rem;background:rgba(14,18,15,.6);border:1px solid rgba(244,242,236,.08);border-radius:14px;display:flex;flex-direction:column;gap:1rem;align-items:center;justify-content:center;text-align:center;min-height:280px}
+.sim-display .lbl{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.08em;text-transform:uppercase}
+.sim-display .score{font-family:'Geist Mono',monospace;font-size:4rem;font-weight:500;letter-spacing:-.04em;line-height:1;background:linear-gradient(135deg,#9EE493 0%,#cef870 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;transition:all .3s}
+.sim-display .tier-name{font-family:'Geist Mono',monospace;font-size:.8rem;color:#F4F2EC;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:.35rem 1rem;border-radius:99px;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.3);color:#9EE493}
+.sim-display .last-event{font-family:'Geist Mono',monospace;font-size:.78rem;color:#B7BAB4;line-height:1.5;min-height:2.8rem}
+.sim-display .last-event strong{color:#F4F2EC}
+.sim-reset{padding:.55rem 1.1rem;background:transparent;color:#8A8E87;border:1px solid rgba(244,242,236,.12);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.72rem;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .15s}
+.sim-reset:hover{color:#9EE493;border-color:rgba(158,228,147,.3)}
+
+/* ── PARTNERSHIP ECONOMY ── */
+.part-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.1rem;margin-top:2rem}
+.part-card{padding:0;border:1px solid rgba(20,19,15,.08);border-radius:18px;background:#fff;overflow:hidden;display:flex;flex-direction:column;transition:all .25s}
+.part-card:hover{border-color:rgba(158,228,147,.4);transform:translateY(-2px);box-shadow:0 8px 24px rgba(20,19,15,.06)}
+.part-photo{aspect-ratio:16/10;background-size:cover;background-position:center;position:relative}
+.part-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(20,19,15,.65) 100%)}
+.part-photo .lbl{position:absolute;bottom:10px;left:14px;z-index:2;font-family:'Geist Mono',monospace;font-size:.65rem;color:#F4F2EC;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.part-body{padding:1.4rem 1.4rem 1.5rem;display:flex;flex-direction:column;gap:.5rem;flex:1}
+.part-body h4{font-size:1rem;font-weight:600;color:#0E120F;letter-spacing:-.005em;line-height:1.3}
+.part-body p{font-size:.84rem;color:rgba(20,19,15,.65);line-height:1.65;flex:1}
+.part-perk{padding:.7rem .85rem;background:rgba(158,228,147,.18);border:1px solid rgba(158,228,147,.4);border-radius:8px;font-family:'Geist Mono',monospace;font-size:.74rem;color:#0E120F;line-height:1.5;letter-spacing:.01em;margin-top:auto}
+.part-perk strong{font-weight:600}
+.part-perk .tier-required{display:inline-flex;align-items:center;gap:.3rem;padding:.15rem .45rem;border-radius:99px;background:rgba(14,18,15,.1);font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;font-weight:600;margin-right:.4rem}
+
+/* ── 2050 ROADMAP ── */
+.timeline{position:relative;margin-top:2.5rem;padding-left:0}
+.timeline::before{content:"";position:absolute;left:32px;top:30px;bottom:30px;width:2px;background:linear-gradient(180deg,#9EE493 0%,rgba(158,228,147,.2) 100%)}
+@media(max-width:680px){.timeline::before{left:24px}}
+.tl-item{position:relative;padding-left:75px;padding-bottom:2.5rem;display:grid;grid-template-columns:1fr;gap:.5rem}
+@media(max-width:680px){.tl-item{padding-left:60px}}
+.tl-item:last-child{padding-bottom:0}
+.tl-marker{position:absolute;left:18px;top:5px;width:32px;height:32px;border-radius:50%;background:rgba(158,228,147,.15);border:2px solid #9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:600;color:#9EE493;z-index:2}
+@media(max-width:680px){.tl-marker{left:10px;width:28px;height:28px;font-size:.65rem}}
+.tl-marker.future{background:#0E120F;border-color:rgba(158,228,147,.3);color:rgba(158,228,147,.5)}
+.tl-marker.now{background:#9EE493;color:#0E120F}
+.tl-year{font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;letter-spacing:.06em;font-weight:600;text-transform:uppercase;margin-bottom:.3rem}
+.tl-item.future .tl-year{color:rgba(158,228,147,.6)}
+.tl-item h3{font-size:1.15rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3;margin-bottom:.5rem}
+.tl-item p{font-size:.92rem;color:#B7BAB4;line-height:1.7;max-width:680px}
+.tl-item p strong{color:#F4F2EC;font-weight:500}
+
+/* ── PRIVACY & ETHICS ── */
+.priv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin-top:2rem}
+.priv-card{padding:1.5rem;border:1px solid rgba(244,242,236,.1);border-radius:16px;background:#161B17;display:flex;flex-direction:column;gap:.55rem}
+.priv-icon{width:42px;height:42px;border-radius:10px;background:rgba(158,228,147,.1);display:grid;place-items:center;color:#9EE493;font-family:'Geist Mono',monospace;font-weight:600;font-size:1rem;margin-bottom:.4rem}
+.priv-card h4{font-size:1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;line-height:1.3}
+.priv-card p{font-size:.84rem;color:#B7BAB4;line-height:1.65}
+
+/* ── FINE-PRINT (formal explanation) ── */
+.fp-card{margin-top:2rem;padding:2rem 2rem;border:1px solid rgba(244,242,236,.08);border-radius:18px;background:#161B17}
+.fp-card h3{font-family:'Geist Mono',monospace;font-size:.78rem;color:#9EE493;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-bottom:1.25rem;display:flex;align-items:center;gap:.5rem}
+.fp-card h3::before{content:"";width:8px;height:8px;border-radius:50%;background:#9EE493}
+.fp-card p{font-size:.88rem;color:#B7BAB4;line-height:1.78;margin-bottom:1rem;max-width:780px}
+.fp-card p strong{color:#F4F2EC;font-weight:500}
+.fp-card p:last-child{margin-bottom:0}
+.fp-formula{padding:1rem 1.4rem;background:rgba(14,18,15,.5);border:1px solid rgba(244,242,236,.06);border-radius:10px;font-family:'Geist Mono',monospace;font-size:.85rem;color:#F4F2EC;letter-spacing:.01em;line-height:1.65;margin:1rem 0;overflow-x:auto;white-space:nowrap}
+.fp-formula .op{color:#9EE493;margin:0 .25rem}
+.fp-formula .num{color:#cef870}
+.fp-formula .var{color:#FFB350;font-style:italic}
+
+/* ── CTA ── */
+.nc-cta{padding:96px 5% 80px;text-align:center;border-top:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.nc-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(800px 400px at 50% 100%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
+.nc-cta .container{position:relative;z-index:2;max-width:760px;margin:0 auto}
+.nc-cta h2{font-size:clamp(2rem,3.6vw,3rem);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin-bottom:1.25rem;color:#F4F2EC}
+.nc-cta h2 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.nc-cta p{font-size:1.05rem;color:#B7BAB4;max-width:580px;margin:0 auto 2.25rem;line-height:1.65}
+.nc-cta-row{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.nc-cta-primary{padding:.85rem 1.85rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s}
+.nc-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.nc-cta-ghost{padding:.85rem 1.85rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.nc-cta-ghost:hover{background:rgba(158,228,147,.08);border-color:#9EE493}
+</style>
+
+<!-- ══════════════════════════════════════════════════════════
+     HERO — animated NCS gauge dial
+══════════════════════════════════════════════════════════ -->
+<section class="nc-hero">
+  <div class="nc-hero-grid"></div>
   <div class="container">
-    <div class="page-hero-label">Products</div>
-    <h1>Njangi Credit Score</h1>
-    <p>The NCS is SOHANA's proprietary behavioural credit model — the first credit score designed specifically for communities whose financial reliability has always existed but never been recorded.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
+    <div>
+      <div class="nc-eyebrow">Njangi Credit Score · NCS</div>
+      <h1>The first <span class="ital">behavioural credential</span><br>built for African finance.</h1>
+      <p class="lead">A credit score that does not depend on your bank account, your salary slip, or whether your country has a credit bureau. The Njangi Credit Score reads what informal African finance has always known how to read — <strong>whether you keep your word in a community of trust</strong>.</p>
+      <p class="support">Today, your score moves with every contribution you make to a circle, every cycle you complete, every endorsement you earn from peers. Tomorrow, it becomes the credential the rest of the financial world finally accepts.</p>
+      <div class="nc-hero-cta-row">
+        <a href="/auth" class="nc-cta-primary">Start building your score →</a>
+        <a href="#passport" class="nc-cta-ghost">See the Circle Passport</a>
+      </div>
+    </div>
+
+    <!-- ANIMATED NCS GAUGE -->
+    <svg class="gauge-svg" viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="probGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#D85A30"/>
+          <stop offset="100%" stop-color="#E07A4F"/>
+        </linearGradient>
+        <linearGradient id="devGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#BA7517"/>
+          <stop offset="100%" stop-color="#D89A47"/>
+        </linearGradient>
+        <linearGradient id="relGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#0F6E56"/>
+          <stop offset="100%" stop-color="#3FA886"/>
+        </linearGradient>
+        <linearGradient id="exGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#534AB7"/>
+          <stop offset="100%" stop-color="#7A6FE0"/>
+        </linearGradient>
+        <radialGradient id="centerGlow" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#9EE493" stop-opacity=".3"/>
+          <stop offset="60%" stop-color="#9EE493" stop-opacity=".05"/>
+          <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+
+      <!-- Outer rotating ring marker -->
+      <g class="gauge-ring">
+        <circle cx="240" cy="240" r="220" fill="none" stroke="#9EE493" stroke-opacity=".15" stroke-width="1" stroke-dasharray="2 8"/>
+      </g>
+
+      <!-- Background glow -->
+      <circle cx="240" cy="240" r="180" fill="url(#centerGlow)"/>
+
+      <!-- 4 TIER ARCS — concentric, each colored per tier
+           Half-circle arc from (40,240) to (440,240) sweeping through top
+           radius 200, centered at (240,240) -->
+      <!-- Probation arc: 300-549 → 0% to 45.4% of arc (left side) -->
+      <path class="gauge-arc tier-prob" d="M 60 240 A 180 180 0 0 1 100 122" fill="none" stroke="url(#probGrad)" stroke-width="20" stroke-linecap="round"/>
+      <!-- Developing arc: 550-649 → 45.4% to 63.6% -->
+      <path class="gauge-arc tier-dev" d="M 110 117 A 180 180 0 0 1 165 76" fill="none" stroke="url(#devGrad)" stroke-width="20" stroke-linecap="round"/>
+      <!-- Reliable arc: 650-749 → 63.6% to 81.8% -->
+      <path class="gauge-arc tier-rel" d="M 175 71 A 180 180 0 0 1 305 71" fill="none" stroke="url(#relGrad)" stroke-width="20" stroke-linecap="round"/>
+      <!-- Exemplary arc: 750-850 → 81.8% to 100% -->
+      <path class="gauge-arc tier-ex" d="M 315 76 A 180 180 0 0 1 420 240" fill="none" stroke="url(#exGrad)" stroke-width="20" stroke-linecap="round"/>
+
+      <!-- Tier boundary tick marks + labels -->
+      <text x="48" y="265" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" letter-spacing=".5">300</text>
+      <text x="100" y="105" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" text-anchor="end" letter-spacing=".5">550</text>
+      <text x="240" y="55" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" text-anchor="middle" letter-spacing=".5">650</text>
+      <text x="380" y="105" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" letter-spacing=".5">750</text>
+      <text x="430" y="265" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" letter-spacing=".5">850</text>
+
+      <!-- Score arc (animated overlay showing current score) -->
+      <path class="gauge-score-arc" d="M 60 240 A 180 180 0 0 1 290 75" fill="none" stroke="#9EE493" stroke-width="6" stroke-linecap="round" stroke-opacity=".9" filter="drop-shadow(0 0 8px #9EE493)"/>
+
+      <!-- Sweeping needle -->
+      <g class="gauge-needle">
+        <line x1="240" y1="240" x2="290" y2="75" stroke="#F4F2EC" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="240" cy="240" r="12" fill="#0E120F" stroke="#9EE493" stroke-width="2.5"/>
+        <circle cx="240" cy="240" r="5" fill="#9EE493"/>
+      </g>
+
+      <!-- CENTER score readout -->
+      <g class="gauge-readout">
+        <text x="240" y="320" text-anchor="middle" font-family="Geist Mono,monospace" font-size="48" font-weight="500" fill="#F4F2EC" letter-spacing="-2">712</text>
+        <text x="240" y="345" text-anchor="middle" font-family="Geist Mono,monospace" font-size="9" fill="#8A8E87" letter-spacing="1.5">NJANGI CREDIT SCORE</text>
+        <rect x="195" y="358" width="90" height="22" rx="11" fill="rgba(15,110,86,.18)" stroke="#0F6E56" stroke-width="1"/>
+        <text x="240" y="373" text-anchor="middle" font-family="Geist Mono,monospace" font-size="10" font-weight="600" fill="#3FA886" letter-spacing="1.4">RELIABLE</text>
+      </g>
+
+      <!-- Tier zone labels (small, around the arc) -->
+      <text x="115" y="200" font-family="Geist Mono,monospace" font-size="7" fill="#D85A30" font-weight="600" letter-spacing="1" opacity=".7">PROBATION</text>
+      <text x="80" y="120" font-family="Geist Mono,monospace" font-size="7" fill="#BA7517" font-weight="600" letter-spacing="1" opacity=".7">DEVELOPING</text>
+      <text x="320" y="120" font-family="Geist Mono,monospace" font-size="7" fill="#0F6E56" font-weight="600" letter-spacing="1" opacity=".9">RELIABLE</text>
+      <text x="370" y="200" font-family="Geist Mono,monospace" font-size="7" fill="#534AB7" font-weight="600" letter-spacing="1" opacity=".7">EXEMPLARY</text>
+
+      <!-- Bottom badge: building since -->
+      <text x="240" y="430" text-anchor="middle" font-family="Geist Mono,monospace" font-size="8" fill="#8A8E87" letter-spacing="1.2">BUILT OVER TIME · ANCHORED IN BEHAVIOUR</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     MISSION BAND — multigenerational vision
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section warm">
+  <div class="container">
+    <div class="nc-eyebrow reveal">01 · The mission</div>
+    <h2 class="nc-h2 reveal reveal-d1" style="color:#0E120F;">By 2050: <span class="ital">Africa's first unanimously accepted credit system</span>.</h2>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">The credit score that exists in most parts of the world does not exist in most parts of Africa. Where it does exist — in three or four markets — it covers a fraction of the adult population, requires a formal-sector job to enter, and quietly excludes the majority of working people who manage their finances in the informal economy. The result is a continent of borrowers who have spent decades demonstrating reliability without accumulating any record of it.</p>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">The Njangi Credit Score is built to fix that. Not as a copy of FICO or Equifax adapted for Africa, but as <strong style="color:#0E120F;">a fundamentally different kind of credential</strong> — one that scores the financial behaviour African communities have always practised at scale: contributing to a circle on time, completing a cycle without defaulting, settling disputes fairly, vouching for trusted peers, building a wallet over years rather than months.</p>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">This is a <strong style="color:#0E120F;">multigenerational project</strong>. The score you build today is the credential your children inherit the foundations of tomorrow. By 2050, our ambition is for the NCS to be the credit signal a Cameroonian student carries into a Lagos apartment lease, that a Ghanaian entrepreneur presents to a Kenyan bank, that a Senegalese parent uses to underwrite their child's first car loan in Dakar. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">One credential. One continent. Recognised everywhere it matters.</em></p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     WHAT IS THE NCS — definition
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">02 · What the NCS measures</div>
+    <h2 class="nc-h2 reveal reveal-d1">Not your salary. Not your assets. <span class="ital">Your word, kept</span>.</h2>
+
+    <div class="def-grid">
+      <div class="reveal reveal-d1">
+        <p class="nc-p">A traditional credit score is built primarily from formal-sector signals: how much credit you have available, how much you have used, whether you have repaid loans on time, how long your credit history is, what mix of credit products you hold. Across most of Africa, the majority of adults have never been issued any of these instruments — through no fault of their own. They are, statistically, "credit invisible."</p>
+        <p class="nc-p">The NCS reads a different signal. It reads <strong>contribution behaviour inside trusted communities</strong>. When you join a Njangi circle and your turn to contribute comes around, do you contribute on time? When the cycle reaches its natural end, do you complete it? When a dispute arises, do you participate in good faith? When peers know you well enough to endorse you, do they? When you keep funds in your wallet, do you build a relationship with the platform over time?</p>
+        <p class="nc-p">Each of these is a behavioural data point that <strong>African finance has always recognised</strong> — but that has never been captured at scale, anchored to identity, or made portable across institutions. The NCS captures all of it, scores it according to a transparent formula, and presents it as a credential that becomes more valuable the longer you use it. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">It is not a copy of Western credit. It is a credit system rooted in how trust actually works on this continent.</em></p>
+      </div>
+      <div class="def-photo reveal reveal-d2" style="background-image:url('https://images.unsplash.com/photo-1531545514256-b1400bc00f31?auto=format&fit=crop&w=1100&q=80');">
+        <a class="img-credit" href="https://unsplash.com/" target="_blank" rel="noopener">Unsplash · placeholder</a>
+      </div>
     </div>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">300–850</div>
-      <h3>Your savings behaviour is your credit score</h3>
-      <p>The Njangi Credit Score (NCS) ranges from 300 to 850 and is calculated entirely from how you behave in savings circles — not from your bank balance or employment history.</p>
+<!-- ══════════════════════════════════════════════════════════
+     5 COMPONENTS — weighted bars
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">03 · The five components</div>
+    <h2 class="nc-h2 reveal reveal-d1">Five inputs. <span class="ital">Weighted and explained</span>.</h2>
+    <p class="nc-p reveal reveal-d2">Your NCS score is calculated from five behavioural signals, each carrying a different weight. The weights reflect what genuinely predicts trustworthiness in a community-finance context — not what looks good in a marketing slide. Reliability is the largest contributor at 35% because in informal finance, a person who pays on time is by far the most predictable indicator of a person who will keep paying on time. The full breakdown is below, and the formula is shown in the fine print at the foot of this section.</p>
+
+    <div class="comp-list reveal reveal-d3">
+
+      <div class="comp">
+        <div class="comp-row">
+          <div class="comp-name">Reliability</div>
+          <div class="comp-weight">35%</div>
+        </div>
+        <div class="comp-bar"><div class="comp-fill" style="--w:35%;width:35%;"></div></div>
+        <p class="comp-desc">The percentage of your contribution obligations met on or before the due date, across every Njangi and Pool you belong to. This is the heaviest weight because in community finance, reliability is the single strongest predictor of future reliability. A person who contributes on time twenty cycles in a row is exactly the kind of person communities are right to trust — and lenders, eventually, should be too.</p>
+      </div>
+
+      <div class="comp">
+        <div class="comp-row">
+          <div class="comp-name">Completion</div>
+          <div class="comp-weight">25%</div>
+        </div>
+        <div class="comp-bar"><div class="comp-fill" style="--w:25%;width:25%;"></div></div>
+        <p class="comp-desc">Of every cycle you have started in a Njangi, what proportion did you finish? Joining a circle and contributing for two months before disappearing is a different signal from joining and completing the full ten-month cycle. The completion ratio is what distinguishes a temporary participant from a long-term member.</p>
+      </div>
+
+      <div class="comp">
+        <div class="comp-row">
+          <div class="comp-name">Default recovery</div>
+          <div class="comp-weight">20%</div>
+        </div>
+        <div class="comp-bar"><div class="comp-fill" style="--w:20%;width:20%;"></div></div>
+        <p class="comp-desc">Everyone misses occasionally. What matters is what happens next. Missed contributions that are recovered through good-faith catch-up — within an agreed window — are scored very differently from missed contributions that escalate into defaults. Default recovery rewards the resilience of someone who falls and gets back up over the smoothness of someone who never had to.</p>
+      </div>
+
+      <div class="comp">
+        <div class="comp-row">
+          <div class="comp-name">Social trust</div>
+          <div class="comp-weight">10%</div>
+        </div>
+        <div class="comp-bar"><div class="comp-fill" style="--w:10%;width:10%;"></div></div>
+        <p class="comp-desc">Endorsements from peers you have actually completed circles with. Not abstract reviews from strangers — explicit vouches from people who have already trusted you with their money. Social trust is capped at 10% to prevent gaming, and it can be lost as easily as it is gained: a withdrawn endorsement carries weight too.</p>
+      </div>
+
+      <div class="comp">
+        <div class="comp-row">
+          <div class="comp-name">Wallet history</div>
+          <div class="comp-weight">10%</div>
+        </div>
+        <div class="comp-bar"><div class="comp-fill" style="--w:10%;width:10%;"></div></div>
+        <p class="comp-desc">The depth and consistency of your relationship with the platform itself. Time since signup, average wallet balance held, frequency of activity, KYC level completed. This is the slowest-moving component — measured in months and years rather than days — which makes it the most resistant to manipulation. Long-term users earn a structural edge that no short-term trick can replicate.</p>
+      </div>
+
     </div>
-    <div class="info-card">
-      <div class="icon">📈</div>
-      <h3>Five components, one score</h3>
-      <p>Reliability (35%), cycle completion (25%), default recovery (20%), social trust (10%), and wallet behaviour (10%) combine into a single number that tells lenders everything they need to know.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🏆</div>
-      <h3>19 achievement badges</h3>
-      <p>From your first contribution to completing ten full circles, every savings milestone earns a badge permanently recorded on your public profile.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🚀</div>
-      <h3>Unlock better financial products</h3>
-      <p>An NCS of 550 unlocks emergency loans. 650 unlocks early payout options. 750 signals Exemplary tier — the highest recognition SOHANA awards.</p>
+
+    <div class="fp-card reveal reveal-d4">
+      <h3>Fine print · how the score is calculated</h3>
+      <p>The Njangi Credit Score is a weighted composite scored on a 300–850 scale, modelled on conventional credit-bureau ranges to make the output legible to people already familiar with FICO. Every Sohana account starts at <strong>300</strong> with the platform's lowest tier of trust granted; the score then moves with each behavioural event recorded against the account.</p>
+
+      <div class="fp-formula">
+        NCS <span class="op">=</span> 300 <span class="op">+</span> 550 <span class="op">×</span> ( <span class="num">0.35</span><span class="var">·R</span> <span class="op">+</span> <span class="num">0.25</span><span class="var">·C</span> <span class="op">+</span> <span class="num">0.20</span><span class="var">·D</span> <span class="op">+</span> <span class="num">0.10</span><span class="var">·S</span> <span class="op">+</span> <span class="num">0.10</span><span class="var">·W</span> )
+      </div>
+
+      <p>Where <em>R</em> is reliability (proportion of on-time contributions, normalised), <em>C</em> is completion (proportion of started cycles finished), <em>D</em> is default recovery (a smoothed function of missed-then-recovered events), <em>S</em> is social trust (endorsement net score, capped), and <em>W</em> is wallet history (a logarithmic function of account age and activity). Each component is normalised to the 0–1 range before being weighted.</p>
+      <p>Scores are recomputed in real time on every qualifying event. The most influential event is a completed cycle (+12 points before normalisation), followed by an on-time contribution (+8), a recovered late contribution (+5), and a peer endorsement (+3). The most damaging events are a defaulted cycle (−30), a missed contribution (−18), and a withdrawn endorsement (−2). The full event-delta table appears in the section below. <strong>The formula and weights will not change without published notice and a transition window for users; this is a multigenerational tool and stability matters more than tuning.</strong></p>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════════════════════════
+     4 TIERS — using real codebase colors
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">04 · Four tiers</div>
+    <h2 class="nc-h2 reveal reveal-d1">Each tier <span class="ital">unlocks something</span>.</h2>
+    <p class="nc-p reveal reveal-d2">As your score climbs, your standing on the platform improves. Higher tiers unlock larger circle sizes, lower fees, and access to liquidity products. Tiers are not just a label — they are the mechanism by which Sohana rewards consistent behaviour with material upside, and by which partner institutions outside Sohana will, over time, recognise NCS as a credible signal.</p>
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+    <div class="tier-grid reveal reveal-d3">
+
+      <!-- Probation -->
+      <div class="tier-card prob">
+        <div class="tier-header">
+          <span class="tier-name">Probation</span>
+          <span class="tier-range">300–549</span>
+        </div>
+        <h4>The starting line</h4>
+        <p>Every new account begins here. Probation is not a punishment — it is the platform's responsible default for users who have not yet demonstrated their pattern. The goal is to graduate, and most active users do so within their first or second completed cycle.</p>
+        <ul class="tier-perks">
+          <li>Join small Njangis (up to 5 members)</li>
+          <li>Basic wallet operations enabled</li>
+          <li>Full access to score history &amp; coaching</li>
+        </ul>
+      </div>
+
+      <!-- Developing -->
+      <div class="tier-card dev">
+        <div class="tier-header">
+          <span class="tier-name">Developing</span>
+          <span class="tier-range">550–649</span>
+        </div>
+        <h4>Building the pattern</h4>
+        <p>You have demonstrated initial reliability — usually a few on-time contributions and a completed cycle or two. You can now join most Njangis on the platform, including those with stricter member criteria, and unlock the first tier of liquidity support.</p>
+        <ul class="tier-perks">
+          <li>Join most Njangis on the platform</li>
+          <li>Access to emergency liquidity loans</li>
+          <li>Personalised NCS coaching tips</li>
+        </ul>
+      </div>
+
+      <!-- Reliable -->
+      <div class="tier-card rel">
+        <div class="tier-header">
+          <span class="tier-name">Reliable</span>
+          <span class="tier-range">650–749</span>
+        </div>
+        <h4>The trusted core</h4>
+        <p>You are a user the platform — and your peers — can rely on. You have likely completed multiple cycles, kept disputes minimal, and built a wallet history that demonstrates ongoing engagement. Reliable-tier benefits make every other product on Sohana cheaper and more powerful.</p>
+        <ul class="tier-perks">
+          <li>All Njangis available — no size limit</li>
+          <li>Early-payout liquidity loans</li>
+          <li><strong>0.5% fee discount</strong> on operations</li>
+          <li>Priority support &amp; free Njangi creation</li>
+        </ul>
+      </div>
+
+      <!-- Exemplary -->
+      <div class="tier-card ex">
+        <div class="tier-header">
+          <span class="tier-name">Exemplary</span>
+          <span class="tier-range">750–850</span>
+        </div>
+        <h4>The standard-bearers</h4>
+        <p>The top tier. Reaching exemplary takes time — usually multiple years of sustained behaviour across many circles. Exemplary users are the credibility infrastructure of the entire platform. They get the full benefit suite, partner perks, and — once we begin formal credit-bureau reporting — the strongest external signal of all.</p>
+        <ul class="tier-perks">
+          <li>Maximum loan amounts available</li>
+          <li><strong>Reported to credit bureaus</strong> (where supported)</li>
+          <li>Operator privileges &amp; beta access</li>
+          <li>Free Njangi &amp; Pool creation · all partner perks unlocked</li>
+        </ul>
+      </div>
+
     </div>
   </div>
-</div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     EVENTS TABLE — every score-moving event
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">05 · What moves the score</div>
+    <h2 class="nc-h2 reveal reveal-d1">Every action <span class="ital">on the books</span>.</h2>
+    <p class="nc-p reveal reveal-d2">The full table of events that affect your NCS, with the exact point delta applied to each. There are no hidden multipliers, no "judgement adjustments" by an unknown algorithm, and no events that are weighted differently for different users. Every NCS holder on the platform sees the same numbers below.</p>
+
+    <div class="events-table-card reveal reveal-d3">
+      <table class="events-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>What it means</th>
+            <th class="num-col">Points</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cycle completed</td>
+            <td>You finished a full Njangi cycle without default. The strongest positive signal.</td>
+            <td class="num-col gain">+12</td>
+          </tr>
+          <tr>
+            <td>Contribution on time</td>
+            <td>You met a contribution obligation on or before its due date.</td>
+            <td class="num-col gain">+8</td>
+          </tr>
+          <tr>
+            <td>Contribution recovered</td>
+            <td>You missed a contribution but caught up within the agreed grace window.</td>
+            <td class="num-col gain">+5</td>
+          </tr>
+          <tr>
+            <td>Dispute resolved</td>
+            <td>A formal dispute involving you was closed with a resolution favourable to your conduct.</td>
+            <td class="num-col gain">+4</td>
+          </tr>
+          <tr>
+            <td>Peer endorsement</td>
+            <td>Another verified user vouched for your reliability after a completed circle.</td>
+            <td class="num-col gain">+3</td>
+          </tr>
+          <tr>
+            <td>Wallet deposit</td>
+            <td>You added funds to your Sohana wallet. Small, slow signal of active engagement.</td>
+            <td class="num-col gain">+1</td>
+          </tr>
+          <tr>
+            <td>Endorsement removed</td>
+            <td>A peer who previously endorsed you withdrew their endorsement.</td>
+            <td class="num-col loss">−2</td>
+          </tr>
+          <tr>
+            <td>Contribution late</td>
+            <td>You missed a contribution due date — but the grace window has not yet closed.</td>
+            <td class="num-col loss">−5</td>
+          </tr>
+          <tr>
+            <td>Dispute raised against you</td>
+            <td>A formal dispute was opened against your conduct in a Njangi or Pool.</td>
+            <td class="num-col loss">−8</td>
+          </tr>
+          <tr>
+            <td>Contribution missed</td>
+            <td>You failed to make a contribution and the grace window expired without recovery.</td>
+            <td class="num-col loss">−18</td>
+          </tr>
+          <tr>
+            <td>Cycle defaulted</td>
+            <td>You exited a Njangi without completing your obligations. The largest negative signal.</td>
+            <td class="num-col loss">−30</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="nc-p reveal reveal-d4" style="margin-top:1.25rem;font-size:.85rem;color:#8A8E87;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;">Point deltas are pre-normalisation values. After each event, all components are re-normalised and the score is recomputed via the formula above, so the actual change observed in your displayed score may differ from the delta — and will scale with how much history you already have. New users see larger swings; long-tenured users see smaller, more stable movements.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CIRCLE PASSPORT — KILLER FEATURE
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section warm" id="passport">
+  <div class="container">
+    <div class="nc-eyebrow reveal">06 · The Circle Passport</div>
+    <h2 class="nc-h2 reveal reveal-d1" style="color:#0E120F;">A digital résumé <span class="ital">that travels with you</span>.</h2>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">The Circle Passport is your portable NCS credential — a compact, beautifully designed digital document that summarises your entire Sohana history at a glance. Score. Tier. Years on the platform. Cycles completed. Reliability percentage. Endorsements earned. Badges. Every figure that matters, in one place. Designed to be presented to a landlord, a lender, a partner business, or simply to look at when you want to feel proud of what you have built.</p>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Today the passport lives inside Sohana. As we secure partnerships across the continent, the same passport becomes <strong style="color:#0E120F;">a credential you can present off-platform</strong> — verified cryptographically, owned by you, never sold to anyone. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">It is the visible artefact of years of trustworthy behaviour.</em></p>
+
+    <div class="passport-card reveal reveal-d3" style="background:#fff;border-color:rgba(20,19,15,.08);">
+
+      <!-- Header -->
+      <div class="passport-header" style="background:linear-gradient(180deg,#0E120F 0%,#161B17 100%);">
+        <div class="passport-header-l">
+          <div class="passport-photo-frame">
+            <div style="width:100%;height:100%;background:linear-gradient(135deg,#9EE493,#76E0A1);display:grid;place-items:center;font-family:'Geist',sans-serif;font-weight:700;font-size:1.6rem;color:#0E120F;">AD</div>
+          </div>
+          <div class="passport-id">
+            <div class="passport-handle">@aïcha.diallo</div>
+            <div class="passport-name">Aïcha Diallo</div>
+            <div class="passport-meta">CMR-DIPLOMA · MEMBER SINCE 2024</div>
+          </div>
+        </div>
+        <div class="passport-stamp">
+          NCS<br>VERIFIED<br><span style="font-size:.55rem;letter-spacing:.4em;">2026</span>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="passport-body" style="background:#fff;color:#0E120F;">
+
+        <!-- Left column: score + sparkline + stats -->
+        <div class="pp-section">
+          <div class="pp-label" style="color:rgba(20,19,15,.55);">Current Score</div>
+          <div class="pp-score-block">
+            <span class="num">712</span>
+            <span class="of" style="color:rgba(20,19,15,.4);">/ 850</span>
+            <span class="tier-pill">Reliable</span>
+          </div>
+
+          <div class="pp-label" style="color:rgba(20,19,15,.55);margin-top:.85rem;">24-month history</div>
+          <svg class="pp-spark" viewBox="0 0 320 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
+                <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path class="area" d="M 0 38 L 18 36 L 38 32 L 56 30 L 76 25 L 96 22 L 116 24 L 136 18 L 156 16 L 176 13 L 196 14 L 216 10 L 236 11 L 256 8 L 276 6 L 296 5 L 320 4 L 320 48 L 0 48 Z"/>
+            <path class="line" d="M 0 38 L 18 36 L 38 32 L 56 30 L 76 25 L 96 22 L 116 24 L 136 18 L 156 16 L 176 13 L 196 14 L 216 10 L 236 11 L 256 8 L 276 6 L 296 5 L 320 4"/>
+            <circle class="point" cx="0"   cy="38" r="2"/>
+            <circle class="point" cx="76"  cy="25" r="2"/>
+            <circle class="point" cx="156" cy="16" r="2"/>
+            <circle class="point" cx="236" cy="11" r="2"/>
+            <circle class="point latest" cx="320" cy="4" r="3.5"/>
+          </svg>
+          <div style="font-family:'Geist Mono',monospace;font-size:.65rem;color:rgba(20,19,15,.45);display:flex;justify-content:space-between;letter-spacing:.04em;">
+            <span>Q1 2024 · 480</span>
+            <span>Q1 2026 · 712</span>
+          </div>
+
+          <div class="pp-stats-grid" style="margin-top:.7rem;">
+            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
+              <div class="v" style="color:#0E120F;">12</div>
+              <div class="l" style="color:rgba(20,19,15,.55);">Cycles completed</div>
+            </div>
+            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
+              <div class="v" style="color:#0E120F;">96.4%</div>
+              <div class="l" style="color:rgba(20,19,15,.55);">Reliability</div>
+            </div>
+            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
+              <div class="v" style="color:#0E120F;">2y 4m</div>
+              <div class="l" style="color:rgba(20,19,15,.55);">Tenure</div>
+            </div>
+            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
+              <div class="v" style="color:#0E120F;">24</div>
+              <div class="l" style="color:rgba(20,19,15,.55);">Endorsements</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column: badges + history -->
+        <div class="pp-section">
+          <div class="pp-label" style="color:rgba(20,19,15,.55);">Recent activity</div>
+          <div style="display:flex;flex-direction:column;gap:.5rem;font-family:'Geist Mono',monospace;font-size:.78rem;line-height:1.5;">
+            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Cycle completed · Yaoundé Alumni</span><span style="color:#0F6E56;font-weight:600;">+12</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Contribution on time × 8</span><span style="color:#0F6E56;font-weight:600;">+64</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Peer endorsement · @kofi</span><span style="color:#0F6E56;font-weight:600;">+3</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Wallet deposit × 4</span><span style="color:#0F6E56;font-weight:600;">+4</span></div>
+            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Cycle completed · Diaspora Pool</span><span style="color:#0F6E56;font-weight:600;">+12</span></div>
+          </div>
+
+          <div class="pp-label" style="color:rgba(20,19,15,.55);margin-top:.85rem;">Earned badges</div>
+          <div class="pp-badges">
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🌱</span>First contribution</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🎯</span>3-streak</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🔥</span>5-streak</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">⚡</span>10-streak</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">⭕</span>1st cycle</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🏅</span>5 cycles</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🏆</span>10 cycles</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">📈</span>Score 550</span>
+            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">💪</span>Score 650</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="passport-footer" style="background:rgba(20,19,15,.04);color:rgba(20,19,15,.6);">
+        <div class="verify-row" style="color:#0F6E56;">Cryptographically signed · ID 0xA3F · 06 May 2026</div>
+        <div>Owned by <span style="color:#0E120F;font-weight:600;">@aïcha.diallo</span> · revocable anytime</div>
+      </div>
+
+      <!-- MRZ-style footer (passport-like) -->
+      <div class="passport-mrz" style="background:#0E120F;">
+        NCS&lt;&lt;DIALLO&lt;AICHA&lt;&lt;CMR&lt;19940312&lt;712&lt;RELIABLE&lt;2026<br>
+        &lt;&lt;&lt;&lt;0xA3F8C2D14E7B9501&lt;&lt;CYCLES012&lt;ENDORSE024&lt;TENURE028M
+      </div>
+    </div>
+
+    <p class="nc-p reveal reveal-d4" style="color:rgba(20,19,15,.55);font-size:.82rem;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;margin-top:1.5rem;">Above is a representative example of a Circle Passport. Real passports are generated for every Sohana account from their actual on-platform history. The passport is yours, owned by you, and never displayed without your active permission. Cryptographic signing and external verification are scheduled for the 2027 platform release.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     SCORE SIMULATOR — interactive
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">07 · Try the simulator</div>
+    <h2 class="nc-h2 reveal reveal-d1">Pick events. <span class="ital">Watch the score move</span>.</h2>
+    <p class="nc-p reveal reveal-d2">Below is a working simulator that uses the same point deltas as the real NCS engine. Start with a fresh account at 300, then click any event to see how the score moves and which tier it lands in. The platform behaves identically, in real time, against your actual account history.</p>
+
+    <div class="sim-card reveal reveal-d3">
+      <div class="sim-grid">
+        <div class="sim-actions">
+          <h4>Click any event to apply it</h4>
+          <button class="sim-btn" onclick="simApply('cycle_completed', 12, 'Cycle completed')">
+            <span class="nm">Cycle completed</span>
+            <span class="delta pos">+12</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('contribution_on_time', 8, 'Contribution on time')">
+            <span class="nm">Contribution on time</span>
+            <span class="delta pos">+8</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('contribution_recovered', 5, 'Contribution recovered')">
+            <span class="nm">Contribution recovered after late</span>
+            <span class="delta pos">+5</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('dispute_resolved', 4, 'Dispute resolved')">
+            <span class="nm">Dispute resolved</span>
+            <span class="delta pos">+4</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('peer_endorsement', 3, 'Peer endorsement')">
+            <span class="nm">Peer endorsement</span>
+            <span class="delta pos">+3</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('wallet_deposit', 1, 'Wallet deposit')">
+            <span class="nm">Wallet deposit</span>
+            <span class="delta pos">+1</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('contribution_late', -5, 'Contribution late')">
+            <span class="nm">Contribution late</span>
+            <span class="delta neg">−5</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('dispute_raised', -8, 'Dispute raised')">
+            <span class="nm">Dispute raised against you</span>
+            <span class="delta neg">−8</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('contribution_missed', -18, 'Contribution missed')">
+            <span class="nm">Contribution missed (no recovery)</span>
+            <span class="delta neg">−18</span>
+          </button>
+          <button class="sim-btn" onclick="simApply('cycle_defaulted', -30, 'Cycle defaulted')">
+            <span class="nm">Cycle defaulted</span>
+            <span class="delta neg">−30</span>
+          </button>
+        </div>
+
+        <div class="sim-display">
+          <div class="lbl">Your simulated NCS</div>
+          <div class="score" id="sim-score">300</div>
+          <div class="tier-name" id="sim-tier">Probation</div>
+          <div class="last-event" id="sim-last">Click any event on the left to apply it.</div>
+          <button class="sim-reset" onclick="simReset()">Reset to 300</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PARTNERSHIP ECONOMY (warm)
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section warm">
+  <div class="container">
+    <div class="nc-eyebrow reveal">08 · The partnership economy</div>
+    <h2 class="nc-h2 reveal reveal-d1" style="color:#0E120F;">Real perks for real reliability — <span class="ital">across the continent</span>.</h2>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">A credit score is only valuable if it unlocks something. As the NCS scales, we are partnering with hotels, banks, telecommunications operators, insurance providers, education institutions, and mobility services across Africa — each bringing a real benefit that good NCS holders can claim. The categories below sketch the partnership landscape we are building. Specific partner brands will be announced as agreements are signed and cleared for launch.</p>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Every perk follows the same logic: <strong style="color:#0E120F;">trustworthy users cost partners less to serve, and that cost saving gets shared back with the user as a real benefit</strong>. A reliable hotel guest is worth more to a hotel than a stranger. A well-scored borrower is worth more to a bank. A safe driver is worth more to an insurer. The NCS is the credible signal that quantifies that worth — and the partnership economy is how the value flows back.</p>
+
+    <div class="part-grid">
+
+      <!-- HOTELS -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Hotels &amp; hospitality</span>
+        </div>
+        <div class="part-body">
+          <h4>Skip the deposit. Get the upgrade.</h4>
+          <p>Hotels lose money on damage deposits, no-shows, and uncertainty about new guests. NCS-verified guests reduce that risk dramatically — and the hotel can pass the savings back as preferential treatment.</p>
+          <div class="part-perk">
+            <span class="tier-required">Reliable+</span>
+            <strong>Waived security deposits</strong>, room upgrades on availability, late checkout, partner loyalty pre-credit.
+          </div>
+        </div>
+      </div>
+
+      <!-- BANKS -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Banks &amp; lenders</span>
+        </div>
+        <div class="part-body">
+          <h4>Lower rates. Higher limits. Faster decisions.</h4>
+          <p>Banks across the continent struggle to underwrite informal-sector applicants. The NCS gives them a defensible signal of repayment behaviour — letting them serve more people with confidence and price risk fairly.</p>
+          <div class="part-perk">
+            <span class="tier-required">Reliable+</span>
+            <strong>Reduced interest rates</strong>, higher pre-approved credit limits, accelerated personal-loan decisions, fee waivers on first products.
+          </div>
+        </div>
+      </div>
+
+      <!-- TELCOS -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1556656793-08538906a9f8?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Telecoms &amp; mobile</span>
+        </div>
+        <div class="part-body">
+          <h4>Devices on terms. Plans without prepay.</h4>
+          <p>Mobile-network operators issue handsets, data plans, and post-paid packages — all of which carry repayment risk. NCS-verified subscribers can be offered post-paid plans and device financing without the punitive prepayment screening.</p>
+          <div class="part-perk">
+            <span class="tier-required">Developing+</span>
+            <strong>Post-paid eligibility without prepayment</strong>, device-financing instalments, premium-tier service on day one.
+          </div>
+        </div>
+      </div>
+
+      <!-- INSURANCE -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Insurance</span>
+        </div>
+        <div class="part-body">
+          <h4>Better premiums. Pay-as-you-need cover.</h4>
+          <p>Health, motor, and life insurers price risk on aggregate signals. The NCS adds a behavioural data point — how reliably someone keeps commitments — that is genuinely correlated with risk profile. Reliable holders get rewarded.</p>
+          <div class="part-perk">
+            <span class="tier-required">Reliable+</span>
+            <strong>Reduced premium rates</strong>, simplified underwriting, family-plan extensions, partner-clinic access.
+          </div>
+        </div>
+      </div>
+
+      <!-- EDUCATION -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Education</span>
+        </div>
+        <div class="part-body">
+          <h4>Tuition financing. Scholarship priority.</h4>
+          <p>Universities and training institutions across the continent struggle with student-loan defaults. NCS-verified parents and students offer a credible signal — and partner institutions can extend instalment plans, defer first payments, and prioritise scholarship review.</p>
+          <div class="part-perk">
+            <span class="tier-required">Developing+</span>
+            <strong>Tuition instalment plans</strong>, deferred first payment, partner-institution scholarship priority, library-access bundles.
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILITY -->
+      <div class="part-card">
+        <div class="part-photo" style="background-image:url('https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=900&q=80');">
+          <span class="lbl">Mobility &amp; transport</span>
+        </div>
+        <div class="part-body">
+          <h4>Rentals without holds. Loans without surety.</h4>
+          <p>Car rental, ride-share-credit, and motorcycle financing all carry asset-recovery risk. NCS verification reduces that risk and lets partners offer cleaner terms — particularly meaningful for diaspora users renting on visits home.</p>
+          <div class="part-perk">
+            <span class="tier-required">Reliable+</span>
+            <strong>Waived rental security holds</strong>, motorcycle &amp; car-loan eligibility, ride-share credit packages, fast-track booking.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="nc-p reveal reveal-d4" style="color:rgba(20,19,15,.55);font-size:.82rem;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;margin-top:1.5rem;">Partnership categories above are illustrative of the verticals Sohana is actively pursuing. Specific named partner agreements will be announced as they clear regulatory and commercial review. The NCS itself is fully operational on-platform today; partner integrations follow on the roadmap below.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     2050 ROADMAP — multigenerational vision
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">09 · The road to 2050</div>
+    <h2 class="nc-h2 reveal reveal-d1">A multigenerational <span class="ital">credit standard</span>.</h2>
+    <p class="nc-p reveal reveal-d2">The NCS is not a sprint. The credit standards that exist in mature markets — FICO, Experian, Equifax — were not built in a year, or even a decade. They became universally recognised because they kept the same methodology stable across generations of users, accumulated trust slowly, and earned the recognition of every financial institution that mattered. The NCS is built with the same patience.</p>
+    <p class="nc-p reveal reveal-d2">The phased plan below is how a Cameroonian student opening their first Sohana account today builds the foundation for a continent-wide credential by the time they have children of their own.</p>
+
+    <div class="timeline reveal reveal-d3">
+
+      <div class="tl-item">
+        <div class="tl-marker now">●</div>
+        <div class="tl-year">2024 — 2026 · Today</div>
+        <h3>Phase 1 · Internal NCS, on-platform behaviour</h3>
+        <p>The NCS exists today as the trust signal inside Sohana itself. It governs which Njangis you can join, which Pools admit you, which liquidity products you qualify for, and what creation fees you pay. Every Sohana user already has an NCS, every action in the platform already moves it, and the full Circle Passport is already generated for every account. <strong>The foundation is laid.</strong></p>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-marker">2</div>
+        <div class="tl-year">2026 — 2027 · Next</div>
+        <h3>Phase 2 · First partner integrations</h3>
+        <p>Sohana begins formal partnerships with hotels, banks, telecoms, insurers, and education institutions across our launch markets — France, UK, Cameroon, Ghana, Nigeria, South Africa. Each partner agrees a defined perk schedule tied to NCS tier, and the Circle Passport becomes presentable off-platform via secure verified-share. <strong>The score starts being valued outside Sohana.</strong></p>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-marker">3</div>
+        <div class="tl-year">2027 — 2030 · Building</div>
+        <h3>Phase 3 · Cross-platform recognition</h3>
+        <p>The NCS protocol is opened to other African fintechs through a verified-credential standard. Other platforms can read your NCS — with your consent — and surface it inside their own products. By the end of this phase, the score is recognised across the major financial-technology platforms in our launch markets, and credit-bureau reporting begins for exemplary-tier holders in jurisdictions that support it. <strong>The score becomes portable.</strong></p>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-marker future">4</div>
+        <div class="tl-year">2030 — 2040 · Scaling</div>
+        <h3>Phase 4 · Continental coverage</h3>
+        <p>Direct integrations with Pan-African banking groups (Ecobank, UBA, Standard Bank, Equity, etc.), AfCFTA-aligned mobility partners, and continental e-commerce platforms. The NCS becomes a credible signal in any African market where Sohana operates, and the Circle Passport begins appearing in standard credit-application forms. Holders who have been on the platform since Phase 1 carry years of compounded reliability data. <strong>The score becomes infrastructure.</strong></p>
+      </div>
+
+      <div class="tl-item future">
+        <div class="tl-marker future">5</div>
+        <div class="tl-year">2040 — 2050 · The horizon</div>
+        <h3>Phase 5 · The unanimously accepted standard</h3>
+        <p>By 2050, our ambition is for the NCS to be the credit signal that every credible financial institution operating on the African continent recognises by default. Not the only credit signal — that is not the goal — but the one that is unanimously accepted, alongside whatever bureau scores exist in individual markets. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;">A child born today, signing up to Sohana at eighteen, presents a Circle Passport that opens a door anywhere on the continent.</em></p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PRIVACY & ETHICS
+══════════════════════════════════════════════════════════ -->
+<section class="nc-section">
+  <div class="container">
+    <div class="nc-eyebrow reveal">10 · Privacy &amp; ethics</div>
+    <h2 class="nc-h2 reveal reveal-d1">A credential is only valuable <span class="ital">if you own it</span>.</h2>
+    <p class="nc-p reveal reveal-d2">Every traditional credit bureau on earth has been built on a model where the bureau owns your data, sells it to lenders, and profits from your record. The NCS is built on a different model: <strong>your data belongs to you, your passport is yours to share or revoke, and Sohana never sells your behavioural record to anyone</strong>. The full set of principles is below — and they will not change without published notice and a transition window.</p>
+
+    <div class="priv-grid reveal reveal-d3">
+      <div class="priv-card">
+        <div class="priv-icon">⊕</div>
+        <h4>You own your data</h4>
+        <p>Your NCS history is yours, accessed through the platform like any other personal record. You can export it, contest events, and request deletion at any time. Sohana is the custodian, not the owner.</p>
+      </div>
+
+      <div class="priv-card">
+        <div class="priv-icon">⊟</div>
+        <h4>The score is portable</h4>
+        <p>From 2027, your Circle Passport will support secure off-platform verification — meaning you can present it to a partner, lender, or institution, and they can verify it without Sohana ever sharing your underlying data with them.</p>
+      </div>
+
+      <div class="priv-card">
+        <div class="priv-icon">⌘</div>
+        <h4>It is never sold</h4>
+        <p>Your behavioural record, your transaction history, and your NCS data are never sold, leased, or licensed to third parties. We earn revenue from platform fees and partnership royalties — not from your data.</p>
+      </div>
+
+      <div class="priv-card">
+        <div class="priv-icon">✕</div>
+        <h4>You can revoke shares</h4>
+        <p>Every external share of your Circle Passport is revocable. If you grant access to a partner, you can revoke that access at any time, and any future verification attempt against the revoked share fails.</p>
+      </div>
+
+      <div class="priv-card">
+        <div class="priv-icon">⌥</div>
+        <h4>Disputable events</h4>
+        <p>Every event that affects your score is logged with timestamp, source, and explanation. If an event is incorrect — a wrongly recorded missed contribution, an invalid dispute — you can challenge it and a manual reviewer evaluates the case.</p>
+      </div>
+
+      <div class="priv-card">
+        <div class="priv-icon">⊞</div>
+        <h4>Stable methodology</h4>
+        <p>The five components, their weights, and the event-delta table do not change without published notice and a transition window of at least 90 days. Stability matters more than tuning when the score is meant to last decades.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTA
+══════════════════════════════════════════════════════════ -->
+<section class="nc-cta">
+  <div class="container">
+    <h2>Start the score that <span class="ital">your future will recognise</span>.</h2>
+    <p>Every account opened today is the foundation of a multigenerational credential. The score you start now is the credibility your children inherit the framework of — and that the continent, by 2050, learns to read by default.</p>
+    <div class="nc-cta-row">
+      <a href="/auth" class="nc-cta-primary">Start building your score →</a>
+      <a href="/njangi" class="nc-cta-ghost">Join your first circle</a>
+      <a href="/about" class="nc-cta-ghost">Read our story</a>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ──────── SCORE SIMULATOR ──────── */
+var simState = { score: 300, history: [] };
+
+function simTier(s){
+  if (s >= 750) return { name: 'Exemplary',  color: '#534AB7', bg: 'rgba(83,74,183,.18)', border: '#534AB7' };
+  if (s >= 650) return { name: 'Reliable',   color: '#0F6E56', bg: 'rgba(15,110,86,.18)', border: '#0F6E56' };
+  if (s >= 550) return { name: 'Developing', color: '#BA7517', bg: 'rgba(186,117,23,.18)', border: '#BA7517' };
+  return { name: 'Probation', color: '#D85A30', bg: 'rgba(216,90,48,.18)', border: '#D85A30' };
+}
+
+function simApply(eventKey, delta, label){
+  // Clamp 300-850
+  simState.score = Math.max(300, Math.min(850, simState.score + delta));
+  simState.history.push({ event: label, delta: delta });
+
+  var scoreEl = document.getElementById('sim-score');
+  var tierEl  = document.getElementById('sim-tier');
+  var lastEl  = document.getElementById('sim-last');
+
+  scoreEl.textContent = simState.score;
+  var t = simTier(simState.score);
+  tierEl.textContent = t.name;
+  tierEl.style.color = t.color;
+  tierEl.style.background = t.bg;
+  tierEl.style.borderColor = t.border;
+
+  var sign = delta >= 0 ? '+' : '';
+  var symb = delta >= 0 ? '↑' : '↓';
+  var color = delta >= 0 ? '#9EE493' : '#FF8A50';
+  lastEl.innerHTML = '<span style="color:' + color + ';font-weight:600;">' + symb + ' ' + sign + delta + '</span> · <strong>' + label + '</strong><br><span style="opacity:.7;">' + simState.history.length + ' event' + (simState.history.length === 1 ? '' : 's') + ' applied</span>';
+
+  // Brief flash
+  scoreEl.style.transform = 'scale(1.08)';
+  setTimeout(function(){ scoreEl.style.transform = 'scale(1)' }, 200);
+}
+
+function simReset(){
+  simState = { score: 300, history: [] };
+  document.getElementById('sim-score').textContent = 300;
+  var tierEl = document.getElementById('sim-tier');
+  tierEl.textContent = 'Probation';
+  tierEl.style.color = '#D85A30';
+  tierEl.style.background = 'rgba(216,90,48,.18)';
+  tierEl.style.borderColor = '#D85A30';
+  document.getElementById('sim-last').innerHTML = 'Click any event on the left to apply it.';
+}
+
+/* ──────── REVEAL OBSERVER ──────── */
+(function(){
+  if(!('IntersectionObserver' in window)){
+    document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')}); return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+  },{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+  document.querySelectorAll('.reveal:not(.in)').forEach(function(el){io.observe(el)});
+})();
+</script>
 {% endblock %}
