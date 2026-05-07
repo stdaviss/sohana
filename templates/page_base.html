@@ -11,17 +11,53 @@
 body{font-family:'Geist','Inter',system-ui,sans-serif;color:#F4F2EC;background:#0E120F;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";}.mono{font-family:'Geist Mono',ui-monospace,monospace;font-feature-settings:"tnum";}.ital,.serif{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
 a{color:inherit;text-decoration:none;}
 
-/* NAV */
-nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(244,242,236,.1);padding:0 5%;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-.nav-logo{display:flex;align-items:center;gap:8px;}
-.nav-logo-dots{display:flex;gap:3px;}
-.nav-dot{width:9px;height:9px;border-radius:50%;}
-.nav-logo-text{font-size:1rem;font-weight:800;color:#fff;letter-spacing:-.01em;}
-.nav-links{display:flex;gap:2rem;align-items:center;}
-.nav-links a{font-size:.875rem;color:#B7BAB4;transition:color .15s;}
-.nav-links a:hover{color:#F4F2EC;}
-.btn-signin{border:1px solid rgba(244,242,236,.2);border-radius:999px;padding:.4rem 1.1rem;font-size:.85rem;color:#B7BAB4;font-weight:500;transition:all .15s;}
-.btn-join{background:#9EE493;border:none;border-radius:999px;padding:.4rem 1.2rem;font-size:.85rem;color:#0E120F;font-weight:600;cursor:pointer;transition:all .15s;}
+/* NAV — unified header (consistent across all pages) */
+nav.site-nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid rgba(244,242,236,.1);padding:0;height:64px;display:flex;align-items:center;position:sticky;top:0;z-index:100;}
+.site-nav-row{max-width:1200px;width:100%;margin:0 auto;padding:0 5%;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.site-nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0;}
+.site-nav-logo-mark{width:26px;height:26px;border-radius:7px;background:#9EE493;display:grid;place-items:center;color:#0E120F;font-weight:700;font-size:13px;letter-spacing:-0.02em;flex-shrink:0;font-family:'Geist',sans-serif;}
+.site-nav-logo-text{font-size:1rem;font-weight:700;color:#F4F2EC;letter-spacing:-.01em;font-family:'Geist',sans-serif;}
+.site-nav-links{display:flex;gap:2rem;align-items:center;}
+.site-nav-link{font-size:.875rem;color:#B7BAB4;transition:color .15s;text-decoration:none;font-family:'Geist',sans-serif;cursor:pointer;background:none;border:none;padding:0;font-weight:400;}
+.site-nav-link:hover{color:#F4F2EC;}
+.site-nav-actions{display:flex;align-items:center;gap:.6rem;flex-shrink:0;}
+.site-nav-signin{border:1px solid rgba(244,242,236,.2);border-radius:999px;padding:.4rem 1.1rem;font-size:.85rem;color:#B7BAB4;font-weight:500;transition:all .15s;text-decoration:none;font-family:'Geist',sans-serif;}
+.site-nav-signin:hover{color:#F4F2EC;border-color:rgba(244,242,236,.35);}
+.site-nav-join{background:#9EE493;border:none;border-radius:999px;padding:.4rem 1.2rem;font-size:.85rem;color:#0E120F;font-weight:600;cursor:pointer;transition:all .15s;text-decoration:none;font-family:'Geist',sans-serif;}
+.site-nav-join:hover{background:#cef870;}
+
+/* Products dropdown */
+.site-nav-dropdown{position:relative;}
+.site-nav-trigger{display:inline-flex;align-items:center;gap:.3rem;}
+.site-nav-trigger::after{content:"";display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid currentColor;margin-left:2px;transition:transform .2s;opacity:.7;}
+.site-nav-dropdown:hover .site-nav-trigger::after,.site-nav-dropdown.open .site-nav-trigger::after{transform:rotate(180deg);}
+.site-nav-dropdown:hover .site-nav-trigger,.site-nav-dropdown.open .site-nav-trigger{color:#F4F2EC;}
+.site-nav-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%) translateY(-6px);min-width:520px;padding:1rem;background:rgba(22,27,23,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(244,242,236,.1);border-radius:18px;box-shadow:0 20px 60px -10px rgba(0,0,0,.6);opacity:0;visibility:hidden;pointer-events:none;transition:all .2s ease;z-index:101;display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+.site-nav-dropdown:hover .site-nav-menu,.site-nav-dropdown.open .site-nav-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+/* Bridge so the menu doesn't disappear when crossing the gap */
+.site-nav-menu::before{content:"";position:absolute;top:-12px;left:0;right:0;height:12px;}
+.site-nav-menu-item{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem .85rem;border-radius:12px;text-decoration:none;transition:background .15s;}
+.site-nav-menu-item:hover{background:rgba(158,228,147,.06);}
+.site-nav-menu-icon{width:36px;height:36px;border-radius:9px;background:rgba(158,228,147,.1);color:#9EE493;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:.85rem;flex-shrink:0;border:1px solid rgba(158,228,147,.2);}
+.site-nav-menu-content{flex:1;min-width:0;}
+.site-nav-menu-title{font-size:.92rem;font-weight:600;color:#F4F2EC;margin-bottom:.18rem;letter-spacing:-.005em;font-family:'Geist',sans-serif;}
+.site-nav-menu-desc{font-size:.78rem;color:#8A8E87;line-height:1.4;font-family:'Geist',sans-serif;}
+
+/* Mobile menu */
+.site-nav-burger{display:none;background:none;border:1px solid rgba(244,242,236,.15);border-radius:8px;width:36px;height:36px;align-items:center;justify-content:center;cursor:pointer;color:#F4F2EC;}
+.site-nav-mobile{display:none;position:fixed;top:64px;left:0;right:0;bottom:0;background:rgba(14,18,15,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:99;padding:2rem 5%;flex-direction:column;gap:.4rem;overflow-y:auto;}
+.site-nav-mobile.open{display:flex;}
+.site-nav-mobile-link{padding:.95rem 1rem;border-radius:10px;color:#F4F2EC;font-size:1rem;font-weight:500;text-decoration:none;border-bottom:1px solid rgba(244,242,236,.06);font-family:'Geist',sans-serif;}
+.site-nav-mobile-link:hover{background:rgba(158,228,147,.05);}
+.site-nav-mobile-section-title{padding:.7rem 1rem .4rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-top:.5rem;}
+.site-nav-mobile-sub{padding:.7rem 1rem .7rem 2rem;color:#B7BAB4;font-size:.92rem;text-decoration:none;border-bottom:1px solid rgba(244,242,236,.04);font-family:'Geist',sans-serif;}
+.site-nav-mobile-bottom{margin-top:1rem;display:flex;flex-direction:column;gap:.6rem;padding-top:1.5rem;border-top:1px solid rgba(244,242,236,.1);}
+
+@media(max-width:880px){
+  .site-nav-links{display:none;}
+  .site-nav-actions .site-nav-signin,.site-nav-actions .site-nav-join{display:none;}
+  .site-nav-burger{display:inline-flex;}
+}
 
 /* CONTAINER */
 .container{max-width:1200px;margin:0 auto;padding:0 5%;}
@@ -74,26 +110,118 @@ nav{background:rgba(14,18,15,.85);backdrop-filter:blur(18px);-webkit-backdrop-fi
 @media(max-width:768px){
   .footer-links-grid{grid-template-columns:1fr;}
   .footer-legal-links{grid-template-columns:1fr 1fr;}
-  nav .nav-links{display:none;}
 }
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="nav-logo">
-    <div style="width:26px;height:26px;border-radius:8px;background:#9EE493;display:grid;place-items:center;color:#0E120F;font-weight:700;font-size:13px;letter-spacing:-0.02em;flex-shrink:0;">S</div>
-    <span class="nav-logo-text">SOHANA</span>
-  </a>
-  <div class="nav-links">
-    <a href="/#features">Features</a>
-    <a href="/how-it-works">How it works</a>
-    <a href="/ncs-guide">NCS Score</a>
-    <a href="/blog">Blog</a>
-    <a href="/auth" class="btn-signin">Sign in</a>
-    <a href="/auth" class="btn-join">Join waitlist</a>
+<nav class="site-nav">
+  <div class="site-nav-row">
+    <a href="/" class="site-nav-logo">
+      <div class="site-nav-logo-mark">S</div>
+      <span class="site-nav-logo-text">SOHANA</span>
+    </a>
+
+    <div class="site-nav-links">
+      <!-- PRODUCTS dropdown -->
+      <div class="site-nav-dropdown" id="prod-drop">
+        <button class="site-nav-link site-nav-trigger" onclick="event.stopPropagation();document.getElementById('prod-drop').classList.toggle('open');">Products</button>
+        <div class="site-nav-menu">
+          <a href="/njangi" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">⊙</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">Circles (Njangi)</div>
+              <div class="site-nav-menu-desc">Rotating savings groups</div>
+            </div>
+          </a>
+          <a href="/pools-page" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">⊟</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">Contribution Pools</div>
+              <div class="site-nav-menu-desc">Shared community treasury</div>
+            </div>
+          </a>
+          <a href="/fundraising" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">♡</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">Fundraising &amp; Donations</div>
+              <div class="site-nav-menu-desc">Verified campaigns for African causes</div>
+            </div>
+          </a>
+          <a href="/hanapay" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">@</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">Hanapay</div>
+              <div class="site-nav-menu-desc">Send money by username</div>
+            </div>
+          </a>
+          <a href="/wallet-page" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">◊</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">Multi-currency Wallet</div>
+              <div class="site-nav-menu-desc">8 currencies, instant transfers</div>
+            </div>
+          </a>
+          <a href="/ncs-page" class="site-nav-menu-item">
+            <div class="site-nav-menu-icon">⌬</div>
+            <div class="site-nav-menu-content">
+              <div class="site-nav-menu-title">NCS Credit Score</div>
+              <div class="site-nav-menu-desc">Africa's behavioural credential</div>
+            </div>
+          </a>
+        </div>
+      </div>
+      <a href="/ncs-page" class="site-nav-link">NCS</a>
+      <a href="/currencies" class="site-nav-link">Currency Explorer</a>
+      <a href="/blog" class="site-nav-link">Community</a>
+      <a href="/about" class="site-nav-link">Company</a>
+    </div>
+
+    <div class="site-nav-actions">
+      <a href="/auth" class="site-nav-signin">Sign in</a>
+      <a href="/auth" class="site-nav-join">Join waitlist</a>
+      <button class="site-nav-burger" onclick="document.getElementById('site-nav-mobile').classList.toggle('open');" aria-label="Menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="1.8" fill="none"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
   </div>
 </nav>
+
+<!-- Mobile menu -->
+<div class="site-nav-mobile" id="site-nav-mobile">
+  <div class="site-nav-mobile-section-title">Products</div>
+  <a href="/njangi" class="site-nav-mobile-sub">Circles (Njangi)</a>
+  <a href="/pools-page" class="site-nav-mobile-sub">Contribution Pools</a>
+  <a href="/fundraising" class="site-nav-mobile-sub">Fundraising &amp; Donations</a>
+  <a href="/hanapay" class="site-nav-mobile-sub">Hanapay</a>
+  <a href="/wallet-page" class="site-nav-mobile-sub">Multi-currency Wallet</a>
+  <a href="/ncs-page" class="site-nav-mobile-sub">NCS Credit Score</a>
+
+  <div class="site-nav-mobile-section-title">Explore</div>
+  <a href="/ncs-page" class="site-nav-mobile-link">NCS</a>
+  <a href="/currencies" class="site-nav-mobile-link">Currency Explorer</a>
+  <a href="/blog" class="site-nav-mobile-link">Community</a>
+  <a href="/about" class="site-nav-mobile-link">Company</a>
+
+  <div class="site-nav-mobile-bottom">
+    <a href="/auth" class="site-nav-signin" style="text-align:center;">Sign in</a>
+    <a href="/auth" class="site-nav-join" style="text-align:center;">Join waitlist →</a>
+  </div>
+</div>
+
+<script>
+/* Close dropdown when clicking outside */
+document.addEventListener('click', function(e){
+  var d = document.getElementById('prod-drop');
+  if (d && !d.contains(e.target)) d.classList.remove('open');
+});
+/* Close mobile menu on link click */
+document.querySelectorAll('.site-nav-mobile a').forEach(function(a){
+  a.addEventListener('click', function(){
+    document.getElementById('site-nav-mobile').classList.remove('open');
+  });
+});
+</script>
 
 {% block content %}{% endblock %}
 

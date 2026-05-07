@@ -120,6 +120,23 @@ body{
 }
 .lang-toggle button.on{background:var(--ink);color:var(--bg)}
 
+/* Products dropdown — themed using landing CSS vars */
+.ln-dropdown{position:relative;display:inline-block;}
+.ln-dd-trigger{appearance:none;background:none;border:none;color:var(--ink-2);font:inherit;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;padding:0;transition:color .15s;}
+.ln-dd-trigger::after{content:"";display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:4px solid currentColor;margin-left:2px;transition:transform .2s;opacity:.7;}
+.ln-dropdown:hover .ln-dd-trigger::after,.ln-dropdown.open .ln-dd-trigger::after{transform:rotate(180deg);}
+.ln-dropdown:hover .ln-dd-trigger,.ln-dropdown.open .ln-dd-trigger{color:var(--ink);}
+.ln-dd-menu{position:absolute;top:calc(100% + 16px);left:50%;transform:translateX(-50%) translateY(-6px);min-width:520px;padding:1rem;background:var(--surface,rgba(22,27,23,.97));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px -10px rgba(0,0,0,.45);opacity:0;visibility:hidden;pointer-events:none;transition:all .2s ease;z-index:101;display:grid;grid-template-columns:1fr 1fr;gap:.4rem;}
+[data-theme="light"] .ln-dd-menu{background:rgba(255,255,255,.98);box-shadow:0 20px 60px -10px rgba(20,19,15,.15);}
+.ln-dropdown:hover .ln-dd-menu,.ln-dropdown.open .ln-dd-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translateX(-50%) translateY(0);}
+.ln-dd-menu::before{content:"";position:absolute;top:-16px;left:0;right:0;height:16px;}
+.ln-dd-item{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem .85rem;border-radius:12px;text-decoration:none;transition:background .15s;}
+.ln-dd-item:hover{background:color-mix(in oklch,var(--accent) 8%,transparent);}
+.ln-dd-icon{width:36px;height:36px;border-radius:9px;background:color-mix(in oklch,var(--accent) 12%,transparent);color:var(--accent);display:grid;place-items:center;font-family:'Geist Mono',monospace;font-weight:600;font-size:.85rem;flex-shrink:0;border:1px solid color-mix(in oklch,var(--accent) 25%,transparent);}
+.ln-dd-content{flex:1;min-width:0;}
+.ln-dd-title{font-size:.92rem;font-weight:600;color:var(--ink);margin-bottom:.18rem;letter-spacing:-.005em;}
+.ln-dd-desc{font-size:.78rem;color:var(--ink-3);line-height:1.4;}
+
 /* Hamburger (mobile) */
 .nav-burger{
   display:none;appearance:none;border:1px solid var(--line-2);
@@ -651,11 +668,58 @@ button:focus-visible,a:focus-visible,input:focus-visible{
       <span>Sohana</span>
     </a>
     <div class="nav-links">
-      <a href="#circles">Circles</a>
-      <a href="#credit">NCS Credit</a>
-      <a href="#calculator">Calculator</a>
-      <a href="#stories">Community</a>
-      <a href="#company">Company</a>
+      <!-- PRODUCTS dropdown -->
+      <div class="ln-dropdown" id="ln-prod-drop">
+        <button class="ln-dd-trigger" onclick="event.stopPropagation();document.getElementById('ln-prod-drop').classList.toggle('open');">Products</button>
+        <div class="ln-dd-menu">
+          <a href="/njangi" class="ln-dd-item">
+            <div class="ln-dd-icon">⊙</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">Circles (Njangi)</div>
+              <div class="ln-dd-desc">Rotating savings groups</div>
+            </div>
+          </a>
+          <a href="/pools-page" class="ln-dd-item">
+            <div class="ln-dd-icon">⊟</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">Contribution Pools</div>
+              <div class="ln-dd-desc">Shared community treasury</div>
+            </div>
+          </a>
+          <a href="/fundraising" class="ln-dd-item">
+            <div class="ln-dd-icon">♡</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">Fundraising &amp; Donations</div>
+              <div class="ln-dd-desc">Verified campaigns</div>
+            </div>
+          </a>
+          <a href="/hanapay" class="ln-dd-item">
+            <div class="ln-dd-icon">@</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">Hanapay</div>
+              <div class="ln-dd-desc">Send money by username</div>
+            </div>
+          </a>
+          <a href="/wallet-page" class="ln-dd-item">
+            <div class="ln-dd-icon">◊</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">Multi-currency Wallet</div>
+              <div class="ln-dd-desc">8 currencies, instant</div>
+            </div>
+          </a>
+          <a href="/ncs-page" class="ln-dd-item">
+            <div class="ln-dd-icon">⌬</div>
+            <div class="ln-dd-content">
+              <div class="ln-dd-title">NCS Credit Score</div>
+              <div class="ln-dd-desc">Africa's behavioural credential</div>
+            </div>
+          </a>
+        </div>
+      </div>
+      <a href="/ncs-page">NCS</a>
+      <a href="/currencies">Currency Explorer</a>
+      <a href="/blog">Community</a>
+      <a href="/about">Company</a>
     </div>
     <div class="nav-actions">
       <div class="lang-toggle" role="group" aria-label="Language">
@@ -683,11 +747,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{
     <button class="nav-drawer-close" onclick="closeDrawer()">
       <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
-    <a href="#circles" onclick="closeDrawer()">Circles</a>
-    <a href="#credit" onclick="closeDrawer()">NCS Credit</a>
-    <a href="#calculator" onclick="closeDrawer()">Calculator</a>
-    <a href="#stories" onclick="closeDrawer()">Community</a>
-    <a href="#company" onclick="closeDrawer()">Company</a>
+    <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin:.5rem 0 .25rem;">Products</div>
+    <a href="/njangi" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">Circles (Njangi)</a>
+    <a href="/pools-page" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">Contribution Pools</a>
+    <a href="/fundraising" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">Fundraising &amp; Donations</a>
+    <a href="/hanapay" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">Hanapay</a>
+    <a href="/wallet-page" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">Multi-currency Wallet</a>
+    <a href="/ncs-page" onclick="closeDrawer()" style="font-size:.95rem;padding-left:.85rem;">NCS Credit Score</a>
+
+    <div style="font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin:1rem 0 .25rem;">Explore</div>
+    <a href="/ncs-page" onclick="closeDrawer()">NCS</a>
+    <a href="/currencies" onclick="closeDrawer()">Currency Explorer</a>
+    <a href="/blog" onclick="closeDrawer()">Community</a>
+    <a href="/about" onclick="closeDrawer()">Company</a>
+
     <div class="nav-drawer-bottom">
       <div class="lang-toggle" style="align-self:flex-start">
         <button class="on" id="dlang-en" onclick="setLang('EN')">EN</button>
@@ -1304,6 +1377,12 @@ function closeDrawer() {
   document.getElementById('nav-drawer').classList.remove('open');
   document.body.style.overflow = '';
 }
+
+// ── PRODUCTS DROPDOWN ───────────────────────────────────
+document.addEventListener('click', function(e){
+  var d = document.getElementById('ln-prod-drop');
+  if (d && !d.contains(e.target)) d.classList.remove('open');
+});
 
 // ── NCS GAUGE ────────────────────────────────────────────
 const NCS_FACTORS = [
