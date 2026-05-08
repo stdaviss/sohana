@@ -1,19 +1,76 @@
-{% extends "base.html" %}
-{% block title %}{{ post.title }} — SOHANA{% endblock %}
-{% block topbar_title %}Blog{% endblock %}
+{% extends "page_base.html" %}
+{% block title %}{{ post.title }} — Sohana Community{% endblock %}
+
 {% block content %}
-<div style="max-width:720px;margin:0 auto;">
-  <div style="margin-bottom:1rem;"><a href="/blog" class="text-sm text-muted">← Back to Blog</a></div>
-  <div class="card" style="overflow:hidden;margin-bottom:1.25rem;">
-    <div style="height:200px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-lt) 100%);display:flex;align-items:center;justify-content:center;font-size:4rem;">
-      {{ '💡' if post.category=='tips' else '📰' if post.category=='news' else '📚' }}
-    </div>
-    <div style="padding:2rem;">
-      <span class="pill {% if post.category=='tips' %}pill-amber{% elif post.category=='news' %}pill-purple{% else %}pill-blue{% endif %} pill-no-dot" style="margin-bottom:.875rem;display:inline-block;">{{ post.category|capitalize }}</span>
-      <h1 style="font-size:1.6rem;font-weight:800;color:var(--navy);margin-bottom:.75rem;line-height:1.3;">{{ post.title }}</h1>
-      <div class="text-sm text-muted" style="margin-bottom:1.5rem;">Published {{ post.published_at[:10] }}</div>
-      <div style="font-size:.95rem;line-height:1.8;color:var(--text);">{{ post.body }}</div>
+<style>
+/* ── BLOG POST ── */
+.bp-hero{padding:72px 5% 56px;border-bottom:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.bp-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 400px at 60% 0%,rgba(158,228,147,.09),transparent 60%);pointer-events:none}
+.bp-hero .container{max-width:760px;margin:0 auto;position:relative;z-index:2}
+.bp-back{display:inline-flex;align-items:center;gap:.45rem;font-family:'Geist Mono',monospace;font-size:.75rem;color:#8A8E87;letter-spacing:.04em;text-decoration:none;margin-bottom:1.75rem;transition:color .15s}
+.bp-back:hover{color:#9EE493}
+.bp-cat{font-family:'Geist Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600;padding:.28rem .75rem;border-radius:99px;display:inline-block;margin-bottom:1.1rem}
+.bp-cat.cat-news{color:#C084FC;background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.25)}
+.bp-cat.cat-tips{color:#FCD34D;background:rgba(252,211,77,.1);border:1px solid rgba(252,211,77,.25)}
+.bp-cat.cat-stories{color:#9EE493;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.25)}
+.bp-cat.cat-update{color:#67E8F9;background:rgba(103,232,249,.1);border:1px solid rgba(103,232,249,.25)}
+.bp-hero h1{font-size:clamp(1.75rem,3.5vw,2.6rem);font-weight:500;line-height:1.12;letter-spacing:-.025em;color:#F4F2EC;margin-bottom:1.1rem}
+.bp-meta{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;letter-spacing:.04em;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.bp-meta .divider{color:rgba(244,242,236,.2)}
+
+/* Banner illustration */
+.bp-banner{max-width:760px;margin:0 auto;aspect-ratio:2/1;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:6rem;border:1px solid rgba(244,242,236,.08);overflow:hidden}
+.bg-news{background:linear-gradient(135deg,rgba(192,132,252,.15),rgba(192,132,252,.04))}
+.bg-tips{background:linear-gradient(135deg,rgba(252,211,77,.15),rgba(252,211,77,.04))}
+.bg-stories{background:linear-gradient(135deg,rgba(158,228,147,.15),rgba(158,228,147,.04))}
+.bg-update{background:linear-gradient(135deg,rgba(103,232,249,.15),rgba(103,232,249,.04))}
+
+/* Article body */
+.bp-body{max-width:760px;margin:3rem auto;padding:0 5%}
+.bp-content{font-size:1.05rem;color:#C4C8C2;line-height:1.82;white-space:pre-wrap}
+.bp-content p{margin-bottom:1.35rem}
+
+/* Divider + back nav */
+.bp-footer{max-width:760px;margin:3rem auto 5rem;padding:0 5%;border-top:1px solid rgba(244,242,236,.08);padding-top:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.bp-footer a{font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;text-decoration:none;transition:color .15s;display:inline-flex;align-items:center;gap:.4rem}
+.bp-footer a:hover{color:#9EE493}
+.bp-footer .cta-link{color:#9EE493;font-weight:600}
+</style>
+
+<!-- Hero -->
+<section class="bp-hero">
+  <div class="container">
+    <a href="/blog" class="bp-back">← Back to Community</a>
+
+    {% set cat = post.category if post.category in ['news','tips','stories','update'] else 'stories' %}
+    <div class="bp-cat cat-{{ cat }}">{{ post.category|capitalize }}</div>
+
+    <h1>{{ post.title }}</h1>
+
+    <div class="bp-meta">
+      <span>{{ post.published_at[:10] if post.published_at else 'Recent' }}</span>
+      <span class="divider">·</span>
+      <span>Sohana Community</span>
     </div>
   </div>
+</section>
+
+<!-- Banner illustration -->
+<div style="padding:0 5%;margin:2rem auto 0;max-width:760px;">
+  <div class="bp-banner bg-{{ cat }}">
+    <span>{{ '💡' if post.category=='tips' else '📰' if post.category=='news' else '🔄' if post.category=='update' else '📚' }}</span>
+  </div>
 </div>
+
+<!-- Article body -->
+<div class="bp-body">
+  <div class="bp-content">{{ post.body }}</div>
+</div>
+
+<!-- Footer nav -->
+<div class="bp-footer">
+  <a href="/blog">← All articles</a>
+  <a href="/auth" class="cta-link">Join Sohana →</a>
+</div>
+
 {% endblock %}
