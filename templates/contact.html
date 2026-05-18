@@ -1,51 +1,475 @@
 {% extends "page_base.html" %}
-{% block title %}Contact Us{% endblock %}
+{% block title %}Contact — Sohana{% endblock %}
 
 {% block content %}
-<div class="page-hero">
-  <div class="container">
-    <div class="page-hero-label">Help</div>
-    <h1>Contact SOHANA</h1>
-    <p>We are a small team and we read every message. Choose the right inbox below and we will get back to you as quickly as we can.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
-    </div>
-  </div>
+<style>
+/* ── CONTACT PAGE ── v6.5 */
+.ct-page{position:relative;min-height:100vh;overflow:hidden}
+
+/* ── ANIMATED BACKGROUND ── */
+.ct-bg{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.ct-bg-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;animation:orb-drift 18s ease-in-out infinite}
+.ct-bg-orb.o1{width:600px;height:600px;background:radial-gradient(circle,rgba(158,228,147,.25),transparent 70%);top:-10%;left:-10%;animation-delay:0s}
+.ct-bg-orb.o2{width:500px;height:500px;background:radial-gradient(circle,rgba(83,74,183,.2),transparent 70%);top:40%;right:-15%;animation-delay:-6s}
+.ct-bg-orb.o3{width:400px;height:400px;background:radial-gradient(circle,rgba(207,248,112,.15),transparent 70%);bottom:10%;left:20%;animation-delay:-12s}
+@keyframes orb-drift{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-30px) scale(1.05)}66%{transform:translate(-20px,40px) scale(.95)}}
+
+/* Floating particles SVG */
+.ct-particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.ct-particle{animation:particle-float linear infinite;opacity:0}
+@keyframes particle-float{0%{opacity:0;transform:translateY(100vh) rotate(0deg)}10%{opacity:.6}90%{opacity:.6}100%{opacity:0;transform:translateY(-10vh) rotate(360deg)}}
+
+/* Grid overlay */
+.ct-grid-overlay{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(158,228,147,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(158,228,147,.025) 1px,transparent 1px);background-size:52px 52px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);-webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%)}
+
+/* ── LAYOUT ── */
+.ct-wrap{position:relative;z-index:2;max-width:1160px;margin:0 auto;padding:0 5%}
+
+/* HERO */
+.ct-hero{padding:90px 5% 64px;position:relative;z-index:2}
+.ct-hero-inner{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+@media(max-width:900px){.ct-hero-inner{grid-template-columns:1fr;gap:40px}}
+.ct-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:#9EE493;display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.1rem}
+.ct-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;animation:eye-pulse 2.5s ease-in-out infinite}
+@keyframes eye-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+.ct-hero h1{font-size:clamp(2.6rem,5vw,4rem);font-weight:500;line-height:1.04;letter-spacing:-.035em;color:#F4F2EC;margin-bottom:1.2rem}
+.ct-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.ct-hero-sub{font-size:1.05rem;color:#B7BAB4;line-height:1.75;max-width:440px}
+.ct-hero-sub strong{color:#F4F2EC;font-weight:500}
+
+/* Response-time stat strip */
+.ct-stats{display:flex;gap:1.75rem;margin-top:2rem;flex-wrap:wrap}
+.ct-stat{display:flex;flex-direction:column;gap:.2rem}
+.ct-stat .num{font-family:'Geist Mono',monospace;font-size:1.4rem;color:#9EE493;font-weight:600;letter-spacing:-.02em;line-height:1}
+.ct-stat .lbl{font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;letter-spacing:.06em;text-transform:uppercase}
+
+/* Inbox cards on right of hero */
+.ct-inboxes{display:flex;flex-direction:column;gap:.75rem}
+.ct-inbox{padding:1.1rem 1.25rem;background:rgba(22,27,23,.6);border:1px solid rgba(244,242,236,.08);border-radius:14px;display:flex;align-items:center;gap:1rem;text-decoration:none;transition:all .2s;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer}
+.ct-inbox:hover,.ct-inbox.active{background:rgba(158,228,147,.06);border-color:rgba(158,228,147,.3);transform:translateX(4px)}
+.ct-inbox-ico{width:38px;height:38px;border-radius:10px;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:1rem;flex-shrink:0;transition:all .2s}
+.ct-inbox:hover .ct-inbox-ico,.ct-inbox.active .ct-inbox-ico{background:rgba(158,228,147,.18);border-color:rgba(158,228,147,.4)}
+.ct-inbox-body{flex:1;min-width:0}
+.ct-inbox-title{font-size:.9rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.2rem}
+.ct-inbox-desc{font-size:.78rem;color:#8A8E87;line-height:1.4}
+.ct-inbox-addr{font-family:'Geist Mono',monospace;font-size:.68rem;color:#9EE493;letter-spacing:.02em;margin-top:.3rem}
+.ct-inbox-sla{font-family:'Geist Mono',monospace;font-size:.62rem;padding:.15rem .45rem;border-radius:99px;background:rgba(158,228,147,.08);color:#9EE493;border:1px solid rgba(158,228,147,.2);white-space:nowrap;flex-shrink:0}
+
+/* ── FORM SECTION ── */
+.ct-form-section{padding:0 5% 96px;position:relative;z-index:2}
+.ct-form-card{max-width:1160px;margin:0 auto;background:rgba(22,27,23,.5);border:1px solid rgba(244,242,236,.1);border-radius:28px;overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:relative}
+.ct-form-card::before{content:"";position:absolute;top:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,#9EE493,transparent)}
+.ct-form-inner{display:grid;grid-template-columns:.9fr 1.1fr;min-height:600px}
+@media(max-width:900px){.ct-form-inner{grid-template-columns:1fr}}
+
+/* Left: reason selector */
+.ct-reasons{padding:2.5rem 2rem;background:rgba(14,18,15,.35);border-right:1px solid rgba(244,242,236,.08);display:flex;flex-direction:column;gap:.5rem}
+@media(max-width:900px){.ct-reasons{border-right:none;border-bottom:1px solid rgba(244,242,236,.08);padding:2rem 1.5rem}}
+.ct-reasons-label{font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:.75rem}
+.ct-reason-btn{display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;border:1px solid transparent;border-radius:14px;background:transparent;cursor:pointer;text-align:left;transition:all .18s;width:100%}
+.ct-reason-btn:hover{background:rgba(158,228,147,.04);border-color:rgba(244,242,236,.1)}
+.ct-reason-btn.on{background:rgba(158,228,147,.08);border-color:rgba(158,228,147,.3)}
+.ct-reason-ico{width:34px;height:34px;border-radius:9px;background:rgba(244,242,236,.05);display:grid;place-items:center;font-size:.95rem;flex-shrink:0;transition:all .18s}
+.ct-reason-btn.on .ct-reason-ico{background:rgba(158,228,147,.15);border:1px solid rgba(158,228,147,.3)}
+.ct-reason-content{flex:1;min-width:0}
+.ct-reason-title{font-size:.88rem;font-weight:600;color:#F4F2EC;letter-spacing:-.005em;margin-bottom:.2rem;font-family:'Geist',sans-serif}
+.ct-reason-btn:not(.on) .ct-reason-title{color:#B7BAB4}
+.ct-reason-desc{font-size:.76rem;color:#8A8E87;line-height:1.45;font-family:'Geist',sans-serif}
+
+/* Right: form */
+.ct-form-right{padding:2.5rem 2.5rem 2rem}
+@media(max-width:900px){.ct-form-right{padding:2rem 1.5rem}}
+.ct-form-heading{font-size:1.25rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.4rem}
+.ct-form-sub{font-size:.85rem;color:#8A8E87;margin-bottom:1.75rem;line-height:1.55}
+.ct-form-sub strong{color:#9EE493;font-weight:500}
+
+.ct-field{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.1rem}
+.ct-field label{font-family:'Geist Mono',monospace;font-size:.68rem;color:#9EE493;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.ct-field label .req{color:#FF8A50;margin-left:.2rem}
+.ct-field input,.ct-field select,.ct-field textarea{padding:.7rem 1rem;background:#0E120F;border:1px solid rgba(244,242,236,.12);border-radius:10px;font-family:'Geist',sans-serif;font-size:.92rem;color:#F4F2EC;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;-webkit-appearance:none}
+.ct-field input::placeholder,.ct-field textarea::placeholder{color:#8A8E87}
+.ct-field input:focus,.ct-field select:focus,.ct-field textarea:focus{border-color:#9EE493;box-shadow:0 0 0 3px rgba(158,228,147,.1)}
+.ct-field select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A8E87' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center}
+.ct-field select option{background:#161B17}
+.ct-field textarea{resize:vertical;min-height:130px;line-height:1.65}
+.ct-field-row{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+@media(max-width:640px){.ct-field-row{grid-template-columns:1fr}}
+
+.ct-char-count{font-family:'Geist Mono',monospace;font-size:.65rem;color:#8A8E87;text-align:right;letter-spacing:.04em}
+
+.ct-submit-row{display:flex;align-items:center;gap:1rem;margin-top:1.5rem;flex-wrap:wrap}
+.ct-submit-btn{padding:.85rem 2rem;background:#9EE493;color:#0E120F;border-radius:99px;border:none;font-family:'Geist',sans-serif;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.5rem;flex-shrink:0}
+.ct-submit-btn:hover{background:#cef870;transform:translateY(-1px)}
+.ct-submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.ct-submit-note{font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;line-height:1.55;letter-spacing:.02em}
+
+/* Success state */
+.ct-success{display:none;padding:3rem 2rem;text-align:center;flex-direction:column;align-items:center;gap:1rem}
+.ct-success.show{display:flex}
+.ct-success-ico{width:64px;height:64px;border-radius:50%;background:rgba(158,228,147,.15);border:2px solid #9EE493;display:grid;place-items:center;font-size:1.8rem;animation:success-pop .5s cubic-bezier(.25,.85,.4,1.2) both}
+@keyframes success-pop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+.ct-success h3{font-size:1.4rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em}
+.ct-success p{font-size:.92rem;color:#B7BAB4;line-height:1.65;max-width:380px}
+.ct-success .ref{font-family:'Geist Mono',monospace;font-size:.85rem;color:#9EE493;background:rgba(158,228,147,.08);padding:.5rem 1.1rem;border-radius:99px;border:1px solid rgba(158,228,147,.25);letter-spacing:.06em;font-weight:600}
+
+/* Error banner */
+.ct-error-banner{display:none;padding:.75rem 1rem;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.25);border-radius:10px;font-family:'Geist Mono',monospace;font-size:.78rem;color:#FF8A70;letter-spacing:.02em;margin-bottom:1rem}
+.ct-error-banner.show{display:block}
+</style>
+
+<!-- Animated background -->
+<div class="ct-bg" aria-hidden="true">
+  <div class="ct-bg-orb o1"></div>
+  <div class="ct-bg-orb o2"></div>
+  <div class="ct-bg-orb o3"></div>
 </div>
+<div class="ct-grid-overlay" aria-hidden="true"></div>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">📧</div>
-      <h3>General support</h3>
-      <p>For account questions, transaction issues, and general enquiries: support@sohana.app. Response time: within 24 hours on business days.</p>
+<!-- Floating particles -->
+<svg class="ct-particles" aria-hidden="true" viewBox="0 0 1400 900" preserveAspectRatio="none">
+  <!-- small rotating squares + circles that float upward -->
+  <rect class="ct-particle" x="120" y="800" width="5" height="5" fill="#9EE493" opacity=".5" style="animation-duration:14s;animation-delay:0s"/>
+  <circle class="ct-particle" cx="280" cy="850" r="3" fill="#cef870" style="animation-duration:17s;animation-delay:-3s"/>
+  <rect class="ct-particle" x="450" y="820" width="4" height="4" fill="#9EE493" style="animation-duration:12s;animation-delay:-7s"/>
+  <circle class="ct-particle" cx="620" cy="870" r="2.5" fill="#76E0A1" style="animation-duration:19s;animation-delay:-2s"/>
+  <rect class="ct-particle" x="790" y="810" width="6" height="6" fill="#9EE493" style="animation-duration:15s;animation-delay:-9s"/>
+  <circle class="ct-particle" cx="950" cy="840" r="4" fill="#cef870" style="animation-duration:13s;animation-delay:-5s"/>
+  <rect class="ct-particle" x="1100" y="860" width="3" height="3" fill="#9EE493" style="animation-duration:16s;animation-delay:-1s"/>
+  <circle class="ct-particle" cx="1280" cy="830" r="2" fill="#76E0A1" style="animation-duration:11s;animation-delay:-11s"/>
+  <rect class="ct-particle" x="200" y="900" width="4" height="4" fill="#cef870" style="animation-duration:20s;animation-delay:-4s"/>
+  <circle class="ct-particle" cx="700" cy="900" r="3" fill="#9EE493" style="animation-duration:18s;animation-delay:-8s"/>
+  <rect class="ct-particle" x="1000" y="890" width="5" height="5" fill="#76E0A1" style="animation-duration:14s;animation-delay:-6s"/>
+  <circle class="ct-particle" cx="350" cy="900" r="2" fill="#cef870" style="animation-duration:22s;animation-delay:-15s"/>
+</svg>
+
+<!-- ══════════════════════════════════════ HERO ═══════════════════════════════ -->
+<section class="ct-hero">
+  <div class="ct-hero-inner">
+    <!-- Left: headline + stats -->
+    <div>
+      <div class="ct-eyebrow">Get in touch</div>
+      <h1>We read every<br><span class="ital">single message</span>.</h1>
+      <p class="ct-hero-sub">Sohana is a small, focused team. When you reach us, you reach people who care about getting it right — <strong>not a ticket queue that disappears into the void.</strong> Choose the right channel below and tell us what you need.</p>
+      <div class="ct-stats">
+        <div class="ct-stat">
+          <span class="num">&lt; 24h</span>
+          <span class="lbl">Support response</span>
+        </div>
+        <div class="ct-stat">
+          <span class="num">&lt; 48h</span>
+          <span class="lbl">Press response</span>
+        </div>
+        <div class="ct-stat">
+          <span class="num">7 days</span>
+          <span class="lbl">Partnership review</span>
+        </div>
+      </div>
     </div>
-    <div class="info-card">
-      <div class="icon">📰</div>
-      <h3>Press and media</h3>
-      <p>For journalists, researchers, and editorial enquiries: press@sohana.app. Please include your publication name and deadline.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">🤝</div>
-      <h3>Partnerships</h3>
-      <p>For financial institution partnerships, mobile money integration, and community organisation referrals: partnerships@sohana.app.</p>
-    </div>
-    <div class="info-card">
-      <div class="icon">⚖️</div>
-      <h3>Legal and compliance</h3>
-      <p>For legal notices, regulatory enquiries, and law enforcement requests: legal@sohana.app. Law enforcement requests must be submitted in writing on official letterhead.</p>
+
+    <!-- Right: inbox directory -->
+    <div class="ct-inboxes">
+      <a href="mailto:support@sohana.app" class="ct-inbox">
+        <div class="ct-inbox-ico">🛠</div>
+        <div class="ct-inbox-body">
+          <div class="ct-inbox-title">General support</div>
+          <div class="ct-inbox-desc">Account help, wallet queries, transaction issues</div>
+          <div class="ct-inbox-addr">support@sohana.app</div>
+        </div>
+        <span class="ct-inbox-sla">&lt; 24 hrs</span>
+      </a>
+      <a href="mailto:press@sohana.app" class="ct-inbox">
+        <div class="ct-inbox-ico">📰</div>
+        <div class="ct-inbox-body">
+          <div class="ct-inbox-title">Press &amp; media</div>
+          <div class="ct-inbox-desc">Journalists, researchers, editorial requests</div>
+          <div class="ct-inbox-addr">press@sohana.app</div>
+        </div>
+        <span class="ct-inbox-sla">&lt; 48 hrs</span>
+      </a>
+      <a href="mailto:partnerships@sohana.app" class="ct-inbox">
+        <div class="ct-inbox-ico">🤝</div>
+        <div class="ct-inbox-body">
+          <div class="ct-inbox-title">Partnerships</div>
+          <div class="ct-inbox-desc">Financial institution &amp; business integrations</div>
+          <div class="ct-inbox-addr">partnerships@sohana.app</div>
+        </div>
+        <span class="ct-inbox-sla">7 days</span>
+      </a>
+      <a href="mailto:security@sohana.app" class="ct-inbox">
+        <div class="ct-inbox-ico">🔒</div>
+        <div class="ct-inbox-body">
+          <div class="ct-inbox-title">Security disclosures</div>
+          <div class="ct-inbox-desc">Responsible vulnerability reporting</div>
+          <div class="ct-inbox-addr">security@sohana.app</div>
+        </div>
+        <span class="ct-inbox-sla">ASAP</span>
+      </a>
+      <a href="mailto:legal@sohana.app" class="ct-inbox">
+        <div class="ct-inbox-ico">⚖️</div>
+        <div class="ct-inbox-body">
+          <div class="ct-inbox-title">Legal &amp; compliance</div>
+          <div class="ct-inbox-desc">Regulatory, law enforcement, legal notices</div>
+          <div class="ct-inbox-addr">legal@sohana.app</div>
+        </div>
+        <span class="ct-inbox-sla">Formal only</span>
+      </a>
     </div>
   </div>
+</section>
 
-  <hr class="divider">
+<!-- ══════════════════════════════════════ FORM ══════════════════════════════ -->
+<section class="ct-form-section">
+  <div class="ct-form-card">
+    <div class="ct-form-inner">
 
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
+      <!-- LEFT: Reason selector -->
+      <div class="ct-reasons">
+        <div class="ct-reasons-label">What's this about?</div>
+
+        <button class="ct-reason-btn on" data-reason="support" onclick="selectReason(this)">
+          <div class="ct-reason-ico">🛠</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Account &amp; wallet support</div>
+            <div class="ct-reason-desc">Login issues, wallet balance, transaction questions</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="ncs" onclick="selectReason(this)">
+          <div class="ct-reason-ico">⌬</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">NCS &amp; circle issue</div>
+            <div class="ct-reason-desc">Score queries, circle disputes, contribution problems</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="kyc" onclick="selectReason(this)">
+          <div class="ct-reason-ico">🪪</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Identity &amp; verification</div>
+            <div class="ct-reason-desc">KYC status, document queries, account verification</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="partnership" onclick="selectReason(this)">
+          <div class="ct-reason-ico">🤝</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Partnership proposal</div>
+            <div class="ct-reason-desc">Business integration, API access, institutional enquiry</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="press" onclick="selectReason(this)">
+          <div class="ct-reason-ico">📰</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Press &amp; media</div>
+            <div class="ct-reason-desc">Interview request, editorial, research enquiry</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="feedback" onclick="selectReason(this)">
+          <div class="ct-reason-ico">💬</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Feedback &amp; suggestions</div>
+            <div class="ct-reason-desc">Product ideas, feature requests, general feedback</div>
+          </div>
+        </button>
+
+        <button class="ct-reason-btn" data-reason="other" onclick="selectReason(this)">
+          <div class="ct-reason-ico">✦</div>
+          <div class="ct-reason-content">
+            <div class="ct-reason-title">Something else</div>
+            <div class="ct-reason-desc">Anything not listed above</div>
+          </div>
+        </button>
+      </div>
+
+      <!-- RIGHT: The form -->
+      <div class="ct-form-right" id="ct-form-right">
+
+        <!-- Dynamic heading -->
+        <div class="ct-form-heading" id="ct-form-heading">Account &amp; wallet support</div>
+        <div class="ct-form-sub" id="ct-form-sub">
+          Tell us exactly what's happening and we'll get back to you within <strong>24 hours</strong> on business days.
+        </div>
+
+        <div class="ct-error-banner" id="ct-error-banner"></div>
+
+        <form id="ct-form" onsubmit="submitContact(event)" novalidate>
+          <input type="hidden" id="ct-reason-input" name="reason" value="support">
+
+          <div class="ct-field-row">
+            <div class="ct-field">
+              <label for="ct-name">Full name <span class="req">*</span></label>
+              <input type="text" id="ct-name" name="name" placeholder="Aïcha Diallo" autocomplete="name" required>
+            </div>
+            <div class="ct-field">
+              <label for="ct-email">Email address <span class="req">*</span></label>
+              <input type="email" id="ct-email" name="email" placeholder="aicha@example.com" autocomplete="email" required>
+            </div>
+          </div>
+
+          <div class="ct-field-row">
+            <div class="ct-field">
+              <label for="ct-phone">Phone (optional)</label>
+              <input type="tel" id="ct-phone" name="phone" placeholder="+237 6 99 00 00 00" autocomplete="tel">
+            </div>
+            <div class="ct-field" id="ct-hanatag-field">
+              <label for="ct-hanatag">Your Hanatag (optional)</label>
+              <input type="text" id="ct-hanatag" name="hanatag" placeholder="@your.handle">
+            </div>
+          </div>
+
+          <!-- Context fields that change per reason -->
+          <div class="ct-field" id="ct-context-field" style="display:none">
+            <label for="ct-context" id="ct-context-label">Reference / context</label>
+            <input type="text" id="ct-context" name="context" placeholder="">
+          </div>
+
+          <div class="ct-field">
+            <label for="ct-subject">Subject <span class="req">*</span></label>
+            <input type="text" id="ct-subject" name="subject" placeholder="One-line summary of your enquiry" required>
+          </div>
+
+          <div class="ct-field">
+            <label for="ct-message">Message <span class="req">*</span></label>
+            <textarea id="ct-message" name="message" placeholder="Give us as much detail as you can — the more context you provide, the faster we can help." required maxlength="2000" oninput="updateCharCount(this)"></textarea>
+            <div class="ct-char-count"><span id="ct-char-count">0</span> / 2000</div>
+          </div>
+
+          <div class="ct-field">
+            <label for="ct-priority">Priority</label>
+            <select id="ct-priority" name="priority">
+              <option value="normal">Normal — I can wait a day or two</option>
+              <option value="high">High — This is affecting my ability to use Sohana</option>
+              <option value="urgent">Urgent — Funds or security are at immediate risk</option>
+            </select>
+          </div>
+
+          <div class="ct-submit-row">
+            <button type="submit" class="ct-submit-btn" id="ct-submit-btn">
+              <span id="ct-btn-label">Send message</span>
+              <span id="ct-btn-arrow">→</span>
+            </button>
+            <p class="ct-submit-note">We reply to every genuine enquiry. Your reference number will be emailed to you on submission.</p>
+          </div>
+        </form>
+
+        <!-- Success state (shown after submit) -->
+        <div class="ct-success" id="ct-success">
+          <div class="ct-success-ico">✓</div>
+          <h3>Message received.</h3>
+          <p>We have logged your enquiry and you will receive a confirmation with your reference number shortly. We aim to respond within the timelines shown above.</p>
+          <span class="ref" id="ct-ref-display">SOH-CTT-2026-0000</span>
+          <a href="/" style="font-family:'Geist Mono',monospace;font-size:.78rem;color:#8A8E87;text-decoration:none;margin-top:.5rem;transition:color .15s" onmouseover="this.style.color='#9EE493'" onmouseout="this.style.color='#8A8E87'">← Back to home</a>
+        </div>
+
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<script>
+/* ── REASON DATA ── */
+var REASON_META = {
+  support:     { title: 'Account &amp; wallet support',   sub: 'Tell us exactly what\'s happening and we\'ll get back to you within <strong>24 hours</strong> on business days.', ctx_label: 'Transaction ID or Hanatag involved', ctx_placeholder: 'e.g. TX-2026-00123 or @kofi.mensah', show_ctx: true },
+  ncs:         { title: 'NCS &amp; circle issue',         sub: 'Circle disputes, score discrepancies, and cycle questions. We\'ll look into the details and reply within <strong>24 hours</strong>.', ctx_label: 'Circle name or NCS event', ctx_placeholder: 'e.g. Yaoundé Alumni Circle 2026', show_ctx: true },
+  kyc:         { title: 'Identity &amp; verification',    sub: 'Questions about your KYC status or document submission. Please include your Hanatag for faster lookup. Response within <strong>24 hours</strong>.', ctx_label: 'KYC submission reference (if any)', ctx_placeholder: 'e.g. KYC-2026-XXXX', show_ctx: true },
+  partnership: { title: 'Partnership proposal',          sub: 'We review every serious partnership enquiry. Please tell us about your organisation and what you have in mind. We\'ll respond within <strong>7 business days</strong>.', ctx_label: 'Organisation / company name', ctx_placeholder: 'e.g. Ecobank Cameroon', show_ctx: true },
+  press:       { title: 'Press &amp; media enquiry',     sub: 'We welcome press enquiries from journalists and researchers. Please include your outlet and deadline. Response within <strong>48 hours</strong>.', ctx_label: 'Publication / outlet name', ctx_placeholder: 'e.g. Le Monde, BBC Africa, TechCabal', show_ctx: true },
+  feedback:    { title: 'Feedback &amp; suggestions',    sub: 'We read every piece of feedback. Product ideas, feature requests, and honest criticism — all welcome. No SLA on feedback, but we do read it all.', ctx_label: 'Page or feature this relates to', ctx_placeholder: 'e.g. Wallet converter, NCS page', show_ctx: true },
+  other:       { title: 'Something else',                sub: 'Whatever it is, tell us. We\'ll make sure it gets to the right person.', ctx_label: null, ctx_placeholder: '', show_ctx: false }
+};
+
+function selectReason(btn){
+  document.querySelectorAll('.ct-reason-btn').forEach(function(b){ b.classList.remove('on') });
+  btn.classList.add('on');
+  var reason = btn.dataset.reason;
+  document.getElementById('ct-reason-input').value = reason;
+
+  var meta = REASON_META[reason];
+  document.getElementById('ct-form-heading').innerHTML = meta.title;
+  document.getElementById('ct-form-sub').innerHTML = 'Tell us exactly what\'s happening and we\'ll get back to you within the timeframe shown for this category. ' + meta.sub.replace(/Tell us exactly[^<]*/,'');
+
+  var ctx = document.getElementById('ct-context-field');
+  if(meta.show_ctx && meta.ctx_label){
+    ctx.style.display = '';
+    document.getElementById('ct-context-label').textContent = meta.ctx_label;
+    document.getElementById('ct-context').placeholder = meta.ctx_placeholder;
+  } else {
+    ctx.style.display = 'none';
+  }
+}
+
+function updateCharCount(el){
+  document.getElementById('ct-char-count').textContent = el.value.length;
+}
+
+/* ── FORM SUBMISSION ── */
+function submitContact(e){
+  e.preventDefault();
+  var btn   = document.getElementById('ct-submit-btn');
+  var err   = document.getElementById('ct-error-banner');
+  var label = document.getElementById('ct-btn-label');
+
+  err.classList.remove('show');
+
+  var name    = document.getElementById('ct-name').value.trim();
+  var email   = document.getElementById('ct-email').value.trim();
+  var subject = document.getElementById('ct-subject').value.trim();
+  var message = document.getElementById('ct-message').value.trim();
+
+  if(!name || !email || !subject || !message){
+    err.textContent = 'Please fill in all required fields (name, email, subject, message).';
+    err.classList.add('show'); return;
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    err.textContent = 'Please enter a valid email address.';
+    err.classList.add('show'); return;
+  }
+  if(message.length < 20){
+    err.textContent = 'Please write a bit more in your message so we can help you properly.';
+    err.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  label.textContent = 'Sending…';
+
+  var payload = {
+    name:     name,
+    email:    email,
+    phone:    document.getElementById('ct-phone').value.trim(),
+    hanatag:  document.getElementById('ct-hanatag').value.trim(),
+    reason:   document.getElementById('ct-reason-input').value,
+    context:  document.getElementById('ct-context').value.trim(),
+    subject:  subject,
+    message:  message,
+    priority: document.getElementById('ct-priority').value
+  };
+
+  fetch('/api/contact/submit', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r){ return r.json() })
+  .then(function(data){
+    if(data.ok){
+      document.getElementById('ct-form').style.display = 'none';
+      document.getElementById('ct-form-heading').style.display = 'none';
+      document.getElementById('ct-form-sub').style.display = 'none';
+      document.getElementById('ct-ref-display').textContent = data.reference;
+      document.getElementById('ct-success').classList.add('show');
+    } else {
+      err.textContent = data.error || 'Something went wrong. Please email support@sohana.app directly.';
+      err.classList.add('show');
+      btn.disabled = false; label.textContent = 'Send message';
+    }
+  })
+  .catch(function(){
+    err.textContent = 'Network error. Please email support@sohana.app directly.';
+    err.classList.add('show');
+    btn.disabled = false; label.textContent = 'Send message';
+  });
+}
+</script>
 {% endblock %}

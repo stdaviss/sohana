@@ -2422,6 +2422,176 @@ def api_admin_restore_campaign(campaign_id):
         return jsonify({"error": str(e)}), 400
 
 
+
+# ── CONTACT INQUIRIES ─────────────────────────────────────────────────────────
+
+def _ensure_contact_table():
+    """Create contact_inquiries table on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS contact_inquiries (
+                id           TEXT PRIMARY KEY,
+                reference    TEXT UNIQUE NOT NULL,
+                name         TEXT NOT NULL,
+                email        TEXT NOT NULL,
+                phone        TEXT,
+                hanatag      TEXT,
+                reason       TEXT NOT NULL DEFAULT 'other',
+                context      TEXT,
+                subject      TEXT NOT NULL,
+                message      TEXT NOT NULL,
+                priority     TEXT NOT NULL DEFAULT 'normal',
+                status       TEXT NOT NULL DEFAULT 'new',
+                admin_notes  TEXT,
+                replied_at   TEXT,
+                user_id      TEXT REFERENCES users(id),
+                created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_contact_status ON contact_inquiries(status, created_at DESC)")
+    except Exception as e:
+        import sys
+        print(f"[_ensure_contact_table] {e}", file=sys.stderr, flush=True)
+
+
+def _gen_contact_ref():
+    import random, string
+    year   = datetime.now().year
+    suffix = ''.join(random.choices(string.digits, k=4))
+    return f"SOH-CTT-{year}-{suffix}"
+
+
+@app.route("/api/contact/submit", methods=["POST"])
+def api_contact_submit():
+    """Capture contact form submissions from the public contact page."""
+    _ensure_contact_table()
+    d        = request.json or {}
+    name     = d.get("name", "").strip()
+    email    = d.get("email", "").strip().lower()
+    phone    = d.get("phone", "").strip()
+    hanatag  = d.get("hanatag", "").strip()
+    reason   = d.get("reason", "other").strip()
+    context  = d.get("context", "").strip()
+    subject  = d.get("subject", "").strip()
+    message  = d.get("message", "").strip()
+    priority = d.get("priority", "normal").strip()
+
+    # Validation
+    if not name or not email or not subject or not message:
+        return jsonify({"error": "Name, email, subject, and message are required."}), 400
+    if "@" not in email or "." not in email.split("@")[-1]:
+        return jsonify({"error": "Please enter a valid email address."}), 400
+    if len(message) < 20:
+        return jsonify({"error": "Please write a bit more so we can help you properly."}), 400
+
+    valid_reasons   = ("support", "ncs", "kyc", "partnership", "press", "feedback", "other")
+    valid_priority  = ("normal", "high", "urgent")
+    if reason   not in valid_reasons:  reason   = "other"
+    if priority not in valid_priority: priority = "normal"
+
+    user_id = session.get("user_id")
+
+    try:
+        cid = str(uuid.uuid4())
+        for _ in range(5):
+            ref = _gen_contact_ref()
+            if not fetchone("SELECT id FROM contact_inquiries WHERE reference=?", (ref,)):
+                break
+        with get_db() as db:
+            db.execute(
+                """INSERT INTO contact_inquiries
+                   (id, reference, name, email, phone, hanatag, reason, context,
+                    subject, message, priority, user_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (cid, ref, name, email, phone or None, hanatag or None,
+                 reason, context or None, subject, message, priority, user_id)
+            )
+        return jsonify({"ok": True, "reference": ref})
+    except Exception as e:
+        import sys
+        print(f"[contact_submit] {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Submission failed. Please email support@sohana.app directly."}), 500
+
+
+# ── CONTACT ADMIN ─────────────────────────────────────────────────────────────
+
+@app.route("/admin/contact")
+@admin_required
+def admin_contact():
+    _ensure_contact_table()
+    user = auth.get_current_user()
+    inquiries = fetchall(
+        "SELECT * FROM contact_inquiries ORDER BY created_at DESC LIMIT 200"
+    )
+    return render_template("admin_contact.html", user=user, inquiries=inquiries)
+
+
+@app.route("/api/admin/contact/<inquiry_id>/status", methods=["POST"])
+@admin_required
+def api_admin_contact_status(inquiry_id):
+    d      = request.json or {}
+    status = d.get("status", "").strip()
+    if status not in ("new", "open", "replied", "closed"):
+        return jsonify({"error": "Invalid status"}), 400
+    try:
+        with get_db() as db:
+            db.execute("UPDATE contact_inquiries SET status=? WHERE id=?", (status, inquiry_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/contact/<inquiry_id>/notes", methods=["POST"])
+@admin_required
+def api_admin_contact_notes(inquiry_id):
+    notes = (request.json or {}).get("notes", "").strip()
+    try:
+        with get_db() as db:
+            db.execute("UPDATE contact_inquiries SET admin_notes=? WHERE id=?", (notes, inquiry_id))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/contact/<inquiry_id>/reply", methods=["POST"])
+@admin_required
+def api_admin_contact_reply(inquiry_id):
+    """Log that a reply was sent and mark inquiry as replied."""
+    d       = request.json or {}
+    subject = d.get("subject", "").strip()
+    body    = d.get("body", "").strip()
+    if not body:
+        return jsonify({"error": "Reply body is required."}), 400
+    try:
+        now = datetime.now().isoformat()
+        with get_db() as db:
+            db.execute(
+                "UPDATE contact_inquiries SET status='replied', replied_at=? WHERE id=?",
+                (now, inquiry_id)
+            )
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/admin/contact/export")
+@admin_required
+def admin_contact_export():
+    _ensure_contact_table()
+    import csv, io
+    inquiries = fetchall("SELECT * FROM contact_inquiries ORDER BY created_at DESC")
+    output    = io.StringIO()
+    writer    = csv.writer(output)
+    writer.writerow(["reference","name","email","phone","hanatag","reason","subject","priority","status","created_at"])
+    for i in inquiries:
+        writer.writerow([i["reference"],i["name"],i["email"],i.get("phone",""),
+                         i.get("hanatag",""),i["reason"],i["subject"],
+                         i["priority"],i["status"],i["created_at"]])
+    output.seek(0)
+    from flask import Response
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=contact_inquiries.csv"})
+
+
 # ── PUBLIC CONTENT PAGES ─────────────────────────────────────────────────────
 
 PUBLIC_PAGES = {
