@@ -1,163 +1,578 @@
 {% extends "base.html" %}
-{% block title %}Users — SOHANA{% endblock %}
+{% block title %}All Users — Admin{% endblock %}
 {% block topbar_title %}All Users{% endblock %}
 
 {% block content %}
-<div class="breadcrumb">Home / <a href="/admin">Admin</a> / Users</div>
-<div class="page-header">
-  <h1 class="page-title">All Users</h1>
-  <div style="display:flex;gap:.75rem;">
-    <button class="btn btn-outline btn-sm">Export CSV</button>
-    <button class="btn btn-primary" onclick="openModal('add-user-modal')">+ Add User</button>
+<style>
+/* ── ADMIN USERS PAGE ── */
+.au-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;margin-bottom:1.25rem}
+.au-search{display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;flex:1;max-width:360px}
+.au-search input{background:none;border:none;outline:none;font-family:'Geist',sans-serif;font-size:.88rem;color:var(--ink);width:100%}
+.au-search input::placeholder{color:var(--ink-3)}
+.au-filters{display:flex;gap:.4rem;flex-wrap:wrap}
+.au-filter-btn{padding:.35rem .8rem;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.04em;cursor:pointer;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-3);transition:all .15s;font-weight:500;text-transform:uppercase}
+.au-filter-btn:hover,.au-filter-btn.on{background:rgba(158,228,147,.1);border-color:rgba(158,228,147,.35);color:var(--accent)}
+.au-count{font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--ink-3);letter-spacing:.04em;align-self:center}
+
+/* NCS score badge — uses CSS variable colours that invert correctly in light/dark */
+.ncs-badge{display:inline-block;font-family:'Geist Mono',monospace;font-size:.82rem;font-weight:700;padding:.22rem .6rem;border-radius:8px;letter-spacing:-.01em;line-height:1}
+.ncs-prob{background:rgba(216,90,48,.18);color:#D85A30;border:1px solid rgba(216,90,48,.3)}
+.ncs-dev {background:rgba(186,117,23,.18);color:#BA7517;border:1px solid rgba(186,117,23,.3)}
+.ncs-rel {background:rgba(15,110,86,.18);color:#0F6E56;border:1px solid rgba(15,110,86,.3)}
+.ncs-ex  {background:rgba(83,74,183,.18);color:#534AB7;border:1px solid rgba(83,74,183,.3)}
+/* Ensure text is always visible regardless of theme */
+[data-theme="light"] .ncs-prob{color:#b03800;background:rgba(216,90,48,.12)}
+[data-theme="light"] .ncs-dev {color:#8a5500;background:rgba(186,117,23,.12)}
+[data-theme="light"] .ncs-rel {color:#065438;background:rgba(15,110,86,.12)}
+[data-theme="light"] .ncs-ex  {color:#3a31a0;background:rgba(83,74,183,.12)}
+
+/* Status chips */
+.chip{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .6rem;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.65rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;border:1px solid}
+.chip-ok  {color:var(--accent);background:rgba(158,228,147,.1);border-color:rgba(158,228,147,.2)}
+.chip-warn{color:#FFB350;background:rgba(255,179,80,.1);border-color:rgba(255,179,80,.2)}
+.chip-bad {color:#FF6A55;background:rgba(255,106,85,.1);border-color:rgba(255,106,85,.2)}
+.chip-muted{color:var(--ink-3);background:var(--surface-2);border-color:var(--line-2)}
+
+/* Row action buttons */
+.row-actions{display:flex;gap:.3rem;flex-wrap:wrap;align-items:center}
+.ra-btn{padding:.28rem .65rem;border-radius:7px;font-family:'Geist Mono',monospace;font-size:.68rem;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;white-space:nowrap;line-height:1.4}
+.ra-view  {color:var(--accent);border-color:rgba(158,228,147,.3);background:rgba(158,228,147,.07)}
+.ra-view:hover{background:rgba(158,228,147,.18)}
+.ra-freeze{color:#FFB350;border-color:rgba(255,179,80,.3);background:rgba(255,179,80,.07)}
+.ra-freeze:hover{background:rgba(255,179,80,.18)}
+.ra-unfreeze{color:var(--accent);border-color:rgba(158,228,147,.35);background:rgba(158,228,147,.07)}
+.ra-unfreeze:hover{background:rgba(158,228,147,.18)}
+.ra-suspend{color:#FF6A55;border-color:rgba(255,106,85,.3);background:rgba(255,106,85,.07)}
+.ra-suspend:hover{background:rgba(255,106,85,.18)}
+.ra-reinstate{color:var(--accent);border-color:rgba(158,228,147,.35);background:rgba(158,228,147,.07)}
+.ra-reinstate:hover{background:rgba(158,228,147,.18)}
+.ra-kyc   {color:#67E8F9;border-color:rgba(103,232,249,.3);background:rgba(103,232,249,.07)}
+.ra-kyc:hover{background:rgba(103,232,249,.18)}
+.ra-note  {color:var(--ink-2);border-color:var(--line-2);background:var(--surface-2)}
+.ra-note:hover{color:var(--ink);border-color:var(--line)}
+
+/* Table */
+.au-table-wrap{overflow-x:auto}
+.au-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.au-table thead th{padding:.65rem 1rem;text-align:left;font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.07em;font-weight:600;text-transform:uppercase;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface)}
+.au-table tbody tr{border-bottom:1px solid var(--line);transition:background .1s}
+.au-table tbody tr:hover{background:var(--surface-2)}
+.au-table td{padding:.7rem 1rem;vertical-align:middle}
+.au-table .user-cell{display:flex;flex-direction:column;gap:.18rem}
+.au-table .user-name{font-weight:600;color:var(--ink);letter-spacing:-.005em}
+.au-table .user-sub{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3)}
+.au-table .frozen-tag{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.62rem;color:#FFB350;letter-spacing:.04em;margin-top:.2rem}
+
+/* Expand panel */
+.au-detail-row td{padding:0!important}
+.au-detail-panel{padding:1.1rem 1.25rem;background:var(--surface);border-top:none;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+@media(max-width:680px){.au-detail-panel{grid-template-columns:1fr}}
+.au-detail-section h4{font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase;font-weight:600;margin-bottom:.65rem;padding-bottom:.5rem;border-bottom:1px solid var(--line)}
+.au-detail-row-item{display:flex;justify-content:space-between;font-size:.83rem;padding:.3rem 0;border-bottom:1px solid var(--line);color:var(--ink-2)}
+.au-detail-row-item:last-child{border-bottom:none}
+.au-detail-row-item .v{color:var(--ink);font-weight:500}
+.au-notes-area textarea{width:100%;padding:.6rem .8rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;color:var(--ink);font-family:'Geist',sans-serif;font-size:.84rem;resize:vertical;outline:none;line-height:1.6}
+.au-notes-area textarea:focus{border-color:var(--accent)}
+.au-notes-area .note-items{display:flex;flex-direction:column;gap:.5rem;max-height:150px;overflow-y:auto;margin-bottom:.6rem}
+.note-item{padding:.5rem .7rem;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;font-size:.8rem;color:var(--ink-2);line-height:1.5}
+.note-item .note-meta{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);margin-bottom:.2rem}
+
+/* Modals */
+.au-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.au-modal-bg.open{display:flex}
+.au-modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.75rem;max-width:460px;width:100%;position:relative}
+.au-modal h3{font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:.5rem;letter-spacing:-.01em}
+.au-modal .subtitle{font-size:.85rem;color:var(--ink-2);line-height:1.55;margin-bottom:1.25rem}
+.au-modal .field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.85rem}
+.au-modal .field label{font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+.au-modal .field input,.au-modal .field textarea,.au-modal .field select{padding:.65rem .85rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;color:var(--ink);font-family:'Geist',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;width:100%}
+.au-modal .field input:focus,.au-modal .field textarea:focus{border-color:var(--accent)}
+.au-modal .field textarea{min-height:80px;resize:vertical;line-height:1.65}
+.au-modal-err{display:none;font-family:'Geist Mono',monospace;font-size:.75rem;color:#FF8A70;padding:.5rem .85rem;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.2);border-radius:8px;margin-bottom:.75rem}
+.au-modal-err.show{display:block}
+.au-modal-actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:.5rem}
+.au-btn-cancel{padding:.55rem 1.1rem;background:none;border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2);font-family:'Geist Mono',monospace;font-size:.8rem;cursor:pointer}
+.au-btn-confirm{padding:.55rem 1.4rem;border:none;border-radius:99px;font-family:'Geist',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.au-btn-confirm.danger{background:#FF6A55;color:#fff}
+.au-btn-confirm.danger:hover{background:#ff4435}
+.au-btn-confirm.safe{background:var(--accent);color:#0E120F}
+.au-btn-confirm.safe:hover{background:#cef870}
+.au-btn-confirm.warn{background:#FFB350;color:#0E120F}
+</style>
+
+<!-- Toolbar -->
+<div class="au-toolbar">
+  <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;flex:1">
+    <div class="au-search">
+      <span style="color:var(--ink-3)">🔍</span>
+      <input type="text" id="au-search" placeholder="Search name, email, phone, or handle…"
+             oninput="auFilter()">
+    </div>
+    <div class="au-filters">
+      <button class="au-filter-btn on" onclick="auSetFilter('all',this)">All</button>
+      <button class="au-filter-btn" onclick="auSetFilter('frozen',this)">Frozen</button>
+      <button class="au-filter-btn" onclick="auSetFilter('suspended',this)">Suspended</button>
+      <button class="au-filter-btn" onclick="auSetFilter('kyc_pending',this)">KYC pending</button>
+      <button class="au-filter-btn" onclick="auSetFilter('high_risk',this)">High NCS risk</button>
+    </div>
   </div>
+  <span class="au-count" id="au-count">{{ users|length }} users</span>
 </div>
 
-<div class="stats-grid stats-grid-4">
-  <div class="stat-card">
-    <div class="stat-icon blue">👥</div>
-    <div class="stat-body">
-      <div class="stat-label">Total Users</div>
-      <div class="stat-value">{{ users | length }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon green">✓</div>
-    <div class="stat-body">
-      <div class="stat-label">Active</div>
-      <div class="stat-value">{{ users | length }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon amber">⭐</div>
-    <div class="stat-body">
-      <div class="stat-label">Avg NCS Score</div>
-      <div class="stat-value">{{ (users | map(attribute='ncs_score') | list | sum / [users | length, 1] | max) | round | int }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon purple">🏆</div>
-    <div class="stat-body">
-      <div class="stat-label">Exemplary Tier</div>
-      <div class="stat-value">{{ users | selectattr('ncs_tier','equalto','exemplary') | list | length }}</div>
-    </div>
-  </div>
-</div>
-
-<div class="card">
-  <div class="table-filters">
-    <select class="filter-select"><option>All Tiers</option><option>Probation</option><option>Developing</option><option>Reliable</option><option>Exemplary</option></select>
-    <select class="filter-select"><option>All Countries</option><option>France</option><option>Rwanda</option><option>Cameroon</option><option>UK</option></select>
-    <div class="table-search" style="margin-left:auto;"><span>🔍</span><input type="text" placeholder="Search users..." onkeyup="filterUsers(this.value)"></div>
-  </div>
-  <div class="table-wrap">
-    <table id="users-table">
-      <thead><tr>
+<!-- Table -->
+<div class="card au-table-wrap">
+  <table class="au-table" id="au-table">
+    <thead>
+      <tr>
         <th>User</th>
-        <th>Phone</th>
-        <th>Country</th>
-        <th>NCS Score</th>
-        <th>Tier</th>
+        <th>NCS</th>
         <th>KYC</th>
+        <th>Circles</th>
+        <th>Status</th>
         <th>Joined</th>
-        <th>Actions</th>
-      </tr></thead>
-      <tbody>
-        {% for u in users %}
-        <tr class="user-row" data-name="{{ u.full_name | lower }}">
-          <td>
-            <div style="display:flex;align-items:center;gap:.6rem;">
-              <div class="admin-avatar">{{ u.full_name[0] }}</div>
-              <div>
-                <div class="td-bold">{{ u.full_name }}</div>
-                {% if u.email %}<div class="td-sub">{{ u.email }}</div>{% endif %}
-              </div>
-            </div>
-          </td>
-          <td class="text-sm text-muted">{{ u.phone }}</td>
-          <td>
-            <span class="text-sm">{{ u.country }}</span>
-          </td>
-          <td>
-            <div style="display:flex;align-items:center;gap:.5rem;">
-              <span style="font-weight:700;color:var(--navy);">{{ u.ncs_score }}</span>
-              <div class="progress-track" style="width:50px;height:5px;">
-                <div class="progress-fill fill-blue" style="width:{{ ((u.ncs_score - 300) / 550 * 100) | round | int }}%"></div>
-              </div>
-            </div>
-          </td>
-          <td>
-            <span class="pill
-              {% if u.ncs_tier == 'exemplary' %}pill-purple
-              {% elif u.ncs_tier == 'reliable' %}pill-green
-              {% elif u.ncs_tier == 'developing' %}pill-amber
-              {% else %}pill-orange{% endif %} pill-no-dot">
-              {{ u.ncs_tier | capitalize }}
-            </span>
-          </td>
-          <td>
-            <span class="pill pill-blue pill-no-dot">{{ u.kyc_level | capitalize }}</span>
-          </td>
-          <td class="text-muted text-xs">{{ u.created_at[:10] }}</td>
-          <td>
-            <div style="display:flex;gap:.35rem;">
-              <button class="btn btn-outline btn-sm" title="View profile">👁</button>
-              {% if u.is_admin %}
-              <span class="pill pill-purple pill-no-dot" style="font-size:.65rem;">Admin</span>
+        <th style="text-align:center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      {% set is_frozen = u.freeze_deposits or u.freeze_withdrawals %}
+      {% set is_sus    = u.is_suspended %}
+      {% set ncs_cls   = 'ncs-ex' if u.ncs_score >= 750 else 'ncs-rel' if u.ncs_score >= 650 else 'ncs-dev' if u.ncs_score >= 550 else 'ncs-prob' %}
+      {% set kyc_ok    = u.kyc_status == 'verified' %}
+      <tr class="au-row"
+          data-name="{{ u.full_name|lower }}"
+          data-phone="{{ u.phone or '' }}"
+          data-email="{{ u.email or '' }}"
+          data-hanatag="{{ u.hanatag or '' }}"
+          data-frozen="{{ '1' if is_frozen else '0' }}"
+          data-suspended="{{ '1' if is_sus else '0' }}"
+          data-kyc="{{ u.kyc_status or 'none' }}"
+          data-ncs="{{ u.ncs_score }}">
+        <!-- User cell -->
+        <td>
+          <div class="user-cell">
+            <span class="user-name">{{ u.full_name }}</span>
+            <span class="user-sub">{{ u.phone or u.email or '—' }}</span>
+            {% if u.hanatag %}<span class="user-sub" style="color:var(--accent)">{{ u.hanatag }}</span>{% endif %}
+            {% if is_frozen %}
+            <span class="frozen-tag">🔒 Frozen{% if u.freeze_deposits and u.freeze_withdrawals %} (all){% elif u.freeze_deposits %} (deposits){% else %} (withdrawals){% endif %}</span>
+            {% endif %}
+          </div>
+        </td>
+        <!-- NCS -->
+        <td>
+          <span class="ncs-badge {{ ncs_cls }}">{{ u.ncs_score }}</span>
+        </td>
+        <!-- KYC -->
+        <td>
+          {% if kyc_ok %}
+            <span class="chip chip-ok">✓ Verified</span>
+          {% elif u.kyc_status == 'pending' %}
+            <span class="chip chip-warn">Pending</span>
+          {% elif u.kyc_status == 'rejected' %}
+            <span class="chip chip-bad">Rejected</span>
+          {% else %}
+            <span class="chip chip-muted">None</span>
+          {% endif %}
+        </td>
+        <!-- Circles -->
+        <td>
+          <span style="font-family:'Geist Mono',monospace;font-size:.82rem;color:var(--ink)">
+            {{ u.active_circles or 0 }}
+          </span>
+          {% if (u.missed_contribs or 0) > 0 %}
+          <span style="font-family:'Geist Mono',monospace;font-size:.68rem;color:#FF6A55;margin-left:.35rem">
+            {{ u.missed_contribs }} missed
+          </span>
+          {% endif %}
+        </td>
+        <!-- Status -->
+        <td>
+          {% if is_sus %}
+            <span class="chip chip-bad">Suspended</span>
+          {% elif is_frozen %}
+            <span class="chip chip-warn">Frozen</span>
+          {% elif u.risk_level in ('high','very_high','blocked') %}
+            <span class="chip chip-bad">{{ u.risk_level|replace('_',' ')|title }}</span>
+          {% else %}
+            <span class="chip chip-ok">Active</span>
+          {% endif %}
+        </td>
+        <!-- Joined -->
+        <td style="font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);white-space:nowrap">
+          {{ u.created_at[:10] if u.created_at else '—' }}
+        </td>
+        <!-- Actions -->
+        <td style="text-align:center">
+          <div class="row-actions" style="justify-content:center">
+            <button class="ra-btn ra-view" onclick="toggleDetail('{{ u.id }}')">▸ Detail</button>
+
+            {% if can_freeze %}
+              {% if is_frozen %}
+              <button class="ra-btn ra-unfreeze" onclick="openUnfreezeModal('{{ u.id }}','{{ u.full_name }}',{{ 1 if u.freeze_deposits else 0 }},{{ 1 if u.freeze_withdrawals else 0 }})">Unfreeze</button>
               {% else %}
-              <button class="btn btn-outline btn-sm" title="Make admin" onclick="makeAdmin('{{ u.id }}')">🔑</button>
+              <button class="ra-btn ra-freeze" onclick="openFreezeModal('{{ u.id }}','{{ u.full_name }}')">Freeze</button>
+              {% endif %}
+            {% endif %}
+
+            {% if actor_role in ['ceo','cco','compliance'] %}
+              {% if is_sus %}
+              <button class="ra-btn ra-reinstate" onclick="openActionModal('{{ u.id }}','{{ u.full_name }}','unsuspend')">Reinstate</button>
+              {% else %}
+              <button class="ra-btn ra-suspend" onclick="openActionModal('{{ u.id }}','{{ u.full_name }}','suspend')">Suspend</button>
+              {% endif %}
+            {% endif %}
+
+            {% if actor_role in ['ceo','cco','cfo','compliance','fraud'] %}
+            <button class="ra-btn ra-kyc" onclick="openActionModal('{{ u.id }}','{{ u.full_name }}','force_kyc')">KYC ↑</button>
+            {% endif %}
+
+            <button class="ra-btn ra-note" onclick="openNoteModal('{{ u.id }}','{{ u.full_name }}')">Note</button>
+          </div>
+        </td>
+      </tr>
+      <!-- Expand detail row -->
+      <tr class="au-detail-row" id="detail-{{ u.id }}" style="display:none">
+        <td colspan="7">
+          <div class="au-detail-panel">
+            <div class="au-detail-section">
+              <h4>Account details</h4>
+              <div class="au-detail-row-item"><span>Full name</span><span class="v">{{ u.full_name }}</span></div>
+              <div class="au-detail-row-item"><span>Phone</span><span class="v">{{ u.phone or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>Email</span><span class="v">{{ u.email or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>Hanatag</span><span class="v" style="color:var(--accent)">{{ u.hanatag or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>Country</span><span class="v">{{ u.country or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>Currency</span><span class="v">{{ u.base_currency or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>NCS tier</span><span class="v">{{ u.ncs_tier or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>KYC level</span><span class="v">{{ u.kyc_level or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>KYC status</span><span class="v">{{ u.kyc_status or '—' }}</span></div>
+              <div class="au-detail-row-item"><span>Risk level</span><span class="v">{{ u.risk_level or 'normal' }}</span></div>
+              {% if u.freeze_reason %}
+              <div class="au-detail-row-item"><span>Freeze reason</span><span class="v" style="color:#FFB350">{{ u.freeze_reason }}</span></div>
               {% endif %}
             </div>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="8"><div class="empty-state" style="padding:2rem;"><p>No users found.</p></div></td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+            <div class="au-detail-section">
+              <h4>Admin notes</h4>
+              <div class="au-notes-area" id="notes-area-{{ u.id }}">
+                <div style="font-size:.8rem;color:var(--ink-3);padding:.5rem">Loading…</div>
+              </div>
+              <div style="display:flex;gap:.4rem;margin-top:.6rem">
+                <textarea id="note-inline-{{ u.id }}" rows="2" placeholder="Add a note…" style="flex:1;padding:.55rem .75rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-family:'Geist',sans-serif;font-size:.83rem;resize:none;outline:none"></textarea>
+                <button onclick="saveInlineNote('{{ u.id }}')" style="padding:.55rem .85rem;background:var(--accent);color:#0E120F;border:none;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;flex-shrink:0;align-self:flex-end">Save</button>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ════════════ FREEZE MODAL ════════════ -->
+<div class="au-modal-bg" id="freeze-modal-bg" onclick="if(event.target===this)closeFreezeModal()">
+  <div class="au-modal">
+    <h3 id="freeze-title">Freeze account</h3>
+    <p class="subtitle">Select what to freeze. The user will be notified and can contact support to resolve.</p>
+    <div class="au-modal-err" id="freeze-err"></div>
+    <div class="field">
+      <label>Freeze scope</label>
+      <div style="display:flex;gap:1.25rem;padding:.4rem 0">
+        <label style="display:flex;align-items:center;gap:.45rem;font-size:.88rem;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="frz-dep" checked> Deposits
+        </label>
+        <label style="display:flex;align-items:center;gap:.45rem;font-size:.88rem;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="frz-wd" checked> Withdrawals
+        </label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Reason <span style="color:#FF6A55">*</span></label>
+      <textarea id="frz-reason" placeholder="Explain the reason for this freeze…" rows="3"></textarea>
+    </div>
+    <div class="au-modal-actions">
+      <button class="au-btn-cancel" onclick="closeFreezeModal()">Cancel</button>
+      <button class="au-btn-confirm warn" onclick="submitFreeze()">Freeze account</button>
+    </div>
   </div>
 </div>
-{% endblock %}
 
-{% block modals %}
-<div class="modal-backdrop" id="add-user-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('add-user-modal')">✕</button>
-    <h3 class="modal-title">Add User</h3>
-    <p class="modal-sub">Manually create a user account.</p>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="au-name" placeholder="Full name"></div>
-      <div class="form-group"><label class="form-label">Country</label><select class="form-input form-select"><option>FR</option><option>RW</option><option>CM</option><option>GB</option></select></div>
+<!-- ════════════ UNFREEZE MODAL ════════════ -->
+<div class="au-modal-bg" id="unfreeze-modal-bg" onclick="if(event.target===this)closeUnfreezeModal()">
+  <div class="au-modal">
+    <h3 id="unfreeze-title">Lift freeze</h3>
+    <p class="subtitle">Select which restrictions to remove.</p>
+    <div class="au-modal-err" id="unfreeze-err"></div>
+    <div class="field">
+      <label>Unfreeze</label>
+      <div style="display:flex;gap:1.25rem;padding:.4rem 0">
+        <label style="display:flex;align-items:center;gap:.45rem;font-size:.88rem;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="ufrz-dep"> Deposits
+        </label>
+        <label style="display:flex;align-items:center;gap:.45rem;font-size:.88rem;color:var(--ink);cursor:pointer">
+          <input type="checkbox" id="ufrz-wd"> Withdrawals
+        </label>
+      </div>
     </div>
-    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="au-phone" placeholder="+33611000000"></div>
-    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="au-pass" type="password" placeholder="Temporary password"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-full" onclick="closeModal('add-user-modal')">Cancel</button>
-      <button class="btn btn-primary btn-full" onclick="addUser()">Create User</button>
+    <div class="field">
+      <label>Reason (optional)</label>
+      <textarea id="ufrz-reason" placeholder="Why is this restriction being lifted?" rows="2"></textarea>
+    </div>
+    <div class="au-modal-actions">
+      <button class="au-btn-cancel" onclick="closeUnfreezeModal()">Cancel</button>
+      <button class="au-btn-confirm safe" onclick="submitUnfreeze()">Lift restriction</button>
     </div>
   </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- ════════════ ACTION MODAL (suspend / reinstate / force KYC) ════════════ -->
+<div class="au-modal-bg" id="action-modal-bg" onclick="if(event.target===this)closeActionModal()">
+  <div class="au-modal">
+    <h3 id="action-title">Action</h3>
+    <p class="subtitle" id="action-subtitle"></p>
+    <div class="au-modal-err" id="action-err"></div>
+    <div class="field" id="action-reason-field">
+      <label>Reason <span style="color:#FF6A55">*</span></label>
+      <textarea id="action-reason" rows="3" placeholder="Explain this action…"></textarea>
+    </div>
+    <div class="au-modal-actions">
+      <button class="au-btn-cancel" onclick="closeActionModal()">Cancel</button>
+      <button class="au-btn-confirm danger" id="action-confirm-btn" onclick="submitAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ NOTE MODAL ════════════ -->
+<div class="au-modal-bg" id="note-modal-bg" onclick="if(event.target===this)closeNoteModal()">
+  <div class="au-modal">
+    <h3 id="note-title">Add admin note</h3>
+    <p class="subtitle">This note is visible to admins only and is never shown to the user.</p>
+    <div class="au-modal-err" id="note-err"></div>
+    <div class="field">
+      <label>Note</label>
+      <textarea id="note-text" rows="4" placeholder="Internal note about this account…"></textarea>
+    </div>
+    <div class="au-modal-actions">
+      <button class="au-btn-cancel" onclick="closeNoteModal()">Cancel</button>
+      <button class="au-btn-confirm safe" onclick="submitNote()">Save note</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="admin-toast" id="au-toast" style="position:fixed;bottom:2rem;right:2rem;padding:.75rem 1.25rem;border-radius:12px;font-family:'Geist Mono',monospace;font-size:.78rem;z-index:400;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;border:1px solid"></div>
+
 <script>
-function filterUsers(q) {
-  document.querySelectorAll('.user-row').forEach(row => {
-    row.style.display = row.dataset.name.includes(q.toLowerCase()) ? '' : 'none';
+var _frzUid=null, _ufrzUid=null, _actUid=null, _actType=null, _noteUid=null;
+
+// ── TOAST ──
+function toast(msg, type){
+  var el = document.getElementById('au-toast');
+  el.textContent = msg;
+  if(type === 'success'){
+    el.style.background='rgba(158,228,147,.15)'; el.style.borderColor='rgba(158,228,147,.4)'; el.style.color='var(--accent)';
+  } else {
+    el.style.background='rgba(255,90,90,.1)'; el.style.borderColor='rgba(255,90,90,.3)'; el.style.color='#FF8A70';
+  }
+  el.style.opacity='1'; el.style.transform='translateY(0)';
+  setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateY(8px)'; }, 3500);
+}
+
+// ── FILTER + SEARCH ──
+var _activeFilter = 'all';
+function auSetFilter(f, btn){
+  _activeFilter = f;
+  document.querySelectorAll('.au-filter-btn').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  auFilter();
+}
+function auFilter(){
+  var q = document.getElementById('au-search').value.toLowerCase();
+  var rows = document.querySelectorAll('.au-row');
+  var visible = 0;
+  rows.forEach(function(row){
+    var matchSearch = !q ||
+      row.dataset.name.includes(q) ||
+      row.dataset.phone.includes(q) ||
+      row.dataset.email.includes(q) ||
+      row.dataset.hanatag.includes(q);
+    var matchFilter = _activeFilter === 'all' ||
+      (_activeFilter === 'frozen'      && row.dataset.frozen === '1') ||
+      (_activeFilter === 'suspended'   && row.dataset.suspended === '1') ||
+      (_activeFilter === 'kyc_pending' && row.dataset.kyc === 'pending') ||
+      (_activeFilter === 'high_risk'   && parseInt(row.dataset.ncs) < 450);
+    var show = matchSearch && matchFilter;
+    row.style.display = show ? '' : 'none';
+    if(show) visible++;
+    // Also hide the detail row if user row is hidden
+    var dr = document.getElementById('detail-' + row.querySelector('[id]')?.id?.replace('detail-',''));
+    // simpler: collapse all detail rows on filter
+  });
+  document.getElementById('au-count').textContent = visible + ' of {{ users|length }} users';
+}
+
+// ── DETAIL EXPAND ──
+function toggleDetail(uid){
+  var row = document.getElementById('detail-' + uid);
+  if(!row) return;
+  var isOpen = row.style.display !== 'none';
+  // Close all others
+  document.querySelectorAll('.au-detail-row').forEach(function(r){ r.style.display='none'; });
+  if(!isOpen){
+    row.style.display = '';
+    loadNotes(uid);
+  }
+}
+
+// ── NOTES ──
+function loadNotes(uid){
+  var area = document.getElementById('notes-area-' + uid);
+  if(!area) return;
+  fetch('/api/admin/notes/user/' + uid)
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(!d.notes || !d.notes.length){
+      area.innerHTML = '<div style="font-size:.8rem;color:var(--ink-3);padding:.3rem">No notes yet.</div>';
+      return;
+    }
+    area.innerHTML = '<div class="note-items">' + d.notes.map(function(n){
+      return '<div class="note-item"><div class="note-meta">' + (n.admin_name||'Admin') + ' · ' + (n.created_at||'').substring(0,16).replace('T',' ') + '</div>' + n.note + '</div>';
+    }).join('') + '</div>';
+  })
+  .catch(function(){ area.innerHTML = '<div style="font-size:.78rem;color:var(--ink-3)">Could not load notes.</div>'; });
+}
+
+function saveInlineNote(uid){
+  var txt = document.getElementById('note-inline-' + uid);
+  var note = txt ? txt.value.trim() : '';
+  if(!note){ toast('Note is empty.','error'); return; }
+  fetch('/api/admin/notes/user/' + uid, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({note: note})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ txt.value=''; loadNotes(uid); toast('Note saved.','success'); }
+    else toast(d.error||'Failed','error');
   });
 }
-async function addUser() {
-  const d = await API.post('/api/auth/register', {
-    full_name: document.getElementById('au-name').value,
-    phone:     document.getElementById('au-phone').value,
-    password:  document.getElementById('au-pass').value,
-  });
-  if (d.error) { toast(d.error, 'error'); return; }
-  closeModal('add-user-modal');
-  toast('User created!', 'success');
-  setTimeout(() => location.reload(), 1000);
+
+// ── FREEZE ──
+function openFreezeModal(uid, name){
+  _frzUid = uid;
+  document.getElementById('freeze-title').textContent = 'Freeze: ' + name;
+  document.getElementById('frz-dep').checked = true;
+  document.getElementById('frz-wd').checked  = true;
+  document.getElementById('frz-reason').value = '';
+  document.getElementById('freeze-err').classList.remove('show');
+  document.getElementById('freeze-modal-bg').classList.add('open');
 }
-async function makeAdmin(userId) {
-  toast('Admin privileges require database access in production.', 'warning');
+function closeFreezeModal(){ document.getElementById('freeze-modal-bg').classList.remove('open'); }
+function submitFreeze(){
+  var dep = document.getElementById('frz-dep').checked;
+  var wd  = document.getElementById('frz-wd').checked;
+  var rsn = document.getElementById('frz-reason').value.trim();
+  var err = document.getElementById('freeze-err');
+  if(!dep && !wd){ err.textContent='Select at least one.'; err.classList.add('show'); return; }
+  if(!rsn){ err.textContent='Reason is required.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  fetch('/api/admin/freeze', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user_id:_frzUid, freeze_deposits:dep, freeze_withdrawals:wd, reason:rsn})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ closeFreezeModal(); toast('Account frozen: ' + d.target_name,'success'); setTimeout(function(){ location.reload(); },1200); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
+}
+
+// ── UNFREEZE ──
+function openUnfreezeModal(uid, name, hasDep, hasWd){
+  _ufrzUid = uid;
+  document.getElementById('unfreeze-title').textContent = 'Lift freeze: ' + name;
+  document.getElementById('ufrz-dep').checked = Boolean(hasDep);
+  document.getElementById('ufrz-wd').checked  = Boolean(hasWd);
+  document.getElementById('ufrz-reason').value = '';
+  document.getElementById('unfreeze-err').classList.remove('show');
+  document.getElementById('unfreeze-modal-bg').classList.add('open');
+}
+function closeUnfreezeModal(){ document.getElementById('unfreeze-modal-bg').classList.remove('open'); }
+function submitUnfreeze(){
+  var dep = document.getElementById('ufrz-dep').checked;
+  var wd  = document.getElementById('ufrz-wd').checked;
+  var rsn = document.getElementById('ufrz-reason').value.trim();
+  var err = document.getElementById('unfreeze-err');
+  if(!dep && !wd){ err.textContent='Select at least one.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  fetch('/api/admin/unfreeze', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user_id:_ufrzUid, unfreeze_deposits:dep, unfreeze_withdrawals:wd, reason:rsn||'Restriction lifted'})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ closeUnfreezeModal(); toast('Freeze lifted: ' + d.target_name,'success'); setTimeout(function(){ location.reload(); },1200); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
+}
+
+// ── USER ACTIONS (suspend / reinstate / force KYC) ──
+var _actSubtitles = {
+  suspend: 'Suspending an account locks the user out of the platform entirely. This should only be used for serious policy violations or active fraud.',
+  unsuspend: 'This will fully reinstate the account and restore normal access.',
+  force_kyc: 'Moves this user into the manual KYC review queue. Their KYC status will be set to pending.',
+};
+var _actBtnCls = { suspend:'danger', unsuspend:'safe', force_kyc:'safe' };
+function openActionModal(uid, name, action){
+  _actUid=uid; _actType=action;
+  document.getElementById('action-title').textContent = (action==='suspend'?'Suspend: ':action==='unsuspend'?'Reinstate: ':'Force KYC review: ') + name;
+  document.getElementById('action-subtitle').textContent = _actSubtitles[action] || '';
+  document.getElementById('action-confirm-btn').className = 'au-btn-confirm ' + (_actBtnCls[action]||'danger');
+  document.getElementById('action-confirm-btn').textContent = action==='suspend'?'Suspend account':action==='unsuspend'?'Reinstate':'Force KYC';
+  document.getElementById('action-reason').value='';
+  document.getElementById('action-reason-field').style.display = action==='force_kyc' ? 'none' : '';
+  document.getElementById('action-err').classList.remove('show');
+  document.getElementById('action-modal-bg').classList.add('open');
+}
+function closeActionModal(){ document.getElementById('action-modal-bg').classList.remove('open'); }
+function submitAction(){
+  var reason = document.getElementById('action-reason').value.trim();
+  var err    = document.getElementById('action-err');
+  if(!reason && _actType !== 'force_kyc'){ err.textContent='Reason required.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  fetch('/api/admin/users/' + _actUid + '/action', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:_actType, reason:reason})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ closeActionModal(); toast('Done: ' + _actType,'success'); setTimeout(function(){ location.reload(); },1200); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
+}
+
+// ── NOTES MODAL (standalone) ──
+function openNoteModal(uid, name){
+  _noteUid=uid;
+  document.getElementById('note-title').textContent = 'Note on ' + name;
+  document.getElementById('note-text').value='';
+  document.getElementById('note-err').classList.remove('show');
+  document.getElementById('note-modal-bg').classList.add('open');
+}
+function closeNoteModal(){ document.getElementById('note-modal-bg').classList.remove('open'); }
+function submitNote(){
+  var note = document.getElementById('note-text').value.trim();
+  var err  = document.getElementById('note-err');
+  if(!note){ err.textContent='Note is empty.'; err.classList.add('show'); return; }
+  fetch('/api/admin/notes/user/' + _noteUid, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({note:note})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ closeNoteModal(); toast('Note saved.','success'); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
 }
 </script>
 {% endblock %}

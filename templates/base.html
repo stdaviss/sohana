@@ -40,7 +40,33 @@
   <div class="sidebar-section">
     <span class="sidebar-label">Admin</span>
     <ul class="sidebar-nav">
-      <li><a href="/admin"         class="{{ 'active' if p=='/admin' }}"><span class="nav-icon">◈</span>Dashboard</a></li>
+      <li>
+        {% if session.get('admin_role') in ['ceo','cfo'] %}
+        <a href="/admin/executive" class="{{ 'active' if '/admin/executive' in p or p=='/admin' }}">
+          <span class="nav-icon">◈</span>Executive Dashboard
+        </a>
+        {% elif session.get('admin_role') == 'cto' %}
+        <a href="/admin/engineering" class="{{ 'active' if '/admin/engineering' in p or p=='/admin' }}">
+          <span class="nav-icon">◈</span>Engineering Dashboard
+        </a>
+        {% elif session.get('admin_role') in ['cco','compliance'] %}
+        <a href="/admin/compliance" class="{{ 'active' if '/admin/compliance' in p or p=='/admin' }}">
+          <span class="nav-icon">◈</span>Compliance Dashboard
+        </a>
+        {% elif session.get('admin_role') == 'fraud' %}
+        <a href="/admin/fraud" class="{{ 'active' if '/admin/fraud' in p or p=='/admin' }}">
+          <span class="nav-icon">◈</span>Fraud Dashboard
+        </a>
+        {% elif session.get('admin_role') == 'credit' %}
+        <a href="/admin/credit" class="{{ 'active' if '/admin/credit' in p or p=='/admin' }}">
+          <span class="nav-icon">◈</span>Credit Dashboard
+        </a>
+        {% else %}
+        <a href="/admin" class="{{ 'active' if p=='/admin' }}">
+          <span class="nav-icon">◈</span>Dashboard
+        </a>
+        {% endif %}
+      </li>
       <li style="opacity:.55;pointer-events:none;"><a href="#" onclick="return false;"><span class="nav-icon">◎</span>All ROSCAs <span style="margin-left:auto;font-size:.6rem;color:var(--ink-3);font-family:'Geist Mono',monospace;letter-spacing:.04em;">SOON</span></a></li>
       <li><a href="/admin/users"   class="{{ 'active' if '/admin/user' in p }}"><span class="nav-icon">◎</span>All Users</a></li>
       <li><a href="/admin/payments"class="{{ 'active' if '/admin/payment' in p }}"><span class="nav-icon">◈</span>Payments</a></li>

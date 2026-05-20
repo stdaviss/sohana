@@ -286,8 +286,10 @@ def dashboard():
     tier       = ncs_engine.get_tier(user["ncs_score"])
     marketplace= rosca.get_marketplace(limit=3)
     unread     = fetchone("SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0", (user["id"],))["c"]
-    session["user_name"] = user["full_name"]
-    session["is_admin"]  = bool(user["is_admin"])
+    session["user_name"]  = user["full_name"]
+    session["is_admin"]   = bool(user["is_admin"])
+    if user.get("is_admin"):
+        session["admin_role"] = user.get("admin_role", "")
     return render_template("dashboard.html", user=user, balance=balance, wallets=wallets,
                            def_wallet=def_wallet, recent_tx=recent_tx, my_roscas=my_roscas,
                            badges=badges, tier=tier, marketplace=marketplace, unread=unread,
@@ -773,8 +775,15 @@ def admin_admins():
 @any_admin_required
 def admin_users():
     user  = auth.get_current_user()
-    users = fetchall("SELECT * FROM users WHERE is_admin=0 ORDER BY created_at DESC LIMIT 100")
-    return render_template("admin_users.html", user=user, users=users)
+    users = fetchall("""SELECT u.*,
+        (SELECT COUNT(*) FROM rosca_members rm WHERE rm.user_id=u.id AND rm.status='active') as active_circles,
+        (SELECT COUNT(*) FROM contributions c WHERE c.user_id=u.id AND c.status='missed') as missed_contribs
+        FROM users u WHERE u.is_admin=0 ORDER BY u.created_at DESC LIMIT 200""")
+    actor_role = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    can_freeze  = actor_role and actor_role["admin_role"] in {"ceo","cco","cfo"}
+    return render_template("admin_users.html", user=user, users=users,
+                           can_freeze=can_freeze,
+                           actor_role=actor_role["admin_role"] if actor_role else None)
 
 @app.route("/admin/blog")
 @any_admin_required
