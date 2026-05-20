@@ -1,0 +1,80 @@
+{% extends "page_base.html" %}
+{% block title %}Sohana in Cameroon{% endblock %}
+{% block content %}
+<style>
+.mk-hero{padding:80px 5% 64px;border-bottom:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.mk-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 400px at 70% 0%,rgba(158,228,147,.09),transparent 60%);pointer-events:none}
+.mk-hero .container,.mk-body .container{max-width:1060px;margin:0 auto;position:relative;z-index:2}
+.mk-flag{font-size:3.5rem;margin-bottom:1rem;display:block}
+.mk-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#9EE493;display:inline-flex;align-items:center;gap:.5rem;margin-bottom:.85rem}
+.mk-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.mk-hero h1{font-size:clamp(2.2rem,4vw,3.2rem);font-weight:500;line-height:1.08;letter-spacing:-.025em;color:#F4F2EC;margin-bottom:1rem}
+.mk-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.mk-hero p{font-size:1.05rem;color:#B7BAB4;max-width:660px;line-height:1.72}
+.mk-hero p strong{color:#F4F2EC;font-weight:500}
+.mk-hero-cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.75rem}
+.mk-cta-primary{padding:.82rem 1.8rem;background:#9EE493;color:#0E120F;border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:600;text-decoration:none;transition:all .2s}
+.mk-cta-primary:hover{background:#cef870;transform:translateY(-1px)}
+.mk-cta-ghost{padding:.82rem 1.8rem;background:transparent;color:#9EE493;border:1px solid rgba(158,228,147,.35);border-radius:99px;font-family:inherit;font-size:.95rem;font-weight:500;text-decoration:none;transition:all .2s}
+.mk-body{padding:64px 5% 96px}
+.mk-section{margin-bottom:3rem;padding-bottom:3rem;border-bottom:1px solid rgba(244,242,236,.07)}
+.mk-section:last-child{border-bottom:none}
+.mk-section h2{font-size:1.35rem;font-weight:600;color:#F4F2EC;margin-bottom:.85rem;letter-spacing:-.01em}
+.mk-section p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:.95rem;max-width:780px}
+.mk-section p strong{color:#F4F2EC;font-weight:500}
+.mk-stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;margin:1.5rem 0}
+.mk-stat{padding:1.25rem 1.3rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:14px}
+.mk-stat .v{font-family:'Geist Mono',monospace;font-size:1.5rem;color:#9EE493;font-weight:600;letter-spacing:-.02em;line-height:1}
+.mk-stat .l{font-size:.78rem;color:#8A8E87;margin-top:.4rem;line-height:1.4}
+.mk-cur-row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+.mk-cur{padding:.4rem .85rem;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.78rem;color:#9EE493;font-weight:600}
+.mk-reg{padding:1.25rem 1.5rem;background:rgba(255,179,80,.06);border:1px solid rgba(255,179,80,.2);border-radius:12px;font-size:.88rem;color:#B7BAB4;line-height:1.65;margin-top:.75rem}
+.mk-reg strong{color:#FFB350;font-weight:500}
+.mk-links{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;margin-top:1rem}
+.mk-link-card{padding:1.1rem 1.2rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:12px;text-decoration:none;display:flex;align-items:center;gap:.65rem;transition:all .2s}
+.mk-link-card:hover{border-color:rgba(158,228,147,.3);transform:translateY(-1px)}
+.mk-link-card .ico{font-size:1.1rem}
+.mk-link-card .text{font-size:.88rem;color:#F4F2EC;font-weight:500}
+</style>
+<section class="mk-hero"><div class="container">
+  <span class="mk-flag">🇨🇲</span>
+  <div class="mk-eyebrow">Sohana in Cameroon, Ghana &amp; Nigeria</div>
+  <h1>Sohana Africa — <span class='ital'>the roots of community finance</span>.</h1>
+  <p>Cameroon, Ghana, and Nigeria are the continent's founding markets for Sohana — and the birthplace of the Njangi, Susu, and Esusu traditions that the platform digitises. Users on the continent hold XAF, GHC, or NGN wallets and can transact with diaspora members in EUR, GBP, USD, and CAD at transparent conversion rates. The NCS model was specifically designed to be credible to African banks and lenders — building toward a future where your community reputation opens real financial doors.</p>
+  <div class="mk-hero-cta-row">
+    <a href="/auth" class="mk-cta-primary">Join in Cameroon →</a>
+    <a href="/about" class="mk-cta-ghost">Our story</a>
+  </div>
+</div></section>
+<section class="mk-body"><div class="container">
+  <div class="mk-section">
+    <h2>The market we serve</h2>
+    <div class="mk-stat-row">
+      <div class="mk-stat"><div class="v">XAF / GHC / NGN</div><div class="l">Currencies supported on the continent</div></div>
+      <div class="mk-stat"><div class="v">800M+</div><div class="l">Africans without formal credit history (World Bank)</div></div>
+      <div class="mk-stat"><div class="v">XAF</div><div class="l">Primary wallet currency</div></div>
+    </div>
+  </div>
+  <div class="mk-section">
+    <h2>Currencies supported</h2>
+    <div class="mk-cur-row">
+      <span class="mk-cur">EUR €</span><span class="mk-cur">GBP £</span><span class="mk-cur">USD $</span><span class="mk-cur">CAD C$</span><span class="mk-cur">XAF Fr</span><span class="mk-cur">GHC ₵</span><span class="mk-cur">NGN ₦</span><span class="mk-cur">ZAR R</span>
+    </div>
+  </div>
+  <div class="mk-section">
+    <h2>Regulatory status</h2>
+    <div class="mk-reg"><strong>Pursuing regulatory authorisations in target African markets. Sohana is in discussions with COBAC (Central African banking regulator), the Bank of Ghana, and the Central Bank of Nigeria regarding the regulatory framework for domestic operations. During beta, all transactions are simulated.</strong></div>
+  </div>
+  <div class="mk-section">
+    <h2>Explore Sohana</h2>
+    <div class="mk-links">
+      <a href="/njangi" class="mk-link-card"><span class="ico">⊙</span><span class="text">Circles (Njangi)</span></a>
+      <a href="/ncs-page" class="mk-link-card"><span class="ico">⌬</span><span class="text">NCS Credit Score</span></a>
+      <a href="/wallet-page" class="mk-link-card"><span class="ico">◊</span><span class="text">Multi-currency Wallet</span></a>
+      <a href="/hanapay" class="mk-link-card"><span class="ico">@</span><span class="text">Hanapay</span></a>
+      <a href="/fundraising" class="mk-link-card"><span class="ico">♡</span><span class="text">Fundraising</span></a>
+      <a href="/contact" class="mk-link-card"><span class="ico">✉</span><span class="text">Contact us</span></a>
+    </div>
+  </div>
+</div></section>
+{% endblock %}

@@ -1,51 +1,161 @@
 {% extends "page_base.html" %}
-{% block title %}Accessibility{% endblock %}
+{% block title %}Accessibility — Sohana{% endblock %}
 
 {% block content %}
-<div class="page-hero">
+<style>
+.ac-hero{padding:80px 5% 64px;border-bottom:1px solid rgba(244,242,236,.08);position:relative;overflow:hidden}
+.ac-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 400px at 70% 0%,rgba(158,228,147,.09),transparent 60%);pointer-events:none}
+.ac-hero .container,.ac-body .container{max-width:920px;margin:0 auto;position:relative;z-index:2}
+.ac-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#9EE493;display:inline-flex;align-items:center;gap:.5rem;margin-bottom:1.1rem}
+.ac-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.ac-hero h1{font-size:clamp(2.2rem,4vw,3.2rem);font-weight:500;line-height:1.08;letter-spacing:-.025em;color:#F4F2EC;margin-bottom:1rem}
+.ac-hero h1 .ital{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.ac-hero p{font-size:1.05rem;color:#B7BAB4;max-width:640px;line-height:1.72}
+.ac-hero p strong{color:#F4F2EC;font-weight:500}
+
+.ac-body{padding:64px 5% 96px}
+.ac-section{margin-bottom:3.5rem;padding-bottom:3.5rem;border-bottom:1px solid rgba(244,242,236,.07)}
+.ac-section:last-child{border-bottom:none;margin-bottom:0}
+.ac-section h2{font-size:1.35rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em;margin-bottom:.85rem;line-height:1.3}
+.ac-section p{font-size:.96rem;color:#B7BAB4;line-height:1.78;margin-bottom:.95rem;max-width:780px}
+.ac-section p strong{color:#F4F2EC;font-weight:500}
+.ac-section ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.7rem;margin-bottom:.95rem}
+.ac-section ul li{font-size:.95rem;color:#B7BAB4;line-height:1.65;padding-left:1.6rem;position:relative;max-width:780px}
+.ac-section ul li::before{content:"✓";position:absolute;left:0;color:#9EE493;font-weight:700}
+.ac-section ul li strong{color:#F4F2EC;font-weight:500}
+
+.ac-standard-card{display:inline-flex;align-items:center;gap:.75rem;padding:.85rem 1.25rem;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.2);border-radius:12px;margin-top:.75rem}
+.ac-standard-card .badge{font-family:'Geist Mono',monospace;font-size:.85rem;font-weight:700;color:#9EE493;letter-spacing:.04em}
+.ac-standard-card .desc{font-size:.85rem;color:#B7BAB4;line-height:1.4}
+
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.9rem;margin-top:1.25rem}
+.ac-feat{padding:1.35rem 1.4rem;background:#161B17;border:1px solid rgba(244,242,236,.08);border-radius:14px}
+.ac-feat .ico{font-size:1.25rem;margin-bottom:.65rem}
+.ac-feat h4{font-size:.95rem;font-weight:600;color:#F4F2EC;margin-bottom:.35rem;letter-spacing:-.005em}
+.ac-feat p{font-size:.82rem;color:#8A8E87;line-height:1.6;margin:0}
+
+.ac-contact-band{margin-top:2rem;padding:1.75rem 2rem;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.2);border-radius:18px}
+.ac-contact-band p{font-size:.95rem;color:#B7BAB4;line-height:1.7;margin:0}
+.ac-contact-band p strong{color:#F4F2EC}
+.ac-contact-band a{color:#9EE493;text-decoration:none}
+.ac-contact-band a:hover{text-decoration:underline}
+.ac-update{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;letter-spacing:.04em;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(244,242,236,.07)}
+</style>
+
+<section class="ac-hero">
   <div class="container">
-    <div class="page-hero-label">Legal</div>
-    <h1>Accessibility Statement</h1>
-    <p>Our commitment to making SOHANA accessible to everyone.</p>
-    <div class="page-hero-cta">
-      <a href="/auth" class="btn-primary">Get started free</a>
-      <a href="/how-it-works" class="btn-outline-white">How it works</a>
-    </div>
+    <div class="ac-eyebrow">Accessibility</div>
+    <h1>Built to be used <span class="ital">by everyone</span>.</h1>
+    <p>Sohana is committed to ensuring our platform is accessible to all users regardless of disability, assistive technology, device, or connection speed. <strong>Financial tools should not create new barriers for the people who need them most.</strong></p>
   </div>
-</div>
+</section>
 
-<div class="page-content">
-  <div class="card-grid">
-    <div class="info-card">
-      <div class="icon">♿</div>
-      <h3>Our commitment</h3>
-      <p>SOHANA is committed to making our platform accessible to all users regardless of disability or assistive technology. We aim to meet WCAG 2.1 Level AA across all our web interfaces.</p>
+<section class="ac-body">
+  <div class="container">
+
+    <div class="ac-section">
+      <h2>Our conformance target</h2>
+      <p>We aim to conform to the <strong>Web Content Accessibility Guidelines (WCAG) 2.1 Level AA</strong> across all public-facing pages of the Sohana platform. This is the internationally recognised standard referenced by the European Accessibility Act (EAA), the UK Equality Act 2010, and the Accessibility for Ontarians with Disabilities Act (AODA).</p>
+      <p>We are a platform in active development and in some areas we are still working toward full conformance. We believe in transparency about this — where gaps exist, we document them and fix them rather than making claims we cannot yet substantiate.</p>
+      <div class="ac-standard-card">
+        <span class="badge">WCAG 2.1 AA</span>
+        <div class="desc">Our conformance target · European Accessibility Act aligned · In progress</div>
+      </div>
     </div>
-    <div class="info-card">
-      <div class="icon">📱</div>
-      <h3>Current accessibility features</h3>
-      <p>The SOHANA web platform supports keyboard navigation, screen readers, and high-contrast display modes. All form fields have appropriate labels. Error messages are descriptive and actionable.</p>
+
+    <div class="ac-section">
+      <h2>What we have built</h2>
+      <p>The following accessibility features are currently implemented across the Sohana platform:</p>
+      <div class="ac-grid">
+        <div class="ac-feat">
+          <div class="ico">⌨️</div>
+          <h4>Full keyboard navigation</h4>
+          <p>Every interactive element on the public site is reachable and operable via keyboard alone, with visible focus indicators throughout.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">🔊</div>
+          <h4>Screen reader support</h4>
+          <p>Semantic HTML5 markup, ARIA labels on interactive components, and meaningful alt text on all non-decorative images.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">🌓</div>
+          <h4>Dark and light mode</h4>
+          <p>Full light/dark mode toggle respects system preferences via <code>prefers-color-scheme</code> and stores your choice persistently.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">🔡</div>
+          <h4>Scalable text</h4>
+          <p>All text uses relative units (rem/em). The interface scales cleanly when browser text size is increased up to 200%.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">📱</div>
+          <h4>Responsive layout</h4>
+          <p>Every page is fully responsive from 320px to 4K. No content becomes inaccessible at any viewport width.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">🎨</div>
+          <h4>Colour contrast</h4>
+          <p>Primary text on our dark background meets the WCAG AA 4.5:1 contrast ratio requirement. Accent elements meet 3:1 for large text.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">✋</div>
+          <h4>Touch target sizing</h4>
+          <p>All interactive elements meet a minimum touch target size of 44×44px, following WCAG 2.1 Success Criterion 2.5.5.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">⏸️</div>
+          <h4>Motion control</h4>
+          <p>Decorative animations respect the <code>prefers-reduced-motion</code> media query and are paused for users who request reduced motion.</p>
+        </div>
+        <div class="ac-feat">
+          <div class="ico">🌍</div>
+          <h4>Language declaration</h4>
+          <p>All pages declare their language in the HTML <code>lang</code> attribute. The platform supports EN and FR throughout.</p>
+        </div>
+      </div>
     </div>
-    <div class="info-card">
-      <div class="icon">🔧</div>
-      <h3>Known limitations</h3>
-      <p>Some data visualisation elements (NCS score charts, sparklines) do not yet have full screen reader equivalents. We are working to add text alternatives in our next development cycle.</p>
+
+    <div class="ac-section">
+      <h2>Known limitations</h2>
+      <p>We are transparent about areas that are not yet fully conformant. Our development team is actively working on each of the following:</p>
+      <ul>
+        <li><strong>Complex SVG charts and gauges</strong> — animated SVGs on the NCS, Wallet, and product pages have partial ARIA labelling. We are adding comprehensive text alternatives and ARIA descriptions progressively.</li>
+        <li><strong>PDF generation</strong> — downloadable receipts and transaction histories are not yet accessible PDFs. We are implementing tagged PDF generation.</li>
+        <li><strong>Third-party embeds</strong> — any third-party components (maps, video) may not fully conform. We flag these where they appear.</li>
+        <li><strong>Legacy admin templates</strong> — some admin-facing pages were built before our accessibility standards were formalised. We are auditing and retrofitting these progressively.</li>
+      </ul>
     </div>
-    <div class="info-card">
-      <div class="icon">📬</div>
-      <h3>Feedback and assistance</h3>
-      <p>If you encounter an accessibility barrier or need assistance using any part of the platform, email support@sohana.app with the subject line 'Accessibility'. We will respond within 48 hours.</p>
+
+    <div class="ac-section">
+      <h2>Assistive technologies we test against</h2>
+      <ul>
+        <li><strong>NVDA + Firefox</strong> on Windows (primary screen reader test environment)</li>
+        <li><strong>VoiceOver + Safari</strong> on macOS and iOS</li>
+        <li><strong>TalkBack + Chrome</strong> on Android</li>
+        <li><strong>JAWS + Chrome</strong> on Windows</li>
+        <li><strong>Zoom Text</strong> for magnification testing</li>
+        <li><strong>Dragon NaturallySpeaking</strong> for voice navigation testing</li>
+      </ul>
     </div>
+
+    <div class="ac-section">
+      <h2>Formal accessibility assessment</h2>
+      <p>This statement was prepared through a combination of self-evaluation by the Sohana engineering team and review against the WCAG 2.1 AA checklist. A third-party audit by a specialist accessibility consultancy is scheduled as part of our regulatory authorisation preparation for ACPR (France) and FCA (UK).</p>
+      <p>The most recent self-assessment was completed in <strong>May 2026</strong>. We update this statement after each significant platform release.</p>
+    </div>
+
+    <div class="ac-section">
+      <h2>Feedback and contact</h2>
+      <p>If you encounter an accessibility barrier on any part of the Sohana platform — whether it prevents you from completing a task or simply makes it harder — we want to know. Your feedback is how we prioritise our accessibility work.</p>
+      <div class="ac-contact-band">
+        <p>
+          Email <a href="mailto:support@sohana.app"><strong>support@sohana.app</strong></a> with the subject line <strong>"Accessibility"</strong>. Include the page URL and a description of the barrier. We will acknowledge your report within <strong>2 business days</strong> and aim to resolve substantive issues within 14 days or provide a workaround in the interim.<br><br>
+          If you are not satisfied with our response, you have the right to contact the <strong>French Digital Accessibility Defender (Défenseur des droits)</strong> or the <strong>UK Equality and Human Rights Commission</strong>, depending on your jurisdiction.
+        </p>
+      </div>
+      <p class="ac-update">This accessibility statement was last reviewed: <strong>May 2026</strong>. Next scheduled review: <strong>November 2026</strong>.</p>
+    </div>
+
   </div>
-
-  <hr class="divider">
-
-  <div class="section">
-    <h2>Ready to get started?</h2>
-    <p>Join thousands of members already using SOHANA to save together, build credit, and send money home.</p>
-    <div class="page-hero-cta" style="margin-top:1rem;">
-      <a href="/auth" class="btn-primary" style="background:#ea580c;color:#fff;padding:.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:.95rem;">Create your account</a>
-    </div>
-  </div>
-</div>
+</section>
 {% endblock %}

@@ -2614,7 +2614,6 @@ PUBLIC_PAGES = {
     "press":         ("press.html",         "Press"),
     "partnerships":  ("partnerships.html",  "Partnerships"),
     # Help
-    "help":          ("help.html",          "Help Centre"),
     "contact":       ("contact.html",       "Contact Us"),
     "service-status":("service-status.html","Service Status"),
     # Legal
@@ -2623,7 +2622,26 @@ PUBLIC_PAGES = {
     "cookies":       ("cookies.html",       "Cookie Policy"),
     "complaints":    ("complaints.html",    "Complaints"),
     "accessibility": ("accessibility.html", "Accessibility"),
+    "help":          ("help.html",          "Help Centre"),
 }
+
+# ── MARKET PAGES ─────────────────────────────────────────────────────────────
+
+MARKET_PAGES = {
+    "france":   ("market_france.html",   "Sohana in France"),
+    "uk":       ("market_uk.html",       "Sohana in the UK"),
+    "belgium":  ("market_belgium.html",  "Sohana in Belgium"),
+    "canada":   ("market_canada.html",   "Sohana in Canada"),
+    "cameroon": ("market_cameroon.html", "Sohana in Cameroon, Ghana & Nigeria"),
+    "rwanda":   ("market_rwanda.html",   "Sohana in Rwanda, CI & Southern Africa"),
+}
+
+@app.route("/markets/<country>")
+def market_page(country):
+    if country in MARKET_PAGES:
+        template, title = MARKET_PAGES[country]
+        return render_template(template)
+    return render_template("landing_new.html"), 404
 
 @app.route("/<path:slug>")
 def public_page(slug):
