@@ -206,6 +206,25 @@ h1.display .ital{font-family:'Instrument Serif',serif;font-style:italic;font-wei
 }
 .hero-cta{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .hero-cta .micro{font-size:12px;color:var(--ink-3);margin-left:6px}
+
+/* ── HERO HEADLINE ROTATOR ── */
+.hero-rotator{position:relative;overflow:hidden}
+.hero-scene{position:absolute;top:0;left:0;width:100%;opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.25,.85,.4,1),transform .65s cubic-bezier(.25,.85,.4,1);pointer-events:none}
+.hero-scene.active{opacity:1;transform:translateY(0);position:relative;pointer-events:auto}
+.hero-scene.exit{opacity:0;transform:translateY(-28px)}
+.hero-scene .eyebrow-tag{display:inline-flex;align-items:center;gap:6px;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:10px}
+.hero-scene .eyebrow-tag::before{content:"";width:18px;height:1px;background:var(--accent);flex-shrink:0}
+.hero-scene .line1{display:block;color:var(--ink)}
+.hero-scene .line2{display:block}
+.hero-scene .lead-text{font-size:clamp(15px,1.2vw,17px);line-height:1.6;color:var(--ink-2);max-width:480px;margin-top:18px;margin-bottom:28px;font-weight:400}
+
+/* Scene dot indicators */
+.hero-dots{display:flex;gap:6px;margin-top:14px;align-items:center}
+.hero-dot{width:5px;height:5px;border-radius:50%;background:var(--line-2);border:none;padding:0;cursor:pointer;transition:all .3s}
+.hero-dot.on{background:var(--accent);width:18px;border-radius:99px}
+
+/* Progress bar under active dot */
+@keyframes dot-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .waitlist-counter{
   margin-top:36px;display:inline-flex;align-items:center;gap:14px;
   padding:10px 16px 10px 12px;
@@ -779,10 +798,106 @@ button:focus-visible,a:focus-visible,input:focus-visible{
   <div class="container hero-grid">
     <div>
       <span class="pill"><span class="dot"></span>Pursuing authorisation · launching Q3 2026 · #12,438 in line</span>
-      <h1 class="display" id="hero-h1">
-        Save together.<br>Build <span class="accent">credit</span>.<br>Send money <span class="ital">home</span>.
-      </h1>
-      <p class="lead" id="hero-lead">SOHANA brings your savings circle online — with the NCS credit score that opens doors banks can't.</p>
+      <!-- ANIMATED HEADLINE ROTATOR -->
+      <div class="hero-rotator" id="hero-rotator" style="min-height:clamp(210px,22vw,310px);margin:22px 0 0;">
+
+        <!-- Scene 1: The universal diaspora pitch -->
+        <div class="hero-scene active" data-scene="0">
+          <span class="eyebrow-tag">For the diaspora</span>
+          <h1 class="display">
+            <span class="line1">Save together.</span>
+            <span class="line2">Build <span class="accent">credit</span>.</span>
+            <span class="line2">Send money <span class="ital">home</span>.</span>
+          </h1>
+          <p class="lead-text">SOHANA brings your savings circle online — with the NCS credit score that opens doors banks can't.</p>
+        </div>
+
+        <!-- Scene 2: Sending home -->
+        <div class="hero-scene" data-scene="1">
+          <span class="eyebrow-tag">Wire transfers</span>
+          <h1 class="display">
+            <span class="line1">Send money <span class="ital">home</span>.</span>
+            <span class="line2">Not <span class="accent">fees</span>.</span>
+          </h1>
+          <p class="lead-text">Transfer to Yaoundé, Lagos, Accra, or Kigali at 0.7% — not the 8–12% you're used to paying. Your family gets more. You keep more.</p>
+        </div>
+
+        <!-- Scene 3: Savings goal / vacation -->
+        <div class="hero-scene" data-scene="2">
+          <span class="eyebrow-tag">Savings goals</span>
+          <h1 class="display">
+            <span class="line1">Save up for that</span>
+            <span class="line2"><span class="ital">dream vacation</span>.</span>
+          </h1>
+          <p class="lead-text">Set a savings goal inside your circle. Contribute every week. Watch the pot grow. Your group keeps you accountable — so you actually get there.</p>
+        </div>
+
+        <!-- Scene 4: Community giving -->
+        <div class="hero-scene" data-scene="3">
+          <span class="eyebrow-tag">Fundraising</span>
+          <h1 class="display">
+            <span class="line1">Give for the</span>
+            <span class="line2"><span class="accent">right cause</span>.</span>
+            <span class="line2">The right <span class="ital">people</span>.</span>
+          </h1>
+          <p class="lead-text">Every campaign on Sohana is verified by our team before it goes live. You know exactly who you're giving to and exactly where the money lands.</p>
+        </div>
+
+        <!-- Scene 5: Njangi / circle -->
+        <div class="hero-scene" data-scene="4">
+          <span class="eyebrow-tag">Njangi · Tontine · Susu</span>
+          <h1 class="display">
+            <span class="line1">Your circle.</span>
+            <span class="line2">Your <span class="accent">payout</span>.</span>
+            <span class="line2">Your <span class="ital">turn</span>.</span>
+          </h1>
+          <p class="lead-text">The savings tradition your community has practised for generations — now online, multi-currency, and secured by the credit score that makes the rest of your financial life possible.</p>
+        </div>
+
+        <!-- Scene 6: Credit building -->
+        <div class="hero-scene" data-scene="5">
+          <span class="eyebrow-tag">NCS Credit Score</span>
+          <h1 class="display">
+            <span class="line1">Build credit</span>
+            <span class="line2">banks can</span>
+            <span class="line2"><span class="ital">finally</span> <span class="accent">see</span>.</span>
+          </h1>
+          <p class="lead-text">No loan history? No problem. The NCS reads whether you keep your word inside your community. That's a record banks across Africa will soon recognise.</p>
+        </div>
+
+        <!-- Scene 7: Parents sending to students -->
+        <div class="hero-scene" data-scene="6">
+          <span class="eyebrow-tag">Parents &amp; students</span>
+          <h1 class="display">
+            <span class="line1">Pay your child's</span>
+            <span class="line2"><span class="accent">tuition</span> in Paris</span>
+            <span class="line2">from <span class="ital">Douala</span>.</span>
+          </h1>
+          <p class="lead-text">Send directly to their Hanatag. Money arrives in seconds, in euros, with a receipt. No SWIFT code. No bank visit. No "is it there yet?" phone call.</p>
+        </div>
+
+        <!-- Scene 8: Community pool -->
+        <div class="hero-scene" data-scene="7">
+          <span class="eyebrow-tag">Community pools</span>
+          <h1 class="display">
+            <span class="line1">Build something</span>
+            <span class="line2"><span class="ital">together</span>.</span>
+          </h1>
+          <p class="lead-text">Your alumni association, church, or work team already pools money. Give it a proper digital treasury — with multi-admin approval and a permanent audit trail.</p>
+        </div>
+
+      </div>
+      <!-- Dot indicators -->
+      <div class="hero-dots" id="hero-dots">
+        <button class="hero-dot on" onclick="heroGoTo(0)"></button>
+        <button class="hero-dot" onclick="heroGoTo(1)"></button>
+        <button class="hero-dot" onclick="heroGoTo(2)"></button>
+        <button class="hero-dot" onclick="heroGoTo(3)"></button>
+        <button class="hero-dot" onclick="heroGoTo(4)"></button>
+        <button class="hero-dot" onclick="heroGoTo(5)"></button>
+        <button class="hero-dot" onclick="heroGoTo(6)"></button>
+        <button class="hero-dot" onclick="heroGoTo(7)"></button>
+      </div>
       <div class="hero-cta">
         <a href="/auth" class="btn btn-primary">
           Join the waitlist
@@ -1367,6 +1482,56 @@ function setLang(l) {
     document.getElementById('hero-lead').textContent = c.lead;
   }
 }
+
+// ── HERO HEADLINE ROTATOR ───────────────────────────────
+(function(){
+  var INTERVAL   = 5000;   // ms between auto-advance
+  var scenes     = document.querySelectorAll('.hero-scene');
+  var dots       = document.querySelectorAll('.hero-dot');
+  var current    = 0;
+  var timer      = null;
+  var total      = scenes.length;
+
+  function goTo(n){
+    // Exit current
+    scenes[current].classList.remove('active');
+    scenes[current].classList.add('exit');
+    dots[current].classList.remove('on');
+
+    var prev = current;
+    current  = (n + total) % total;
+
+    // Clean up exit class after transition
+    setTimeout(function(){ scenes[prev].classList.remove('exit'); }, 700);
+
+    // Enter next
+    scenes[current].classList.add('active');
+    dots[current].classList.add('on');
+  }
+
+  function startTimer(){
+    clearInterval(timer);
+    timer = setInterval(function(){ goTo(current + 1); }, INTERVAL);
+  }
+
+  // Expose for dot onclick
+  window.heroGoTo = function(n){ goTo(n); startTimer(); };
+
+  // Pause on hover
+  var rotator = document.getElementById('hero-rotator');
+  if(rotator){
+    rotator.addEventListener('mouseenter', function(){ clearInterval(timer); });
+    rotator.addEventListener('mouseleave', startTimer);
+  }
+
+  // Keyboard: arrow keys when focused
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'ArrowRight') { goTo(current + 1); startTimer(); }
+    if(e.key === 'ArrowLeft')  { goTo(current - 1); startTimer(); }
+  });
+
+  startTimer();
+})();
 
 // ── NAV DRAWER ───────────────────────────────────────────
 function openDrawer() {
