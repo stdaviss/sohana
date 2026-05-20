@@ -471,15 +471,136 @@ def _admin_stats():
         "escrow":           fetchone("SELECT COALESCE(SUM(pot_cents),0) as c FROM cycles WHERE status='collecting'")["c"],
         "contributed_week": fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM contributions WHERE status IN ('paid','late') AND created_at>=datetime('now','-7 days')")["c"],
         "new_users_week":   fetchone("SELECT COUNT(*) as c FROM users WHERE created_at>=datetime('now','-7 days')")["c"],
-        "fraud_prevented":  25000000,
+        "fraud_prevented":  fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE tx_type='reversal' OR flagged_for_review=1")['c'] if _table_exists('wallet_transactions') else 0,
         "total_earnings":   fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE amount_cents>0 AND tx_type='rosca_payout'")["c"],
         "platform_earnings":fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='fee'")["c"],
         "late_members":     fetchone("SELECT COUNT(DISTINCT user_id) as c FROM contributions WHERE status='late'")["c"],
+        "suspended_users":  fetchone("SELECT COUNT(*) as c FROM users WHERE is_suspended=1 AND is_admin=0")["c"] if _table_exists("users") else 0,
+        "platform_ctrl":    _get_platform_controls(),
     }
 
 def _table_exists(name):
     r = fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,))
     return bool(r)
+
+
+# ── PLATFORM CONTROLS ─────────────────────────────────────────────────
+
+def _ensure_platform_controls():
+    """Create and seed platform_controls on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS platform_controls (
+                id                       INTEGER PRIMARY KEY DEFAULT 1,
+                deposits_enabled         INTEGER NOT NULL DEFAULT 1,
+                withdrawals_enabled      INTEGER NOT NULL DEFAULT 1,
+                transfers_enabled        INTEGER NOT NULL DEFAULT 1,
+                rosca_payouts_enabled    INTEGER NOT NULL DEFAULT 1,
+                new_registrations_enabled INTEGER NOT NULL DEFAULT 1,
+                maintenance_mode         INTEGER NOT NULL DEFAULT 0,
+                updated_by_admin_id      TEXT,
+                updated_at               TEXT DEFAULT (datetime('now')),
+                reason                   TEXT
+            )""")
+            # Seed one row if empty
+            existing = fetchone("SELECT id FROM platform_controls WHERE id=1")
+            if not existing:
+                db.execute("""INSERT INTO platform_controls
+                    (id,deposits_enabled,withdrawals_enabled,transfers_enabled,
+                     rosca_payouts_enabled,new_registrations_enabled,maintenance_mode)
+                    VALUES(1,1,1,1,1,1,0)""")
+    except Exception as e:
+        import sys; print(f"[_ensure_platform_controls] {e}", file=sys.stderr, flush=True)
+
+
+def _get_platform_controls():
+    """Return the current platform control row (always row id=1)."""
+    _ensure_platform_controls()
+    row = fetchone("SELECT * FROM platform_controls WHERE id=1")
+    if not row:
+        return {"deposits_enabled":1,"withdrawals_enabled":1,"transfers_enabled":1,
+                "rosca_payouts_enabled":1,"new_registrations_enabled":1,"maintenance_mode":0}
+    return dict(row)
+
+
+def _platform_check(flag: str, error_msg: str):
+    """Raise a 503 JSON response if a platform control flag is disabled."""
+    ctrl = _get_platform_controls()
+    if not ctrl.get(flag, 1):
+        from flask import abort
+        abort(503, description=error_msg)
+
+
+# ── ADMIN AUDIT LOG ───────────────────────────────────────────────────
+
+def _ensure_audit_log():
+    """Create admin_audit_logs table on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS admin_audit_logs (
+                id            TEXT PRIMARY KEY,
+                admin_id      TEXT NOT NULL,
+                admin_role    TEXT,
+                action_type   TEXT NOT NULL,
+                entity_type   TEXT,
+                entity_id     TEXT,
+                previous_data TEXT,
+                new_data      TEXT,
+                reason        TEXT,
+                ip_address    TEXT,
+                user_agent    TEXT,
+                created_at    TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_audit_admin ON admin_audit_logs(admin_id, created_at DESC)")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_audit_entity ON admin_audit_logs(entity_type, entity_id)")
+    except Exception as e:
+        import sys; print(f"[_ensure_audit_log] {e}", file=sys.stderr, flush=True)
+
+
+def log_admin_action(action_type, entity_type=None, entity_id=None,
+                     previous_data=None, new_data=None, reason=None):
+    """Write one row to admin_audit_logs. Call from every admin action endpoint."""
+    import json as _json
+    _ensure_audit_log()
+    try:
+        admin_id   = session.get("user_id", "system")
+        admin_row  = fetchone("SELECT admin_role FROM users WHERE id=?", (admin_id,))
+        admin_role = admin_row["admin_role"] if admin_row else None
+        ip         = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+        ua         = request.headers.get("User-Agent", "")[:256]
+        with get_db() as db:
+            db.execute("""INSERT INTO admin_audit_logs
+                (id,admin_id,admin_role,action_type,entity_type,entity_id,
+                 previous_data,new_data,reason,ip_address,user_agent)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                (str(uuid.uuid4()), admin_id, admin_role, action_type,
+                 entity_type, str(entity_id) if entity_id else None,
+                 _json.dumps(previous_data) if previous_data else None,
+                 _json.dumps(new_data) if new_data else None,
+                 reason, ip, ua))
+    except Exception as e:
+        import sys; print(f"[log_admin_action] {e}", file=sys.stderr, flush=True)
+
+
+# ── ADMIN NOTES ───────────────────────────────────────────────────────
+
+def _ensure_admin_notes():
+    """Create admin_notes table on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS admin_notes (
+                id          TEXT PRIMARY KEY,
+                admin_id    TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                entity_id   TEXT NOT NULL,
+                note        TEXT NOT NULL,
+                created_at  TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_notes_entity ON admin_notes(entity_type, entity_id, created_at DESC)")
+    except Exception as e:
+        import sys; print(f"[_ensure_admin_notes] {e}", file=sys.stderr, flush=True)
+
+
 
 @app.route("/admin")
 @app.route("/admin/dashboard")
@@ -629,6 +750,7 @@ def admin_blog():
 
 @app.route("/api/auth/register", methods=["POST"])
 def api_register():
+    _platform_check("new_registrations_enabled", "New registrations are temporarily paused. Please check back later.")
     d = request.json or {}
     # Support both full_name (legacy) and first_name+last_name (new spec)
     first = d.get("first_name", "").strip()
@@ -1395,6 +1517,7 @@ def api_open_currency():
 @app.route("/api/wallet/convert", methods=["POST"])
 @auth.login_required
 def api_convert():
+    _platform_check("transfers_enabled", "Transfers are temporarily paused.")
     d = request.json or {}
     from_cur = d.get("from_currency","EUR")
     to_cur   = d.get("to_currency","GBP")
@@ -1413,6 +1536,7 @@ def api_convert():
 @app.route("/api/wallet/deposit", methods=["POST"])
 @auth.login_required
 def api_deposit():
+    _platform_check("deposits_enabled", "Deposits are temporarily paused. Please check back shortly.")
     d = request.json or {}
     cents    = int(float(d.get("amount", 0)) * 100)
     currency = d.get("currency", "EUR")
@@ -1438,6 +1562,7 @@ def api_deposit():
 @app.route("/api/wallet/withdraw", methods=["POST"])
 @auth.login_required
 def api_withdraw():
+    _platform_check("withdrawals_enabled", "Withdrawals are temporarily paused. Please contact support@sohana.app.")
     d = request.json or {}
     cents    = int(float(d.get("amount", 0)) * 100)
     method   = d.get("method", "bank_eu")
@@ -2135,6 +2260,9 @@ def api_admin_freeze():
                       f"Please contact support@sohana.app to resolve this.",
                       "danger")
 
+    log_admin_action("user_freeze", "user", target_id,
+                     new_data={"freeze_deposits": freeze_dep, "freeze_withdrawals": freeze_wd},
+                     reason=reason)
     return jsonify({"ok": True, "target_name": target["full_name"]})
 
 
@@ -2420,6 +2548,328 @@ def api_admin_restore_campaign(campaign_id):
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+
+
+# ── PLATFORM CONTROLS API ─────────────────────────────────────────────────────
+
+@app.route("/api/admin/platform-controls", methods=["GET"])
+@admin_required
+def api_platform_controls_get():
+    """Return current platform control state."""
+    ctrl = _get_platform_controls()
+    return jsonify(ctrl)
+
+
+@app.route("/api/admin/platform-controls", methods=["POST"])
+@admin_required
+def api_platform_controls_set():
+    """CEO-only: toggle a platform control flag."""
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] != "ceo":
+        return jsonify({"error": "Only the CEO can modify platform-wide controls."}), 403
+
+    d      = request.json or {}
+    flag   = d.get("flag", "").strip()
+    value  = int(bool(d.get("value", True)))
+    reason = d.get("reason", "").strip()
+
+    VALID_FLAGS = {"deposits_enabled","withdrawals_enabled","transfers_enabled",
+                   "rosca_payouts_enabled","new_registrations_enabled","maintenance_mode"}
+    if flag not in VALID_FLAGS:
+        return jsonify({"error": f"Unknown control flag: {flag}"}), 400
+    if not reason:
+        return jsonify({"error": "A reason is required for every platform control change."}), 400
+
+    ctrl = _get_platform_controls()
+    prev = ctrl.get(flag)
+
+    try:
+        with get_db() as db:
+            db.execute(f"UPDATE platform_controls SET {flag}=?, updated_by_admin_id=?, updated_at=datetime('now'), reason=? WHERE id=1",
+                       (value, session["user_id"], reason))
+        log_admin_action(
+            action_type=f"platform_control_{'enabled' if value else 'disabled'}",
+            entity_type="platform",
+            entity_id=flag,
+            previous_data={flag: prev},
+            new_data={flag: value},
+            reason=reason
+        )
+        return jsonify({"ok": True, "flag": flag, "value": value})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── USER ACTION API ───────────────────────────────────────────────────────────
+
+@app.route("/api/admin/users/<user_id>/action", methods=["POST"])
+@admin_required
+def api_admin_user_action(user_id):
+    """
+    Unified user action endpoint.
+    action: suspend | unsuspend | force_kyc | add_note | set_risk_level | view
+    """
+    d       = request.json or {}
+    action  = d.get("action", "").strip()
+    reason  = d.get("reason", "").strip()
+    note    = d.get("note", "").strip()
+
+    target = fetchone("SELECT id, full_name, is_admin, admin_role FROM users WHERE id=?", (user_id,))
+    if not target:
+        return jsonify({"error": "User not found"}), 404
+
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor:
+        return jsonify({"error": "Actor not found"}), 403
+
+    # Only CEO can act on admins
+    if target["is_admin"] and actor["admin_role"] != "ceo":
+        return jsonify({"error": "Only the CEO can take actions on admin accounts."}), 403
+
+    # ── SUSPEND / UNSUSPEND ──
+    if action in ("suspend", "unsuspend"):
+        if actor["admin_role"] not in {"ceo", "cco", "compliance"}:
+            return jsonify({"error": "Only CEO, CCO, or Compliance can suspend accounts."}), 403
+        if not reason:
+            return jsonify({"error": "Reason required to suspend an account."}), 400
+        new_val = 1 if action == "suspend" else 0
+        prev = fetchone("SELECT is_suspended FROM users WHERE id=?", (user_id,))
+        try:
+            with get_db() as db:
+                db.execute("UPDATE users SET is_suspended=? WHERE id=?", (new_val, user_id))
+            push_notification(user_id,
+                "Account suspended" if new_val else "Account reinstated",
+                reason if new_val else "Your account has been reinstated. Contact support@sohana.app for details.",
+                "danger" if new_val else "success")
+            log_admin_action(f"user_{action}", "user", user_id,
+                             previous_data={"is_suspended": not new_val},
+                             new_data={"is_suspended": bool(new_val)}, reason=reason)
+            return jsonify({"ok": True, "action": action, "user": target["full_name"]})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── FORCE KYC REVIEW ──
+    elif action == "force_kyc":
+        if actor["admin_role"] not in {"ceo", "cco", "cfo", "compliance", "fraud"}:
+            return jsonify({"error": "Insufficient privileges."}), 403
+        try:
+            with get_db() as db:
+                db.execute("UPDATE users SET kyc_status='pending' WHERE id=?", (user_id,))
+            log_admin_action("user_force_kyc", "user", user_id,
+                             reason=reason or "Manual KYC review requested by admin")
+            return jsonify({"ok": True, "message": f"{target['full_name']} moved to KYC review queue."})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── ADD NOTE ──
+    elif action == "add_note":
+        if not note:
+            return jsonify({"error": "Note text is required."}), 400
+        _ensure_admin_notes()
+        try:
+            with get_db() as db:
+                db.execute("INSERT INTO admin_notes(id,admin_id,entity_type,entity_id,note) VALUES(?,?,?,?,?)",
+                           (str(uuid.uuid4()), session["user_id"], "user", user_id, note))
+            log_admin_action("admin_note_added", "user", user_id, new_data={"note": note[:100]})
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── SET RISK LEVEL ──
+    elif action == "set_risk_level":
+        level = d.get("level", "").strip()
+        if level not in {"low", "medium", "high", "very_high", "blocked"}:
+            return jsonify({"error": "Invalid risk level"}), 400
+        if actor["admin_role"] not in {"ceo", "fraud", "compliance"}:
+            return jsonify({"error": "Insufficient privileges."}), 403
+        prev = fetchone("SELECT risk_level FROM users WHERE id=?", (user_id,))
+        try:
+            with get_db() as db:
+                db.execute("UPDATE users SET risk_level=? WHERE id=?", (level, user_id))
+            log_admin_action("user_risk_level_changed", "user", user_id,
+                             previous_data={"risk_level": prev["risk_level"] if prev else None},
+                             new_data={"risk_level": level}, reason=reason)
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    else:
+        return jsonify({"error": f"Unknown action: {action}"}), 400
+
+
+# ── ADMIN NOTES API ───────────────────────────────────────────────────────────
+
+@app.route("/api/admin/notes/<entity_type>/<entity_id>", methods=["GET"])
+@admin_required
+def api_admin_notes_get(entity_type, entity_id):
+    _ensure_admin_notes()
+    notes = fetchall("""SELECT n.*, u.full_name as admin_name, u.admin_role
+                        FROM admin_notes n JOIN users u ON u.id=n.admin_id
+                        WHERE n.entity_type=? AND n.entity_id=?
+                        ORDER BY n.created_at DESC LIMIT 50""",
+                     (entity_type, entity_id))
+    return jsonify({"notes": [dict(n) for n in notes]})
+
+
+@app.route("/api/admin/notes/<entity_type>/<entity_id>", methods=["POST"])
+@admin_required
+def api_admin_notes_post(entity_type, entity_id):
+    _ensure_admin_notes()
+    note = (request.json or {}).get("note", "").strip()
+    if not note:
+        return jsonify({"error": "Note text is required."}), 400
+    try:
+        with get_db() as db:
+            db.execute("INSERT INTO admin_notes(id,admin_id,entity_type,entity_id,note) VALUES(?,?,?,?,?)",
+                       (str(uuid.uuid4()), session["user_id"], entity_type, entity_id, note))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ── AUDIT LOG API ─────────────────────────────────────────────────────────────
+
+@app.route("/admin/audit-log")
+@admin_required
+def admin_audit_log():
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in {"ceo", "cto", "compliance", "cco"}:
+        return redirect(url_for("admin_home"))
+    _ensure_audit_log()
+    user = auth.get_current_user()
+    logs = fetchall("""SELECT al.*, u.full_name as admin_name
+                       FROM admin_audit_logs al LEFT JOIN users u ON u.id=al.admin_id
+                       ORDER BY al.created_at DESC LIMIT 200""")
+    return render_template("admin_audit_log.html", user=user, logs=logs)
+
+
+@app.route("/api/admin/audit-log")
+@admin_required
+def api_admin_audit_log():
+    _ensure_audit_log()
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in {"ceo", "cto", "cco", "compliance"}:
+        return jsonify({"error": "Insufficient privileges"}), 403
+    entity_type = request.args.get("entity_type")
+    entity_id   = request.args.get("entity_id")
+    limit       = min(int(request.args.get("limit", 100)), 500)
+    if entity_type and entity_id:
+        logs = fetchall("SELECT * FROM admin_audit_logs WHERE entity_type=? AND entity_id=? ORDER BY created_at DESC LIMIT ?",
+                        (entity_type, entity_id, limit))
+    else:
+        logs = fetchall("SELECT * FROM admin_audit_logs ORDER BY created_at DESC LIMIT ?", (limit,))
+    return jsonify({"logs": [dict(l) for l in logs]})
+
+
+# ── SYSTEM HEALTH API ─────────────────────────────────────────────────────────
+
+@app.route("/admin/system-health")
+@app.route("/api/admin/system-health")
+@admin_required
+def admin_system_health():
+    import time
+    results = {}
+
+    # Database
+    try:
+        t = time.time()
+        fetchone("SELECT 1")
+        results["database"] = {"status": "healthy", "latency_ms": round((time.time()-t)*1000, 1)}
+    except Exception as e:
+        results["database"] = {"status": "degraded", "error": str(e)}
+
+    # App itself
+    results["api"] = {"status": "healthy", "version": "6.5"}
+
+    # Platform controls
+    ctrl = _get_platform_controls()
+    results["platform_controls"] = {
+        "status": "healthy" if not ctrl.get("maintenance_mode") else "maintenance",
+        "deposits_enabled":      bool(ctrl.get("deposits_enabled",1)),
+        "withdrawals_enabled":   bool(ctrl.get("withdrawals_enabled",1)),
+        "transfers_enabled":     bool(ctrl.get("transfers_enabled",1)),
+        "rosca_payouts_enabled": bool(ctrl.get("rosca_payouts_enabled",1)),
+        "registrations_enabled": bool(ctrl.get("new_registrations_enabled",1)),
+        "maintenance_mode":      bool(ctrl.get("maintenance_mode",0)),
+    }
+
+    # Key table row counts (quick DB health signal)
+    results["data"] = {
+        "users":        fetchone("SELECT COUNT(*) as c FROM users")["c"],
+        "wallets":      fetchone("SELECT COUNT(*) as c FROM wallets")["c"],
+        "transactions": fetchone("SELECT COUNT(*) as c FROM wallet_transactions")["c"],
+        "open_alerts":  fetchone("SELECT COUNT(*) as c FROM fraud_alerts WHERE status='open'")[["c"]] if _table_exists("fraud_alerts") else 0,
+    }
+
+    overall = "healthy"
+    if results["database"]["status"] != "healthy":
+        overall = "degraded"
+    if ctrl.get("maintenance_mode"):
+        overall = "maintenance"
+
+    results["overall"] = overall
+    results["checked_at"] = __import__("datetime").datetime.utcnow().isoformat()
+
+    if request.path == "/admin/system-health":
+        user = auth.get_current_user()
+        return render_template("admin_system_health.html", user=user, health=results)
+    return jsonify(results)
+
+
+# ── TRANSACTION FLAG/REVERSE API ──────────────────────────────────────────────
+
+@app.route("/api/admin/transactions/<tx_id>/flag", methods=["POST"])
+@admin_required
+def api_admin_flag_transaction(tx_id):
+    d      = request.json or {}
+    reason = d.get("reason", "").strip()
+    if not reason:
+        return jsonify({"error": "Reason required to flag a transaction."}), 400
+    tx = fetchone("SELECT * FROM wallet_transactions WHERE id=?", (tx_id,))
+    if not tx:
+        return jsonify({"error": "Transaction not found"}), 404
+    try:
+        with get_db() as db:
+            db.execute("UPDATE wallet_transactions SET flagged_for_review=1, flag_reason=? WHERE id=?",
+                       (reason, tx_id))
+        log_admin_action("transaction_flagged", "transaction", tx_id, reason=reason)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/transactions/<tx_id>/reverse", methods=["POST"])
+@admin_required
+def api_admin_reverse_transaction(tx_id):
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in {"ceo", "cfo", "operations"}:
+        return jsonify({"error": "Only CEO, CFO, or Operations can reverse transactions."}), 403
+
+    d      = request.json or {}
+    reason = d.get("reason", "").strip()
+    if not reason:
+        return jsonify({"error": "Reason required to reverse a transaction."}), 400
+
+    tx = fetchone("SELECT * FROM wallet_transactions WHERE id=?", (tx_id,))
+    if not tx:
+        return jsonify({"error": "Transaction not found"}), 404
+
+    # Only reverse pending or failed — never settled external transfers
+    if tx["status"] not in ("pending", "failed"):
+        return jsonify({"error": f"Cannot reverse a transaction with status '{tx['status']}'. Only pending or failed transactions are reversible."}), 400
+
+    try:
+        with get_db() as db:
+            db.execute("UPDATE wallet_transactions SET status='reversed', reversed_by=?, reversed_at=datetime('now') WHERE id=?",
+                       (session["user_id"], tx_id))
+        log_admin_action("transaction_reversed", "transaction", tx_id,
+                         previous_data={"status": tx["status"]},
+                         new_data={"status": "reversed"}, reason=reason)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 
