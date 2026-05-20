@@ -451,6 +451,43 @@ def admin_home():
 
 # ── ADMIN DASHBOARDS ──────────────────────────────────────────────────────────
 
+def _safe_count(sql, params=()):
+    """Run a COUNT query and return 0 on any error (e.g. missing column)."""
+    try:
+        row = fetchone(sql, params)
+        return row["c"] if row else 0
+    except Exception:
+        return 0
+
+
+def _run_safe_migrations():
+    """
+    Add new columns introduced post-launch without breaking existing DB.
+    Each ALTER TABLE is wrapped in try/except so re-runs are harmless.
+    """
+    migrations = [
+        "ALTER TABLE users              ADD COLUMN is_suspended  INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users              ADD COLUMN risk_level    TEXT",
+        "ALTER TABLE wallet_transactions ADD COLUMN flagged_for_review INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE wallet_transactions ADD COLUMN flag_reason  TEXT",
+        "ALTER TABLE wallet_transactions ADD COLUMN reversed_by  TEXT",
+        "ALTER TABLE wallet_transactions ADD COLUMN reversed_at  TEXT",
+    ]
+    for sql in migrations:
+        try:
+            with get_db() as db:
+                db.execute(sql)
+        except Exception:
+            pass  # Column already exists — safe to ignore
+
+
+# Run migrations once at import time (harmless on repeat calls)
+try:
+    _run_safe_migrations()
+except Exception:
+    pass
+
+
 def _admin_stats():
     """Shared stats used across dashboards."""
     return {
@@ -471,11 +508,11 @@ def _admin_stats():
         "escrow":           fetchone("SELECT COALESCE(SUM(pot_cents),0) as c FROM cycles WHERE status='collecting'")["c"],
         "contributed_week": fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM contributions WHERE status IN ('paid','late') AND created_at>=datetime('now','-7 days')")["c"],
         "new_users_week":   fetchone("SELECT COUNT(*) as c FROM users WHERE created_at>=datetime('now','-7 days')")["c"],
-        "fraud_prevented":  fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE tx_type='reversal' OR flagged_for_review=1")['c'] if _table_exists('wallet_transactions') else 0,
+        "fraud_prevented":  _safe_count("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE tx_type='reversal'"),
         "total_earnings":   fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE amount_cents>0 AND tx_type='rosca_payout'")["c"],
         "platform_earnings":fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='fee'")["c"],
         "late_members":     fetchone("SELECT COUNT(DISTINCT user_id) as c FROM contributions WHERE status='late'")["c"],
-        "suspended_users":  fetchone("SELECT COUNT(*) as c FROM users WHERE is_suspended=1 AND is_admin=0")["c"] if _table_exists("users") else 0,
+        "suspended_users":  _safe_count("SELECT COUNT(*) as c FROM users WHERE is_suspended=1 AND is_admin=0"),
         "platform_ctrl":    _get_platform_controls(),
     }
 
