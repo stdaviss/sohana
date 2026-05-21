@@ -848,18 +848,38 @@ def api_login():
 @app.route("/api/auth/admin-login", methods=["POST"])
 def api_admin_login():
     d = request.json or {}
+    # Generic error message — never reveal whether the account exists or the role is wrong
+    GENERIC_ERROR = "Invalid credentials."
     try:
         user = auth.login_user(d.get("email_or_phone",""), d.get("password",""))
         u = fetchone("SELECT is_admin, admin_role FROM users WHERE id=?", (user["id"],))
         if not u or not u["is_admin"]:
-            return jsonify({"error": "No admin access for this account"}), 403
-        session["user_id"]  = user["id"]
-        session["user_name"] = user["full_name"]
-        session["is_admin"] = True
-        session["admin_role"] = u["admin_role"]
-        return jsonify({"ok": True, "role": u["admin_role"]})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 401
+            return jsonify({"error": GENERIC_ERROR}), 403
+
+        # Server-side role validation — if caller specified an expected_role, verify it
+        expected_role = d.get("expected_role", "").strip()
+        actual_role   = u["admin_role"] or ""
+        if expected_role and expected_role != actual_role:
+            # Log the mismatch attempt but return the same generic error
+            log_admin_action("admin_login_role_mismatch",
+                             entity_type="auth",
+                             entity_id=user["id"],
+                             previous_data={"expected_role": expected_role},
+                             new_data={"actual_role": actual_role},
+                             reason="Role mismatch on login attempt")
+            return jsonify({"error": GENERIC_ERROR}), 403
+
+        session["user_id"]   = user["id"]
+        session["user_name"]  = user["full_name"]
+        session["is_admin"]   = True
+        session["admin_role"] = actual_role
+        log_admin_action("admin_login_success",
+                         entity_type="auth",
+                         entity_id=user["id"],
+                         new_data={"role": actual_role})
+        return jsonify({"ok": True, "role": actual_role})
+    except ValueError:
+        return jsonify({"error": GENERIC_ERROR}), 401
 
 @app.route("/api/auth/logout", methods=["POST"])
 def api_logout():
@@ -3153,24 +3173,38 @@ def _seed_all():
     if fetchone("SELECT id FROM users WHERE phone='+33611000001'"): return
 
     # Regular users
+    # Demo user seed — password read from DEMO_SEED_PASSWORD env var
+    _demo_pw = os.environ.get("DEMO_SEED_PASSWORD", "")
+    if not _demo_pw:
+        import sys
+        print("[SEED] DEMO_SEED_PASSWORD env var not set — skipping demo user seed.",
+              file=sys.stderr, flush=True)
+        _demo_pw = ""  # proceed but passwords will be blank hashes; users won't log in
     regular_users = [
-        ("+33611000001","Maria Ngono",   "demo123","FR",480,0,None),
-        ("+33611000002","Samuel Eto",    "demo123","CM",680,0,None),
-        ("+25078100001","Alice Uwase",   "demo123","RW",750,0,None),
-        ("+44795000001","Kwame Asante",  "demo123","GB",560,0,None),
-        ("+33611000003","Fatou Diallo",  "demo123","FR",390,0,None),
+        ("+33611000001","Maria Ngono",   _demo_pw,"FR",480,0,None),
+        ("+33611000002","Samuel Eto",    _demo_pw,"CM",680,0,None),
+        ("+25078100001","Alice Uwase",   _demo_pw,"RW",750,0,None),
+        ("+44795000001","Kwame Asante",  _demo_pw,"GB",560,0,None),
+        ("+33611000003","Fatou Diallo",  _demo_pw,"FR",390,0,None),
     ]
-    # Admin users — 9 roles matching handover spec
+    # Admin seed accounts — password read from ADMIN_SEED_PASSWORD env var.
+    # Set this in Railway environment variables. Never commit plaintext passwords.
+    _admin_pw = os.environ.get("ADMIN_SEED_PASSWORD", "")
+    if not _admin_pw:
+        import sys
+        print("[SEED] ADMIN_SEED_PASSWORD env var not set — skipping admin seed.",
+              file=sys.stderr, flush=True)
+        return
     admin_users = [
-        ("+00000000001", "Kwame Mensah",   "Admin@2024", "CM", 800, 1, "ceo"),
-        ("+00000000002", "Kojo Agyeman",   "Admin@2024", "GH", 800, 1, "cto"),
-        ("+00000000003", "Akosua Mensah",  "Admin@2024", "GH", 800, 1, "cco"),
-        ("+00000000004", "Ama Boateng",    "Admin@2024", "GH", 800, 1, "cfo"),
-        ("+00000000005", "Kofi Adu",       "Admin@2024", "GH", 800, 1, "fraud"),
-        ("+00000000006", "Yaw Darko",      "Admin@2024", "GH", 800, 1, "credit"),
-        ("+00000000007", "Abena Frimpong", "Admin@2024", "GH", 800, 1, "operations"),
-        ("+00000000008", "Efua Mensah",    "Admin@2024", "GH", 800, 1, "compliance"),
-        ("+00000000009", "Kwesi Antwi",    "Admin@2024", "GH", 800, 1, "business"),
+        ("+00000000001", "Kwame Mensah",   _admin_pw, "CM", 800, 1, "ceo"),
+        ("+00000000002", "Kojo Agyeman",   _admin_pw, "GH", 800, 1, "cto"),
+        ("+00000000003", "Akosua Mensah",  _admin_pw, "GH", 800, 1, "cco"),
+        ("+00000000004", "Ama Boateng",    _admin_pw, "GH", 800, 1, "cfo"),
+        ("+00000000005", "Kofi Adu",       _admin_pw, "GH", 800, 1, "fraud"),
+        ("+00000000006", "Yaw Darko",      _admin_pw, "GH", 800, 1, "credit"),
+        ("+00000000007", "Abena Frimpong", _admin_pw, "GH", 800, 1, "operations"),
+        ("+00000000008", "Efua Mensah",    _admin_pw, "GH", 800, 1, "compliance"),
+        ("+00000000009", "Kwesi Antwi",    _admin_pw, "GH", 800, 1, "business"),
     ]
 
     uids = []

@@ -1,98 +1,314 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SOHANA — Admin Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Access — SOHANA</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E120F;--bg-2:#161B17;--bg-3:#1C231D;
+  --ink:#F4F2EC;--ink-2:#B7BAB4;--ink-3:#8A8E87;
+  --accent:#9EE493;--accent-ink:#0E120F;
+  --line:rgba(244,242,236,.10);--line-2:rgba(244,242,236,.18);
+  --danger:#FF6A55;--radius:8px;--radius-lg:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Geist',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+
+/* Background */
+.kente{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.04}
+.kente svg{width:100%;height:100%}
+
+/* Nav */
+.auth-nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:.875rem 2rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--ink);font-weight:700;font-size:.975rem;letter-spacing:-.02em}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px;display:grid;place-items:center;letter-spacing:-.02em;flex-shrink:0}
+.nav-tag{font-size:.72rem;color:var(--ink-3);font-family:'Geist Mono',monospace;display:flex;align-items:center;gap:.35rem}
+.nav-tag::before{content:'🔒';font-size:.68rem}
+
+/* Layout */
+.auth-wrap{position:relative;z-index:5;flex:1;display:flex;align-items:flex-start;justify-content:center;gap:3rem;padding:2.5rem 1rem 4rem}
+.auth-copy{display:none;flex-direction:column;gap:1.75rem;max-width:320px;padding-top:2.5rem}
+@media(min-width:880px){.auth-copy{display:flex}}
+.auth-copy h1{font-size:1.9rem;font-weight:700;line-height:1.15;letter-spacing:-.03em}
+.auth-copy h1 em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--accent)}
+.auth-copy p{font-size:.875rem;color:var(--ink-2);line-height:1.65}
+
+/* Card */
+.auth-card{width:100%;max-width:440px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-lg);box-shadow:0 24px 64px rgba(0,0,0,.45);overflow:hidden}
+.card-header{padding:1.75rem 1.75rem 1.25rem;border-bottom:1px solid var(--line)}
+.card-header h2{font-size:1.15rem;font-weight:700;letter-spacing:-.01em;color:var(--ink);margin-bottom:.3rem}
+.card-header p{font-size:.82rem;color:var(--ink-3);line-height:1.5}
+
+/* Role selector grid */
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;padding:1.25rem 1.75rem 1rem}
+.role-btn{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.85rem .75rem;border:1px solid var(--line);border-radius:12px;background:var(--bg-3);cursor:pointer;transition:all .18s;text-align:center}
+.role-btn:hover{border-color:rgba(158,228,147,.35);background:rgba(158,228,147,.05)}
+.role-btn.selected{border-color:var(--accent);background:rgba(158,228,147,.08);box-shadow:0 0 0 1px rgba(158,228,147,.2) inset}
+.role-btn .role-ico{font-size:1.35rem;line-height:1}
+.role-btn .role-name{font-size:.8rem;font-weight:600;color:var(--ink);letter-spacing:-.005em}
+.role-btn .role-desc{font-size:.68rem;color:var(--ink-3);font-family:'Geist Mono',monospace;letter-spacing:.02em;text-transform:uppercase}
+.role-btn.selected .role-name{color:var(--accent)}
+
+/* Form */
+.form-body{padding:0 1.75rem 1.75rem;display:flex;flex-direction:column;gap:.95rem}
+.field{display:flex;flex-direction:column;gap:.4rem}
+.field label{font-size:.78rem;font-weight:600;color:var(--ink-2);letter-spacing:.01em}
+.field label .req{color:var(--danger);margin-left:.15rem}
+.inp-wrap{position:relative;display:flex;align-items:center}
+.inp-wrap input{width:100%;padding:.725rem 1rem;background:var(--bg-3);border:1.5px solid var(--line-2);border-radius:var(--radius);font-family:'Geist',sans-serif;font-size:.92rem;color:var(--ink);outline:none;transition:border-color .2s,box-shadow .2s}
+.inp-wrap input::placeholder{color:var(--ink-3)}
+.inp-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(158,228,147,.1)}
+.inp-wrap .show-pw{position:absolute;right:.875rem;background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:.9rem;padding:.25rem;line-height:1;transition:color .15s}
+.inp-wrap .show-pw:hover{color:var(--ink)}
+
+/* Selected role badge shown above form fields */
+.selected-role-badge{display:none;align-items:center;gap:.6rem;padding:.6rem .85rem;background:rgba(158,228,147,.07);border:1px solid rgba(158,228,147,.2);border-radius:10px;font-size:.82rem;color:var(--ink-2);font-family:'Geist Mono',monospace;letter-spacing:.03em;margin-bottom:.25rem}
+.selected-role-badge.show{display:flex}
+.selected-role-badge .pill{padding:.15rem .55rem;border-radius:99px;background:rgba(158,228,147,.15);border:1px solid rgba(158,228,147,.3);color:var(--accent);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* Submit button */
+.btn-submit{width:100%;padding:.875rem;background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius);font-family:'Geist',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.btn-submit:hover{background:#cef870;transform:translateY(-1px)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-submit .spinner{display:none;width:16px;height:16px;border:2px solid rgba(14,18,15,.3);border-top-color:#0E120F;border-radius:50%;animation:spin .7s linear infinite}
+.btn-submit.loading .spinner{display:block}
+.btn-submit.loading .btn-label{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Error */
+.error-band{display:none;padding:.65rem .9rem;background:rgba(255,106,85,.08);border:1px solid rgba(255,106,85,.25);border-radius:var(--radius);font-size:.82rem;color:var(--danger);font-family:'Geist Mono',monospace;line-height:1.5}
+.error-band.show{display:block}
+
+/* Footer link */
+.card-footer{padding:.9rem 1.75rem;border-top:1px solid var(--line);text-align:center}
+.card-footer a{font-size:.78rem;color:var(--ink-3);text-decoration:none;transition:color .15s}
+.card-footer a:hover{color:var(--accent)}
+
+/* Security notice */
+.security-notice{margin-top:1.5rem;padding:.85rem 1rem;background:rgba(255,106,85,.05);border:1px solid rgba(255,106,85,.15);border-radius:10px;font-size:.75rem;color:var(--ink-3);line-height:1.55;font-family:'Geist Mono',monospace;letter-spacing:.01em;max-width:440px;width:100%}
+.security-notice strong{color:#FFB350;font-weight:600}
+</style>
 </head>
-<body style="display:block;background:#0f1117;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;">
+<body>
 
-<div style="width:100%;max-width:420px;">
-  <div style="text-align:center;margin-bottom:2rem;">
-    <div style="display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.75rem;">
-      <div style="display:flex;gap:4px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
-      <span style="color:#fff;font-weight:800;font-size:1.4rem;letter-spacing:-.01em;">SOHANA</span>
-    </div>
-    <div style="color:rgba(255,255,255,.4);font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;">Admin Portal</div>
-  </div>
-
-  <div style="background:#1a1d24;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:2rem;">
-    <h2 style="color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:.25rem;">Staff sign in</h2>
-    <p style="color:rgba(255,255,255,.45);font-size:.83rem;margin-bottom:1.5rem;">Use your SOHANA admin credentials.</p>
-
-    <div id="alert-box" class="hidden" style="margin-bottom:1rem;padding:.65rem .875rem;border-radius:8px;font-size:.85rem;"></div>
-
-    <div class="form-group" style="margin-bottom:.875rem;">
-      <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:rgba(255,255,255,.6);">Phone or email</label>
-      <input id="al-id" type="text" placeholder="+00000000001 or email@sohana.app"
-        style="width:100%;padding:.55rem .85rem;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:8px;font-size:.875rem;color:#fff;outline:none;"
-        onfocus="this.style.borderColor='rgba(124,58,237,.7)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
-    </div>
-    <div class="form-group" style="margin-bottom:1.25rem;">
-      <label style="display:block;font-size:.8rem;font-weight:500;margin-bottom:.35rem;color:rgba(255,255,255,.6);">Password</label>
-      <input id="al-pw" type="password" placeholder="••••••••"
-        style="width:100%;padding:.55rem .85rem;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:8px;font-size:.875rem;color:#fff;outline:none;"
-        onfocus="this.style.borderColor='rgba(124,58,237,.7)'" onblur="this.style.borderColor='rgba(255,255,255,.12)'">
-    </div>
-    <button id="btn-login" onclick="doAdminLogin()"
-      style="width:100%;padding:.65rem;background:#7c3aed;border:none;border-radius:8px;color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .15s;"
-      onmouseover="this.style.background='#6d28d9'" onmouseout="this.style.background='#7c3aed'">
-      Sign in to Admin Portal
-    </button>
-
-    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,.08);">
-      <p style="font-size:.75rem;color:rgba(255,255,255,.35);text-align:center;margin-bottom:.75rem;">Demo admin accounts (password: Admin@2024)</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;">
-        {% for phone,role,label in [
-          ('+00000000001','CEO','👑 CEO'),
-          ('+00000000002','CTO','⚙️ CTO'),
-          ('+00000000003','CCO','🛡️ CCO'),
-          ('+00000000006','Operations','📊 Operations'),
-          ('+00000000007','Compliance','📋 Compliance'),
-          ('+00000000004','Fraud','🔍 Fraud'),
-          ('+00000000005','Credit','💳 Credit'),
-          ('+00000000008','Business','💼 Business'),
-        ] %}
-        <button onclick="fillAdmin('{{ phone }}')"
-          style="padding:.35rem .6rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:6px;color:rgba(255,255,255,.7);font-size:.72rem;cursor:pointer;text-align:left;transition:background .1s;"
-          onmouseover="this.style.background='rgba(124,58,237,.2)'" onmouseout="this.style.background='rgba(255,255,255,.05)'">
-          {{ label }}
-        </button>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  <p style="text-align:center;margin-top:1.25rem;font-size:.78rem;color:rgba(255,255,255,.25);">
-    <a href="/" style="color:rgba(255,255,255,.4);">← Back to SOHANA</a>
-  </p>
+<!-- Subtle kente background -->
+<div class="kente">
+  <svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="k" x="0" y="0" width="30" height="30" patternUnits="userSpaceOnUse">
+        <rect width="30" height="30" fill="none"/>
+        <rect x="0"  y="0"  width="15" height="15" fill="#9EE493"/>
+        <rect x="15" y="15" width="15" height="15" fill="#9EE493"/>
+        <rect x="7"  y="7"  width="16" height="16" fill="#F4F2EC" opacity=".4"/>
+      </pattern>
+    </defs>
+    <rect width="600" height="400" fill="url(#k)"/>
+  </svg>
 </div>
 
-<div class="toast" id="_toast"></div>
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- Nav -->
+<nav class="auth-nav">
+  <a href="/" class="brand">
+    <div class="brand-mark">S</div>
+    SOHANA
+  </a>
+  <div class="nav-tag">Secure admin access</div>
+</nav>
+
+<div class="auth-wrap">
+
+  <!-- Left copy -->
+  <div class="auth-copy">
+    <h1>Restricted <em>access</em>.</h1>
+    <p>This panel is for authorised Sohana team members only. All login attempts are logged with IP address, device, and timestamp.</p>
+    <p style="font-size:.78rem;color:var(--ink-3);font-family:'Geist Mono',monospace;line-height:1.7">
+      Unauthorised access attempts are a criminal offence under French law (LCEN) and the UK Computer Misuse Act 1990. If you reached this page by mistake, <a href="/" style="color:var(--accent);text-decoration:none">return to home</a>.
+    </p>
+  </div>
+
+  <!-- Login card -->
+  <div>
+    <div class="auth-card">
+      <div class="card-header">
+        <h2>Admin sign in</h2>
+        <p>Select your role, then enter your credentials.</p>
+      </div>
+
+      <!-- Step 1: Role selector -->
+      <div class="role-grid" id="role-grid">
+        <button class="role-btn" data-role="ceo" data-label="Chief Executive" onclick="selectRole(this)">
+          <span class="role-ico">👑</span>
+          <span class="role-name">CEO</span>
+          <span class="role-desc">Executive</span>
+        </button>
+        <button class="role-btn" data-role="cto" data-label="Chief Technology" onclick="selectRole(this)">
+          <span class="role-ico">⚙️</span>
+          <span class="role-name">CTO</span>
+          <span class="role-desc">Engineering</span>
+        </button>
+        <button class="role-btn" data-role="cco" data-label="Chief Compliance" onclick="selectRole(this)">
+          <span class="role-ico">⚖️</span>
+          <span class="role-name">CCO</span>
+          <span class="role-desc">Compliance</span>
+        </button>
+        <button class="role-btn" data-role="cfo" data-label="Chief Financial" onclick="selectRole(this)">
+          <span class="role-ico">💼</span>
+          <span class="role-name">CFO</span>
+          <span class="role-desc">Finance</span>
+        </button>
+        <button class="role-btn" data-role="fraud" data-label="Fraud Analyst" onclick="selectRole(this)">
+          <span class="role-ico">🔍</span>
+          <span class="role-name">Fraud</span>
+          <span class="role-desc">Investigator</span>
+        </button>
+        <button class="role-btn" data-role="credit" data-label="Credit Officer" onclick="selectRole(this)">
+          <span class="role-ico">⌬</span>
+          <span class="role-name">Credit</span>
+          <span class="role-desc">NCS &amp; Loans</span>
+        </button>
+        <button class="role-btn" data-role="operations" data-label="Operations" onclick="selectRole(this)">
+          <span class="role-ico">🛠</span>
+          <span class="role-name">Operations</span>
+          <span class="role-desc">Ops</span>
+        </button>
+        <button class="role-btn" data-role="compliance" data-label="Compliance Agent" onclick="selectRole(this)">
+          <span class="role-ico">🛡️</span>
+          <span class="role-name">Compliance</span>
+          <span class="role-desc">Regulatory</span>
+        </button>
+      </div>
+
+      <!-- Step 2: Credentials (appear after role selected) -->
+      <div class="form-body" id="login-form" style="display:none">
+
+        <div class="selected-role-badge show" id="role-badge">
+          Signing in as <span class="pill" id="role-badge-label">—</span>
+          <button onclick="clearRole()" style="margin-left:auto;background:none;border:none;color:var(--ink-3);cursor:pointer;font-size:.78rem;font-family:'Geist Mono',monospace;transition:color .15s" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-3)'">← Change</button>
+        </div>
+
+        <div class="error-band" id="login-err"></div>
+
+        <div class="field">
+          <label for="login-phone">Registered phone or email <span class="req">*</span></label>
+          <div class="inp-wrap">
+            <input type="text" id="login-phone" autocomplete="username"
+                   placeholder="Phone number or email address" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="login-pw">Password <span class="req">*</span></label>
+          <div class="inp-wrap">
+            <input type="password" id="login-pw" autocomplete="current-password"
+                   placeholder="Your password" required>
+            <button type="button" class="show-pw" onclick="togglePw()" id="pw-eye" aria-label="Show password">👁</button>
+          </div>
+        </div>
+
+        <button class="btn-submit" id="login-btn" onclick="submitLogin()">
+          <span class="btn-label">Sign in to admin</span>
+          <div class="spinner"></div>
+        </button>
+      </div>
+
+      <div class="card-footer">
+        <a href="/">← Back to main site</a>
+      </div>
+    </div>
+
+    <div class="security-notice">
+      <strong>Security notice:</strong> This session will be logged with your IP address, device fingerprint, and access timestamp. Repeated failed attempts will trigger an automatic lockout.
+    </div>
+  </div>
+
+</div>
+
 <script>
-function fillAdmin(phone) {
-  document.getElementById('al-id').value = phone;
-  document.getElementById('al-pw').value = 'Admin@2024';
+var _selectedRole = null;
+
+function selectRole(btn){
+  document.querySelectorAll('.role-btn').forEach(function(b){ b.classList.remove('selected'); });
+  btn.classList.add('selected');
+  _selectedRole = btn.dataset.role;
+  var label = btn.dataset.label;
+  document.getElementById('role-badge-label').textContent = label;
+  document.getElementById('login-form').style.display = 'flex';
+  document.getElementById('login-form').style.flexDirection = 'column';
+  document.getElementById('login-form').style.gap = '.95rem';
+  setTimeout(function(){ document.getElementById('login-phone').focus(); }, 50);
 }
-async function doAdminLogin() {
-  const btn = document.getElementById('btn-login');
-  btn.textContent = 'Signing in…'; btn.disabled = true;
-  const d = await API.post('/api/auth/admin-login', {
-    email_or_phone: document.getElementById('al-id').value,
-    password:       document.getElementById('al-pw').value,
+
+function clearRole(){
+  _selectedRole = null;
+  document.querySelectorAll('.role-btn').forEach(function(b){ b.classList.remove('selected'); });
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('login-err').classList.remove('show');
+}
+
+function togglePw(){
+  var inp = document.getElementById('login-pw');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function submitLogin(){
+  var phone = document.getElementById('login-phone').value.trim();
+  var pw    = document.getElementById('login-pw').value;
+  var err   = document.getElementById('login-err');
+  var btn   = document.getElementById('login-btn');
+
+  err.classList.remove('show');
+
+  if(!_selectedRole){ err.textContent='Please select your role above.'; err.classList.add('show'); return; }
+  if(!phone){ err.textContent='Phone number or email is required.'; err.classList.add('show'); return; }
+  if(!pw){ err.textContent='Password is required.'; err.classList.add('show'); return; }
+
+  btn.disabled = true; btn.classList.add('loading');
+
+  fetch('/api/auth/admin-login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      email_or_phone: phone,
+      password: pw,
+      expected_role: _selectedRole
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){
+      // Validate that the returned role matches what was selected
+      if(d.role !== _selectedRole){
+        err.textContent = 'Role mismatch. Your credentials are valid but do not match the selected role. Please select the correct role.';
+        err.classList.add('show');
+        btn.disabled = false; btn.classList.remove('loading');
+        return;
+      }
+      window.location.href = '/admin/home';
+    } else {
+      err.textContent = d.error || 'Invalid credentials.';
+      err.classList.add('show');
+      btn.disabled = false; btn.classList.remove('loading');
+    }
+  })
+  .catch(function(){
+    err.textContent = 'Connection error. Please try again.';
+    err.classList.add('show');
+    btn.disabled = false; btn.classList.remove('loading');
   });
-  btn.textContent = 'Sign in to Admin Portal'; btn.disabled = false;
-  if (d.error) {
-    const el = document.getElementById('alert-box');
-    el.className = '';
-    el.style.cssText = 'background:#3f1313;color:#f87171;border:1px solid #991b1b;padding:.65rem .875rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;';
-    el.textContent = d.error;
-    return;
-  }
-  window.location.href = '/admin/home';
 }
-document.addEventListener('keydown', e => { if (e.key === 'Enter') doAdminLogin(); });
+
+// Enter key submits
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && _selectedRole){
+    var active = document.activeElement;
+    if(active && (active.id === 'login-phone' || active.id === 'login-pw')){
+      submitLogin();
+    }
+  }
+});
 </script>
 </body>
 </html>
