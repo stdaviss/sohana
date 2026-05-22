@@ -374,10 +374,48 @@ def circles_page():
 @app.route("/circles/<rosca_id>")
 @auth.login_required
 def circle_detail(rosca_id):
+    try:
+        return _circle_detail_inner(rosca_id)
+    except Exception as _e:
+        import traceback, sys
+        tb = traceback.format_exc()
+        print(f"[circle_detail ERROR] {_e}\n{tb}", file=sys.stderr, flush=True)
+        # Show readable error during development — remove before production
+        return f"<pre style='padding:2rem;font-family:monospace;color:#c00;background:#fff'>"               f"<b>Circle page error — check Railway logs:</b>\n\n{tb}</pre>", 500
+
+
+def _circle_detail_inner(rosca_id):
     user = auth.get_current_user()
     r    = rosca.get_rosca(rosca_id)
     if not r: return redirect(url_for("circles_page"))
-    members    = rosca.get_rosca_members(rosca_id)
+    # Fetch members enriched with user data (full_name, ncs_score, hanatag)
+    # sqlite3.Row supports row["key"] but NOT row.get("key") — use explicit key access
+    _raw_members = rosca.get_rosca_members(rosca_id)
+    _member_ids  = [m["user_id"] for m in _raw_members]
+    _user_lookup = {}
+    if _member_ids:
+        placeholders = ",".join(["?"] * len(_member_ids))
+        for _ur in fetchall(
+            f"SELECT id, full_name, hanatag, ncs_score, ncs_tier FROM users WHERE id IN ({placeholders})",
+            tuple(_member_ids)
+        ):
+            # Convert sqlite3.Row → plain dict so .get() works safely downstream
+            _user_lookup[_ur["id"]] = dict(_ur)
+    members = []
+    for _rm in _raw_members:
+        _rm_dict = dict(_rm)   # convert Row → dict so .get() works
+        _ud      = _user_lookup.get(_rm_dict.get("user_id", ""), {})
+        members.append({
+            "user_id":         _rm_dict.get("user_id", ""),
+            "rosca_id":        _rm_dict.get("rosca_id", rosca_id),
+            "status":          _rm_dict.get("status", "active"),
+            "payout_position": _rm_dict.get("payout_position") or 0,
+            "joined_at":       _rm_dict.get("joined_at", ""),
+            "full_name":       _ud.get("full_name", "Member"),
+            "hanatag":         _ud.get("hanatag", ""),
+            "ncs_score":       _ud.get("ncs_score", 300) or 300,
+            "ncs_tier":        _ud.get("ncs_tier", "Probation"),
+        })
     cycle_info = rosca.get_cycle_status(rosca_id)
     is_member  = any(m["user_id"] == user["id"] for m in members)
     is_organiser = r["organiser_id"] == user["id"]
@@ -385,11 +423,37 @@ def circle_detail(rosca_id):
     if cycle_info:
         for c in cycle_info["contributions"]:
             if c["user_id"] == user["id"]: my_contrib = c
-    leaderboard = ncs_engine.get_leaderboard(rosca_id)
-    my_endorsements = {e["to_id"] for e in fetchall("SELECT to_id FROM endorsements WHERE from_id=? AND rosca_id=?", (user["id"], rosca_id))}
+    try:
+        leaderboard = ncs_engine.get_leaderboard(rosca_id)
+    except AttributeError:
+        leaderboard = []  # function may not exist in current ncs_engine version
+    my_endorsements = {e["endorsee_id"] for e in fetchall("SELECT endorsee_id FROM endorsements WHERE endorser_id=? AND withdrawn_at IS NULL", (user["id"],))}
+    _ensure_circle_tables()
+    # Recent activity (last 20)
+    activity = fetchall("""SELECT ca.*, u.full_name, u.hanatag
+                           FROM circle_activity ca LEFT JOIN users u ON u.id=ca.actor_id
+                           WHERE ca.rosca_id=? ORDER BY ca.created_at DESC LIMIT 20""",
+                        (rosca_id,))
+    # Pinned + recent announcements
+    announcements = fetchall("""SELECT ca.*, u.full_name
+                                FROM circle_announcements ca JOIN users u ON u.id=ca.author_id
+                                WHERE ca.rosca_id=?
+                                ORDER BY ca.is_pinned DESC, ca.created_at DESC LIMIT 10""",
+                             (rosca_id,))
+    # Open votes
+    votes = fetchall("""SELECT v.*,
+                               (SELECT COUNT(*) FROM circle_vote_responses r WHERE r.vote_id=v.id) as response_count,
+                               (SELECT response FROM circle_vote_responses r WHERE r.vote_id=v.id AND r.user_id=?) as my_vote
+                        FROM circle_votes v WHERE v.rosca_id=? AND v.status='open'
+                        ORDER BY v.created_at DESC""",
+                     (user["id"], rosca_id))
+    # Chat unread count (messages since user's last visit — simplified: total count)
+    chat_count = fetchone("SELECT COUNT(*) as c FROM circle_messages WHERE rosca_id=?", (rosca_id,))
     return render_template("circle_detail.html", user=user, rosca=r, members=members,
                            cycle_info=cycle_info, is_member=is_member, is_organiser=is_organiser,
-                           my_contrib=my_contrib, leaderboard=leaderboard, my_endorsements=my_endorsements)
+                           my_contrib=my_contrib, leaderboard=leaderboard, my_endorsements=my_endorsements,
+                           activity=activity, announcements=announcements, votes=votes,
+                           chat_count=chat_count["c"] if chat_count else 0)
 
 @app.route("/ncs")
 @auth.login_required
@@ -1956,6 +2020,15 @@ def api_contribute(rosca_id):
     try:
         cycle = rosca.get_or_create_active_cycle(rosca_id)
         rosca.pay_contribution(session["user_id"], cycle["id"])
+        u = fetchone("SELECT full_name FROM users WHERE id=?", (session["user_id"],))
+        r_info = fetchone("SELECT contribution_cents, currency FROM roscas WHERE id=?", (rosca_id,))
+        amt = ""
+        if r_info:
+            sym = {"EUR":"€","GBP":"£","USD":"$","CAD":"C$","XAF":"Fr ","GHC":"₵","NGN":"₦","ZAR":"R"}
+            amt = sym.get(r_info["currency"],"") + str(r_info["contribution_cents"]//100)
+        _log_circle_activity(rosca_id, session["user_id"], "contribution_paid",
+                             f"{u['full_name'] if u else 'A member'} contributed {amt}",
+                             {"amount_cents": r_info["contribution_cents"] if r_info else 0})
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
@@ -2937,6 +3010,240 @@ def api_admin_reverse_transaction(tx_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+
+# ── CIRCLE SOCIAL INFRASTRUCTURE ──────────────────────────────────────────────
+
+def _ensure_circle_tables():
+    """Create circle_activity, circle_messages, circle_announcements, circle_votes on first use."""
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS circle_activity (
+                id TEXT PRIMARY KEY,
+                rosca_id TEXT NOT NULL,
+                actor_id TEXT,
+                type TEXT NOT NULL,
+                body TEXT,
+                metadata TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_ca_rosca ON circle_activity(rosca_id, created_at DESC)")
+
+            db.execute("""CREATE TABLE IF NOT EXISTS circle_messages (
+                id TEXT PRIMARY KEY,
+                rosca_id TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                message TEXT NOT NULL,
+                is_pinned INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_cm_rosca ON circle_messages(rosca_id, created_at DESC)")
+
+            db.execute("""CREATE TABLE IF NOT EXISTS circle_announcements (
+                id TEXT PRIMARY KEY,
+                rosca_id TEXT NOT NULL,
+                author_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                priority TEXT DEFAULT 'normal',
+                is_pinned INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_ann_rosca ON circle_announcements(rosca_id, created_at DESC)")
+
+            db.execute("""CREATE TABLE IF NOT EXISTS circle_votes (
+                id TEXT PRIMARY KEY,
+                rosca_id TEXT NOT NULL,
+                creator_id TEXT NOT NULL,
+                question TEXT NOT NULL,
+                type TEXT DEFAULT 'simple_majority',
+                status TEXT DEFAULT 'open',
+                expires_at TEXT,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+            db.execute("""CREATE TABLE IF NOT EXISTS circle_vote_responses (
+                id TEXT PRIMARY KEY,
+                vote_id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                response TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now'))
+            )""")
+    except Exception as e:
+        import sys; print(f"[_ensure_circle_tables] {e}", file=sys.stderr, flush=True)
+
+
+def _log_circle_activity(rosca_id, actor_id, event_type, body, metadata=None):
+    """Write one activity event to circle_activity."""
+    _ensure_circle_tables()
+    try:
+        import json as _json
+        with get_db() as db:
+            db.execute("""INSERT INTO circle_activity(id,rosca_id,actor_id,type,body,metadata)
+                          VALUES(?,?,?,?,?,?)""",
+                       (str(uuid.uuid4()), rosca_id, actor_id, event_type, body,
+                        _json.dumps(metadata) if metadata else None))
+    except Exception as e:
+        import sys; print(f"[_log_circle_activity] {e}", file=sys.stderr, flush=True)
+
+
+# ── CIRCLE ACTIVITY API ────────────────────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/activity")
+@auth.login_required
+def api_circle_activity(rosca_id):
+    _ensure_circle_tables()
+    limit  = min(int(request.args.get("limit", 30)), 100)
+    before = request.args.get("before")
+    if before:
+        rows = fetchall("""SELECT ca.*, u.full_name, u.hanatag
+                           FROM circle_activity ca
+                           LEFT JOIN users u ON u.id=ca.actor_id
+                           WHERE ca.rosca_id=? AND ca.created_at < ?
+                           ORDER BY ca.created_at DESC LIMIT ?""",
+                        (rosca_id, before, limit))
+    else:
+        rows = fetchall("""SELECT ca.*, u.full_name, u.hanatag
+                           FROM circle_activity ca
+                           LEFT JOIN users u ON u.id=ca.actor_id
+                           WHERE ca.rosca_id=?
+                           ORDER BY ca.created_at DESC LIMIT ?""",
+                        (rosca_id, limit))
+    return jsonify({"activities": [dict(r) for r in rows]})
+
+
+# ── CIRCLE CHAT API ────────────────────────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/messages")
+@auth.login_required
+def api_circle_messages(rosca_id):
+    _ensure_circle_tables()
+    limit  = min(int(request.args.get("limit", 40)), 100)
+    before = request.args.get("before")
+    if before:
+        rows = fetchall("""SELECT cm.*, u.full_name, u.hanatag
+                           FROM circle_messages cm JOIN users u ON u.id=cm.sender_id
+                           WHERE cm.rosca_id=? AND cm.created_at < ?
+                           ORDER BY cm.created_at DESC LIMIT ?""",
+                        (rosca_id, before, limit))
+    else:
+        rows = fetchall("""SELECT cm.*, u.full_name, u.hanatag
+                           FROM circle_messages cm JOIN users u ON u.id=cm.sender_id
+                           WHERE cm.rosca_id=?
+                           ORDER BY cm.created_at DESC LIMIT ?""",
+                        (rosca_id, limit))
+    return jsonify({"messages": [dict(r) for r in reversed(rows)]})
+
+
+@app.route("/api/rosca/<rosca_id>/messages", methods=["POST"])
+@auth.login_required
+def api_circle_send_message(rosca_id):
+    _ensure_circle_tables()
+    message = (request.json or {}).get("message", "").strip()
+    if not message or len(message) > 2000:
+        return jsonify({"error": "Message must be 1–2000 characters."}), 400
+    r = fetchone("SELECT id FROM roscas WHERE id=?", (rosca_id,))
+    if not r: return jsonify({"error": "Circle not found"}), 404
+    mid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute("INSERT INTO circle_messages(id,rosca_id,sender_id,message) VALUES(?,?,?,?)",
+                   (mid, rosca_id, session["user_id"], message))
+    user = fetchone("SELECT full_name FROM users WHERE id=?", (session["user_id"],))
+    _log_circle_activity(rosca_id, session["user_id"], "message_sent",
+                         f"{user['full_name']} sent a message in the circle chat")
+    return jsonify({"ok": True, "id": mid})
+
+
+# ── CIRCLE ANNOUNCEMENTS API ───────────────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/announcements")
+@auth.login_required
+def api_circle_announcements(rosca_id):
+    _ensure_circle_tables()
+    rows = fetchall("""SELECT ca.*, u.full_name, u.hanatag
+                       FROM circle_announcements ca JOIN users u ON u.id=ca.author_id
+                       WHERE ca.rosca_id=?
+                       ORDER BY ca.is_pinned DESC, ca.created_at DESC LIMIT 20""",
+                    (rosca_id,))
+    return jsonify({"announcements": [dict(r) for r in rows]})
+
+
+@app.route("/api/rosca/<rosca_id>/announcements", methods=["POST"])
+@auth.login_required
+def api_circle_post_announcement(rosca_id):
+    _ensure_circle_tables()
+    r = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
+    if not r or r["organiser_id"] != session["user_id"]:
+        return jsonify({"error": "Only the organiser can post announcements."}), 403
+    d        = request.json or {}
+    title    = d.get("title", "").strip()
+    body     = d.get("body", "").strip()
+    priority = d.get("priority", "normal").strip()
+    is_pinned = int(bool(d.get("is_pinned", False)))
+    if not title or not body:
+        return jsonify({"error": "Title and body are required."}), 400
+    aid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute("""INSERT INTO circle_announcements(id,rosca_id,author_id,title,body,priority,is_pinned)
+                      VALUES(?,?,?,?,?,?,?)""",
+                   (aid, rosca_id, session["user_id"], title, body, priority, is_pinned))
+    _log_circle_activity(rosca_id, session["user_id"], "announcement",
+                         f"Organiser posted an announcement: {title}")
+    return jsonify({"ok": True, "id": aid})
+
+
+# ── CIRCLE VOTES API ───────────────────────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/votes")
+@auth.login_required
+def api_circle_votes(rosca_id):
+    _ensure_circle_tables()
+    votes = fetchall("""SELECT v.*, u.full_name as creator_name,
+                               (SELECT COUNT(*) FROM circle_vote_responses r WHERE r.vote_id=v.id) as response_count,
+                               (SELECT response FROM circle_vote_responses r WHERE r.vote_id=v.id AND r.user_id=?) as my_vote
+                        FROM circle_votes v JOIN users u ON u.id=v.creator_id
+                        WHERE v.rosca_id=?
+                        ORDER BY v.created_at DESC""",
+                     (session["user_id"], rosca_id))
+    return jsonify({"votes": [dict(v) for v in votes]})
+
+
+@app.route("/api/rosca/<rosca_id>/votes", methods=["POST"])
+@auth.login_required
+def api_circle_create_vote(rosca_id):
+    _ensure_circle_tables()
+    d         = request.json or {}
+    question  = d.get("question", "").strip()
+    vote_type = d.get("type", "simple_majority").strip()
+    expires   = d.get("expires_at")
+    if not question: return jsonify({"error": "Question required."}), 400
+    vid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute("""INSERT INTO circle_votes(id,rosca_id,creator_id,question,type,expires_at)
+                      VALUES(?,?,?,?,?,?)""",
+                   (vid, rosca_id, session["user_id"], question, vote_type, expires))
+    _log_circle_activity(rosca_id, session["user_id"], "vote_created",
+                         f"A new vote was created: {question}")
+    return jsonify({"ok": True, "id": vid})
+
+
+@app.route("/api/rosca/votes/<vote_id>/respond", methods=["POST"])
+@auth.login_required
+def api_circle_vote_respond(vote_id):
+    _ensure_circle_tables()
+    response = (request.json or {}).get("response", "").strip()
+    if response not in ("yes", "no", "abstain"):
+        return jsonify({"error": "Response must be yes, no, or abstain."}), 400
+    existing = fetchone("SELECT id FROM circle_vote_responses WHERE vote_id=? AND user_id=?",
+                        (vote_id, session["user_id"]))
+    with get_db() as db:
+        if existing:
+            db.execute("UPDATE circle_vote_responses SET response=? WHERE vote_id=? AND user_id=?",
+                       (response, vote_id, session["user_id"]))
+        else:
+            db.execute("INSERT INTO circle_vote_responses(id,vote_id,user_id,response) VALUES(?,?,?,?)",
+                       (str(uuid.uuid4()), vote_id, session["user_id"], response))
+    return jsonify({"ok": True})
 
 
 # ── CONTACT INQUIRIES ─────────────────────────────────────────────────────────

@@ -7,11 +7,11 @@
 {% set currency = rosca.currency or 'EUR' %}
 {% set s = sym.get(currency,'€') %}
 {% set total_members = members|length %}
-{% if cycle_info and cycle_info.get('contributions') %}{% set paid_members = cycle_info['contributions']|selectattr('status','equalto','paid')|list|length %}{% else %}{% set paid_members = 0 %}{% endif %}
+{% set paid_members = cycle_info['contributions']|selectattr('status','equalto','paid')|list|length if (cycle_info and cycle_info['contributions']) else 0 %}
 {% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
 {% set my_position = my_member.payout_position if my_member else '—' %}
 {% set contrib_cents = rosca.contribution_cents or 0 %}
-{% set cycle_num = cycle_info['cycle_number'] if cycle_info and cycle_info.get('cycle_number') else 0 %}
+{% set cycle_num = cycle_info['cycle_number'] if cycle_info else 0 %}
 {% set total_cycles = rosca.max_members or total_members %}
 {% set pool_total = contrib_cents * total_members %}
 {% set pool_raised = contrib_cents * paid_members %}
@@ -253,7 +253,7 @@
       <span>· Created {{ rosca.created_at[:10] if rosca.created_at else '—' }}</span>
     </div>
     <div class="cd-tags">
-      {% if rosca.category %}<span class="cd-tag">{{ rosca.category|title }}</span>{% endif %}
+      {% if rosca.category %}<span class="cd-tag">{{ (rosca.category or 'General')|title }}</span>{% endif %}
       <span class="cd-tag">{{ freq_label }}</span>
       <span class="cd-tag">Trust First</span>
       <span class="cd-tag">{{ rosca.status|title }}</span>
@@ -267,7 +267,7 @@
       <div class="lbl">My Position</div>
       <div class="slot">Slot {{ my_position }}</div>
       <div class="sub">
-        {% if cycle_info and cycle_info and cycle_info.get('recipient_id') == user.id %}
+        {% if cycle_info and cycle_info['recipient_id'] == user.id %}
           🎉 Your payout is this cycle!
         {% else %}
           Next payout in ~{% if my_position and my_position != '—' and cycle_num %}{{ ((my_position - cycle_num)|abs * (rosca.frequency_days or 30)) }}{% else %}—{% endif %} days
@@ -324,7 +324,7 @@
           </div>
           <div class="cp-stat late">
             <div class="v">
-              {% if cycle_info and cycle_info.get('contributions') %}{{ cycle_info['contributions']|selectattr('status','equalto','missed')|list|length }}{% else %}0{% endif %}
+              {% if cycle_info and cycle_info['contributions'] %}{{ cycle_info['contributions']|selectattr('status','equalto','missed')|list|length }}{% else %}0{% endif %}
             </div>
             <div class="l">Yet to pay</div>
           </div>
@@ -342,7 +342,7 @@
           <div class="nc-due">Due in</div>
           <div class="nc-days">
             {% if cycle_info and cycle_info.due_date %}
-              {% set due = cycle_info.get('due_date','')[:10] if cycle_info else '' %}
+              {% set due = cycle_info['due_date'][:10] if cycle_info and cycle_info['due_date'] else '' if cycle_info else '' %}
               {{ due }}
             {% else %}
               Next cycle
@@ -394,10 +394,10 @@
         </div>
         <div class="pb" style="padding:.75rem">
           {% for m in members[:5] %}
-          {% set ncs_cls = 'ex' if m.ncs_score >= 750 else 'rel' if m.ncs_score >= 650 else 'dev' if m.ncs_score >= 550 else 'prob' %}
+          {% set _ns = (m.ncs_score or 0) %}{% set ncs_cls = 'ex' if _ns >= 750 else 'rel' if _ns >= 650 else 'dev' if _ns >= 550 else 'prob' %}
           <div class="mem-item">
             <div class="mem-avatar">
-              {{ m.full_name[0]|upper }}
+              {{ (m.full_name or "M")[0]|upper }}
               {% if loop.index <= 2 %}<span class="online-dot"></span>{% endif %}
             </div>
             <div class="mem-info">
@@ -548,7 +548,7 @@
           </div>
           {% endfor %}
         </div>
-        {% if cycle_info and cycle_info and cycle_info.get('recipient_id') == user.id %}
+        {% if cycle_info and cycle_info['recipient_id'] == user.id %}
         <div class="pt-next-banner">🎉 Great! You are up next to receive the payout.</div>
         {% elif cycle_info %}
         <div class="pt-next-banner" style="color:var(--ink-2)">
@@ -710,16 +710,16 @@
       <div class="ph"><h3>All Members ({{ total_members }})</h3></div>
       <div class="pb">
         {% for m in members %}
-        {% set ncs_cls = 'ex' if m.ncs_score >= 750 else 'rel' if m.ncs_score >= 650 else 'dev' if m.ncs_score >= 550 else 'prob' %}
+        {% set _ns = (m.ncs_score or 0) %}{% set ncs_cls = 'ex' if _ns >= 750 else 'rel' if _ns >= 650 else 'dev' if _ns >= 550 else 'prob' %}
         <div class="mem-item">
-          <div class="mem-avatar">{{ m.full_name[0]|upper }}</div>
+          <div class="mem-avatar">{{ (m.full_name or "M")[0]|upper }}</div>
           <div class="mem-info">
             <div class="name">
               {{ m.full_name }}
               {% if m.user_id == rosca.organiser_id %}<span class="org-badge">Organiser</span>{% endif %}
               {% if m.user_id == user.id %}<span class="org-badge" style="background:rgba(83,74,183,.15);border-color:rgba(83,74,183,.3);color:#7A6FE0">You</span>{% endif %}
             </div>
-            <div class="sub">Slot {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or m.full_name }}</div>
+            <div class="sub">Slot {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or m.full_name or '' }}</div>
           </div>
           <span class="mem-ncs {{ ncs_cls }}">{{ m.ncs_score }}</span>
           {% if m.user_id != user.id and m.user_id not in my_endorsements %}
