@@ -7,11 +7,11 @@
 {% set currency = rosca.currency or 'EUR' %}
 {% set s = sym.get(currency,'€') %}
 {% set total_members = members|length %}
-{% set paid_members = cycle_info['contributions']|selectattr('status','equalto','paid')|list|length if (cycle_info and cycle_info['contributions']) else 0 %}
+{% set paid_members = cycle_contribs|selectattr('status','equalto','paid')|list|length if cycle_contribs else 0 %}
 {% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
 {% set my_position = my_member.payout_position if my_member else '—' %}
 {% set contrib_cents = rosca.contribution_cents or 0 %}
-{% set cycle_num = cycle_info['cycle_number'] if cycle_info else 0 %}
+{# cycle_num is now passed directly from the route #}
 {% set total_cycles = rosca.max_members or total_members %}
 {% set pool_total = contrib_cents * total_members %}
 {% set pool_raised = contrib_cents * paid_members %}
@@ -267,7 +267,7 @@
       <div class="lbl">My Position</div>
       <div class="slot">Slot {{ my_position }}</div>
       <div class="sub">
-        {% if cycle_info and cycle_info['recipient_id'] == user.id %}
+        {% if cycle_recip == user.id %}
           🎉 Your payout is this cycle!
         {% else %}
           Next payout in ~{% if my_position and my_position != '—' and cycle_num %}{{ ((my_position - cycle_num)|abs * (rosca.frequency_days or 30)) }}{% else %}—{% endif %} days
@@ -324,7 +324,7 @@
           </div>
           <div class="cp-stat late">
             <div class="v">
-              {% if cycle_info and cycle_info['contributions'] %}{{ cycle_info['contributions']|selectattr('status','equalto','missed')|list|length }}{% else %}0{% endif %}
+              {{ cycle_contribs|selectattr('status','equalto','missed')|list|length if cycle_contribs else 0 }}
             </div>
             <div class="l">Yet to pay</div>
           </div>
@@ -341,16 +341,16 @@
         {% else %}
           <div class="nc-due">Due in</div>
           <div class="nc-days">
-            {% if cycle_info and cycle_info.due_date %}
-              {% set due = cycle_info['due_date'][:10] if cycle_info and cycle_info['due_date'] else '' if cycle_info else '' %}
+            {% if cycle_due %}
+              {% set due = cycle_due[:10] if cycle_due else '' %}
               {{ due }}
             {% else %}
               Next cycle
             {% endif %}
           </div>
-          <div class="nc-date">📅 {{ cycle_info.due_date[:10] if cycle_info and cycle_info.due_date else '—' }}</div>
+          <div class="nc-date">📅 {{ cycle_due[:10] if cycle_due else '—' }}</div>
           {% if is_member %}
-          <button class="nc-btn" onclick="openContribModal()" {% if not cycle_info or rosca.status != 'active' %}disabled{% endif %}>
+          <button class="nc-btn" onclick="openContribModal()" {% if not cycle_due or rosca.status != 'active' %}disabled{% endif %}>
             Pay Now {{ s }}{{ "%.2f"|format(contrib_cents / 100) }}
           </button>
           {% endif %}
@@ -537,8 +537,8 @@
             {% if slot_num <= 4 or slot_num == members|length %}
             <div class="pt-dot">{{ slot_num }}</div>
             <div class="pt-slot-name">{% if is_you %}You{% else %}{{ m.full_name.split()[0] }}{% endif %}</div>
-            {% if cycle_info and is_current %}
-            <div class="pt-slot-date">{{ cycle_info.due_date[:10] if cycle_info.due_date else '—' }}</div>
+            {% if is_current %}
+            <div class="pt-slot-date">{{ cycle_due[:10] if cycle_due else '—' }}</div>
             {% endif %}
             {% if is_past %}<div class="pt-slot-status">Paid</div>{% endif %}
             {% elif slot_num == 5 and members|length > 5 %}
@@ -548,11 +548,11 @@
           </div>
           {% endfor %}
         </div>
-        {% if cycle_info and cycle_info['recipient_id'] == user.id %}
+        {% if cycle_recip and cycle_recip == user.id %}
         <div class="pt-next-banner">🎉 Great! You are up next to receive the payout.</div>
-        {% elif cycle_info %}
+        {% elif cycle_due %}
         <div class="pt-next-banner" style="color:var(--ink-2)">
-          📅 Next payout: {{ cycle_info.due_date[:10] if cycle_info.due_date else 'Scheduled' }}
+          📅 Next payout: {{ cycle_due[:10] if cycle_due else 'Scheduled' }}
         </div>
         {% endif %}
       </div>
@@ -751,12 +751,12 @@
       <div class="ph"><h3>Upcoming Events</h3></div>
       <div class="pb">
         <div style="display:flex;flex-direction:column;gap:.7rem">
-          {% if cycle_info and cycle_info.due_date %}
+          {% if cycle_due %}
           <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px">
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">📅</div>
             <div>
               <div style="font-size:.88rem;font-weight:600;color:var(--ink)">Contribution Due</div>
-              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--accent)">{{ cycle_info.due_date[:10] }}</div>
+              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--accent)">{{ cycle_due[:10] }}</div>
             </div>
             <div style="margin-left:auto;font-family:'Geist Mono',monospace;font-size:.72rem;padding:.25rem .65rem;border-radius:99px;background:rgba(255,179,80,.1);border:1px solid rgba(255,179,80,.2);color:#FFB350">Due soon</div>
           </div>

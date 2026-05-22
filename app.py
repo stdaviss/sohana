@@ -417,12 +417,32 @@ def _circle_detail_inner(rosca_id):
             "ncs_tier":        _ud.get("ncs_tier", "Probation"),
         })
     cycle_info = rosca.get_cycle_status(rosca_id)
-    is_member  = any(m["user_id"] == user["id"] for m in members)
+    is_member    = any(m["user_id"] == user["id"] for m in members)
     is_organiser = r["organiser_id"] == user["id"]
-    my_contrib = None
+
+    # Safely unpack cycle_info — key names differ depending on circle state
+    my_contrib     = None
+    cycle_num      = int(r["current_cycle"] or 1) if r.get("current_cycle") else 1
+    cycle_due      = None
+    cycle_recip    = None
+    cycle_contribs = []
+
     if cycle_info:
-        for c in cycle_info["contributions"]:
-            if c["user_id"] == user["id"]: my_contrib = c
+        try:
+            ci = dict(cycle_info) if not isinstance(cycle_info, dict) else cycle_info
+        except Exception:
+            ci = {}
+        cycle_num      = int(ci.get("cycle_number") or ci.get("number") or
+                             ci.get("current_cycle") or cycle_num or 1)
+        cycle_due      = ci.get("due_date")
+        cycle_recip    = ci.get("recipient_id")
+        cycle_contribs = ci.get("contributions") or []
+        for c in cycle_contribs:
+            try:
+                if c["user_id"] == user["id"]:
+                    my_contrib = c
+            except Exception:
+                pass
     try:
         leaderboard = ncs_engine.get_leaderboard(rosca_id)
     except AttributeError:
@@ -450,8 +470,12 @@ def _circle_detail_inner(rosca_id):
     # Chat unread count (messages since user's last visit — simplified: total count)
     chat_count = fetchone("SELECT COUNT(*) as c FROM circle_messages WHERE rosca_id=?", (rosca_id,))
     return render_template("circle_detail.html", user=user, rosca=r, members=members,
-                           cycle_info=cycle_info, is_member=is_member, is_organiser=is_organiser,
-                           my_contrib=my_contrib, leaderboard=leaderboard, my_endorsements=my_endorsements,
+                           cycle_info=cycle_info,
+                           cycle_num=cycle_num, cycle_due=cycle_due,
+                           cycle_recip=cycle_recip, cycle_contribs=cycle_contribs,
+                           is_member=is_member, is_organiser=is_organiser,
+                           my_contrib=my_contrib, leaderboard=leaderboard,
+                           my_endorsements=my_endorsements,
                            activity=activity, announcements=announcements, votes=votes,
                            chat_count=chat_count["c"] if chat_count else 0)
 
