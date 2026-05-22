@@ -7,11 +7,11 @@
 {% set currency = rosca.currency or 'EUR' %}
 {% set s = sym.get(currency,'€') %}
 {% set total_members = members|length %}
-{% set paid_members = members|selectattr('status','equalto','paid')|list|length if cycle_info else 0 %}
+{% if cycle_info and cycle_info.get('contributions') %}{% set paid_members = cycle_info['contributions']|selectattr('status','equalto','paid')|list|length %}{% else %}{% set paid_members = 0 %}{% endif %}
 {% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
 {% set my_position = my_member.payout_position if my_member else '—' %}
 {% set contrib_cents = rosca.contribution_cents or 0 %}
-{% set cycle_num = cycle_info.cycle_number if cycle_info else 0 %}
+{% set cycle_num = cycle_info['cycle_number'] if cycle_info and cycle_info.get('cycle_number') else 0 %}
 {% set total_cycles = rosca.max_members or total_members %}
 {% set pool_total = contrib_cents * total_members %}
 {% set pool_raised = contrib_cents * paid_members %}
@@ -267,10 +267,10 @@
       <div class="lbl">My Position</div>
       <div class="slot">Slot {{ my_position }}</div>
       <div class="sub">
-        {% if cycle_info and cycle_info.recipient_id == user.id %}
+        {% if cycle_info and cycle_info and cycle_info.get('recipient_id') == user.id %}
           🎉 Your payout is this cycle!
         {% else %}
-          Next payout in ~{{ ((my_position - cycle_num) * (rosca.frequency_days or 30))|abs }} days
+          Next payout in ~{% if my_position and my_position != '—' and cycle_num %}{{ ((my_position - cycle_num)|abs * (rosca.frequency_days or 30)) }}{% else %}—{% endif %} days
         {% endif %}
       </div>
       <div class="amount">{{ s }}{{ "%.2f"|format(contrib_cents * total_members / 100) }}</div>
@@ -319,12 +319,12 @@
             <div class="l">Contributed</div>
           </div>
           <div class="cp-stat">
-            <div class="v">{{ (total_members - paid_members)|max(0) }}</div>
+            <div class="v">{% set pending_count = total_members - paid_members %}{{ pending_count if pending_count > 0 else 0 }}</div>
             <div class="l">Pending</div>
           </div>
           <div class="cp-stat late">
             <div class="v">
-              {{ (cycle_info.contributions|selectattr('status','equalto','missed')|list|length) if cycle_info else 0 }}
+              {% if cycle_info and cycle_info.get('contributions') %}{{ cycle_info['contributions']|selectattr('status','equalto','missed')|list|length }}{% else %}0{% endif %}
             </div>
             <div class="l">Yet to pay</div>
           </div>
@@ -342,7 +342,7 @@
           <div class="nc-due">Due in</div>
           <div class="nc-days">
             {% if cycle_info and cycle_info.due_date %}
-              {% set due = cycle_info.due_date[:10] %}
+              {% set due = cycle_info.get('due_date','')[:10] if cycle_info else '' %}
               {{ due }}
             {% else %}
               Next cycle
@@ -460,7 +460,7 @@
 
           {% set metrics = [
             ('💰', 'Payment Reliability', paid_pct),
-            ('👥', 'Participation Rate', ((members|selectattr('status','ne','inactive')|list|length / total_members) * 100)|round(0)|int if total_members else 0),
+            ('👥', 'Participation Rate', ((members|length / total_members * 100)|round(0)|int) if total_members > 0 else 0),
             ('⏰', 'On-time Contributions', paid_pct),
             ('🤝', 'Trust Index', 85),
           ] %}
@@ -548,7 +548,7 @@
           </div>
           {% endfor %}
         </div>
-        {% if cycle_info and cycle_info.recipient_id == user.id %}
+        {% if cycle_info and cycle_info and cycle_info.get('recipient_id') == user.id %}
         <div class="pt-next-banner">🎉 Great! You are up next to receive the payout.</div>
         {% elif cycle_info %}
         <div class="pt-next-banner" style="color:var(--ink-2)">
