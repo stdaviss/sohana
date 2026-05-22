@@ -1,138 +1,1025 @@
 {% extends "base.html" %}
-{% block title %}{{ rosca.name }} — SOHANA{% endblock %}
-{% block topbar_title %}Circle Detail{% endblock %}
+{% block title %}{{ rosca.name }} — Circle{% endblock %}
+{% block topbar_title %}← <a href="/circles" style="color:var(--ink-2);text-decoration:none">My ROSCAs</a>{% endblock %}
+
 {% block content %}
-<div class="breadcrumb"><a href="/circles">Circles</a> / {{ rosca.name }}</div>
-<div class="page-header" style="margin-top:.5rem;">
-  <div>
-    <h1 class="page-title">{{ rosca.name }}</h1>
-    <div style="display:flex;align-items:center;gap:.75rem;margin-top:.3rem;flex-wrap:wrap;">
-      <span class="pill {% if rosca.status=='active' %}pill-green{% elif rosca.status=='forming' %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot">{{ rosca.status }}</span>
-      <span class="text-sm text-muted">€{{ '%.0f'%(rosca.contribution_cents/100) }} / {{ 'Monthly' if rosca.frequency_days==30 else 'Weekly' }}</span>
+{% set sym = {'EUR':'€','GBP':'£','USD':'$','CAD':'C$','XAF':'Fr ','GHC':'₵','NGN':'₦','ZAR':'R'} %}
+{% set currency = rosca.currency or 'EUR' %}
+{% set s = sym.get(currency,'€') %}
+{% set total_members = members|length %}
+{% set paid_members = members|selectattr('status','equalto','paid')|list|length if cycle_info else 0 %}
+{% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
+{% set my_position = my_member.payout_position if my_member else '—' %}
+{% set contrib_cents = rosca.contribution_cents or 0 %}
+{% set cycle_num = cycle_info.cycle_number if cycle_info else 0 %}
+{% set total_cycles = rosca.max_members or total_members %}
+{% set pool_total = contrib_cents * total_members %}
+{% set pool_raised = contrib_cents * paid_members %}
+{% set pct = ((pool_raised / pool_total) * 100)|round(0)|int if pool_total > 0 else 0 %}
+{% set freq_label = 'Weekly' if rosca.frequency_days == 7 else 'Fortnightly' if rosca.frequency_days == 14 else 'Monthly' %}
+
+<style>
+/* ── CIRCLE DETAIL ── */
+.cd-wrap{display:flex;flex-direction:column;gap:0;height:100%;overflow-y:auto}
+
+/* ── HERO ── */
+.cd-hero{position:relative;display:grid;grid-template-columns:200px 1fr auto;gap:1.5rem;align-items:start;padding:1.5rem;background:var(--surface);border-bottom:1px solid var(--line)}
+@media(max-width:900px){.cd-hero{grid-template-columns:1fr;gap:1rem}}
+.cd-hero-img{width:200px;height:140px;border-radius:14px;background:linear-gradient(135deg,rgba(158,228,147,.2),rgba(83,74,183,.2)),#161B17;object-fit:cover;flex-shrink:0;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:3rem}
+.cd-hero-info{display:flex;flex-direction:column;gap:.5rem}
+.cd-hero-info h1{font-size:1.5rem;font-weight:700;color:var(--ink);letter-spacing:-.02em;display:flex;align-items:center;gap:.5rem}
+.cd-verified{color:var(--accent);font-size:1rem}
+.cd-tagline{font-size:.9rem;color:var(--ink-2);line-height:1.5}
+.cd-meta-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);letter-spacing:.03em}
+.cd-meta-row span{display:inline-flex;align-items:center;gap:.3rem}
+.cd-tags{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.25rem}
+.cd-tag{padding:.22rem .7rem;border-radius:99px;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.2);font-size:.72rem;font-family:'Geist Mono',monospace;color:var(--accent);letter-spacing:.04em;font-weight:500}
+.cd-position-card{padding:1rem 1.25rem;background:var(--surface-2);border:1px solid var(--line);border-radius:14px;min-width:160px;display:flex;flex-direction:column;gap:.3rem}
+.cd-position-card .lbl{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase}
+.cd-position-card .slot{font-size:1.1rem;font-weight:700;color:var(--accent);letter-spacing:-.01em}
+.cd-position-card .sub{font-size:.75rem;color:var(--ink-3)}
+.cd-position-card .amount{font-family:'Geist Mono',monospace;font-size:1.15rem;font-weight:600;color:var(--ink);margin-top:.3rem}
+.cd-share-btn{padding:.5rem 1rem;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.3);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--accent);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap}
+.cd-share-btn:hover{background:rgba(158,228,147,.2)}
+
+/* ── TABS ── */
+.cd-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);padding:0 1.5rem;background:var(--surface);overflow-x:auto;scrollbar-width:none}
+.cd-tabs::-webkit-scrollbar{display:none}
+.cd-tab{padding:.85rem 1.1rem;font-size:.88rem;font-weight:500;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:.4rem;background:none;border-top:none;border-left:none;border-right:none;font-family:'Geist',sans-serif}
+.cd-tab:hover{color:var(--ink)}
+.cd-tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.cd-tab .badge{padding:.08rem .45rem;border-radius:99px;background:rgba(158,228,147,.15);color:var(--accent);font-family:'Geist Mono',monospace;font-size:.65rem;font-weight:700;min-width:18px;text-align:center}
+.cd-tab.warn .badge{background:rgba(255,106,85,.15);color:#FF6A55}
+
+/* ── MAIN GRID ── */
+.cd-body{display:grid;grid-template-columns:1fr 1fr 1fr 280px;gap:1.25rem;padding:1.25rem;align-items:start}
+@media(max-width:1200px){.cd-body{grid-template-columns:1fr 1fr;}}
+@media(max-width:760px){.cd-body{grid-template-columns:1fr}}
+
+/* ── PANELS ── */
+.cd-panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.cd-panel .ph{padding:.85rem 1.1rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.cd-panel .ph h3{font-size:.88rem;font-weight:700;color:var(--ink);letter-spacing:-.005em}
+.cd-panel .ph a,.cd-panel .ph button.view-all{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--accent);text-decoration:none;background:none;border:none;cursor:pointer;transition:opacity .15s;letter-spacing:.02em}
+.cd-panel .ph a:hover,.cd-panel .ph button.view-all:hover{opacity:.7}
+.cd-panel .pb{padding:1.1rem}
+
+/* ── CIRCLE PROGRESS ── */
+.cp-amounts{display:flex;align-items:baseline;gap:.5rem;margin-bottom:.25rem}
+.cp-total{font-family:'Geist Mono',monospace;font-size:1.6rem;font-weight:700;color:var(--ink);letter-spacing:-.03em}
+.cp-goal{font-family:'Geist Mono',monospace;font-size:1rem;color:var(--ink-3)}
+.cp-label{font-size:.75rem;color:var(--ink-3);margin-bottom:.75rem}
+.cp-bar{height:8px;background:rgba(244,242,236,.08);border-radius:99px;overflow:hidden;margin-bottom:1rem}
+.cp-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#cef870);transition:width 1.2s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(158,228,147,.4)}
+.cp-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;text-align:center}
+.cp-stat{padding:.6rem;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.cp-stat .v{font-family:'Geist Mono',monospace;font-size:1.15rem;font-weight:700;color:var(--ink);line-height:1}
+.cp-stat .l{font-size:.68rem;color:var(--ink-3);font-family:'Geist Mono',monospace;letter-spacing:.04em;text-transform:uppercase;margin-top:.25rem}
+.cp-stat.good .v{color:var(--accent)}
+.cp-stat.warn .v{color:#FFB350}
+.cp-stat.late .v{color:#FF6A55}
+
+/* ── NEXT CONTRIBUTION ── */
+.nc-due{font-size:.82rem;color:var(--ink-3);font-family:'Geist Mono',monospace;letter-spacing:.03em;margin-bottom:.35rem}
+.nc-days{font-size:2rem;font-weight:700;color:var(--accent);letter-spacing:-.03em;line-height:1;margin-bottom:.4rem}
+.nc-date{font-size:.82rem;color:var(--ink-2);margin-bottom:1rem;display:flex;align-items:center;gap:.35rem}
+.nc-btn{width:100%;padding:.75rem;background:var(--accent);color:#0E120F;border:none;border-radius:10px;font-family:'Geist',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s}
+.nc-btn:hover{background:#cef870;transform:translateY(-1px)}
+.nc-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.nc-paid{display:flex;align-items:center;gap:.5rem;padding:.75rem;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.25);border-radius:10px;font-size:.85rem;color:var(--accent);font-weight:600}
+
+/* ── CYCLE INFO ── */
+.ci-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.ci-item{padding:.6rem .75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:9px}
+.ci-item .l{font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.25rem}
+.ci-item .v{font-size:.9rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:.35rem}
+.ci-item .v .ico{color:var(--accent);font-size:.85rem}
+
+/* ── ACTIVITY FEED ── */
+.act-item{display:flex;align-items:flex-start;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.act-item:last-child{border-bottom:none}
+.act-ico{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:.85rem;flex-shrink:0;margin-top:.05rem}
+.act-ico.green{background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.2)}
+.act-ico.blue{background:rgba(103,232,249,.12);border:1px solid rgba(103,232,249,.2)}
+.act-ico.amber{background:rgba(255,179,80,.12);border:1px solid rgba(255,179,80,.2)}
+.act-ico.purple{background:rgba(83,74,183,.12);border:1px solid rgba(83,74,183,.2)}
+.act-ico.red{background:rgba(255,106,85,.12);border:1px solid rgba(255,106,85,.2)}
+.act-body{flex:1;min-width:0}
+.act-body .text{font-size:.84rem;color:var(--ink);line-height:1.45}
+.act-body .text strong{font-weight:600}
+.act-body .time{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.03em;margin-top:.2rem}
+
+/* ── PAYOUT TIMELINE ── */
+.pt-track{display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding:.5rem 0;scrollbar-width:none}
+.pt-track::-webkit-scrollbar{display:none}
+.pt-slot{display:flex;flex-direction:column;align-items:center;position:relative;min-width:80px;flex-shrink:0}
+.pt-slot::before{content:"";position:absolute;top:16px;left:50%;right:-50%;height:2px;background:var(--line-2);z-index:0}
+.pt-slot:last-child::before{display:none}
+.pt-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);background:var(--surface-2);display:grid;place-items:center;font-size:.72rem;font-weight:700;font-family:'Geist Mono',monospace;color:var(--ink-3);z-index:1;position:relative;transition:all .2s}
+.pt-slot.active .pt-dot{border-color:var(--accent);background:rgba(158,228,147,.15);color:var(--accent);box-shadow:0 0 0 4px rgba(158,228,147,.12)}
+.pt-slot.paid .pt-dot{border-color:var(--accent);background:var(--accent);color:#0E120F}
+.pt-slot.you .pt-dot{border-color:#534AB7;background:rgba(83,74,183,.18);color:#7A6FE0;box-shadow:0 0 0 4px rgba(83,74,183,.15)}
+.pt-slot-name{font-size:.7rem;color:var(--ink-3);margin-top:.5rem;text-align:center;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-slot.active .pt-slot-name,.pt-slot.you .pt-slot-name{color:var(--ink);font-weight:600}
+.pt-slot-date{font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);margin-top:.15rem;text-align:center}
+.pt-slot-status{font-family:'Geist Mono',monospace;font-size:.6rem;color:var(--accent);margin-top:.1rem;font-weight:600;letter-spacing:.04em}
+.pt-next-banner{margin-top:.85rem;padding:.65rem .9rem;background:rgba(158,228,147,.07);border:1px solid rgba(158,228,147,.2);border-radius:9px;font-size:.83rem;color:var(--accent);display:flex;align-items:center;gap:.5rem}
+
+/* ── ANNOUNCEMENTS ── */
+.ann-item{padding:.85rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;margin-bottom:.6rem}
+.ann-item:last-child{margin-bottom:0}
+.ann-item.pinned{border-color:rgba(158,228,147,.3);background:rgba(158,228,147,.05)}
+.ann-pin{display:inline-flex;align-items:center;gap:.3rem;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--accent);background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.25);border-radius:99px;padding:.12rem .5rem;font-weight:700;letter-spacing:.05em;margin-bottom:.5rem}
+.ann-title{font-size:.88rem;font-weight:600;color:var(--ink);margin-bottom:.3rem;letter-spacing:-.005em}
+.ann-body{font-size:.82rem;color:var(--ink-2);line-height:1.55}
+.ann-meta{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);margin-top:.5rem;display:flex;align-items:center;gap:.5rem}
+
+/* ── MEMBERS ── */
+.mem-item{display:flex;align-items:center;gap:.65rem;padding:.6rem 0;border-bottom:1px solid var(--line)}
+.mem-item:last-child{border-bottom:none}
+.mem-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,rgba(158,228,147,.3),rgba(83,74,183,.3));display:grid;place-items:center;font-weight:700;font-size:.85rem;color:var(--ink);flex-shrink:0;font-family:'Geist',sans-serif;position:relative}
+.mem-avatar .online-dot{position:absolute;bottom:0;right:0;width:8px;height:8px;border-radius:50%;background:var(--accent);border:1.5px solid var(--surface)}
+.mem-info{flex:1;min-width:0}
+.mem-info .name{font-size:.85rem;font-weight:600;color:var(--ink);letter-spacing:-.005em;display:flex;align-items:center;gap:.4rem}
+.mem-info .name .org-badge{padding:.1rem .45rem;border-radius:99px;background:rgba(158,228,147,.15);border:1px solid rgba(158,228,147,.25);font-family:'Geist Mono',monospace;font-size:.6rem;color:var(--accent);font-weight:700;letter-spacing:.04em}
+.mem-info .sub{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.02em}
+.mem-ncs{font-family:'Geist Mono',monospace;font-size:.78rem;font-weight:700;flex-shrink:0;padding:.18rem .55rem;border-radius:7px}
+.mem-ncs.prob{color:#D85A30;background:rgba(216,90,48,.12);border:1px solid rgba(216,90,48,.2)}
+.mem-ncs.dev {color:#BA7517;background:rgba(186,117,23,.12);border:1px solid rgba(186,117,23,.2)}
+.mem-ncs.rel {color:#0F6E56;background:rgba(15,110,86,.12);border:1px solid rgba(15,110,86,.2)}
+.mem-ncs.ex  {color:#534AB7;background:rgba(83,74,183,.12);border:1px solid rgba(83,74,183,.2)}
+.mem-invite-btn{width:100%;margin-top:.75rem;padding:.6rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;font-family:'Geist',sans-serif;font-size:.82rem;color:var(--ink-2);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.mem-invite-btn:hover{color:var(--ink);border-color:var(--accent);background:rgba(158,228,147,.05)}
+
+/* ── CIRCLE HEALTH ── */
+.health-score-ring{display:flex;align-items:center;gap:1rem;margin-bottom:1rem}
+.health-ring-wrap{position:relative;width:72px;height:72px;flex-shrink:0}
+.health-ring-wrap svg{transform:rotate(-90deg)}
+.health-score-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--ink)}
+.health-ring-wrap .health-label{position:absolute;top:calc(100% + .35rem);left:0;right:0;text-align:center;font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.05em}
+.health-ring-wrap .health-label.good{color:var(--accent)}
+.health-ring-wrap .health-label.fair{color:#FFB350}
+.health-ring-wrap .health-label.poor{color:#FF6A55}
+.health-desc{font-size:.82rem;color:var(--ink-2);line-height:1.5}
+.health-metric{margin-bottom:.75rem}
+.health-metric .hm-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}
+.health-metric .hm-label{font-size:.8rem;color:var(--ink-2);display:flex;align-items:center;gap:.4rem}
+.health-metric .hm-ico{font-size:.8rem}
+.health-metric .hm-pct{font-family:'Geist Mono',monospace;font-size:.8rem;color:var(--ink);font-weight:600}
+.health-bar{height:5px;background:rgba(244,242,236,.08);border-radius:99px;overflow:hidden}
+.health-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#cef870);transition:width 1.4s cubic-bezier(.2,.8,.2,1)}
+.health-link{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;margin-top:.75rem;transition:opacity .15s}
+.health-link:hover{opacity:.7}
+
+/* ── CHAT TAB ── */
+.chat-wrap{display:flex;flex-direction:column;height:480px}
+.chat-messages{flex:1;overflow-y:auto;padding:.85rem;display:flex;flex-direction:column;gap:.6rem}
+.chat-msg{display:flex;align-items:flex-end;gap:.5rem}
+.chat-msg.mine{flex-direction:row-reverse}
+.chat-msg .c-avatar{width:26px;height:26px;border-radius:50%;background:rgba(158,228,147,.2);display:grid;place-items:center;font-weight:700;font-size:.72rem;color:var(--ink);flex-shrink:0}
+.chat-bubble{max-width:70%;padding:.55rem .8rem;border-radius:12px;font-size:.84rem;line-height:1.5}
+.chat-msg:not(.mine) .chat-bubble{background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:3px}
+.chat-msg.mine .chat-bubble{background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.25);color:var(--ink);border-bottom-right-radius:3px}
+.chat-meta{font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);margin-top:.15rem}
+.chat-msg.mine .chat-meta{text-align:right}
+.chat-pinned{padding:.55rem .85rem;background:rgba(158,228,147,.06);border:1px solid rgba(158,228,147,.18);border-radius:8px;font-size:.8rem;color:var(--ink-2);margin:.5rem 0;display:flex;align-items:center;gap:.5rem}
+.chat-input-row{padding:.75rem;border-top:1px solid var(--line);display:flex;gap:.5rem;background:var(--surface)}
+.chat-input-row input{flex:1;padding:.6rem .9rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;font-family:'Geist',sans-serif;font-size:.88rem;color:var(--ink);outline:none;transition:border-color .2s}
+.chat-input-row input:focus{border-color:var(--accent)}
+.chat-input-row input::placeholder{color:var(--ink-3)}
+.chat-send-btn{padding:.6rem .9rem;background:var(--accent);color:#0E120F;border:none;border-radius:10px;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s}
+.chat-send-btn:hover{background:#cef870}
+
+/* ── VOTES ── */
+.vote-card{padding:.85rem;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;margin-bottom:.6rem}
+.vote-card:last-child{margin-bottom:0}
+.vote-question{font-size:.9rem;font-weight:600;color:var(--ink);margin-bottom:.65rem;line-height:1.4}
+.vote-options{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+.vote-opt{padding:.4rem .9rem;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.75rem;cursor:pointer;border:1px solid;transition:all .15s;font-weight:600}
+.vote-opt.yes{color:var(--accent);border-color:rgba(158,228,147,.3);background:rgba(158,228,147,.08)}
+.vote-opt.no{color:#FF6A55;border-color:rgba(255,106,85,.3);background:rgba(255,106,85,.08)}
+.vote-opt.abstain{color:var(--ink-3);border-color:var(--line-2);background:var(--surface)}
+.vote-opt.on{box-shadow:0 0 0 2px currentColor}
+.vote-opt:hover{opacity:.85}
+.vote-meta{font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--ink-3);letter-spacing:.03em}
+.vote-expires{color:#FFB350}
+
+/* ── ORGANISER TOOLS ── */
+.org-tools{display:flex;flex-direction:column;gap:.4rem}
+.org-btn{width:100%;padding:.6rem .85rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;font-family:'Geist',sans-serif;font-size:.83rem;color:var(--ink-2);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.5rem;text-align:left}
+.org-btn:hover{color:var(--ink);border-color:var(--line);background:var(--surface)}
+.org-btn .ico{width:24px;height:24px;border-radius:6px;background:rgba(158,228,147,.1);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:.75rem;flex-shrink:0}
+
+/* ── MODAL ── */
+.cd-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:400;align-items:center;justify-content:center;padding:1rem}
+.cd-modal-bg.open{display:flex}
+.cd-modal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.75rem;max-width:420px;width:100%}
+.cd-modal h3{font-size:1rem;font-weight:700;color:var(--ink);margin-bottom:.35rem}
+.cd-modal p{font-size:.84rem;color:var(--ink-2);margin-bottom:1.1rem;line-height:1.55}
+.cd-modal .field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.75rem}
+.cd-modal .field label{font-family:'Geist Mono',monospace;font-size:.67rem;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase;font-weight:600}
+.cd-modal .field input,.cd-modal .field textarea,.cd-modal .field select{padding:.65rem .85rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;color:var(--ink);font-family:'Geist',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;width:100%}
+.cd-modal .field input:focus,.cd-modal .field textarea:focus,.cd-modal .field select:focus{border-color:var(--accent)}
+.cd-modal .field textarea{min-height:80px;resize:vertical;line-height:1.65}
+.cd-modal-err{display:none;font-family:'Geist Mono',monospace;font-size:.74rem;color:#FF8A70;padding:.45rem .8rem;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.2);border-radius:8px;margin-bottom:.65rem}
+.cd-modal-err.show{display:block}
+.cd-modal-actions{display:flex;gap:.5rem;justify-content:flex-end}
+.cd-modal-cancel{padding:.55rem 1.1rem;background:none;border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2);font-family:'Geist Mono',monospace;font-size:.78rem;cursor:pointer}
+.cd-modal-confirm{padding:.55rem 1.4rem;background:var(--accent);color:#0E120F;border:none;border-radius:99px;font-family:'Geist',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.cd-modal-confirm:hover{background:#cef870}
+
+/* ── TAB PANELS ── */
+.cd-tab-panel{display:none}
+.cd-tab-panel.on{display:block}
+
+/* ── TOAST ── */
+#cd-toast{position:fixed;bottom:2rem;right:2rem;padding:.75rem 1.25rem;border-radius:12px;font-family:'Geist Mono',monospace;font-size:.78rem;z-index:500;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;border:1px solid}
+</style>
+
+<!-- ══ HERO ══ -->
+<div class="cd-wrap">
+<div class="cd-hero">
+  <div class="cd-hero-img">🏘️</div>
+
+  <div class="cd-hero-info">
+    <h1>
+      {{ rosca.name }}
+      {% if rosca.status == 'active' %}<span class="cd-verified" title="Active circle">✔</span>{% endif %}
+    </h1>
+    <p class="cd-tagline">{{ rosca.description or 'Building together, growing forward.' }}</p>
+    <div class="cd-meta-row">
+      <span>📍 {{ user.country or 'International' }}</span>
+      <span>🔒 Private Circle</span>
+      <span>· Created {{ rosca.created_at[:10] if rosca.created_at else '—' }}</span>
+    </div>
+    <div class="cd-tags">
+      {% if rosca.category %}<span class="cd-tag">{{ rosca.category|title }}</span>{% endif %}
+      <span class="cd-tag">{{ freq_label }}</span>
+      <span class="cd-tag">Trust First</span>
+      <span class="cd-tag">{{ rosca.status|title }}</span>
     </div>
   </div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-    {% if not is_member %}<button class="btn btn-primary" id="btn-join" onclick="joinC()">Join Circle</button>{% endif %}
-    {% if is_organiser %}<a href="/organiser/{{ rosca.id }}" class="btn btn-outline">⚙ Manage</a>{% endif %}
+
+  <div style="display:flex;flex-direction:column;gap:.75rem;align-items:flex-end">
+    <button class="cd-share-btn" onclick="copyInviteLink()">↗ Share Invite Link</button>
+    {% if my_member %}
+    <div class="cd-position-card">
+      <div class="lbl">My Position</div>
+      <div class="slot">Slot {{ my_position }}</div>
+      <div class="sub">
+        {% if cycle_info and cycle_info.recipient_id == user.id %}
+          🎉 Your payout is this cycle!
+        {% else %}
+          Next payout in ~{{ ((my_position - cycle_num) * (rosca.frequency_days or 30))|abs }} days
+        {% endif %}
+      </div>
+      <div class="amount">{{ s }}{{ "%.2f"|format(contrib_cents * total_members / 100) }}</div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
-<div class="content-grid content-grid-sidebar">
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-    {% if cycle_info %}{% set cycle=cycle_info.cycle %}
-    <div class="card">
-      <div class="card-header"><span class="card-title">Cycle {{ cycle.cycle_number }}/{{ rosca.total_cycles }}</span>
-        <span class="pill {% if cycle.status=='completed' %}pill-green{% else %}pill-amber{% endif %} pill-no-dot">{{ cycle.status }}</span>
+<!-- ══ TABS ══ -->
+<div class="cd-tabs">
+  <button class="cd-tab on"  id="tab-overview"       onclick="switchTab('overview')">Overview</button>
+  <button class="cd-tab"     id="tab-activity"        onclick="switchTab('activity')">Activity</button>
+  <button class="cd-tab"     id="tab-chat"            onclick="switchTab('chat')">
+    Chat
+    {% if chat_count > 0 %}<span class="badge">{{ chat_count }}</span>{% endif %}
+  </button>
+  <button class="cd-tab"     id="tab-announcements"   onclick="switchTab('announcements')">
+    Announcements
+    {% if announcements %}<span class="badge">{{ announcements|length }}</span>{% endif %}
+  </button>
+  <button class="cd-tab{% if votes %} warn{% endif %}" id="tab-votes" onclick="switchTab('votes')">
+    Votes
+    {% if votes %}<span class="badge">{{ votes|length }}</span>{% endif %}
+  </button>
+  <button class="cd-tab"     id="tab-members"         onclick="switchTab('members')">Members</button>
+  <button class="cd-tab"     id="tab-calendar"        onclick="switchTab('calendar')">Calendar</button>
+</div>
+
+<!-- ══ OVERVIEW PANEL ══ -->
+<div id="panel-overview" class="cd-tab-panel on">
+  <div class="cd-body">
+
+    <!-- Circle Progress -->
+    <div class="cd-panel">
+      <div class="ph"><h3>Circle Progress</h3></div>
+      <div class="pb">
+        <div class="cp-amounts">
+          <span class="cp-total">{{ s }}{{ "%.2f"|format(pool_raised / 100) }}</span>
+          <span class="cp-goal">/ {{ s }}{{ "%.2f"|format(pool_total / 100) }}</span>
+        </div>
+        <div class="cp-label">{{ pct }}% of cycle goal reached</div>
+        <div class="cp-bar"><div class="cp-fill" style="width:{{ pct }}%"></div></div>
+        <div class="cp-stats">
+          <div class="cp-stat good">
+            <div class="v">{{ paid_members }}</div>
+            <div class="l">Contributed</div>
+          </div>
+          <div class="cp-stat">
+            <div class="v">{{ (total_members - paid_members)|max(0) }}</div>
+            <div class="l">Pending</div>
+          </div>
+          <div class="cp-stat late">
+            <div class="v">
+              {{ (cycle_info.contributions|selectattr('status','equalto','missed')|list|length) if cycle_info else 0 }}
+            </div>
+            <div class="l">Yet to pay</div>
+          </div>
+        </div>
       </div>
-      <div class="card-body">
-        <div class="stats-grid stats-grid-2" style="margin-bottom:1rem;">
-          <div class="stat-card" style="padding:.75rem 1rem;"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Pot (actual)</div><div class="stat-value" style="font-size:1.3rem;">€{{ '%.0f'%(cycle.pot_cents/100) }}</div></div></div>
-          <div class="stat-card" style="padding:.75rem 1rem;"><div class="stat-icon blue">📅</div><div class="stat-body"><div class="stat-label">Due</div><div style="font-size:1rem;font-weight:700;color:var(--navy);">{{ cycle.due_at[:10] }}</div></div></div>
-        </div>
-        {% set paid=cycle_info.contributions|selectattr('status','in',['paid','late'])|list|length %}
-        {% set total=cycle_info.contributions|length %}
-        <div style="margin-bottom:1rem;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:.3rem;"><span class="text-sm text-muted">Collected</span><span class="text-sm font-semibold">{{ paid }}/{{ total }}</span></div>
-          <div class="progress-track"><div class="progress-fill fill-green" style="width:{{ (paid/[total,1]|max*100)|round|int }}%"></div></div>
-        </div>
-        {% for c in cycle_info.contributions %}
-        <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border);">
-          <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ c.user_name[0] }}</div>
-          <div style="flex:1;"><div style="font-size:.85rem;font-weight:500;">{{ c.user_name }}{% if cycle.recipient_id==c.user_id %}<span class="pill pill-amber pill-no-dot" style="font-size:.6rem;margin-left:.35rem;">Recipient</span>{% endif %}</div></div>
-          <span class="pill {% if c.status=='paid' %}pill-green{% elif c.status=='late' %}pill-orange{% elif c.status=='missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.7rem;">{{ c.status }}</span>
-        </div>
-        {% endfor %}
-        {% if is_member and my_contrib and my_contrib.status=='pending' %}
-        <div style="background:var(--amber-lt);border:1px solid #fde68a;border-radius:var(--radius);padding:.875rem;margin-top:1rem;">
-          <div style="font-size:.875rem;font-weight:600;">Your contribution is due</div>
-          <div class="text-xs text-muted">€{{ '{:,.2f}'.format(my_contrib.amount_cents/100).replace(',', ' ') }} by {{ my_contrib.due_at[:10] }}</div>
-        </div>
-        <button class="btn btn-primary btn-full mt-3" id="btn-contrib" onclick="payC()">Pay €{{ '{:,.2f}'.format(my_contrib.amount_cents/100).replace(',', ' ') }}</button>
-        {% elif is_member and my_contrib and my_contrib.status in ('paid','late') %}
-        <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;margin-top:1rem;font-weight:600;color:var(--green);font-size:.875rem;">✓ Contribution paid this cycle</div>
+    </div>
+
+    <!-- Next Contribution -->
+    <div class="cd-panel">
+      <div class="ph"><h3>Next Contribution</h3></div>
+      <div class="pb">
+        {% if my_contrib and my_contrib.status == 'paid' %}
+          <div class="nc-paid">✓ You've paid this cycle</div>
+        {% else %}
+          <div class="nc-due">Due in</div>
+          <div class="nc-days">
+            {% if cycle_info and cycle_info.due_date %}
+              {% set due = cycle_info.due_date[:10] %}
+              {{ due }}
+            {% else %}
+              Next cycle
+            {% endif %}
+          </div>
+          <div class="nc-date">📅 {{ cycle_info.due_date[:10] if cycle_info and cycle_info.due_date else '—' }}</div>
+          {% if is_member %}
+          <button class="nc-btn" onclick="openContribModal()" {% if not cycle_info or rosca.status != 'active' %}disabled{% endif %}>
+            Pay Now {{ s }}{{ "%.2f"|format(contrib_cents / 100) }}
+          </button>
+          {% endif %}
         {% endif %}
       </div>
     </div>
-    {% elif is_organiser %}
-    <div class="card card-pad"><h3 style="font-weight:600;margin-bottom:.75rem;">Start the first cycle</h3><p class="text-sm text-muted mb-3">Members will be notified when contributions open.</p><button class="btn btn-primary" id="btn-start" onclick="startCycle()">Start first cycle</button></div>
+
+    <!-- Cycle Information -->
+    <div class="cd-panel">
+      <div class="ph"><h3>Cycle Information</h3></div>
+      <div class="pb">
+        <div class="ci-grid">
+          <div class="ci-item">
+            <div class="l">Cycle</div>
+            <div class="v"><span class="ico">🔄</span>{{ cycle_num }} / {{ total_cycles }}</div>
+          </div>
+          <div class="ci-item">
+            <div class="l">Frequency</div>
+            <div class="v"><span class="ico">📅</span>{{ freq_label }}</div>
+          </div>
+          <div class="ci-item">
+            <div class="l">Contribution</div>
+            <div class="v"><span class="ico">💰</span>{{ s }}{{ "%.2f"|format(contrib_cents / 100) }}</div>
+          </div>
+          <div class="ci-item">
+            <div class="l">Total Members</div>
+            <div class="v"><span class="ico">👥</span>{{ total_members }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column placeholder (merged across rows) -->
+    <div style="grid-row:1/4;display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- Members panel -->
+      <div class="cd-panel">
+        <div class="ph">
+          <h3>Members ({{ total_members }}/{{ rosca.max_members or total_members }})</h3>
+          <button class="view-all" onclick="switchTab('members')">View all</button>
+        </div>
+        <div class="pb" style="padding:.75rem">
+          {% for m in members[:5] %}
+          {% set ncs_cls = 'ex' if m.ncs_score >= 750 else 'rel' if m.ncs_score >= 650 else 'dev' if m.ncs_score >= 550 else 'prob' %}
+          <div class="mem-item">
+            <div class="mem-avatar">
+              {{ m.full_name[0]|upper }}
+              {% if loop.index <= 2 %}<span class="online-dot"></span>{% endif %}
+            </div>
+            <div class="mem-info">
+              <div class="name">
+                {{ m.full_name.split()[0] }}
+                {% if m.user_id == rosca.organiser_id %}
+                <span class="org-badge">Organiser</span>
+                {% endif %}
+              </div>
+              <div class="sub">NCS {{ m.ncs_score }} · {{ m.hanatag or '—' }}</div>
+            </div>
+            <span class="mem-ncs {{ ncs_cls }}">{{ m.ncs_score }}</span>
+          </div>
+          {% endfor %}
+          {% if is_organiser %}
+          <button class="mem-invite-btn" onclick="copyInviteLink()">
+            <span>+ Invite Members</span>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Circle Health -->
+      {% set paid_pct = ((paid_members / total_members) * 100)|round(0)|int if total_members > 0 else 0 %}
+      {% set health_score = paid_pct %}
+      {% set health_label = 'Good' if health_score >= 70 else 'Fair' if health_score >= 40 else 'At Risk' %}
+      {% set health_cls = 'good' if health_score >= 70 else 'fair' if health_score >= 40 else 'poor' %}
+      {% set circumference = 200.96 %}
+      {% set stroke_offset = circumference - (health_score / 100) * circumference %}
+      <div class="cd-panel">
+        <div class="ph">
+          <h3>Circle Health</h3>
+          <span style="font-family:'Geist Mono',monospace;font-size:.72rem;padding:.2rem .65rem;border-radius:99px;font-weight:700;
+            background:{% if health_cls == 'good' %}rgba(158,228,147,.15){% elif health_cls == 'fair' %}rgba(255,179,80,.12){% else %}rgba(255,106,85,.12){% endif %};
+            color:{% if health_cls == 'good' %}var(--accent){% elif health_cls == 'fair' %}#FFB350{% else %}#FF6A55{% endif %};
+            border:1px solid {% if health_cls == 'good' %}rgba(158,228,147,.3){% elif health_cls == 'fair' %}rgba(255,179,80,.25){% else %}rgba(255,106,85,.25){% endif %}">
+            {{ health_label }}
+          </span>
+        </div>
+        <div class="pb">
+          <div class="health-score-ring">
+            <div class="health-ring-wrap">
+              <svg width="72" height="72" viewBox="0 0 72 72">
+                <circle cx="36" cy="36" r="32" fill="none" stroke="rgba(244,242,236,.08)" stroke-width="7"/>
+                <circle cx="36" cy="36" r="32" fill="none"
+                  stroke="{% if health_cls == 'good' %}#9EE493{% elif health_cls == 'fair' %}#FFB350{% else %}#FF6A55{% endif %}"
+                  stroke-width="7" stroke-linecap="round"
+                  stroke-dasharray="{{ circumference }}"
+                  stroke-dashoffset="{{ stroke_offset }}"/>
+              </svg>
+              <div class="health-score-num">{{ health_score }}</div>
+              <div class="health-label {{ health_cls }}">{{ health_label|upper }}</div>
+            </div>
+            <div class="health-desc">
+              {% if health_cls == 'good' %}Strong circle! Keep the momentum going.
+              {% elif health_cls == 'fair' %}Good progress — a few more contributions will help.
+              {% else %}Circle needs attention — some members are behind.{% endif %}
+            </div>
+          </div>
+
+          {% set metrics = [
+            ('💰', 'Payment Reliability', paid_pct),
+            ('👥', 'Participation Rate', ((members|selectattr('status','ne','inactive')|list|length / total_members) * 100)|round(0)|int if total_members else 0),
+            ('⏰', 'On-time Contributions', paid_pct),
+            ('🤝', 'Trust Index', 85),
+          ] %}
+          {% for ico, label, val in metrics %}
+          <div class="health-metric">
+            <div class="hm-row">
+              <span class="hm-label"><span class="hm-ico">{{ ico }}</span>{{ label }}</span>
+              <span class="hm-pct">{{ val }}%</span>
+            </div>
+            <div class="health-bar">
+              <div class="health-fill" style="width:{{ val }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+          <a href="#" class="health-link" onclick="switchTab('members');return false">
+            View detailed analytics →
+          </a>
+        </div>
+      </div>
+
+    </div><!-- end right col -->
+
+    <!-- Recent Activity (spans 2 cols below) -->
+    <div class="cd-panel" style="grid-column:1/3">
+      <div class="ph">
+        <h3>Recent Activity</h3>
+        <button class="view-all" onclick="switchTab('activity')">View all</button>
+      </div>
+      <div class="pb" id="activity-preview">
+        {% if activity %}
+          {% for a in activity[:6] %}
+          {% set ico_map = {
+            'contribution_paid': ('💰','green'),
+            'member_joined': ('👥','blue'),
+            'payout_completed': ('🏆','purple'),
+            'announcement_posted': ('📢','amber'),
+            'cycle_started': ('🔄','blue'),
+            'ncs_increase': ('⭐','green'),
+            'ncs_decrease': ('↘','red'),
+            'contribution_late': ('⚠️','amber'),
+            'contribution_missed': ('❌','red'),
+          } %}
+          {% set ico, cls = ico_map.get(a.type, ('●','green')) %}
+          <div class="act-item">
+            <div class="act-ico {{ cls }}">{{ ico }}</div>
+            <div class="act-body">
+              <div class="text">{{ a.body }}</div>
+              <div class="time">{{ a.created_at[:16].replace('T',' ') if a.created_at else '—' }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:2rem;font-size:.85rem;color:var(--ink-3)">
+            No activity yet. Activity will appear here once the circle is active.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Payout Timeline + Announcements (spans remaining) -->
+    <div class="cd-panel">
+      <div class="ph">
+        <h3>Payout Timeline</h3>
+        <button class="view-all" onclick="switchTab('members')">View full schedule →</button>
+      </div>
+      <div class="pb">
+        <div class="pt-track">
+          {% for m in members %}
+          {% set slot_num = loop.index %}
+          {% set is_current = slot_num == cycle_num %}
+          {% set is_past = slot_num < cycle_num %}
+          {% set is_you = m.user_id == user.id %}
+          <div class="pt-slot {% if is_past %}paid{% elif is_current %}active{% elif is_you %}you{% endif %}">
+            {% if slot_num <= 4 or slot_num == members|length %}
+            <div class="pt-dot">{{ slot_num }}</div>
+            <div class="pt-slot-name">{% if is_you %}You{% else %}{{ m.full_name.split()[0] }}{% endif %}</div>
+            {% if cycle_info and is_current %}
+            <div class="pt-slot-date">{{ cycle_info.due_date[:10] if cycle_info.due_date else '—' }}</div>
+            {% endif %}
+            {% if is_past %}<div class="pt-slot-status">Paid</div>{% endif %}
+            {% elif slot_num == 5 and members|length > 5 %}
+            <div class="pt-dot" style="font-size:.65rem">···</div>
+            <div class="pt-slot-name" style="opacity:.4">{{ members|length - 5 }} more</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% if cycle_info and cycle_info.recipient_id == user.id %}
+        <div class="pt-next-banner">🎉 Great! You are up next to receive the payout.</div>
+        {% elif cycle_info %}
+        <div class="pt-next-banner" style="color:var(--ink-2)">
+          📅 Next payout: {{ cycle_info.due_date[:10] if cycle_info.due_date else 'Scheduled' }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Announcements inline on Overview -->
+    {% if announcements %}
+    <div class="cd-panel">
+      <div class="ph">
+        <h3>Announcements</h3>
+        <button class="view-all" onclick="switchTab('announcements')">View all</button>
+      </div>
+      <div class="pb">
+        {% for a in announcements[:2] %}
+        <div class="ann-item {% if a.is_pinned %}pinned{% endif %}">
+          {% if a.is_pinned %}<div class="ann-pin">📌 PINNED</div>{% endif %}
+          <div class="ann-title">{{ a.title }}</div>
+          <div class="ann-body">{{ a.body[:120] }}{% if a.body|length > 120 %}…{% endif %}</div>
+          <div class="ann-meta">{{ a.full_name }} · {{ a.created_at[:10] if a.created_at else '—' }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
 
-    <!-- Leaderboard -->
-    <div class="card">
-      <div class="card-header"><span class="card-title">Circle Leaderboard</span></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>Member</th><th>NCS</th><th>Reliability</th><th>Trust</th><th>Payout slot</th></tr></thead>
-        <tbody>
-          {% for m in leaderboard %}
-          <tr>
-            <td style="font-weight:700;color:{{ 'var(--gold)' if m.rank==1 else 'var(--gray-500)' }};">{{ m.rank }}</td>
-            <td><a href="/profile/{{ m.id }}" style="display:flex;align-items:center;gap:.5rem;text-decoration:none;">
-              <div class="admin-avatar" style="width:28px;height:28px;font-size:.65rem;">{{ m.full_name[0] }}</div>
-              <span style="font-size:.85rem;font-weight:500;color:var(--navy);">{{ m.full_name }}</span>
-            </a></td>
-            <td style="font-weight:600;">{{ m.ncs_score }}</td>
-            <td>
-              <div style="display:flex;align-items:center;gap:.4rem;">
-                <div class="progress-track" style="width:60px;height:5px;"><div class="progress-fill fill-green" style="width:{{ m.reliability_pct|round|int }}%"></div></div>
-                <span class="text-xs text-muted">{{ m.reliability_pct }}%</span>
-              </div>
-            </td>
-            <td><span class="pill {% if m.trust_score>=80 %}pill-green{% elif m.trust_score>=60 %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot" style="font-size:.65rem;">{{ m.trust_score }}/100</span></td>
-            <td style="font-weight:600;">Slot {{ m.slot or '—' }}</td>
-          </tr>
-          {% else %}<tr><td colspan="6" class="empty-state" style="padding:1.5rem;text-align:center;">No members yet.</td></tr>{% endfor %}
-        </tbody>
-      </table></div>
-    </div>
+  </div><!-- end .cd-body -->
+</div><!-- end overview -->
 
-    <div class="card card-pad">
-      <div class="card-title mb-3">Circle Details</div>
-      <table style="width:100%;font-size:.875rem;">
-        {% for label,value in [('Type',rosca.rosca_type.replace('_',' ').title()),('Contribution','€%.2f'%(rosca.contribution_cents/100)),('Frequency','Every '~rosca.frequency_days~' days'),('Full pot','€%.0f'%(rosca.contribution_cents*rosca.max_members/100)),('Min NCS',rosca.ncs_min_score),('Progress',rosca.current_cycle~'/'~rosca.total_cycles)] %}
-        <tr style="border-bottom:1px solid var(--border);"><td style="padding:.45rem 0;color:var(--text-muted);">{{ label }}</td><td style="text-align:right;font-weight:500;">{{ value }}</td></tr>
-        {% endfor %}
-      </table>
-    </div>
-  </div>
-
-  <!-- Members panel -->
-  <div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Members ({{ members|length }}/{{ rosca.max_members }})</span></div>
-      {% for m in members %}
-      <div style="display:flex;align-items:center;gap:.7rem;padding:.65rem 1.25rem;border-bottom:1px solid var(--border);">
-        <a href="/profile/{{ m.user_id }}"><div class="admin-avatar">{{ m.full_name[0] }}</div></a>
-        <div style="flex:1;">
-          <div style="font-size:.875rem;font-weight:500;">{{ m.full_name }}{% if m.user_id==rosca.organiser_id %}<span class="pill pill-blue pill-no-dot" style="font-size:.6rem;margin-left:.3rem;">Organiser</span>{% endif %}</div>
-          <div class="text-xs text-muted">NCS {{ m.ncs_score }}{% if m.hanatag %} &nbsp;·&nbsp; {{ m.hanatag }}{% endif %}</div>
-        </div>
-        {% if is_member and m.user_id != user.id %}
-        {% set endorsed = m.user_id in my_endorsements %}
-        <button class="btn btn-sm {{ 'btn-outline' if not endorsed else 'btn-danger' }}" style="font-size:.7rem;padding:.25rem .6rem;" id="endorse-{{ m.user_id }}" onclick="toggleEndorse('{{ m.user_id }}','{{ rosca.id }}',{{ 'true' if endorsed else 'false' }})">
-          {{ '✓ Endorsed' if endorsed else '+ Endorse' }}
-        </button>
+<!-- ══ ACTIVITY TAB ══ -->
+<div id="panel-activity" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:760px;margin:0 auto">
+    <div class="cd-panel">
+      <div class="ph"><h3>Full Activity Feed</h3></div>
+      <div class="pb" id="activity-full-list">
+        {% if activity %}
+          {% for a in activity %}
+          {% set ico_map = {
+            'contribution_paid': ('💰','green'),
+            'member_joined': ('👥','blue'),
+            'payout_completed': ('🏆','purple'),
+            'announcement_posted': ('📢','amber'),
+            'cycle_started': ('🔄','blue'),
+            'ncs_increase': ('⭐','green'),
+            'ncs_decrease': ('↘','red'),
+            'contribution_late': ('⚠️','amber'),
+            'contribution_missed': ('❌','red'),
+          } %}
+          {% set ico, cls = ico_map.get(a.type, ('●','green')) %}
+          <div class="act-item">
+            <div class="act-ico {{ cls }}">{{ ico }}</div>
+            <div class="act-body">
+              <div class="text">{{ a.body }}</div>
+              <div class="time">{{ a.created_at[:16].replace('T',' ') if a.created_at else '—' }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:3rem;color:var(--ink-3);font-size:.88rem">
+            No activity recorded yet.
+          </div>
         {% endif %}
       </div>
-      {% endfor %}
     </div>
   </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- ══ CHAT TAB ══ -->
+<div id="panel-chat" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:760px;margin:0 auto">
+    <div class="cd-panel chat-wrap">
+      <div class="ph"><h3>Circle Chat</h3><span style="font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3)">{{ total_members }} members</span></div>
+      <div class="chat-messages" id="chat-messages">
+        <div style="text-align:center;padding:2rem;color:var(--ink-3);font-size:.82rem">Loading messages…</div>
+      </div>
+      {% if is_member %}
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Message the circle…" onkeydown="if(event.key==='Enter')sendChatMessage()">
+        <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ══ ANNOUNCEMENTS TAB ══ -->
+<div id="panel-announcements" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:760px;margin:0 auto">
+    {% if is_organiser %}
+    <div style="margin-bottom:1.25rem">
+      <button class="cd-share-btn" onclick="document.getElementById('ann-modal-bg').classList.add('open')">
+        + Post Announcement
+      </button>
+    </div>
+    {% endif %}
+    <div class="cd-panel">
+      <div class="ph"><h3>Announcements</h3></div>
+      <div class="pb">
+        {% if announcements %}
+          {% for a in announcements %}
+          <div class="ann-item {% if a.is_pinned %}pinned{% endif %}">
+            {% if a.is_pinned %}<div class="ann-pin">📌 PINNED</div>{% endif %}
+            <div class="ann-title">{{ a.title }}</div>
+            <div class="ann-body">{{ a.body }}</div>
+            <div class="ann-meta">{{ a.full_name }} · {{ a.created_at[:10] if a.created_at else '—' }}</div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:3rem;color:var(--ink-3);font-size:.88rem">No announcements yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VOTES TAB ══ -->
+<div id="panel-votes" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:760px;margin:0 auto">
+    {% if is_organiser %}
+    <div style="margin-bottom:1.25rem">
+      <button class="cd-share-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')">
+        + Create Vote
+      </button>
+    </div>
+    {% endif %}
+    <div class="cd-panel">
+      <div class="ph"><h3>Open Votes</h3></div>
+      <div class="pb">
+        {% if votes %}
+          {% for v in votes %}
+          <div class="vote-card">
+            <div class="vote-question">{{ v.question }}</div>
+            <div class="vote-options">
+              <button class="vote-opt yes {% if v.my_vote == 'yes' %}on{% endif %}" onclick="castVote('{{ v.id }}','yes',this)">✓ Yes</button>
+              <button class="vote-opt no {% if v.my_vote == 'no' %}on{% endif %}" onclick="castVote('{{ v.id }}','no',this)">✕ No</button>
+              <button class="vote-opt abstain {% if v.my_vote == 'abstain' %}on{% endif %}" onclick="castVote('{{ v.id }}','abstain',this)">— Abstain</button>
+            </div>
+            <div class="vote-meta">
+              {{ v.response_count }} votes cast
+              {% if v.expires_at %} · <span class="vote-expires">Expires {{ v.expires_at[:10] }}</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:3rem;color:var(--ink-3);font-size:.88rem">No open votes.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MEMBERS TAB ══ -->
+<div id="panel-members" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 300px;gap:1.25rem">
+    <div class="cd-panel">
+      <div class="ph"><h3>All Members ({{ total_members }})</h3></div>
+      <div class="pb">
+        {% for m in members %}
+        {% set ncs_cls = 'ex' if m.ncs_score >= 750 else 'rel' if m.ncs_score >= 650 else 'dev' if m.ncs_score >= 550 else 'prob' %}
+        <div class="mem-item">
+          <div class="mem-avatar">{{ m.full_name[0]|upper }}</div>
+          <div class="mem-info">
+            <div class="name">
+              {{ m.full_name }}
+              {% if m.user_id == rosca.organiser_id %}<span class="org-badge">Organiser</span>{% endif %}
+              {% if m.user_id == user.id %}<span class="org-badge" style="background:rgba(83,74,183,.15);border-color:rgba(83,74,183,.3);color:#7A6FE0">You</span>{% endif %}
+            </div>
+            <div class="sub">Slot {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or m.full_name }}</div>
+          </div>
+          <span class="mem-ncs {{ ncs_cls }}">{{ m.ncs_score }}</span>
+          {% if m.user_id != user.id and m.user_id not in my_endorsements %}
+          <button onclick="endorse('{{ m.user_id }}')" style="padding:.25rem .65rem;border-radius:7px;font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--accent);border:1px solid rgba(158,228,147,.3);background:rgba(158,228,147,.07);cursor:pointer;transition:all .15s">Endorse</button>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% if is_organiser %}
+    <div class="cd-panel">
+      <div class="ph"><h3>Organiser Tools</h3></div>
+      <div class="pb">
+        <div class="org-tools">
+          <button class="org-btn" onclick="copyInviteLink()"><div class="ico">🔗</div>Invite members</button>
+          <button class="org-btn" onclick="openAnnModal()"><div class="ico">📢</div>Post announcement</button>
+          <button class="org-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')"><div class="ico">🗳️</div>Create a vote</button>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ══ CALENDAR TAB ══ -->
+<div id="panel-calendar" class="cd-tab-panel">
+  <div style="padding:1.25rem;max-width:700px;margin:0 auto">
+    <div class="cd-panel">
+      <div class="ph"><h3>Upcoming Events</h3></div>
+      <div class="pb">
+        <div style="display:flex;flex-direction:column;gap:.7rem">
+          {% if cycle_info and cycle_info.due_date %}
+          <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">📅</div>
+            <div>
+              <div style="font-size:.88rem;font-weight:600;color:var(--ink)">Contribution Due</div>
+              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--accent)">{{ cycle_info.due_date[:10] }}</div>
+            </div>
+            <div style="margin-left:auto;font-family:'Geist Mono',monospace;font-size:.72rem;padding:.25rem .65rem;border-radius:99px;background:rgba(255,179,80,.1);border:1px solid rgba(255,179,80,.2);color:#FFB350">Due soon</div>
+          </div>
+          {% endif %}
+          <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(83,74,183,.12);border:1px solid rgba(83,74,183,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">🏆</div>
+            <div>
+              <div style="font-size:.88rem;font-weight:600;color:var(--ink)">Payout: Cycle {{ cycle_num }}</div>
+              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--ink-3)">{{ s }}{{ "%.2f"|format(pool_total / 100) }} to next recipient</div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;padding:1.5rem;font-size:.8rem;color:var(--ink-3);font-family:'Geist Mono',monospace">
+          Full calendar view coming soon.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- end cd-wrap -->
+
+<!-- ══ MODALS ══ -->
+
+<!-- Contribute modal -->
+<div class="cd-modal-bg" id="contrib-modal-bg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="cd-modal">
+    <h3>Make Contribution</h3>
+    <p>Contribute {{ s }}{{ "%.2f"|format(contrib_cents / 100) }} for cycle {{ cycle_num }} of {{ total_cycles }}.</p>
+    <div class="cd-modal-err" id="contrib-err"></div>
+    <div class="field">
+      <label>From wallet ({{ currency }})</label>
+      <select id="contrib-wallet">
+        <option value="{{ currency }}">{{ currency }} Wallet</option>
+      </select>
+    </div>
+    <div class="cd-modal-actions">
+      <button class="cd-modal-cancel" onclick="document.getElementById('contrib-modal-bg').classList.remove('open')">Cancel</button>
+      <button class="cd-modal-confirm" onclick="submitContrib()">Pay {{ s }}{{ "%.2f"|format(contrib_cents / 100) }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Announcement modal -->
+<div class="cd-modal-bg" id="ann-modal-bg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="cd-modal">
+    <h3>Post Announcement</h3>
+    <p>This will be sent to all {{ total_members }} members.</p>
+    <div class="cd-modal-err" id="ann-err"></div>
+    <div class="field">
+      <label>Title <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="ann-title" placeholder="e.g. Contribution reminder">
+    </div>
+    <div class="field">
+      <label>Message <span style="color:var(--danger)">*</span></label>
+      <textarea id="ann-body" placeholder="Write your message…" rows="4"></textarea>
+    </div>
+    <div class="field">
+      <label>Priority</label>
+      <select id="ann-priority">
+        <option value="normal">Normal</option>
+        <option value="urgent">Urgent</option>
+        <option value="info">Info</option>
+      </select>
+    </div>
+    <div class="cd-modal-actions">
+      <button class="cd-modal-cancel" onclick="document.getElementById('ann-modal-bg').classList.remove('open')">Cancel</button>
+      <button class="cd-modal-confirm" onclick="submitAnnouncement()">Post</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vote modal -->
+<div class="cd-modal-bg" id="vote-modal-bg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="cd-modal">
+    <h3>Create a Vote</h3>
+    <p>Members will be notified and can respond until the deadline.</p>
+    <div class="cd-modal-err" id="vote-err"></div>
+    <div class="field">
+      <label>Question <span style="color:var(--danger)">*</span></label>
+      <input type="text" id="vote-q" placeholder="e.g. Should we add a new member?">
+    </div>
+    <div class="field">
+      <label>Vote type</label>
+      <select id="vote-type">
+        <option value="simple_majority">Simple Majority</option>
+        <option value="unanimous">Unanimous</option>
+        <option value="organiser">Organiser Override</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Expires (optional)</label>
+      <input type="date" id="vote-expires">
+    </div>
+    <div class="cd-modal-actions">
+      <button class="cd-modal-cancel" onclick="document.getElementById('vote-modal-bg').classList.remove('open')">Cancel</button>
+      <button class="cd-modal-confirm" onclick="submitVote()">Create Vote</button>
+    </div>
+  </div>
+</div>
+
+<div id="cd-toast"></div>
+
 <script>
-async function joinC(){const btn=document.getElementById('btn-join');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/join',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}btn.textContent='⏳ Request sent';btn.disabled=true;btn.style.background='var(--amber)';toast('Request sent! The organiser will review your application.','success');}
-async function payC(){const btn=document.getElementById('btn-contrib');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/contribute',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Paid! NCS updated.','success');setTimeout(()=>location.reload(),1000);}
-async function startCycle(){const btn=document.getElementById('btn-start');setLoading(btn,true);const d=await API.post('/api/rosca/{{ rosca.id }}/start-cycle',{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Cycle started!','success');setTimeout(()=>location.reload(),800);}
-async function toggleEndorse(userId, roscaId, currently_endorsed){
-  const btn=document.getElementById('endorse-'+userId);
-  setLoading(btn,true);
-  const action=currently_endorsed?'unendorse':'endorse';
-  const d=await API.post('/api/endorsement',{user_id:userId,rosca_id:roscaId,action});
-  setLoading(btn,false);
-  if(d.error){toast(d.error,'error');return;}
-  if(action==='endorse'){btn.textContent='✓ Endorsed';btn.className='btn btn-sm btn-danger';btn.setAttribute('onclick',`toggleEndorse('${userId}','${roscaId}',true)`);toast('+3 NCS points given!','success');}
-  else{btn.textContent='+ Endorse';btn.className='btn btn-sm btn-outline';btn.setAttribute('onclick',`toggleEndorse('${userId}','${roscaId}',false)`);toast('Endorsement removed.','info');}
+var ROSCA_ID = '{{ rosca.id }}';
+var IS_MEMBER = {{ 'true' if is_member else 'false' }};
+var IS_ORGANISER = {{ 'true' if is_organiser else 'false' }};
+var USER_ID = '{{ user.id }}';
+
+// ── TOAST ──
+function cdToast(msg, type){
+  var el = document.getElementById('cd-toast');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;bottom:2rem;right:2rem;padding:.75rem 1.25rem;border-radius:12px;font-family:\'Geist Mono\',monospace;font-size:.78rem;z-index:500;transition:all .3s;border:1px solid;'
+    + (type === 'success'
+       ? 'background:rgba(158,228,147,.15);border-color:rgba(158,228,147,.4);color:var(--accent);opacity:1;transform:translateY(0)'
+       : 'background:rgba(255,90,90,.1);border-color:rgba(255,90,90,.3);color:#FF8A70;opacity:1;transform:translateY(0)');
+  setTimeout(function(){ el.style.opacity='0'; el.style.transform='translateY(8px)'; }, 3500);
 }
+
+// ── TABS ──
+function switchTab(name){
+  document.querySelectorAll('.cd-tab-panel').forEach(function(p){ p.classList.remove('on'); });
+  document.querySelectorAll('.cd-tab').forEach(function(t){ t.classList.remove('on'); });
+  document.getElementById('panel-'+name).classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+  if(name === 'chat') loadChat();
+}
+
+// ── CONTRIBUTE ──
+function openContribModal(){ document.getElementById('contrib-modal-bg').classList.add('open'); }
+function submitContrib(){
+  var err = document.getElementById('contrib-err');
+  err.classList.remove('show');
+  fetch('/api/rosca/'+ROSCA_ID+'/contribute', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({currency: document.getElementById('contrib-wallet').value})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ document.getElementById('contrib-modal-bg').classList.remove('open'); cdToast('Contribution paid! +8 NCS 🎉','success'); setTimeout(function(){ location.reload(); }, 1500); }
+    else { err.textContent = d.error||'Failed'; err.classList.add('show'); }
+  })
+  .catch(function(){ err.textContent='Network error'; err.classList.add('show'); });
+}
+
+// ── CHAT ──
+function loadChat(){
+  fetch('/api/rosca/'+ROSCA_ID+'/messages')
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    var box = document.getElementById('chat-messages');
+    if(!d.messages || !d.messages.length){
+      box.innerHTML = '<div style="text-align:center;padding:3rem;color:var(--ink-3);font-size:.85rem">No messages yet. Start the conversation!</div>';
+      return;
+    }
+    box.innerHTML = d.messages.map(function(m){
+      var mine = m.sender_id === USER_ID;
+      return '<div class="chat-msg'+(mine?' mine':'')+'"><div class="c-avatar">'+(m.full_name||'?')[0].toUpperCase()+'</div>'
+        +'<div><div class="chat-bubble">'+(m.message||'')+'</div>'
+        +'<div class="chat-meta">'+(mine?'You':m.full_name||'Member')+' · '+(m.created_at||'').substring(11,16)+'</div></div></div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  })
+  .catch(function(){ document.getElementById('chat-messages').innerHTML='<div style="color:var(--ink-3);text-align:center;padding:2rem;font-size:.85rem">Could not load messages.</div>'; });
+}
+function sendChatMessage(){
+  var inp = document.getElementById('chat-input');
+  var msg = inp ? inp.value.trim() : '';
+  if(!msg) return;
+  inp.value = '';
+  fetch('/api/rosca/'+ROSCA_ID+'/messages', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({message: msg})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){ if(d.ok) loadChat(); else cdToast(d.error||'Failed','error'); })
+  .catch(function(){ cdToast('Network error','error'); });
+}
+
+// ── ANNOUNCEMENTS ──
+function openAnnModal(){ document.getElementById('ann-modal-bg').classList.add('open'); }
+function submitAnnouncement(){
+  var title = document.getElementById('ann-title').value.trim();
+  var body  = document.getElementById('ann-body').value.trim();
+  var priority = document.getElementById('ann-priority').value;
+  var err = document.getElementById('ann-err');
+  if(!title||!body){ err.textContent='Title and message are required'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  fetch('/api/rosca/'+ROSCA_ID+'/announcements', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({title:title, body:body, priority:priority, is_pinned:false})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ document.getElementById('ann-modal-bg').classList.remove('open'); cdToast('Announcement posted','success'); setTimeout(function(){ location.reload(); },1200); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
+}
+
+// ── VOTES ──
+function castVote(voteId, response, btn){
+  fetch('/api/rosca/votes/'+voteId+'/respond', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({response:response})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){
+      btn.closest('.vote-options').querySelectorAll('.vote-opt').forEach(function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      cdToast('Vote recorded','success');
+    } else cdToast(d.error||'Failed to vote','error');
+  });
+}
+function submitVote(){
+  var q = document.getElementById('vote-q').value.trim();
+  var type = document.getElementById('vote-type').value;
+  var expires = document.getElementById('vote-expires').value;
+  var err = document.getElementById('vote-err');
+  if(!q){ err.textContent='Question required'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  fetch('/api/rosca/'+ROSCA_ID+'/votes', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({question:q, type:type, expires_at:expires||null})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok){ document.getElementById('vote-modal-bg').classList.remove('open'); cdToast('Vote created','success'); setTimeout(function(){ location.reload(); },1200); }
+    else { err.textContent=d.error||'Failed'; err.classList.add('show'); }
+  });
+}
+
+// ── ENDORSE ──
+function endorse(userId){
+  fetch('/api/rosca/'+ROSCA_ID+'/endorse', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({to_id:userId})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.ok) cdToast('Endorsement sent! +3 NCS for them','success');
+    else cdToast(d.error||'Failed','error');
+  });
+}
+
+// ── SHARE ──
+function copyInviteLink(){
+  var url = window.location.origin + '/circles/' + ROSCA_ID;
+  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ cdToast('Invite link copied!','success'); }); }
+  else { cdToast('Link: ' + url,'success'); }
+}
+
+// ── ANIMATE BARS ON LOAD ──
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    document.querySelectorAll('.cp-fill,.health-fill').forEach(function(el){
+      var w = el.style.width;
+      el.style.width = '0';
+      requestAnimationFrame(function(){
+        setTimeout(function(){ el.style.width = w; }, 50);
+      });
+    });
+  }, 200);
+});
 </script>
 {% endblock %}
