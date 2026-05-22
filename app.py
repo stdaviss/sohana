@@ -388,6 +388,7 @@ def _circle_detail_inner(rosca_id):
     user = auth.get_current_user()
     r    = rosca.get_rosca(rosca_id)
     if not r: return redirect(url_for("circles_page"))
+    r = dict(r)   # convert sqlite3.Row → dict so .get() works throughout
     # Fetch members enriched with user data (full_name, ncs_score, hanatag)
     # sqlite3.Row supports row["key"] but NOT row.get("key") — use explicit key access
     _raw_members = rosca.get_rosca_members(rosca_id)
