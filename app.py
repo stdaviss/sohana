@@ -427,7 +427,7 @@ def _circle_detail_inner(rosca_id):
         leaderboard = ncs_engine.get_leaderboard(rosca_id)
     except AttributeError:
         leaderboard = []  # function may not exist in current ncs_engine version
-    my_endorsements = {e["endorsee_id"] for e in fetchall("SELECT endorsee_id FROM endorsements WHERE endorser_id=? AND withdrawn_at IS NULL", (user["id"],))}
+    my_endorsements = {e["to_id"] for e in fetchall("SELECT to_id FROM endorsements WHERE from_id=? AND withdrawn_at IS NULL", (user["id"],))}
     _ensure_circle_tables()
     # Recent activity (last 20)
     activity = fetchall("""SELECT ca.*, u.full_name, u.hanatag
