@@ -3455,23 +3455,70 @@ def service_worker():
 
 @app.route('/manifest.json')
 def web_manifest():
-    response = send_from_directory(
-        os.path.join(app.root_path, 'static'),
-        'manifest.json'
+    """Serve PWA manifest inline — no static file dependency."""
+    import json as _json
+    manifest = {
+        "name": "SOHANA",
+        "short_name": "SOHANA",
+        "description": "Community savings for the African diaspora. Circles, Pools, Hanapay and the Njangi Credit Score.",
+        "start_url": "/dashboard",
+        "scope": "/",
+        "display": "standalone",
+        "background_color": "#0E120F",
+        "theme_color": "#9EE493",
+        "orientation": "portrait-primary",
+        "lang": "en",
+        "dir": "ltr",
+        "categories": ["finance"],
+        "icons": [
+            {"src": "/static/icons/icon-96.png",           "sizes": "96x96",   "type": "image/png", "purpose": "any"},
+            {"src": "/static/icons/icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+            {"src": "/static/icons/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/static/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+        "screenshots": [
+            {"src": "/static/screenshots/dashboard.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "SOHANA Dashboard"},
+            {"src": "/static/screenshots/wallet.png",    "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "Multi-currency Wallet"},
+            {"src": "/static/screenshots/circles.png",   "sizes": "390x844", "type": "image/png", "form_factor": "narrow", "label": "Njangi Circles"},
+        ],
+        "shortcuts": [
+            {"name": "My Wallet",  "short_name": "Wallet",  "description": "Open your multi-currency wallet", "url": "/wallet",         "icons": [{"src": "/static/icons/icon-96.png", "sizes": "96x96"}]},
+            {"name": "My Circles", "short_name": "Circles", "description": "View your Njangi circles",       "url": "/circles",        "icons": [{"src": "/static/icons/icon-96.png", "sizes": "96x96"}]},
+            {"name": "Hanapay",    "short_name": "Hanapay", "description": "Send money by @handle",          "url": "/wallet#hanapay", "icons": [{"src": "/static/icons/icon-96.png", "sizes": "96x96"}]},
+        ],
+    }
+    resp = Response(
+        _json.dumps(manifest, indent=2),
+        mimetype='application/manifest+json'
     )
-    response.headers['Content-Type'] = 'application/manifest+json'
-    response.headers['Cache-Control'] = 'public, max-age=3600'
-    return response
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 @app.route('/.well-known/assetlinks.json')
 def asset_links():
-    response = send_from_directory(
-        os.path.join(app.root_path, 'static'),
-        'assetlinks.json'
+    """Serve Digital Asset Links inline — update SHA256 fingerprint after keystore generation."""
+    import json as _json
+    # UPDATE sha256_cert_fingerprints with your keystore SHA256 after running keytool
+    links = [
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "app.sohana.twa",
+                "sha256_cert_fingerprints": [
+                    os.environ.get("TWA_SHA256_FINGERPRINT",
+                                   "REPLACE_WITH_YOUR_SHA256_FINGERPRINT_AFTER_KEYGEN")
+                ]
+            }
+        }
+    ]
+    resp = Response(
+        _json.dumps(links, indent=2),
+        mimetype='application/json'
     )
-    response.headers['Content-Type'] = 'application/json'
-    response.headers['Cache-Control'] = 'public, max-age=3600'
-    return response
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
 
 @app.route('/offline')
 def offline_page():
