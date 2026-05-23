@@ -1,6 +1,6 @@
 import os, uuid, json, io, csv, random
 from flask import (Flask, render_template, request, session, jsonify,
-                   redirect, url_for, Response)
+                   redirect, url_for, Response, send_from_directory)
 from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       post_transaction, push_notification, calc_withdrawal_fee,
                       get_user_wallets, get_default_wallet, convert_currency,
@@ -3438,6 +3438,44 @@ def admin_contact_export():
     from flask import Response
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=contact_inquiries.csv"})
+
+
+# ── PWA / TWA ROUTES ─────────────────────────────────────────────────────────
+
+@app.route('/sw.js')
+def service_worker():
+    response = send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'sw.js'
+    )
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+@app.route('/manifest.json')
+def web_manifest():
+    response = send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'manifest.json'
+    )
+    response.headers['Content-Type'] = 'application/manifest+json'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+@app.route('/.well-known/assetlinks.json')
+def asset_links():
+    response = send_from_directory(
+        os.path.join(app.root_path, 'static'),
+        'assetlinks.json'
+    )
+    response.headers['Content-Type'] = 'application/json'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+@app.route('/offline')
+def offline_page():
+    return render_template('offline.html'), 200
 
 
 # ── PUBLIC CONTENT PAGES ─────────────────────────────────────────────────────

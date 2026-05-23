@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOHANA — You're offline</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Geist','Inter',system-ui,sans-serif;
+    background:#0E120F;
+    color:#F4F2EC;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:2rem;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mark{
+    width:48px;height:48px;border-radius:14px;
+    background:#9EE493;color:#0E120F;
+    font-weight:700;font-size:22px;
+    display:grid;place-items:center;
+    margin-bottom:2rem;
+    letter-spacing:-0.02em;
+  }
+  h1{
+    font-size:1.5rem;font-weight:600;
+    margin-bottom:.75rem;
+    letter-spacing:-0.02em;
+  }
+  p{
+    font-size:.95rem;color:#B7BAB4;
+    line-height:1.6;max-width:320px;
+    text-align:center;margin-bottom:2rem;
+  }
+  .btn{
+    background:#9EE493;color:#0E120F;
+    border:none;border-radius:999px;
+    padding:.65rem 1.5rem;
+    font-size:.9rem;font-weight:600;
+    cursor:pointer;transition:background .15s;
+    font-family:inherit;
+  }
+  .btn:hover{background:#cef870;}
+  .note{
+    margin-top:3rem;
+    font-size:.8rem;color:#8A8E87;
+    font-family:'Geist Mono',ui-monospace,monospace;
+  }
+</style>
+</head>
+<body>
+  <div class="mark">S</div>
+  <h1>You're offline</h1>
+  <p>SOHANA needs an internet connection to load. Please check your connection and try again.</p>
+  <button class="btn" onclick="window.location.reload()">Try again</button>
+  <p class="note">sohana.app</p>
+</body>
+</html>

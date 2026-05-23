@@ -6,6 +6,15 @@
 <title>{% block title %}SOHANA{% endblock %} — Where trust becomes capital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#9EE493" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#9EE493" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SOHANA">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="msapplication-TileColor" content="#9EE493">
+<meta name="msapplication-TileImage" content="/static/icons/icon-192.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Geist','Inter',system-ui,sans-serif;color:#F4F2EC;background:#0E120F;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11";}.mono{font-family:'Geist Mono',ui-monospace,monospace;font-feature-settings:"tnum";}.ital,.serif{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
@@ -298,5 +307,19 @@ document.querySelectorAll('.site-nav-mobile a').forEach(function(a){
 </footer>
 
 {% block extra_scripts %}{% endblock %}
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[SOHANA SW] Registered. Scope:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[SOHANA SW] Registration failed:', err);
+      });
+  });
+}
+</script>
+
 </body>
 </html>

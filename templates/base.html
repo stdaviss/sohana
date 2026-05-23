@@ -9,6 +9,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=5.2">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#9EE493" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#9EE493" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SOHANA">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="msapplication-TileColor" content="#9EE493">
+<meta name="msapplication-TileImage" content="/static/icons/icon-192.png">
 {% block head %}{% endblock %}
 <style>
 /* ── TOPBAR FIX v6.9 ── */
@@ -409,6 +418,19 @@ function toggleTheme() {
   }
   html.setAttribute('data-theme', next);
   localStorage.setItem('sohana-theme', next);
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[SOHANA SW] Registered. Scope:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[SOHANA SW] Registration failed:', err);
+      });
+  });
 }
 </script>
 </body>
