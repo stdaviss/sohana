@@ -18,6 +18,8 @@ def ensure_db():
     if not hasattr(app, "_db_ready"):
         init_db()
         _seed_all()
+        _ensure_survey_article()   # runs independently of _seed_all guard
+        _sync_admin_passwords()    # re-hashes admin passwords from env var every deploy
         app._db_ready = True
 
 # ── HELPERS ──────────────────────────────────────────────────────────────────
@@ -882,6 +884,104 @@ def admin_blog():
     return render_template("admin_blog.html", user=user, posts=posts)
 
 # ── AUTH API ──────────────────────────────────────────────────────────────────
+
+# ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+
+@app.route("/forgot-password")
+def forgot_password_page():
+    return render_template("forgot_password.html")
+
+
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def api_forgot_password():
+    """Initiate a password reset request.
+    Phase 1 (no email): logs the request, returns support instructions.
+    Phase 2 (with email): will send a reset link automatically."""
+    d     = request.json or {}
+    phone = d.get("phone", "").strip()
+    if not phone:
+        return jsonify({"error": "Phone number is required."}), 400
+
+    # Always return a generic success message for security (don't confirm user existence)
+    user = fetchone("SELECT id, full_name, is_admin FROM users WHERE phone=?", (phone,))
+    if user and not user["is_admin"]:
+        # Log the reset request so admin can process it
+        try:
+            with get_db() as db:
+                db.execute("""CREATE TABLE IF NOT EXISTS password_reset_requests (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    phone TEXT NOT NULL,
+                    requested_at TEXT DEFAULT (datetime('now')),
+                    resolved INTEGER DEFAULT 0
+                )""")
+                db.execute(
+                    "INSERT INTO password_reset_requests(id,user_id,phone) VALUES(?,?,?)",
+                    (str(uuid.uuid4()), user["id"], phone)
+                )
+        except Exception:
+            pass
+    return jsonify({
+        "ok": True,
+        "message": ("Your request has been logged. Please email support@sohana.app "
+                    "with the subject line 'Password Reset' and your registered phone number. "
+                    "We will reset your password within 24 hours on business days.")
+    })
+
+
+@app.route("/api/admin/users/<user_id>/reset-password", methods=["POST"])
+@admin_required
+def api_admin_reset_password(user_id):
+    """Admin-only: set a new temporary password for a user."""
+    actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
+    if not actor or actor["admin_role"] not in {"ceo", "cco", "operations"}:
+        return jsonify({"error": "Only CEO, CCO, or Operations can reset passwords."}), 403
+    d        = request.json or {}
+    new_pw   = d.get("password", "").strip()
+    if not new_pw or len(new_pw) < 8:
+        return jsonify({"error": "Password must be at least 8 characters."}), 400
+    target = fetchone("SELECT id, full_name, is_admin FROM users WHERE id=?", (user_id,))
+    if not target:
+        return jsonify({"error": "User not found."}), 404
+    if target["is_admin"]:
+        return jsonify({"error": "Cannot reset admin passwords via this endpoint."}), 403
+    try:
+        new_hash = auth.hash_password(new_pw)
+        with get_db() as db:
+            db.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, user_id))
+        log_admin_action("user_password_reset", "user", user_id,
+                         reason=d.get("reason", "Admin-initiated password reset"))
+        return jsonify({"ok": True, "message": f"Password reset for {target['full_name']}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/auth/admin/reset-own-password", methods=["POST"])
+@admin_required
+def api_admin_reset_own_password():
+    """Admin resets their own password (requires current password verification)."""
+    d       = request.json or {}
+    old_pw  = d.get("current_password", "")
+    new_pw  = d.get("new_password", "")
+    if not old_pw or not new_pw:
+        return jsonify({"error": "Current and new password required."}), 400
+    if len(new_pw) < 8:
+        return jsonify({"error": "New password must be at least 8 characters."}), 400
+    try:
+        user = auth.login_user(
+            fetchone("SELECT phone FROM users WHERE id=?", (session["user_id"],))["phone"],
+            old_pw
+        )
+        new_hash = auth.hash_password(new_pw)
+        with get_db() as db:
+            db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                       (new_hash, session["user_id"]))
+        return jsonify({"ok": True})
+    except ValueError:
+        return jsonify({"error": "Current password is incorrect."}), 401
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/auth/register", methods=["POST"])
 def api_register():
@@ -3584,6 +3684,74 @@ def public_page(slug):
         return render_template(template)
     # Not a public page — return 404
     return render_template("landing_new.html"), 404
+
+
+# ── SURVEY ARTICLE SEED (runs every startup, independent of _seed_all guard) ─
+
+def _ensure_survey_article():
+    """Insert the community survey blog article if it doesn't exist.
+    Runs every startup so it works even on DBs where _seed_all already ran."""
+    try:
+        existing = fetchone("SELECT id FROM blog_posts WHERE id='blog-007'")
+        if existing:
+            return  # already seeded
+        admin_row = fetchone("SELECT id FROM users WHERE admin_role='ceo'")
+        author_id = admin_row["id"] if admin_row else None
+        # If no admin yet, use any user as author
+        if not author_id:
+            any_user = fetchone("SELECT id FROM users LIMIT 1")
+            author_id = any_user["id"] if any_user else "system"
+        excerpt = ("We have been building SOHANA for you. Now we need to hear from you directly. "
+                   "Our community survey is open in English and French \u2014 8 to 10 minutes, "
+                   "completely anonymous.")
+        body = """ + repr(SURVEY_BODY) + """
+        with get_db() as db:
+            # Ensure author_id column allows NULL for system posts
+            try:
+                db.execute("ALTER TABLE blog_posts ALTER COLUMN author_id DROP NOT NULL")
+            except Exception:
+                pass  # SQLite doesn't support this; handled by inserting a valid id above
+            db.execute("""INSERT OR REPLACE INTO blog_posts
+                          (id,title,slug,excerpt,body,category,author_id,is_published,published_at)
+                          VALUES(?,?,?,?,?,?,?,1,datetime('now'))""",
+                       ("blog-007",
+                        "Help us build SOHANA: take our community survey",
+                        "community-survey-2026",
+                        excerpt, body, "news", author_id))
+        import sys
+        print("[SOHANA] Survey article blog-007 seeded.", file=sys.stderr, flush=True)
+    except Exception as e:
+        import sys, traceback
+        print(f"[_ensure_survey_article] {e}", file=sys.stderr, flush=True)
+
+
+# ── ADMIN PASSWORD SYNC (runs every startup to apply env var changes) ─────────
+
+def _sync_admin_passwords():
+    """Re-hash admin passwords from ADMIN_SEED_PASSWORD env var on every startup.
+    This ensures changing the env var in Railway actually takes effect."""
+    import os as _os
+    pw = _os.environ.get("ADMIN_SEED_PASSWORD", "")
+    if not pw:
+        return
+    try:
+        admin_phones = [
+            "+00000000001", "+00000000002", "+00000000003",
+            "+00000000004", "+00000000005", "+00000000006",
+            "+00000000007", "+00000000008", "+00000000009",
+        ]
+        new_hash = auth.hash_password(pw)
+        with get_db() as db:
+            for phone in admin_phones:
+                db.execute(
+                    "UPDATE users SET password_hash=? WHERE phone=? AND is_admin=1",
+                    (new_hash, phone)
+                )
+        import sys
+        print("[SOHANA] Admin passwords synced from ADMIN_SEED_PASSWORD.", file=sys.stderr, flush=True)
+    except Exception as e:
+        import sys
+        print(f"[_sync_admin_passwords] {e}", file=sys.stderr, flush=True)
 
 
 def _seed_all():
