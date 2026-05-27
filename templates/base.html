@@ -433,5 +433,65 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<!-- ══ SURVEY POPUP ══ -->
+<div id="survey-popup" style="display:none">
+  <style>
+  #survey-popup{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;width:340px;max-width:calc(100vw - 2rem);background:#161B17;border:1px solid rgba(158,228,147,.35);border-radius:18px;padding:1.4rem 1.5rem 1.25rem;box-shadow:0 24px 64px rgba(0,0,0,.55);animation:survey-slide-in .45s cubic-bezier(.25,.85,.4,1) both}
+  @keyframes survey-slide-in{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  #survey-popup .sp-close{position:absolute;top:.75rem;right:.9rem;background:none;border:none;color:#8A8E87;cursor:pointer;font-size:1.1rem;line-height:1;padding:.2rem;transition:color .15s}
+  #survey-popup .sp-close:hover{color:#F4F2EC}
+  #survey-popup .sp-eyebrow{font-family:'Geist Mono',monospace;font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#9EE493;display:flex;align-items:center;gap:.4rem;margin-bottom:.6rem}
+  #survey-popup .sp-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493;animation:sp-pulse 2s ease-in-out infinite}
+  @keyframes sp-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  #survey-popup h4{font-family:'Geist',sans-serif;font-size:1rem;font-weight:700;color:#F4F2EC;line-height:1.3;margin-bottom:.45rem;letter-spacing:-.01em}
+  #survey-popup p{font-size:.82rem;color:#B7BAB4;line-height:1.55;margin-bottom:1rem}
+  #survey-popup .sp-btns{display:flex;flex-direction:column;gap:.45rem}
+  #survey-popup .sp-btn{display:block;padding:.65rem 1rem;border-radius:10px;font-family:'Geist',sans-serif;font-size:.85rem;font-weight:600;text-decoration:none;text-align:center;transition:all .18s;cursor:pointer;border:none}
+  #survey-popup .sp-btn.en{background:#9EE493;color:#0E120F}
+  #survey-popup .sp-btn.en:hover{background:#cef870;transform:translateY(-1px)}
+  #survey-popup .sp-btn.fr{background:rgba(158,228,147,.1);color:#9EE493;border:1px solid rgba(158,228,147,.3)}
+  #survey-popup .sp-btn.fr:hover{background:rgba(158,228,147,.18)}
+  #survey-popup .sp-skip{display:block;text-align:center;font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;cursor:pointer;margin-top:.6rem;transition:color .15s;background:none;border:none;width:100%}
+  #survey-popup .sp-skip:hover{color:#B7BAB4}
+  #survey-popup .sp-article-link{display:block;text-align:center;font-family:'Geist Mono',monospace;font-size:.7rem;color:#8A8E87;text-decoration:none;margin-top:.35rem;transition:color .15s}
+  #survey-popup .sp-article-link:hover{color:#9EE493}
+  </style>
+  <button class="sp-close" onclick="dismissSurveyPopup(true)" aria-label="Close">✕</button>
+  <div class="sp-eyebrow">📋 Community Survey</div>
+  <h4>Help us build the right product for you.</h4>
+  <p>8–10 minutes · anonymous · your answers go directly to the team building Sohana.</p>
+  <div class="sp-btns">
+    <a class="sp-btn en" href="https://forms.gle/yzFcakdZYwrCfKYDA" target="_blank" rel="noopener" onclick="dismissSurveyPopup(false)">Take survey — English →</a>
+    <a class="sp-btn fr" href="https://forms.gle/kP3auRVwuGvFzNFNA" target="_blank" rel="noopener" onclick="dismissSurveyPopup(false)">Répondre au sondage — Français →</a>
+  </div>
+  <button class="sp-skip" onclick="dismissSurveyPopup(true)">Maybe later — don't show for 7 days</button>
+  <a class="sp-article-link" href="/blog/community-survey-2026">Read the full announcement →</a>
+</div>
+<script>
+(function(){
+  var KEY = 'sohana_survey_dismissed';
+  var dismissed = localStorage.getItem(KEY);
+  if(dismissed){
+    var ts = parseInt(dismissed, 10);
+    if(Date.now() - ts < 7 * 24 * 60 * 60 * 1000) return; // 7 days
+  }
+  setTimeout(function(){
+    var el = document.getElementById('survey-popup');
+    if(el) el.style.display = 'block';
+  }, 4500); // show after 4.5 seconds
+})();
+function dismissSurveyPopup(setTimer){
+  var el = document.getElementById('survey-popup');
+  if(el){ el.style.animation='survey-slide-out .3s ease forwards'; setTimeout(function(){el.style.display='none'},300); }
+  if(setTimer) localStorage.setItem('sohana_survey_dismissed', Date.now().toString());
+}
+(function(){
+  var style=document.createElement('style');
+  style.textContent='@keyframes survey-slide-out{to{opacity:0;transform:translateY(16px)}}';
+  document.head.appendChild(style);
+})();
+</script>
+<!-- ══ END SURVEY POPUP ══ -->
 </body>
 </html>
