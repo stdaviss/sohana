@@ -4293,7 +4293,7 @@ def api_test_totp():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/static/js/auth-login.js')
+@app.route('/auth-login.js')
 def serve_auth_login_js():
     """
     Serve login-critical JS via Flask with no-cache headers.
