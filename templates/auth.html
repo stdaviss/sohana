@@ -569,6 +569,8 @@ function showOverlay(name) {
 }
 
 /* ── LOGIN ── */
+async var _pendingToken = null;
+
 async function doLogin() {
   hideAlert('login');
   const id   = document.getElementById('l-id').value.trim();
@@ -578,20 +580,60 @@ async function doLogin() {
   const btn = document.getElementById('btn-login');
   setBtnLoading(btn, true);
   try {
-    const r = await fetch('/api/auth/login-step1', {
+    const r    = await fetch('/api/auth/login-step1', {
       method:  'POST',
       headers: {'Content-Type': 'application/json'},
       body:    JSON.stringify({phone: id, password: pass})
     });
     const data = await r.json();
     setBtnLoading(btn, false);
-    if (data.error) { showAlert('login', data.error); return; }
-    showOverlay(data.user ? data.user.name : '');
+    if (data.error)       { showAlert('login', data.error); return; }
+    if (data.requires_2fa) {
+      // 2FA required — show the TOTP input panel
+      _pendingToken = data.pending_token;
+      const stepEl = document.getElementById('totp-step');
+      if (stepEl) { stepEl.style.display = 'block'; }
+      const codeEl = document.getElementById('totp-input');
+      if (codeEl) { codeEl.focus(); }
+      return;
+    }
+    // Success — redirect based on role
+    if (data.ok) {
+      window.location.href = data.is_admin ? '/admin/home' : '/dashboard';
+    }
   } catch (e) {
     setBtnLoading(btn, false);
     showAlert('login', 'Connection error. Please check your internet and try again.');
   }
 }
+
+async function submitTotp() {
+  const inp  = document.getElementById('totp-input');
+  const code = (inp ? inp.value : '').replace(/\D/g, '');
+  if (code.length !== 6) return;
+  try {
+    const r    = await fetch('/api/auth/login-step2', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({pending_token: _pendingToken, totp_code: code})
+    });
+    const data = await r.json();
+    if (data.ok) {
+      window.location.href = data.is_admin ? '/admin/home' : '/dashboard';
+    } else {
+      if (inp) {
+        inp.value = '';
+        inp.style.borderColor = '#FF6A55';
+        setTimeout(() => { inp.style.borderColor = 'rgba(158,228,147,.3)'; }, 1500);
+      }
+    }
+  } catch (e) { if (inp) inp.value = ''; }
+}
+
+document.addEventListener('keydown', function(e) {
+  const step = document.getElementById('totp-step');
+  if (e.key === 'Enter' && step && step.style.display !== 'none') { submitTotp(); }
+});
 
 /* ── REGISTER ── */
 async function doRegister() {

@@ -1153,8 +1153,10 @@ def _require_totp(user_id: str, code: str):
 def api_login_step1():
     """Phase-1 login: validate password, then check if TOTP is required."""
     d     = request.json or {}
-    phone = d.get("email_or_phone", "").strip()
-    pw    = d.get("password", "").strip()
+    # Accept any field name the frontend might send
+    phone = (d.get("email_or_phone") or d.get("phone") or
+             d.get("email") or "").strip()
+    pw    = (d.get("password") or d.get("pw") or "").strip()
     if not phone or not pw:
         return jsonify({"error": "Phone and password are required."}), 400
     try:
