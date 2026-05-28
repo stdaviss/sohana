@@ -685,5 +685,104 @@ function dismissSurveyPopup(setTimer){
 })();
 </script>
 <!-- ══ END SURVEY POPUP ══ -->
+
+<!-- ═══ LOGIN — inline, loads last, always wins ═══ -->
+<script>
+(function() {
+  var _pendingToken = null;
+
+  window.doLogin = function() {
+    var id   = document.getElementById('l-id');
+    var pass = document.getElementById('l-pass');
+    var err  = document.getElementById('es-login');
+    var btn  = document.getElementById('btn-login');
+
+    var idVal   = id   ? id.value.trim()   : '';
+    var passVal = pass ? pass.value        : '';
+
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+    if (!idVal) {
+      if (err) { err.textContent = 'Please enter your email or phone number.'; err.style.display = 'block'; }
+      return;
+    }
+    if (!passVal) {
+      if (err) { err.textContent = 'Please enter your password.'; err.style.display = 'block'; }
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+
+    fetch('/api/auth/login', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ phone: idVal, password: passVal })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
+      if (d.error) {
+        if (err) { err.textContent = d.error; err.style.display = 'block'; }
+        return;
+      }
+      if (d.requires_2fa) {
+        _pendingToken = d.pending_token;
+        var step = document.getElementById('totp-step');
+        if (step) { step.style.display = 'block'; }
+        var inp  = document.getElementById('totp-input');
+        if (inp)  { inp.focus(); }
+        return;
+      }
+      if (d.ok) {
+        window.location.href = d.is_admin ? '/admin/home' : '/dashboard';
+      }
+    })
+    .catch(function() {
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
+      if (err) { err.textContent = 'Connection error — please try again.'; err.style.display = 'block'; }
+    });
+  };
+
+  window.submitTotp = function() {
+    var inp  = document.getElementById('totp-input');
+    var code = inp ? inp.value.replace(/[^0-9]/g, '') : '';
+    if (code.length !== 6) { return; }
+    var err = document.getElementById('es-login');
+    fetch('/api/auth/login-step2', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ pending_token: _pendingToken, totp_code: code })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) {
+        window.location.href = d.is_admin ? '/admin/home' : '/dashboard';
+      } else {
+        if (inp) { inp.value = ''; inp.style.borderColor = '#FF6A55'; }
+        setTimeout(function() { if (inp) inp.style.borderColor = ''; }, 1500);
+      }
+    })
+    .catch(function() { if (inp) { inp.value = ''; } });
+  };
+
+  // Wire click listener as belt-and-suspenders alongside onclick attr
+  document.addEventListener('DOMContentLoaded', function() {
+    var b = document.getElementById('btn-login');
+    if (b) {
+      b.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.doLogin();
+      });
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') { return; }
+      var step = document.getElementById('totp-step');
+      if (step && step.style.display !== 'none') { window.submitTotp(); return; }
+      var loginPanel = document.getElementById('panel-login');
+      if (loginPanel && loginPanel.classList.contains('active')) { window.doLogin(); }
+    });
+  });
+})();
+</script>
 </body>
 </html>
