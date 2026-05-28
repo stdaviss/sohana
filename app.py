@@ -4117,6 +4117,132 @@ def offline_page():
     return render_template('offline.html'), 200
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DIAGNOSTIC ROUTES — test email + TOTP without touching the full app flow
+# All require CEO or CTO admin login
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/admin/comms-test")
+@auth.admin_required
+def comms_test_page():
+    """Diagnostic dashboard to test SendGrid email and TOTP from the admin panel."""
+    user = auth.get_current_user()
+    role = session.get("admin_role", "")
+    if role not in ("ceo", "cto"):
+        return "Access restricted to CEO and CTO.", 403
+    try:
+        import comms
+        status = comms.is_configured()
+    except Exception as e:
+        status = {"error": str(e)}
+    return render_template("comms_test.html", user=user, status=status)
+
+
+@app.route("/api/admin/comms/test-email", methods=["POST"])
+@auth.admin_required
+def api_test_email():
+    """Send a real test email via SendGrid to verify delivery."""
+    role = session.get("admin_role", "")
+    if role not in ("ceo", "cto"):
+        return jsonify({"error": "CEO/CTO only"}), 403
+    d        = request.json or {}
+    to_email = d.get("email", "").strip()
+    to_name  = d.get("name", "SOHANA Test")
+    if not to_email:
+        return jsonify({"error": "Email address required"}), 400
+    try:
+        import comms
+        result = comms.send_email(
+            to_email     = to_email,
+            to_name      = to_name,
+            template_key = "notification",
+            template_data = {
+                "subject_line":   "SOHANA — Email delivery test",
+                "message_body":   "This is a test email sent from the SOHANA admin diagnostic panel. If you received this, SendGrid email delivery is working correctly.",
+                "highlight_label": "Status",
+                "highlight_value": "Delivered ✓",
+                "cta_label":      "Go to platform",
+                "cta_url":        "https://sohana.app",
+            }
+        )
+        return jsonify({"ok": result, "to": to_email,
+                        "message": "Email sent — check your inbox" if result else "Send failed — check Railway logs for SendGrid errors"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/comms/test-reset-email", methods=["POST"])
+@auth.admin_required
+def api_test_reset_email():
+    """Send a real password reset email to a user — verifies the reset_pw template."""
+    role = session.get("admin_role", "")
+    if role not in ("ceo", "cto"):
+        return jsonify({"error": "CEO/CTO only"}), 403
+    d     = request.json or {}
+    phone = d.get("phone", "").strip()
+    user  = fetchone("SELECT id, full_name, email FROM users WHERE phone=? OR email=?",
+                     (phone, phone))
+    if not user or not user["email"]:
+        return jsonify({"error": "User not found or has no email address"}), 404
+    try:
+        import secrets as _sec, os
+        token      = _sec.token_urlsafe(32)
+        base_url   = os.environ.get("APP_BASE_URL", "https://sohana.app")
+        reset_link = f"{base_url}/reset-password/{token}"
+        with get_db() as db:
+            db.execute("UPDATE password_reset_tokens SET used=1 WHERE user_id=?", (user["id"],))
+            db.execute(
+                """INSERT INTO password_reset_tokens(id,user_id,token,expires_at)
+                   VALUES(?,?,?,datetime('now','+1 hour'))""",
+                (str(uuid.uuid4()), user["id"], token)
+            )
+        import comms
+        result = comms.send_email(
+            to_email=user["email"], to_name=user["full_name"],
+            template_key="reset_pw",
+            template_data={"reset_link": reset_link, "otp_ttl": "60 minutes"}
+        )
+        return jsonify({"ok": result, "to": user["email"],
+                        "reset_link": reset_link,
+                        "message": "Reset email sent — check inbox" if result else "Failed — check logs"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/comms/test-totp", methods=["POST"])
+@auth.admin_required
+def api_test_totp():
+    """Generate a TOTP secret for a user and return the QR code for scanning."""
+    role = session.get("admin_role", "")
+    if role not in ("ceo", "cto"):
+        return jsonify({"error": "CEO/CTO only"}), 403
+    d      = request.json or {}
+    phone  = d.get("phone", "").strip()
+    target = fetchone("SELECT id, full_name, phone FROM users WHERE phone=? OR email=?",
+                      (phone, phone))
+    if not target:
+        return jsonify({"error": "User not found"}), 404
+    try:
+        import pyotp, qrcode, io, base64
+        secret = pyotp.random_base32()
+        label  = f"SOHANA:{target['phone'] or target['full_name']}"
+        uri    = pyotp.totp.TOTP(secret).provisioning_uri(name=label, issuer_name="SOHANA")
+        img    = qrcode.make(uri)
+        buf    = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+        # Store the secret
+        with get_db() as db:
+            db.execute("UPDATE users SET totp_secret=?, totp_enabled=0 WHERE id=?",
+                       (secret, target["id"]))
+        return jsonify({"ok": True, "user": target["full_name"],
+                        "secret": secret,
+                        "qr": f"data:image/png;base64,{qr_b64}",
+                        "note": "Ask the user to scan this QR in Google Authenticator. Then call /api/auth/totp/confirm to activate."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 # ── PUBLIC CONTENT PAGES ─────────────────────────────────────────────────────
 
 PUBLIC_PAGES = {

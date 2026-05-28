@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Comms Diagnostic — SOHANA{% endblock %}
+{% block topbar_title %}Communications Diagnostic{% endblock %}
+{% block content %}
+<style>
+.diag-wrap{max-width:800px;margin:0 auto;padding:1.5rem}
+.diag-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:1.25rem;overflow:hidden}
+.diag-card .dh{padding:.9rem 1.2rem;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.65rem}
+.diag-card .dh h3{font-size:.92rem;font-weight:700;color:var(--ink)}
+.diag-card .db{padding:1.2rem}
+.status-row{display:flex;align-items:center;gap:.65rem;padding:.5rem 0;border-bottom:1px solid var(--line);font-size:.85rem;color:var(--ink-2)}
+.status-row:last-child{border-bottom:none}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#9EE493}
+.dot.err{background:#FF6A55}
+.dot.warn{background:#FFB350}
+.field{display:flex;flex-direction:column;gap:.35rem;margin-bottom:.85rem}
+.field label{font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.field input{padding:.65rem .9rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;font-family:'Geist',sans-serif;font-size:.9rem;color:var(--ink);outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent)}
+.btn-test{padding:.6rem 1.2rem;background:var(--accent);color:#0E120F;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s}
+.btn-test:hover{background:#cef870}
+.btn-test:disabled{opacity:.5;cursor:not-allowed}
+.result{margin-top:.75rem;padding:.65rem .9rem;border-radius:8px;font-family:'Geist Mono',monospace;font-size:.78rem;display:none;word-break:break-all;line-height:1.6}
+.result.ok{background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.2);color:var(--accent)}
+.result.err{background:rgba(255,106,85,.08);border:1px solid rgba(255,106,85,.2);color:#FF8A70}
+.qr-wrap{text-align:center;margin-top:.75rem}
+.qr-wrap img{width:200px;height:200px;border-radius:10px;border:2px solid var(--line-2)}
+.secret-box{margin-top:.5rem;font-family:'Geist Mono',monospace;font-size:.78rem;color:var(--ink-3);padding:.4rem .7rem;background:var(--surface-2);border-radius:6px;display:inline-block}
+</style>
+
+<div class="diag-wrap">
+  <p style="font-size:.82rem;color:var(--ink-3);margin-bottom:1.25rem;font-family:'Geist Mono',monospace;letter-spacing:.03em">
+    CEO / CTO diagnostic panel · Tests are live — emails and QR codes are real
+  </p>
+
+  <!-- Status -->
+  <div class="diag-card">
+    <div class="dh"><span style="font-size:1rem">🔌</span><h3>Integration Status</h3></div>
+    <div class="db">
+      {% set sg = status.get('sendgrid', False) %}
+      {% set tw = status.get('twilio', False) %}
+      {% set tmpl = status.get('templates', {}) %}
+      <div class="status-row"><div class="dot {{ 'ok' if sg else 'err' }}"></div>SendGrid email — {{ 'Configured ✓' if sg else 'NOT configured — check SENDGRID_API_KEY in Railway' }}</div>
+      <div class="status-row"><div class="dot {{ 'ok' if tw else 'warn' }}"></div>Twilio SMS — {{ 'Configured ✓' if tw else 'Not yet configured (waiting for compliance approval)' }}</div>
+      {% for key, val in (tmpl or {}).items() %}
+      <div class="status-row"><div class="dot {{ 'ok' if val else 'err' }}"></div>Template: {{ key }} — {{ 'Set ✓' if val else 'Missing — set SENDGRID_TEMPLATE_' + key.upper() + ' in Railway' }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Test email delivery -->
+  <div class="diag-card">
+    <div class="dh"><span style="font-size:1rem">📧</span><h3>Test Email Delivery</h3></div>
+    <div class="db">
+      <p style="font-size:.83rem;color:var(--ink-2);margin-bottom:.85rem;line-height:1.5">Sends a real notification email via SendGrid. Use your own email to confirm delivery.</p>
+      <div class="field"><label>Recipient email</label><input type="email" id="t-email" placeholder="you@example.com"></div>
+      <div class="field"><label>Recipient name</label><input type="text" id="t-name" placeholder="Your Name"></div>
+      <button class="btn-test" onclick="testEmail()">Send test email</button>
+      <div class="result" id="r-email"></div>
+    </div>
+  </div>
+
+  <!-- Test password reset email -->
+  <div class="diag-card">
+    <div class="dh"><span style="font-size:1rem">🔑</span><h3>Test Password Reset Email</h3></div>
+    <div class="db">
+      <p style="font-size:.83rem;color:var(--ink-2);margin-bottom:.85rem;line-height:1.5">Generates a real reset token and sends the reset link to the user's registered email. Confirms the full reset flow works end to end.</p>
+      <div class="field"><label>User phone or email</label><input type="text" id="t-reset-phone" placeholder="+33611000001 or email@example.com"></div>
+      <button class="btn-test" onclick="testResetEmail()">Send reset email</button>
+      <div class="result" id="r-reset"></div>
+    </div>
+  </div>
+
+  <!-- Test TOTP setup -->
+  <div class="diag-card">
+    <div class="dh"><span style="font-size:1rem">🔐</span><h3>Test TOTP Setup</h3></div>
+    <div class="db">
+      <p style="font-size:.83rem;color:var(--ink-2);margin-bottom:.85rem;line-height:1.5">Generates a TOTP secret and QR code for a user. Scan the QR in Google Authenticator to test the 6-digit code flow. <strong style="color:var(--ink)">This does NOT yet enable 2FA for the user</strong> — they still need to confirm a code at <code style="font-family:'Geist Mono',monospace">/api/auth/totp/confirm</code>.</p>
+      <div class="field"><label>User phone or email</label><input type="text" id="t-totp-phone" placeholder="+33611000001"></div>
+      <button class="btn-test" onclick="testTotp()">Generate QR code</button>
+      <div class="result" id="r-totp"></div>
+      <div class="qr-wrap" id="qr-wrap" style="display:none">
+        <img id="qr-img" src="" alt="TOTP QR Code">
+        <div class="secret-box" id="totp-secret-display"></div>
+        <p style="font-size:.8rem;color:var(--ink-3);margin-top:.5rem">Scan this in Google Authenticator · Authy · 1Password</p>
+        <p style="font-size:.78rem;color:var(--ink-2);margin-top:.75rem">After scanning, test a code:</p>
+        <div style="display:flex;gap:.5rem;margin-top:.35rem;justify-content:center">
+          <input type="text" id="totp-test-code" maxlength="6" inputmode="numeric" placeholder="000000"
+                 style="width:120px;padding:.5rem .75rem;background:var(--surface-2);border:1px solid rgba(158,228,147,.3);border-radius:8px;font-family:'Geist Mono',monospace;font-size:1.1rem;color:var(--accent);text-align:center;outline:none">
+          <button class="btn-test" onclick="verifyTotpCode()">Verify code</button>
+        </div>
+        <div class="result" id="r-totp-verify" style="margin-top:.5rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var _totpUserId = null;
+
+function showResult(id, data, isOk){
+  var el = document.getElementById(id);
+  el.textContent = JSON.stringify(data, null, 2);
+  el.className   = 'result ' + (isOk ? 'ok' : 'err');
+  el.style.display = 'block';
+}
+
+async function testEmail(){
+  var email = document.getElementById('t-email').value.trim();
+  var name  = document.getElementById('t-name').value.trim() || 'SOHANA Test';
+  if(!email){ alert('Enter an email address'); return; }
+  var btn = event.target; btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    var r = await fetch('/api/admin/comms/test-email',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email, name:name})
+    });
+    var d = await r.json();
+    showResult('r-email', d, d.ok);
+  }catch(e){ showResult('r-email', {error:e.message}, false); }
+  btn.disabled=false; btn.textContent='Send test email';
+}
+
+async function testResetEmail(){
+  var phone = document.getElementById('t-reset-phone').value.trim();
+  if(!phone){ alert('Enter a phone or email'); return; }
+  var btn = event.target; btn.disabled=true; btn.textContent='Sending…';
+  try{
+    var r = await fetch('/api/admin/comms/test-reset-email',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:phone})
+    });
+    var d = await r.json();
+    showResult('r-reset', d, d.ok);
+  }catch(e){ showResult('r-reset', {error:e.message}, false); }
+  btn.disabled=false; btn.textContent='Send reset email';
+}
+
+async function testTotp(){
+  var phone = document.getElementById('t-totp-phone').value.trim();
+  if(!phone){ alert('Enter a phone or email'); return; }
+  var btn = event.target; btn.disabled=true; btn.textContent='Generating…';
+  try{
+    var r = await fetch('/api/admin/comms/test-totp',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phone:phone})
+    });
+    var d = await r.json();
+    if(d.ok){
+      document.getElementById('qr-img').src = d.qr;
+      document.getElementById('totp-secret-display').textContent = 'Secret: ' + d.secret;
+      document.getElementById('qr-wrap').style.display='block';
+      showResult('r-totp', {user:d.user, note:d.note}, true);
+      _totpUserId = d.user;
+    } else {
+      showResult('r-totp', d, false);
+    }
+  }catch(e){ showResult('r-totp', {error:e.message}, false); }
+  btn.disabled=false; btn.textContent='Generate QR code';
+}
+
+async function verifyTotpCode(){
+  var phone = document.getElementById('t-totp-phone').value.trim();
+  var code  = document.getElementById('totp-test-code').value.trim();
+  if(!code || code.length!==6){ alert('Enter the 6-digit code'); return; }
+  try{
+    var r = await fetch('/api/auth/totp/confirm',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code:code, phone:phone})
+    });
+    var d = await r.json();
+    showResult('r-totp-verify', d, d.ok);
+  }catch(e){ showResult('r-totp-verify', {error:e.message}, false); }
+}
+</script>
+{% endblock %}

@@ -571,7 +571,7 @@ function showOverlay(name) {
 /* ── LOGIN ── */
 async var _pendingToken = null;
 
-async function doLogin() {
+async async function doLogin() {
   hideAlert('login');
   const id   = document.getElementById('l-id').value.trim();
   const pass = document.getElementById('l-pass').value;
@@ -607,7 +607,7 @@ async function doLogin() {
   }
 }
 
-async function submitTotp() {
+async async function submitTotp() {
   const inp  = document.getElementById('totp-input');
   const code = (inp ? inp.value : '').replace(/\D/g, '');
   if (code.length !== 6) return;
