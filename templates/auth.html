@@ -580,7 +580,7 @@ async async function doLogin() {
   const btn = document.getElementById('btn-login');
   setBtnLoading(btn, true);
   try {
-    const r    = await fetch('/api/auth/login-step1', {
+    const r    = await fetch('/api/auth/login', {
       method:  'POST',
       headers: {'Content-Type': 'application/json'},
       body:    JSON.stringify({phone: id, password: pass})
@@ -624,7 +624,7 @@ async async function submitTotp() {
       if (inp) {
         inp.value = '';
         inp.style.borderColor = '#FF6A55';
-        setTimeout(() => { inp.style.borderColor = 'rgba(158,228,147,.3)'; }, 1500);
+        setTimeout(function() { inp.style.borderColor = 'rgba(158,228,147,.3)'; }, 1500);
       }
     }
   } catch (e) { if (inp) inp.value = ''; }

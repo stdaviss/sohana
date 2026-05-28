@@ -1517,14 +1517,56 @@ def api_register():
 
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
-    d = request.json or {}
+    """Main login endpoint — handles both regular and 2FA flows."""
+    d  = request.json or {}
+    ph = (d.get("phone") or d.get("email_or_phone") or d.get("email") or "").strip()
+    pw = (d.get("password") or d.get("pw") or "").strip()
+    if not ph or not pw:
+        return jsonify({"error": "Phone and password are required."}), 400
     try:
-        user = auth.login_user(d.get("phone",""), d.get("password",""))
-        session["user_id"] = user["id"]
-        session["user_name"] = user["full_name"]
-        return jsonify({"ok": True, "user": {"id": user["id"], "name": user["full_name"]}})
+        user    = auth.login_user(ph, pw)
+        user_d  = dict(user)
+        row     = fetchone(
+            "SELECT totp_enabled, is_admin, admin_role FROM users WHERE id=?",
+            (user_d["id"],)
+        )
+        row_d   = dict(row) if row else {}
+
+        if row_d.get("totp_enabled"):
+            # 2FA required — issue a short-lived pending token
+            pending = str(uuid.uuid4())
+            with get_db() as db:
+                db.execute("""CREATE TABLE IF NOT EXISTS pending_logins (
+                    token TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+                    expires_at TEXT NOT NULL)""")
+                db.execute("DELETE FROM pending_logins WHERE user_id=?", (user_d["id"],))
+                db.execute(
+                    "INSERT INTO pending_logins(token,user_id,expires_at) "
+                    "VALUES(?,?,datetime('now','+5 minutes'))",
+                    (pending, user_d["id"])
+                )
+            return jsonify({"ok": False, "requires_2fa": True,
+                            "pending_token": pending})
+
+        # No 2FA — set session and return success
+        session["user_id"]  = user_d["id"]
+        session["user_name"] = user_d.get("full_name", "")
+        session["is_admin"]  = bool(row_d.get("is_admin", 0))
+        if row_d.get("is_admin"):
+            session["admin_role"] = row_d.get("admin_role", "")
+
+        return jsonify({
+            "ok":       True,
+            "is_admin": bool(row_d.get("is_admin", 0)),
+            "user":     {"id": user_d["id"], "name": user_d.get("full_name", "")}
+        })
     except ValueError as e:
         return jsonify({"error": str(e)}), 401
+    except Exception as e:
+        import sys, traceback
+        print(f"[api_login] {e}\n{traceback.format_exc()}",
+              file=sys.stderr, flush=True)
+        return jsonify({"error": "Login failed — please try again."}), 500
 
 @app.route("/api/auth/admin-login", methods=["POST"])
 def api_admin_login():
