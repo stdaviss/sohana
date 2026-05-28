@@ -4187,8 +4187,8 @@ def api_test_reset_email():
     try:
         import secrets as _sec, os
         token      = _sec.token_urlsafe(32)
-        base_url   = os.environ.get("APP_BASE_URL", "https://sohana.app")
-        reset_link = f"{base_url}/reset-password/{token}"
+        _base      = os.environ.get("APP_BASE_URL", "https://sohana.app").rstrip("/")
+        reset_link = f"{_base}/reset-password/{token}"
         with get_db() as db:
             db.execute("UPDATE password_reset_tokens SET used=1 WHERE user_id=?", (user["id"],))
             db.execute(

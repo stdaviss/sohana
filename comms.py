@@ -241,6 +241,14 @@ def send_email(to_email: str, to_name: str,
                 html_content = HtmlContent(html),
             )
 
+        # Disable click + open tracking — prevents SendGrid rewriting links
+        # through url####.sohana.app tracking domain (which has no SSL cert)
+        from sendgrid.helpers.mail import TrackingSettings, ClickTracking, OpenTracking
+        ts = TrackingSettings()
+        ts.click_tracking = ClickTracking(enable=False, enable_text=False)
+        ts.open_tracking  = OpenTracking(enable=False)
+        msg.tracking_settings = ts
+
         sg   = SendGridAPIClient(SENDGRID_API_KEY)
         resp = sg.send(msg)
         ok   = resp.status_code in (200, 202)
