@@ -1051,7 +1051,7 @@ _safe_migration_totp()  # run at import time
 
 
 @app.route("/api/auth/totp/setup", methods=["POST"])
-@login_required
+@auth.login_required
 def api_totp_setup():
     """Generate a new TOTP secret and return a QR code data URL."""
     try:
@@ -1076,7 +1076,7 @@ def api_totp_setup():
 
 
 @app.route("/api/auth/totp/confirm", methods=["POST"])
-@login_required
+@auth.login_required
 def api_totp_confirm():
     """Verify the user has scanned the QR and can produce a valid code."""
     try:
@@ -1097,7 +1097,7 @@ def api_totp_confirm():
 
 
 @app.route("/api/auth/totp/disable", methods=["POST"])
-@login_required
+@auth.login_required
 def api_totp_disable():
     """Disable TOTP — requires current TOTP code to confirm."""
     try:
@@ -1231,7 +1231,7 @@ def api_login_step2():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/profile/notification-prefs", methods=["POST"])
-@login_required
+@auth.login_required
 def api_notification_prefs():
     """Toggle email notification preference for current user."""
     enabled = bool((request.json or {}).get("email_notifs", True))
