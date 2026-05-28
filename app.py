@@ -4293,6 +4293,114 @@ def api_test_totp():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/static/js/auth-login.js')
+def serve_auth_login_js():
+    """
+    Serve login-critical JS via Flask with no-cache headers.
+    This ensures the latest version is always used — immune to browser/CDN caching.
+    """
+    from flask import Response as _Response
+    js = """
+var _pendingToken = null;
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  var tabEl = document.getElementById('tab-' + tab);
+  var panelEl = document.getElementById('panel-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+  if (panelEl) panelEl.classList.add('active');
+}
+
+function doLogin() {
+  if (typeof hideAlert === 'function') hideAlert('login');
+  var id   = (document.getElementById('l-id') || {}).value || '';
+  var pass = (document.getElementById('l-pass') || {}).value || '';
+  id = id.trim();
+  if (!id)   { if (typeof showAlert === 'function') showAlert('login', 'Please enter your email or phone number.'); return; }
+  if (!pass) { if (typeof showAlert === 'function') showAlert('login', 'Please enter your password.'); return; }
+  var btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Signing in…'; }
+
+  fetch('/api/auth/login', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ phone: id, password: pass })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Sign in'; }
+    if (d.error) {
+      if (typeof showAlert === 'function') showAlert('login', d.error);
+      else alert(d.error);
+      return;
+    }
+    if (d.requires_2fa) {
+      _pendingToken = d.pending_token;
+      var s = document.getElementById('totp-step');
+      if (s) { s.style.display = 'block'; }
+      var inp = document.getElementById('totp-input');
+      if (inp) { inp.focus(); }
+      return;
+    }
+    if (d.ok) {
+      window.location.href = d.is_admin ? '/admin/home' : '/dashboard';
+    }
+  })
+  .catch(function(err) {
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Sign in'; }
+    alert('Connection error — please check your internet and try again.');
+  });
+}
+
+function submitTotp() {
+  var inp  = document.getElementById('totp-input');
+  var code = inp ? inp.value.replace(/[^0-9]/g, '') : '';
+  if (code.length !== 6) { return; }
+  fetch('/api/auth/login-step2', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ pending_token: _pendingToken, totp_code: code })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.ok) {
+      window.location.href = d.is_admin ? '/admin/home' : '/dashboard';
+    } else {
+      if (inp) {
+        inp.value = '';
+        inp.style.borderColor = '#FF6A55';
+        setTimeout(function() { inp.style.borderColor = 'rgba(158,228,147,.3)'; }, 1500);
+      }
+    }
+  })
+  .catch(function() {
+    if (inp) { inp.value = ''; }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Wire buttons directly — works even if onclick attrs are stripped
+  var btnLogin = document.getElementById('btn-login');
+  if (btnLogin) { btnLogin.addEventListener('click', doLogin); }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    var step = document.getElementById('totp-step');
+    if (step && step.style.display !== 'none') { submitTotp(); return; }
+    // Enter on sign-in tab
+    var loginPanel = document.getElementById('panel-login');
+    if (loginPanel && loginPanel.classList.contains('active')) { doLogin(); }
+  });
+});
+"""
+    resp = _Response(js, mimetype='application/javascript')
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma']        = 'no-cache'
+    resp.headers['Expires']       = '0'
+    return resp
+
+
 # ── PUBLIC CONTENT PAGES ─────────────────────────────────────────────────────
 
 PUBLIC_PAGES = {

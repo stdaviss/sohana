@@ -569,76 +569,7 @@ function showOverlay(name) {
 }
 
 /* ── LOGIN ── */
-async var _pendingToken = null;
-
-/* ── LOGIN — uses .then/.catch, no async/await ── */
-function doLogin() {
-  hideAlert('login');
-  var id   = document.getElementById('l-id').value.trim();
-  var pass = document.getElementById('l-pass').value;
-  if (!id)   { showAlert('login', 'Please enter your email or phone number.'); return; }
-  if (!pass) { showAlert('login', 'Please enter your password.'); return; }
-  var btn = document.getElementById('btn-login');
-  setBtnLoading(btn, true);
-  fetch('/api/auth/login', {
-    method:  'POST',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({ phone: id, password: pass })
-  })
-  .then(function(resp) { return resp.json(); })
-  .then(function(data) {
-    setBtnLoading(btn, false);
-    if (data.error) { showAlert('login', data.error); return; }
-    if (data.requires_2fa) {
-      _pendingToken = data.pending_token;
-      var step = document.getElementById('totp-step');
-      if (step) { step.style.display = 'block'; }
-      var inp = document.getElementById('totp-input');
-      if (inp) { inp.focus(); }
-      return;
-    }
-    if (data.ok) {
-      window.location.href = data.is_admin ? '/admin/home' : '/dashboard';
-    }
-  })
-  .catch(function() {
-    setBtnLoading(btn, false);
-    showAlert('login', 'Connection error — please check your internet and try again.');
-  });
-}
-
-/* ── TOTP VERIFICATION ── */
-function submitTotp() {
-  var inp  = document.getElementById('totp-input');
-  var code = inp ? inp.value.replace(/[^0-9]/g, '') : '';
-  if (code.length !== 6) { return; }
-  fetch('/api/auth/login-step2', {
-    method:  'POST',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({ pending_token: _pendingToken, totp_code: code })
-  })
-  .then(function(resp) { return resp.json(); })
-  .then(function(data) {
-    if (data.ok) {
-      window.location.href = data.is_admin ? '/admin/home' : '/dashboard';
-    } else {
-      if (inp) {
-        inp.value = '';
-        inp.style.borderColor = '#FF6A55';
-        setTimeout(function() { inp.style.borderColor = 'rgba(158,228,147,.3)'; }, 1500);
-      }
-    }
-  })
-  .catch(function() {
-    if (inp) { inp.value = ''; }
-    showAlert('login', 'Verification failed — please try again.');
-  });
-}
-
-document.addEventListener('keydown', function(e) {
-  var step = document.getElementById('totp-step');
-  if (e.key === 'Enter' && step && step.style.display !== 'none') { submitTotp(); }
-});
+async /* login functions loaded from /static/js/auth-login.js */
 
 /* ── REGISTER ── */
 async function doRegister() {
