@@ -11,7 +11,10 @@ import auth, rosca, pool, campaign, ncs_engine
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SAMESITE"]  = "Lax"
+app.config["SESSION_COOKIE_SECURE"]    = True   # only send over HTTPS
+app.config["SESSION_COOKIE_HTTPONLY"]  = True   # not accessible from JS
+app.config["SESSION_COOKIE_NAME"]      = "sohana_session"
 
 @app.before_request
 def ensure_db():
@@ -382,8 +385,9 @@ def circle_detail(rosca_id):
         import traceback, sys
         tb = traceback.format_exc()
         print(f"[circle_detail ERROR] {_e}\n{tb}", file=sys.stderr, flush=True)
-        # Show readable error during development — remove before production
-        return f"<pre style='padding:2rem;font-family:monospace;color:#c00;background:#fff'>"               f"<b>Circle page error — check Railway logs:</b>\n\n{tb}</pre>", 500
+        return render_template("error.html",
+                               message="This circle couldn\'t be loaded. Please try again.",
+                               back_url="/circles"), 500
 
 
 def _circle_detail_inner(rosca_id):
@@ -561,6 +565,12 @@ def _run_safe_migrations():
     migrations = [
         "ALTER TABLE users              ADD COLUMN is_suspended  INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE users              ADD COLUMN risk_level    TEXT",
+        "ALTER TABLE users              ADD COLUMN google_id     TEXT",
+        "ALTER TABLE users              ADD COLUMN picture_url   TEXT",
+        "ALTER TABLE users              ADD COLUMN totp_secret   TEXT",
+        "ALTER TABLE users              ADD COLUMN totp_enabled  INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users              ADD COLUMN email_notifs  INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE users              ADD COLUMN twofa_method  TEXT    NOT NULL DEFAULT 'totp'",
         "ALTER TABLE wallet_transactions ADD COLUMN flagged_for_review INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE wallet_transactions ADD COLUMN flag_reason  TEXT",
         "ALTER TABLE wallet_transactions ADD COLUMN reversed_by  TEXT",
@@ -902,30 +912,43 @@ def api_forgot_password():
     if not phone:
         return jsonify({"error": "Phone number is required."}), 400
 
-    # Always return a generic success message for security (don't confirm user existence)
-    user = fetchone("SELECT id, full_name, is_admin FROM users WHERE phone=?", (phone,))
+    # Always return generic success (don't reveal whether account exists)
+    user = fetchone("SELECT id, full_name, email, phone, is_admin FROM users WHERE phone=? OR email=?",
+                    (phone, phone))
     if user and not user["is_admin"]:
-        # Log the reset request so admin can process it
         try:
+            import secrets as _sec, os
+            token      = _sec.token_urlsafe(32)
+            base_url   = os.environ.get("APP_BASE_URL", "https://sohana.app")
+            reset_link = f"{base_url}/reset-password/{token}"
             with get_db() as db:
-                db.execute("""CREATE TABLE IF NOT EXISTS password_reset_requests (
-                    id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    phone TEXT NOT NULL,
-                    requested_at TEXT DEFAULT (datetime('now')),
-                    resolved INTEGER DEFAULT 0
-                )""")
+                db.execute("UPDATE password_reset_tokens SET used=1 WHERE user_id=?",
+                           (user["id"],))  # invalidate old tokens
                 db.execute(
-                    "INSERT INTO password_reset_requests(id,user_id,phone) VALUES(?,?,?)",
-                    (str(uuid.uuid4()), user["id"], phone)
+                    """INSERT INTO password_reset_tokens(id,user_id,token,expires_at)
+                       VALUES(?,?,?,datetime('now','+1 hour'))""",
+                    (str(uuid.uuid4()), user["id"], token)
                 )
-        except Exception:
-            pass
+            # Send email if user has an email address
+            if user.get("email"):
+                import comms
+                comms.send_email(
+                    to_email     = user["email"],
+                    to_name      = user.get("full_name") or "SOHANA Member",
+                    template_key = "reset_pw",
+                    template_data = {
+                        "reset_link": reset_link,
+                        "otp_ttl":    "60 minutes",
+                    }
+                )
+        except Exception as e:
+            import sys
+            print(f"[forgot_password] {e}", file=sys.stderr, flush=True)
     return jsonify({
         "ok": True,
-        "message": ("Your request has been logged. Please email support@sohana.app "
-                    "with the subject line 'Password Reset' and your registered phone number. "
-                    "We will reset your password within 24 hours on business days.")
+        "message": ("If an account exists for that phone number or email, "
+                    "you will receive a password reset link shortly. "
+                    "Check your email inbox. The link expires in 60 minutes.")
     })
 
 
@@ -981,6 +1004,465 @@ def api_admin_reset_own_password():
         return jsonify({"error": "Current password is incorrect."}), 401
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# T2 — TOTP INFRASTRUCTURE (Google Authenticator / Authy)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _safe_migration_totp():
+    """Ensure TOTP columns and otp_requests table exist."""
+    migrations = [
+        "ALTER TABLE users ADD COLUMN totp_secret     TEXT",
+        "ALTER TABLE users ADD COLUMN totp_enabled    INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN email_notifs    INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE users ADD COLUMN twofa_method    TEXT    NOT NULL DEFAULT 'totp'",
+        """CREATE TABLE IF NOT EXISTS otp_requests (
+            id          TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            code        TEXT NOT NULL,
+            method      TEXT NOT NULL DEFAULT 'email',
+            purpose     TEXT NOT NULL DEFAULT '2fa',
+            used        INTEGER NOT NULL DEFAULT 0,
+            expires_at  TEXT NOT NULL,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_otp_lookup ON otp_requests(user_id, purpose, used)",
+        """CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id          TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL,
+            token       TEXT UNIQUE NOT NULL,
+            used        INTEGER NOT NULL DEFAULT 0,
+            expires_at  TEXT NOT NULL,
+            created_at  TEXT DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_reset_token ON password_reset_tokens(token, used)",
+    ]
+    for sql in migrations:
+        try:
+            with get_db() as db:
+                db.execute(sql)
+        except Exception:
+            pass
+
+
+_safe_migration_totp()  # run at import time
+
+
+@app.route("/api/auth/totp/setup", methods=["POST"])
+@login_required
+def api_totp_setup():
+    """Generate a new TOTP secret and return a QR code data URL."""
+    try:
+        import pyotp, qrcode, io, base64
+        user = auth.get_current_user()
+        secret = pyotp.random_base32()
+        label  = f"SOHANA:{user.get('phone') or user.get('email') or 'user'}"
+        uri    = pyotp.totp.TOTP(secret).provisioning_uri(name=label, issuer_name="SOHANA")
+        # Generate QR code as base64 PNG
+        img    = qrcode.make(uri)
+        buf    = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+        # Store the secret temporarily (not yet enabled — user must confirm)
+        with get_db() as db:
+            db.execute("UPDATE users SET totp_secret=? WHERE id=?",
+                       (secret, user["id"]))
+        return jsonify({"ok": True, "secret": secret,
+                        "qr": f"data:image/png;base64,{qr_b64}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/auth/totp/confirm", methods=["POST"])
+@login_required
+def api_totp_confirm():
+    """Verify the user has scanned the QR and can produce a valid code."""
+    try:
+        import pyotp
+        code = (request.json or {}).get("code", "").strip()
+        user = auth.get_current_user()
+        secret = fetchone("SELECT totp_secret FROM users WHERE id=?", (user["id"],))
+        if not secret or not secret["totp_secret"]:
+            return jsonify({"error": "Run /api/auth/totp/setup first."}), 400
+        totp = pyotp.TOTP(secret["totp_secret"])
+        if totp.verify(code, valid_window=1):
+            with get_db() as db:
+                db.execute("UPDATE users SET totp_enabled=1 WHERE id=?", (user["id"],))
+            return jsonify({"ok": True, "message": "2FA enabled successfully."})
+        return jsonify({"error": "Invalid code. Please try again."}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/auth/totp/disable", methods=["POST"])
+@login_required
+def api_totp_disable():
+    """Disable TOTP — requires current TOTP code to confirm."""
+    try:
+        import pyotp
+        code = (request.json or {}).get("code", "").strip()
+        user = auth.get_current_user()
+        row  = fetchone("SELECT totp_secret, totp_enabled FROM users WHERE id=?",
+                        (user["id"],))
+        if not row or not row["totp_enabled"]:
+            return jsonify({"error": "2FA is not currently enabled."}), 400
+        totp = pyotp.TOTP(row["totp_secret"])
+        if not totp.verify(code, valid_window=1):
+            return jsonify({"error": "Invalid code."}), 400
+        with get_db() as db:
+            db.execute("UPDATE users SET totp_enabled=0, totp_secret=NULL WHERE id=?",
+                       (user["id"],))
+        return jsonify({"ok": True, "message": "2FA disabled."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _verify_totp_code(user_id: str, code: str) -> bool:
+    """Helper: validate a TOTP code for a user. Returns True on success."""
+    try:
+        import pyotp
+        row = fetchone("SELECT totp_secret, totp_enabled FROM users WHERE id=?",
+                       (user_id,))
+        if not row or not row["totp_enabled"] or not row["totp_secret"]:
+            return True   # 2FA not enabled — allow through
+        totp = pyotp.TOTP(row["totp_secret"])
+        return totp.verify(code, valid_window=1)
+    except Exception:
+        return False
+
+
+def _require_totp(user_id: str, code: str):
+    """Return a 403 JSON response if TOTP is enabled and code is wrong, else None."""
+    row = fetchone("SELECT totp_enabled FROM users WHERE id=?", (user_id,))
+    if row and row["totp_enabled"]:
+        if not code:
+            return jsonify({"error": "2FA code required.",
+                            "requires_2fa": True}), 403
+        if not _verify_totp_code(user_id, code):
+            return jsonify({"error": "Invalid 2FA code."}), 403
+    return None   # all good
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# T3 — WIRE 2FA INTO LOGIN FLOWS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/auth/login-step1", methods=["POST"])
+def api_login_step1():
+    """Phase-1 login: validate password, then check if TOTP is required."""
+    d     = request.json or {}
+    phone = d.get("email_or_phone", "").strip()
+    pw    = d.get("password", "").strip()
+    if not phone or not pw:
+        return jsonify({"error": "Phone and password are required."}), 400
+    try:
+        user = auth.login_user(phone, pw)
+        row  = fetchone("SELECT totp_enabled, is_admin, admin_role FROM users WHERE id=?",
+                        (user["id"],))
+        if row and row["totp_enabled"]:
+            # Don't create session yet — return a short-lived pending token
+            pending = str(uuid.uuid4())
+            with get_db() as db:
+                db.execute("""CREATE TABLE IF NOT EXISTS pending_logins (
+                    token TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+                    expires_at TEXT NOT NULL)""")
+                db.execute("DELETE FROM pending_logins WHERE user_id=?", (user["id"],))
+                db.execute(
+                    "INSERT INTO pending_logins(token,user_id,expires_at) VALUES(?,?,datetime('now','+5 minutes'))",
+                    (pending, user["id"])
+                )
+            return jsonify({"ok": False, "requires_2fa": True,
+                            "pending_token": pending})
+        # No 2FA — grant session immediately
+        session["user_id"]   = user["id"]
+        session["user_name"]  = user["full_name"]
+        session["is_admin"]   = bool(row["is_admin"])
+        if row["is_admin"]:
+            session["admin_role"] = row["admin_role"]
+        return jsonify({"ok": True, "is_admin": bool(row["is_admin"]),
+                        "admin_role": row.get("admin_role")})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 401
+
+
+@app.route("/api/auth/login-step2", methods=["POST"])
+def api_login_step2():
+    """Phase-2 login: validate TOTP code and grant session."""
+    d     = request.json or {}
+    token = d.get("pending_token", "").strip()
+    code  = d.get("totp_code", "").strip()
+    if not token or not code:
+        return jsonify({"error": "Pending token and 2FA code are required."}), 400
+    try:
+        with get_db() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS pending_logins (
+                token TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+                expires_at TEXT NOT NULL)""")
+        row = fetchone(
+            "SELECT user_id FROM pending_logins WHERE token=? AND expires_at > datetime('now')",
+            (token,)
+        )
+        if not row:
+            return jsonify({"error": "Token expired or invalid. Please start login again."}), 401
+        user_id = row["user_id"]
+        if not _verify_totp_code(user_id, code):
+            return jsonify({"error": "Invalid 2FA code."}), 401
+        # Delete the pending token
+        with get_db() as db:
+            db.execute("DELETE FROM pending_logins WHERE token=?", (token,))
+        # Grant session
+        user = fetchone("SELECT * FROM users WHERE id=?", (user_id,))
+        session["user_id"]  = user["id"]
+        session["user_name"] = user["full_name"]
+        session["is_admin"]  = bool(user["is_admin"])
+        if user["is_admin"]:
+            session["admin_role"] = user["admin_role"]
+            log_admin_action("admin_login_2fa_success", "auth", user_id)
+        return jsonify({"ok": True, "is_admin": bool(user["is_admin"]),
+                        "admin_role": user.get("admin_role")})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# T5 — EMAIL NOTIFICATION PREFERENCES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/profile/notification-prefs", methods=["POST"])
+@login_required
+def api_notification_prefs():
+    """Toggle email notification preference for current user."""
+    enabled = bool((request.json or {}).get("email_notifs", True))
+    try:
+        with get_db() as db:
+            db.execute("UPDATE users SET email_notifs=? WHERE id=?",
+                       (int(enabled), session["user_id"]))
+        return jsonify({"ok": True, "email_notifs": enabled})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _notify_user(user_id: str, subject: str, message: str,
+                 template_key: str = "notification",
+                 template_data: dict = None):
+    """
+    Send both in-app notification AND email (if user has email_notifs enabled).
+    Wraps the existing push_notification() and adds email delivery.
+    """
+    push_notification(user_id, subject, message, "info")
+    try:
+        row = fetchone("SELECT full_name, email, email_notifs FROM users WHERE id=?",
+                       (user_id,))
+        if not row or not row["email"] or not row["email_notifs"]:
+            return
+        import comms
+        data = {"subject_line": subject, "message_body": message}
+        if template_data:
+            data.update(template_data)
+        comms.send_email(
+            to_email   = row["email"],
+            to_name    = row["full_name"] or "SOHANA Member",
+            template_key = template_key,
+            template_data = data
+        )
+    except Exception as e:
+        import sys
+        print(f"[_notify_user email] {e}", file=sys.stderr, flush=True)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# T6 — REAL EMAIL PASSWORD RESET
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/reset-password/<token>")
+def reset_password_page(token):
+    """Show the password reset form for a valid token."""
+    row = fetchone(
+        "SELECT user_id FROM password_reset_tokens WHERE token=? AND used=0 AND expires_at > datetime('now')",
+        (token,)
+    )
+    if not row:
+        return render_template("reset_password.html",
+                               valid=False, token=token), 400
+    return render_template("reset_password.html", valid=True, token=token)
+
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def api_reset_password():
+    """Consume a reset token and set the new password."""
+    d       = request.json or {}
+    token   = d.get("token", "").strip()
+    new_pw  = d.get("password", "").strip()
+    if not token or not new_pw:
+        return jsonify({"error": "Token and new password are required."}), 400
+    if len(new_pw) < 8:
+        return jsonify({"error": "Password must be at least 8 characters."}), 400
+    row = fetchone(
+        "SELECT user_id FROM password_reset_tokens WHERE token=? AND used=0 AND expires_at > datetime('now')",
+        (token,)
+    )
+    if not row:
+        return jsonify({"error": "This link has expired or already been used."}), 400
+    try:
+        new_hash = auth.hash_password(new_pw)
+        with get_db() as db:
+            db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                       (new_hash, row["user_id"]))
+            db.execute("UPDATE password_reset_tokens SET used=1 WHERE token=?",
+                       (token,))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# T7 — GOOGLE OAUTH
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/auth/google")
+def google_oauth_start():
+    """Redirect user to Google OAuth consent screen."""
+    try:
+        import os, urllib.parse
+        client_id    = os.environ.get("GOOGLE_CLIENT_ID", "")
+        redirect_uri = os.environ.get("GOOGLE_REDIRECT_URI",
+                                      "https://sohana.app/auth/google/callback")
+        if not client_id:
+            return redirect(url_for("auth_page") + "?error=google_not_configured")
+        import secrets as _sec
+        state = _sec.token_urlsafe(16)
+        session["oauth_state"] = state
+        params = urllib.parse.urlencode({
+            "client_id":     client_id,
+            "redirect_uri":  redirect_uri,
+            "response_type": "code",
+            "scope":         "openid email profile",
+            "state":         state,
+            "access_type":   "online",
+            "prompt":        "select_account",
+        })
+        return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+    except Exception as e:
+        return redirect(url_for("auth_page") + f"?error={str(e)}")
+
+
+@app.route("/auth/google/callback")
+def google_oauth_callback():
+    """Handle Google OAuth callback — create or log in user."""
+    import os, requests as _req
+    error = request.args.get("error")
+    if error:
+        return redirect(url_for("auth_page") + f"?error=google_{error}")
+
+    code  = request.args.get("code", "")
+    state = request.args.get("state", "")
+    if state != session.get("oauth_state", ""):
+        return redirect(url_for("auth_page") + "?error=invalid_state")
+
+    client_id     = os.environ.get("GOOGLE_CLIENT_ID", "")
+    client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    redirect_uri  = os.environ.get("GOOGLE_REDIRECT_URI",
+                                   "https://sohana.app/auth/google/callback")
+    try:
+        # Exchange code for tokens
+        token_resp = _req.post("https://oauth2.googleapis.com/token", data={
+            "code":          code,
+            "client_id":     client_id,
+            "client_secret": client_secret,
+            "redirect_uri":  redirect_uri,
+            "grant_type":    "authorization_code",
+        }, timeout=10)
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        if not access_token:
+            return redirect(url_for("auth_page") + "?error=token_exchange_failed")
+
+        # Fetch user info from Google
+        user_info = _req.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10
+        ).json()
+
+        google_email = user_info.get("email", "").lower()
+        google_name  = user_info.get("name",  "")
+        google_id    = user_info.get("sub",   "")
+        picture      = user_info.get("picture", "")
+
+        if not google_email:
+            return redirect(url_for("auth_page") + "?error=no_email_from_google")
+
+        # Look up existing user by email or google_id
+        existing = (
+            fetchone("SELECT * FROM users WHERE google_id=?", (google_id,)) or
+            fetchone("SELECT * FROM users WHERE email=?",     (google_email,))
+        )
+
+        if existing:
+            # Log them in
+            existing = dict(existing)
+            # Update google_id if not set
+            if not existing.get("google_id"):
+                with get_db() as db:
+                    db.execute("UPDATE users SET google_id=? WHERE id=?",
+                               (google_id, existing["id"]))
+            session["user_id"]  = existing["id"]
+            session["user_name"] = existing["full_name"]
+            session["is_admin"]  = bool(existing.get("is_admin"))
+            return redirect(url_for("dashboard"))
+        else:
+            # Create a new account
+            # Generate hanatag from name
+            first_name = google_name.split()[0] if google_name else "user"
+            import random, string
+            suffix   = "".join(random.choices(string.digits, k=4))
+            hanatag  = f"@{first_name.lower()}{suffix}"
+            # Ensure unique
+            while fetchone("SELECT id FROM users WHERE hanatag=?", (hanatag,)):
+                suffix  = "".join(random.choices(string.digits, k=4))
+                hanatag = f"@{first_name.lower()}{suffix}"
+
+            new_id = str(uuid.uuid4())
+            # Use a long random unusable password (user can set one later)
+            import secrets as _sec
+            random_pw = _sec.token_hex(32)
+            pw_hash   = auth.hash_password(random_pw)
+
+            with get_db() as db:
+                db.execute("""INSERT INTO users
+                    (id, full_name, email, google_id, hanatag, password_hash,
+                     country, base_currency, kyc_level, ncs_score, ncs_tier,
+                     is_admin, created_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,0,datetime('now'))""",
+                    (new_id, google_name or google_email.split("@")[0],
+                     google_email, google_id, hanatag, pw_hash,
+                     "FR", "EUR", "phone", 300, "Probation"))
+                # Create default EUR wallet
+                db.execute(
+                    "INSERT INTO wallets(id,user_id,currency,balance_cents,is_default) VALUES(?,?,?,0,1)",
+                    (str(uuid.uuid4()), new_id, "EUR")
+                )
+            session["user_id"]  = new_id
+            session["user_name"] = google_name or google_email
+            session["is_admin"]  = False
+            # Send welcome email
+            try:
+                import comms
+                comms.send_email(
+                    to_email=google_email, to_name=google_name or "New member",
+                    template_key="welcome",
+                    template_data={"hanatag": hanatag}
+                )
+            except Exception:
+                pass
+            return redirect(url_for("dashboard"))
+
+    except Exception as e:
+        import sys
+        print(f"[google_oauth_callback] {e}", file=sys.stderr, flush=True)
+        return redirect(url_for("auth_page") + "?error=oauth_failed")
 
 
 @app.route("/api/auth/register", methods=["POST"])
@@ -1778,7 +2260,10 @@ def api_convert():
     to_cur   = d.get("to_currency","GBP")
     amount   = int(float(d.get("amount", 0)) * 100)
     otp      = str(d.get("otp",""))
-    if len(otp) != 6 or not otp.isdigit():
+    # TOTP 2FA verification (replaces old random OTP system)
+    _2fa_err = _require_totp(session.get("user_id",""), otp)
+    if _2fa_err: return _2fa_err
+    if False and (len(otp) != 6 or not otp.isdigit()):  # legacy check disabled
         return jsonify({"error": "Invalid verification code"}), 400
     if amount <= 0: return jsonify({"error": "Invalid amount"}), 400
     try:
@@ -2142,6 +2627,11 @@ def api_rosca_report_csv(rosca_id):
 @app.route("/api/rosca/<rosca_id>/contribute", methods=["POST"])
 @auth.login_required
 def api_contribute(rosca_id):
+    # 2FA check for ROSCA contributions
+    d_contrib = request.json or {}
+    totp_c    = d_contrib.get("totp_code", "")
+    _2fa_c    = _require_totp(session.get("user_id",""), totp_c)
+    if _2fa_c: return _2fa_c
     try:
         cycle = rosca.get_or_create_active_cycle(rosca_id)
         rosca.pay_contribution(session["user_id"], cycle["id"])

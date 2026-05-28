@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Something went wrong — SOHANA{% endblock %}
+{% block topbar_title %}Error{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:2rem">
+  <div style="text-align:center;max-width:480px">
+    <div style="font-size:3rem;margin-bottom:1.25rem">⚠️</div>
+    <h2 style="font-size:1.25rem;font-weight:700;color:var(--ink);margin-bottom:.75rem;letter-spacing:-.01em">Something went wrong</h2>
+    <p style="font-size:.92rem;color:var(--ink-2);line-height:1.65;margin-bottom:1.75rem">
+      {{ message or "An unexpected error occurred. Our team has been notified." }}
+    </p>
+    <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+      {% if back_url %}
+      <a href="{{ back_url }}" style="padding:.65rem 1.5rem;background:var(--accent);color:#0E120F;border-radius:99px;font-weight:700;text-decoration:none;font-size:.9rem;transition:all .2s">← Go back</a>
+      {% endif %}
+      <a href="/dashboard" style="padding:.65rem 1.5rem;background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink-2);border-radius:99px;font-weight:500;text-decoration:none;font-size:.9rem">Home</a>
+    </div>
+    <p style="margin-top:2rem;font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3)">
+      If this keeps happening, contact <a href="mailto:support@sohana.app" style="color:var(--accent);text-decoration:none">support@sohana.app</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -555,6 +555,20 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_campaigns_creator  ON campaigns(creator_id)",
         "CREATE INDEX IF NOT EXISTS idx_donations_campaign ON campaign_donations(campaign_id, created_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_campaigns_slug     ON campaigns(slug)",
+        # OTP / 2FA infrastructure (v7.1)
+        """CREATE TABLE IF NOT EXISTS otp_requests (
+            id          TEXT PRIMARY KEY,
+            user_id     TEXT NOT NULL REFERENCES users(id),
+            code        TEXT NOT NULL,
+            method      TEXT NOT NULL DEFAULT 'sms',
+            purpose     TEXT NOT NULL DEFAULT '2fa',
+            used        INTEGER NOT NULL DEFAULT 0,
+            expires_at  TEXT NOT NULL,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_otp_user ON otp_requests(user_id, purpose, used, created_at DESC)",
+        "ALTER TABLE users ADD COLUMN twofa_enabled INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN twofa_method  TEXT NOT NULL DEFAULT 'sms'",
     ]
 
     # Run each migration with retry-on-lock + structured logging.
