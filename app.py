@@ -1178,15 +1178,21 @@ def api_login_step1():
             return jsonify({"ok": False, "requires_2fa": True,
                             "pending_token": pending})
         # No 2FA — grant session immediately
-        session["user_id"]   = user["id"]
+        row_d = dict(row) if row else {}
+        session["user_id"]    = user["id"]
         session["user_name"]  = user["full_name"]
-        session["is_admin"]   = bool(row["is_admin"])
-        if row["is_admin"]:
-            session["admin_role"] = row["admin_role"]
-        return jsonify({"ok": True, "is_admin": bool(row["is_admin"]),
-                        "admin_role": row.get("admin_role")})
+        session["is_admin"]   = bool(row_d.get("is_admin", 0))
+        if row_d.get("is_admin"):
+            session["admin_role"] = row_d.get("admin_role")
+        return jsonify({"ok": True,
+                        "is_admin":   bool(row_d.get("is_admin", 0)),
+                        "admin_role": row_d.get("admin_role")})
     except ValueError as e:
         return jsonify({"error": str(e)}), 401
+    except Exception as e:
+        import sys, traceback
+        print(f"[login-step1] {e}\n{traceback.format_exc()}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Login failed. Please try again."}), 500
 
 
 @app.route("/api/auth/login-step2", methods=["POST"])
@@ -1215,15 +1221,17 @@ def api_login_step2():
         with get_db() as db:
             db.execute("DELETE FROM pending_logins WHERE token=?", (token,))
         # Grant session
-        user = fetchone("SELECT * FROM users WHERE id=?", (user_id,))
-        session["user_id"]  = user["id"]
-        session["user_name"] = user["full_name"]
-        session["is_admin"]  = bool(user["is_admin"])
-        if user["is_admin"]:
-            session["admin_role"] = user["admin_role"]
+        user_row = fetchone("SELECT * FROM users WHERE id=?", (user_id,))
+        user_d   = dict(user_row) if user_row else {}
+        session["user_id"]   = user_d["id"]
+        session["user_name"] = user_d["full_name"]
+        session["is_admin"]  = bool(user_d.get("is_admin", 0))
+        if user_d.get("is_admin"):
+            session["admin_role"] = user_d.get("admin_role")
             log_admin_action("admin_login_2fa_success", "auth", user_id)
-        return jsonify({"ok": True, "is_admin": bool(user["is_admin"]),
-                        "admin_role": user.get("admin_role")})
+        return jsonify({"ok": True,
+                        "is_admin":   bool(user_d.get("is_admin", 0)),
+                        "admin_role": user_d.get("admin_role")})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
