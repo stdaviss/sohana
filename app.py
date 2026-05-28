@@ -4123,7 +4123,7 @@ def offline_page():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/admin/comms-test")
-@auth.admin_required
+@admin_required
 def comms_test_page():
     """Diagnostic dashboard to test SendGrid email and TOTP from the admin panel."""
     user = auth.get_current_user()
@@ -4139,7 +4139,7 @@ def comms_test_page():
 
 
 @app.route("/api/admin/comms/test-email", methods=["POST"])
-@auth.admin_required
+@admin_required
 def api_test_email():
     """Send a real test email via SendGrid to verify delivery."""
     role = session.get("admin_role", "")
@@ -4172,7 +4172,7 @@ def api_test_email():
 
 
 @app.route("/api/admin/comms/test-reset-email", methods=["POST"])
-@auth.admin_required
+@admin_required
 def api_test_reset_email():
     """Send a real password reset email to a user — verifies the reset_pw template."""
     role = session.get("admin_role", "")
@@ -4210,7 +4210,7 @@ def api_test_reset_email():
 
 
 @app.route("/api/admin/comms/test-totp", methods=["POST"])
-@auth.admin_required
+@admin_required
 def api_test_totp():
     """Generate a TOTP secret for a user and return the QR code for scanning."""
     role = session.get("admin_role", "")
