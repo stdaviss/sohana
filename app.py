@@ -1,4 +1,5 @@
 import os, uuid, json, io, csv, random
+from datetime import datetime
 from flask import (Flask, render_template, request, session, jsonify,
                    redirect, url_for, Response, send_from_directory)
 from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
@@ -8,6 +9,7 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       EXCHANGE_RATES, CONVERSION_FEE_RATE, ADMIN_ROLES,
                       LIMITS, get_period_total, generate_hanatag)
 import auth, rosca, pool, campaign, ncs_engine
+import status as status_module
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
@@ -349,7 +351,10 @@ def profile_page(user_id=None):
     all_badges   = ncs_engine.BADGE_DEFINITIONS
     total_saved  = fetchone("SELECT COALESCE(SUM(amount_cents),0) as s FROM contributions WHERE user_id=? AND status IN ('paid','late')", (profile_user["id"],))["s"]
     wallets      = get_user_wallets(me["id"]) if viewing_self else []
-    return render_template("profile.html", user=me, profile_user=dict(profile_user),
+    _totp_row      = fetchone("SELECT totp_enabled FROM users WHERE id=?", (profile_user["id"],))
+    _profile_dict  = dict(profile_user)
+    _profile_dict["totp_enabled"] = bool(_totp_row["totp_enabled"]) if _totp_row else False
+    return render_template("profile.html", user=me, profile_user=_profile_dict,
                            badges=badges, endorsements=endorsements, roscas_done=roscas_done,
                            tier=tier, pay_methods=pay_methods, viewing_self=viewing_self,
                            all_badges=all_badges, total_saved=total_saved, wallets=wallets,
@@ -575,6 +580,48 @@ def _run_safe_migrations():
         "ALTER TABLE wallet_transactions ADD COLUMN flag_reason  TEXT",
         "ALTER TABLE wallet_transactions ADD COLUMN reversed_by  TEXT",
         "ALTER TABLE wallet_transactions ADD COLUMN reversed_at  TEXT",
+
+        # ── STATUS PAGE TABLES (v7.3) ──
+        """CREATE TABLE IF NOT EXISTS service_components (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'operational',
+            display_order INTEGER DEFAULT 0,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )""",
+        """CREATE TABLE IF NOT EXISTS status_incidents (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            component_id TEXT,
+            severity TEXT NOT NULL,
+            status TEXT NOT NULL,
+            scheduled_start TEXT,
+            scheduled_end TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            resolved_at TEXT
+        )""",
+        """CREATE TABLE IF NOT EXISTS status_incident_updates (
+            id TEXT PRIMARY KEY,
+            incident_id TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        )""",
+        """CREATE TABLE IF NOT EXISTS status_checks_log (
+            id TEXT PRIMARY KEY,
+            component_id TEXT NOT NULL,
+            is_up INTEGER NOT NULL,
+            response_ms INTEGER,
+            source TEXT NOT NULL DEFAULT 'internal',
+            checked_at TEXT DEFAULT (datetime('now'))
+        )""",
+        """CREATE TABLE IF NOT EXISTS status_subscribers (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            is_confirmed INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_status_checks_component ON status_checks_log(component_id, checked_at)",
+        "CREATE INDEX IF NOT EXISTS idx_status_incidents_status ON status_incidents(status, severity)",
     ]
     for sql in migrations:
         try:
@@ -582,6 +629,24 @@ def _run_safe_migrations():
                 db.execute(sql)
         except Exception:
             pass  # Column already exists — safe to ignore
+
+    # Seed default service components (idempotent)
+    try:
+        with get_db() as db:
+            for cid, name, order in [
+                ('web_app',       'Web App',           1),
+                ('auth',          'Authentication',    2),
+                ('wallet',        'Wallet & Payments', 3),
+                ('circles_pools', 'Circles & Pools',   4),
+                ('hanapay',       'Hanapay',           5),
+                ('comms',         'Email & SMS',       6),
+            ]:
+                db.execute(
+                    "INSERT OR IGNORE INTO service_components (id, name, display_order) VALUES (?,?,?)",
+                    (cid, name, order)
+                )
+    except Exception:
+        pass
 
 
 # Run migrations once at import time (harmless on repeat calls)
@@ -975,6 +1040,31 @@ def api_admin_reset_password(user_id):
         log_admin_action("user_password_reset", "user", user_id,
                          reason=d.get("reason", "Admin-initiated password reset"))
         return jsonify({"ok": True, "message": f"Password reset for {target['full_name']}"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/auth/change-password", methods=["POST"])
+@auth.login_required
+def api_change_password():
+    """Any authenticated user can change their own password."""
+    d      = request.json or {}
+    old_pw = d.get("current_password", "")
+    new_pw = d.get("new_password", "")
+    if not old_pw or not new_pw:
+        return jsonify({"error": "Current and new password required."}), 400
+    if len(new_pw) < 8:
+        return jsonify({"error": "New password must be at least 8 characters."}), 400
+    try:
+        user_row = fetchone("SELECT phone FROM users WHERE id=?", (session["user_id"],))
+        auth.login_user(user_row["phone"], old_pw)   # validates current password
+        new_hash = auth.hash_password(new_pw)
+        with get_db() as db:
+            db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                       (new_hash, session["user_id"]))
+        return jsonify({"ok": True})
+    except ValueError:
+        return jsonify({"error": "Current password is incorrect."}), 401
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -4424,7 +4514,6 @@ PUBLIC_PAGES = {
     "partnerships":  ("partnerships.html",  "Partnerships"),
     # Help
     "contact":       ("contact.html",       "Contact Us"),
-    "service-status":("service-status.html","Service Status"),
     # Legal
     "privacy":       ("privacy.html",       "Privacy Policy"),
     "terms":         ("terms.html",         "Terms of Service"),
@@ -4646,6 +4735,185 @@ def _seed_all():
                           (id,title,slug,excerpt,body,category,author_id,is_published,published_at)
                           VALUES(?,?,?,?,?,?,?,1,datetime('now'))""",
                        (bid,title,slug,excerpt,body,cat,admin_id))
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STATUS PAGE — public status page, health checks, incident management (v7.3)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route('/service-status')
+def service_status_page():
+    components = [dict(r) for r in fetchall(
+        "SELECT * FROM service_components ORDER BY display_order")]
+    active_incidents = [dict(r) for r in fetchall(
+        "SELECT * FROM status_incidents WHERE status != 'resolved' "
+        "AND severity != 'maintenance' ORDER BY created_at DESC")]
+    upcoming_maintenance = [dict(r) for r in fetchall(
+        "SELECT * FROM status_incidents WHERE severity='maintenance' "
+        "AND status='scheduled' ORDER BY scheduled_start ASC")]
+
+    incident_updates = {}
+    for inc in active_incidents + upcoming_maintenance:
+        incident_updates[inc['id']] = [dict(r) for r in fetchall(
+            "SELECT * FROM status_incident_updates WHERE incident_id=? ORDER BY created_at DESC",
+            (inc['id'],)
+        )]
+
+    uptime = {
+        c['id']: status_module.uptime_percentage(c['id'], days=90)
+        for c in components
+    }
+
+    overall = status_module.overall_status()
+
+    return render_template(
+        'service_status.html',
+        components=components,
+        overall=overall,
+        overall_label=status_module.STATUS_LABELS.get(overall, 'Operational'),
+        status_labels=status_module.STATUS_LABELS,
+        status_rank=status_module.STATUS_RANK,
+        incidents=active_incidents,
+        maintenance=upcoming_maintenance,
+        incident_updates=incident_updates,
+        uptime=uptime,
+    )
+
+
+@app.route('/api/status/healthcheck')
+def api_status_healthcheck():
+    """Lightweight JSON health endpoint for external monitors / load balancers."""
+    db_up, db_ms = status_module.check_database()
+    return jsonify({
+        "status":      "ok" if db_up else "error",
+        "database":    db_up,
+        "response_ms": db_ms,
+        "timestamp":   datetime.utcnow().isoformat()
+    }), (200 if db_up else 503)
+
+
+@app.route('/api/status/external-ping', methods=['POST'])
+def api_status_external_ping():
+    """
+    Receives webhook pings from UptimeRobot (or similar) and logs external
+    uptime checks. Configure the monitor's webhook payload to send JSON:
+    {"alert_type": "up"|"down", "monitor": "web_app"}
+    Validated via a shared-secret query param.
+    """
+    secret = request.args.get('secret')
+    if secret != os.environ.get('STATUS_WEBHOOK_SECRET'):
+        return jsonify({"error": "unauthorized"}), 401
+
+    data       = request.get_json(silent=True) or {}
+    alert_type = data.get('alert_type', 'up')
+    monitor    = data.get('monitor', 'web_app')
+    is_up      = alert_type == 'up'
+
+    status_module.log_check(monitor, is_up, None, source='external')
+    status_module._maybe_update_component_status(monitor, is_up)
+
+    return jsonify({"received": True}), 200
+
+
+@app.route('/api/status/subscribe', methods=['POST'])
+def api_status_subscribe():
+    data  = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if not email or '@' not in email:
+        return jsonify({"error": "Valid email required"}), 400
+    try:
+        with get_db() as db:
+            db.execute(
+                "INSERT INTO status_subscribers (id, email, is_confirmed) VALUES (?, ?, 1)",
+                (str(uuid.uuid4()), email)
+            )
+    except Exception:
+        pass  # likely duplicate — treat as success
+    return jsonify({"success": True}), 200
+
+
+# ── ADMIN: STATUS PAGE MANAGEMENT ─────────────────────────────────────────────
+
+@app.route('/admin/status')
+@admin_required
+def admin_status_page():
+    components = [dict(r) for r in fetchall(
+        "SELECT * FROM service_components ORDER BY display_order")]
+    incidents  = [dict(r) for r in fetchall(
+        "SELECT * FROM status_incidents ORDER BY created_at DESC LIMIT 50")]
+    incident_updates = {}
+    for inc in incidents:
+        incident_updates[inc['id']] = [dict(r) for r in fetchall(
+            "SELECT * FROM status_incident_updates WHERE incident_id=? ORDER BY created_at DESC",
+            (inc['id'],)
+        )]
+    return render_template('admin_status.html', components=components, incidents=incidents,
+                            incident_updates=incident_updates,
+                            status_labels=status_module.STATUS_LABELS,
+                            status_rank=status_module.STATUS_RANK)
+
+
+@app.route('/api/admin/status/component/<component_id>', methods=['POST'])
+@admin_required
+def api_admin_update_component(component_id):
+    data       = request.get_json(silent=True) or {}
+    new_status = data.get('status')
+    if new_status not in status_module.STATUS_RANK:
+        return jsonify({"error": "Invalid status"}), 400
+    with get_db() as db:
+        db.execute(
+            "UPDATE service_components SET status=?, updated_at=datetime('now') WHERE id=?",
+            (new_status, component_id)
+        )
+    log_admin_action("status_component_update", "service_component", component_id,
+                      new_data={"status": new_status})
+    return jsonify({"success": True}), 200
+
+
+@app.route('/api/admin/status/incident/create', methods=['POST'])
+@admin_required
+def api_admin_create_incident():
+    data = request.get_json(silent=True) or {}
+    incident_id = status_module.create_incident(
+        title           = data.get('title', '').strip(),
+        component_id    = data.get('component_id') or None,
+        severity        = data.get('severity', 'minor'),
+        status          = data.get('status', 'investigating'),
+        message         = data.get('message', '').strip(),
+        scheduled_start = data.get('scheduled_start') or None,
+        scheduled_end   = data.get('scheduled_end') or None,
+    )
+    log_admin_action("status_incident_create", "status_incident", incident_id,
+                      new_data=data)
+    return jsonify({"success": True, "incident_id": incident_id}), 200
+
+
+@app.route('/api/admin/status/incident/<incident_id>/update', methods=['POST'])
+@admin_required
+def api_admin_update_incident(incident_id):
+    data = request.get_json(silent=True) or {}
+    status_module.add_incident_update(
+        incident_id,
+        message    = data.get('message', '').strip(),
+        new_status = data.get('status') or None,
+    )
+    log_admin_action("status_incident_update", "status_incident", incident_id,
+                      new_data=data)
+    return jsonify({"success": True}), 200
+
+
+# ── SCHEDULED HEALTH CHECKS ────────────────────────────────────────────────────
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    _status_scheduler = BackgroundScheduler(daemon=True)
+    _status_scheduler.add_job(status_module.run_health_checks, 'interval',
+                               minutes=2, id='status_health_checks',
+                               replace_existing=True)
+    _status_scheduler.start()
+except Exception as _e:
+    import sys
+    print(f"[status scheduler] failed to start: {_e}", file=sys.stderr, flush=True)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

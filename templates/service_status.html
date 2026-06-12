@@ -1,0 +1,209 @@
+{% extends "page_base.html" %}
+{% block title %}Service Status{% endblock %}
+
+{% block content %}
+<style>
+.ss-wrap{max-width:840px;margin:0 auto;padding:120px 24px 100px}
+.ss-banner{border-radius:14px;padding:22px 28px;display:flex;align-items:center;gap:14px;margin-bottom:40px;font-weight:600;font-size:1.05rem}
+.ss-banner .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 4px currentColor22}
+.ss-banner.op{background:rgba(158,228,147,.10);border:1px solid rgba(158,228,147,.30);color:#9EE493}
+.ss-banner.op .dot{background:#9EE493}
+.ss-banner.maint{background:rgba(186,117,23,.10);border:1px solid rgba(186,117,23,.30);color:#BA7517}
+.ss-banner.maint .dot{background:#BA7517}
+.ss-banner.deg{background:rgba(186,117,23,.10);border:1px solid rgba(186,117,23,.30);color:#BA7517}
+.ss-banner.deg .dot{background:#BA7517}
+.ss-banner.bad{background:rgba(255,106,85,.10);border:1px solid rgba(255,106,85,.30);color:#FF6A55}
+.ss-banner.bad .dot{background:#FF6A55}
+
+.ss-section-title{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A8E87;margin:40px 0 16px;display:flex;align-items:center;gap:8px}
+.ss-section-title::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+
+.ss-card{background:var(--bg-2,#161B17);border:1px solid var(--line,rgba(244,242,236,.10));border-radius:14px;padding:20px 24px;margin-bottom:14px}
+
+.ss-component-row{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ss-component-name{font-weight:600;color:var(--ink,#F4F2EC);font-size:.98rem}
+.ss-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;letter-spacing:.02em}
+.ss-pill .dot{width:7px;height:7px;border-radius:50%}
+.ss-pill.op{background:rgba(158,228,147,.12);color:#9EE493}
+.ss-pill.op .dot{background:#9EE493}
+.ss-pill.deg, .ss-pill.maint{background:rgba(186,117,23,.12);color:#BA7517}
+.ss-pill.deg .dot, .ss-pill.maint .dot{background:#BA7517}
+.ss-pill.partial, .ss-pill.major{background:rgba(255,106,85,.12);color:#FF6A55}
+.ss-pill.partial .dot, .ss-pill.major .dot{background:#FF6A55}
+
+.ss-uptime-bars{display:flex;gap:2px;margin-top:14px;height:28px;align-items:flex-end}
+.ss-uptime-bar{flex:1;min-width:2px;max-width:6px;border-radius:2px;background:rgba(244,242,236,.10)}
+.ss-uptime-bar.up{background:#9EE493}
+.ss-uptime-bar.partial{background:#BA7517}
+.ss-uptime-bar.down{background:#FF6A55}
+.ss-uptime-meta{display:flex;justify-content:space-between;font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;margin-top:6px}
+
+.ss-incident-card{border-left:3px solid #BA7517}
+.ss-incident-card.major{border-left-color:#FF6A55}
+.ss-incident-card.maintenance{border-left-color:#9EE493}
+.ss-incident-title{font-weight:700;color:var(--ink,#F4F2EC);margin-bottom:6px}
+.ss-incident-meta{font-family:'Geist Mono',monospace;font-size:.72rem;color:#8A8E87;margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap}
+.ss-update{padding:10px 0;border-top:1px solid var(--line,rgba(244,242,236,.10))}
+.ss-update:first-of-type{border-top:none;padding-top:0}
+.ss-update-time{font-family:'Geist Mono',monospace;font-size:.68rem;color:#8A8E87;margin-bottom:3px}
+.ss-update-msg{font-size:.88rem;color:var(--ink-2,#B7BAB4);line-height:1.55}
+
+.ss-subscribe{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.ss-subscribe input{flex:1;min-width:200px;padding:11px 16px;background:var(--bg,#0E120F);border:1.5px solid var(--line-2,rgba(244,242,236,.18));border-radius:8px;color:var(--ink,#F4F2EC);font-family:'Geist',Inter,sans-serif;font-size:.9rem;outline:none}
+.ss-subscribe input:focus{border-color:#9EE493}
+.ss-subscribe button{padding:11px 22px;background:#9EE493;color:#0E120F;border:none;border-radius:8px;font-weight:700;font-size:.9rem;cursor:pointer;transition:background .15s}
+.ss-subscribe button:hover{background:#cef870}
+.ss-subscribe button:disabled{opacity:.5;cursor:not-allowed}
+#ss-sub-msg{font-size:.82rem;margin-top:8px}
+
+.ss-footer-note{margin-top:48px;font-size:.78rem;color:#8A8E87;text-align:center;line-height:1.6}
+</style>
+
+<div class="ss-wrap">
+
+  <div class="section-eyebrow">Status</div>
+  <h1 style="font-size:2.2rem;font-weight:700;color:var(--ink,#F4F2EC);letter-spacing:-0.02em;margin-bottom:24px">
+    SOHANA <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493">platform</em> status
+  </h1>
+
+  {% set ov = overall %}
+  {% if ov == 'operational' %}
+  <div class="ss-banner op"><span class="dot"></span>All systems operational</div>
+  {% elif ov == 'maintenance' %}
+  <div class="ss-banner maint"><span class="dot"></span>Some components under scheduled maintenance</div>
+  {% elif ov == 'degraded' %}
+  <div class="ss-banner deg"><span class="dot"></span>Degraded performance on some components</div>
+  {% else %}
+  <div class="ss-banner bad"><span class="dot"></span>{{ overall_label }}</div>
+  {% endif %}
+
+  {% if maintenance %}
+  <div class="ss-section-title">Scheduled maintenance</div>
+  {% for m in maintenance %}
+  {% set m = dict(m) %}
+  <div class="ss-card ss-incident-card maintenance">
+    <div class="ss-incident-title">{{ m.title }}</div>
+    <div class="ss-incident-meta">
+      {% if m.scheduled_start %}<span>Starts: {{ m.scheduled_start }}</span>{% endif %}
+      {% if m.scheduled_end %}<span>Ends: {{ m.scheduled_end }}</span>{% endif %}
+    </div>
+    {% for u in incident_updates.get(m.id, []) %}
+    <div class="ss-update">
+      <div class="ss-update-time">{{ u.created_at }}</div>
+      <div class="ss-update-msg">{{ u.message }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="ss-section-title">Components</div>
+  {% for c in components %}
+  {% set u = uptime.get(c.id, {"percentage": 100.0, "days": []}) %}
+  <div class="ss-card">
+    <div class="ss-component-row">
+      <div class="ss-component-name">{{ c.name }}</div>
+      {% set pillclass = {'operational':'op','degraded':'deg','partial_outage':'partial','major_outage':'major','maintenance':'maint'}.get(c.status, 'op') %}
+      <div class="ss-pill {{ pillclass }}"><span class="dot"></span>{{ status_labels.get(c.status, 'Operational') }}</div>
+    </div>
+    {% if u.days %}
+    <div class="ss-uptime-bars">
+      {% for d in u.days %}
+      <div class="ss-uptime-bar {{ d.status }}" title="{{ d.date }}: {{ d.status }}"></div>
+      {% endfor %}
+    </div>
+    <div class="ss-uptime-meta">
+      <span>{{ u.days|length }}-day history</span>
+      <span>{{ u.percentage }}% uptime</span>
+    </div>
+    {% else %}
+    <div class="ss-uptime-meta" style="margin-top:14px"><span>No history yet</span><span>{{ u.percentage }}% uptime</span></div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% if incidents %}
+  <div class="ss-section-title">Active incidents</div>
+  {% for inc in incidents %}
+  <div class="ss-card ss-incident-card {{ 'major' if inc.severity in ['major','critical'] else '' }}">
+    <div class="ss-incident-title">{{ inc.title }}</div>
+    <div class="ss-incident-meta">
+      <span>Severity: {{ inc.severity|title }}</span>
+      <span>Status: {{ inc.status|title }}</span>
+      <span>Opened: {{ inc.created_at }}</span>
+    </div>
+    {% for u in incident_updates.get(inc.id, []) %}
+    <div class="ss-update">
+      <div class="ss-update-time">{{ u.created_at }}</div>
+      <div class="ss-update-msg">{{ u.message }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <div class="ss-section-title">Stay updated</div>
+  <div class="ss-card">
+    <div style="font-size:.9rem;color:var(--ink-2,#B7BAB4)">Get an email when we post a new incident or maintenance update.</div>
+    <div class="ss-subscribe">
+      <input type="email" id="ss-email" placeholder="you@example.com" autocomplete="email">
+      <button id="ss-sub-btn" onclick="ssSubscribe()">Subscribe</button>
+    </div>
+    <div id="ss-sub-msg"></div>
+  </div>
+
+  <p class="ss-footer-note">
+    Status checked automatically every 2 minutes. Historical data shown for the last 90 days.<br>
+    API health endpoint: <code style="font-family:'Geist Mono',monospace">/api/status/healthcheck</code>
+  </p>
+
+</div>
+
+<script>
+(function(){
+  window.ssSubscribe = function(){
+    var input = document.getElementById('ss-email');
+    var btn   = document.getElementById('ss-sub-btn');
+    var msg   = document.getElementById('ss-sub-msg');
+    var email = (input.value || '').trim();
+    if (!email || email.indexOf('@') === -1) {
+      msg.style.color = '#FF6A55';
+      msg.textContent = 'Please enter a valid email address.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Subscribing…';
+    fetch('/api/status/subscribe', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email: email })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      btn.disabled = false;
+      btn.textContent = 'Subscribe';
+      if (d.success) {
+        msg.style.color = '#9EE493';
+        msg.textContent = "You're subscribed — we'll email you about future incidents.";
+        input.value = '';
+      } else {
+        msg.style.color = '#FF6A55';
+        msg.textContent = d.error || 'Something went wrong — please try again.';
+      }
+    })
+    .catch(function(){
+      btn.disabled = false;
+      btn.textContent = 'Subscribe';
+      msg.style.color = '#FF6A55';
+      msg.textContent = 'Network error — please try again.';
+    });
+  };
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'ss-email') {
+      ssSubscribe();
+    }
+  });
+})();
+</script>
+{% endblock %}

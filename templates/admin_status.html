@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Status Management — Admin{% endblock %}
+{% block topbar_title %}Status Management{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+  <div>
+    <h1 class="page-title">Status Management</h1>
+    <p class="page-subtitle">Control component status and publish incidents to <a href="/service-status" target="_blank" style="color:var(--accent)">the public status page</a>.</p>
+  </div>
+</div>
+
+<style>
+.sm-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:600}
+.sm-pill .dot{width:6px;height:6px;border-radius:50%}
+.sm-pill.operational{background:rgba(158,228,147,.12);color:#9EE493}
+.sm-pill.operational .dot{background:#9EE493}
+.sm-pill.degraded, .sm-pill.maintenance{background:rgba(186,117,23,.12);color:#BA7517}
+.sm-pill.degraded .dot, .sm-pill.maintenance .dot{background:#BA7517}
+.sm-pill.partial_outage, .sm-pill.major_outage{background:rgba(255,106,85,.12);color:#FF6A55}
+.sm-pill.partial_outage .dot, .sm-pill.major_outage .dot{background:#FF6A55}
+.sm-select{padding:.35rem .6rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink-2);font-family:'Geist Mono',monospace;font-size:.75rem;cursor:pointer}
+.sm-row{display:flex;align-items:center;justify-content:space-between;padding:.85rem 0;border-bottom:1px solid var(--line)}
+.sm-row:last-child{border-bottom:none}
+.sm-update{padding:8px 0;border-top:1px solid var(--line);font-size:.82rem;color:var(--ink-2)}
+.sm-update:first-of-type{border-top:none}
+.sm-update-time{font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--ink-3);margin-bottom:2px}
+</style>
+
+<!-- Component status grid -->
+<div class="card card-pad" style="margin-bottom:1.5rem">
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.75rem">Component status</h3>
+  {% for c in components %}
+  <div class="sm-row" data-component="{{ c.id }}">
+    <div style="display:flex;align-items:center;gap:.75rem">
+      <span style="font-weight:600;color:var(--ink);font-size:.9rem">{{ c.name }}</span>
+      <span class="sm-pill {{ c.status }}" id="pill-{{ c.id }}">
+        <span class="dot"></span>{{ status_labels.get(c.status, c.status) }}
+      </span>
+    </div>
+    <select class="sm-select" onchange="updateComponent('{{ c.id }}', this.value)">
+      {% for s, label in status_labels.items() %}
+      <option value="{{ s }}" {{ 'selected' if c.status == s }}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Create incident -->
+<div class="card card-pad" style="margin-bottom:1.5rem">
+  <h3 style="font-size:.95rem;font-weight:700;color:var(--ink);margin-bottom:.75rem">Create incident / maintenance</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;margin-bottom:.75rem">
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Title</label>
+      <input type="text" id="inc-title" placeholder="e.g. Elevated wallet latency"
+             style="width:100%;padding:.55rem .75rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-size:.85rem">
+    </div>
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Component</label>
+      <select id="inc-component" class="sm-select" style="width:100%;padding:.55rem .75rem">
+        <option value="">— None / platform-wide —</option>
+        {% for c in components %}
+        <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Severity</label>
+      <select id="inc-severity" class="sm-select" style="width:100%;padding:.55rem .75rem">
+        <option value="minor">Minor</option>
+        <option value="major">Major</option>
+        <option value="critical">Critical</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Initial status</label>
+      <select id="inc-status" class="sm-select" style="width:100%;padding:.55rem .75rem">
+        <option value="investigating">Investigating</option>
+        <option value="identified">Identified</option>
+        <option value="monitoring">Monitoring</option>
+        <option value="scheduled">Scheduled (maintenance)</option>
+      </select>
+    </div>
+  </div>
+  <div id="inc-schedule-fields" style="display:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.75rem;margin-bottom:.75rem">
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Scheduled start</label>
+      <input type="datetime-local" id="inc-start" style="width:100%;padding:.55rem .75rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-size:.85rem">
+    </div>
+    <div>
+      <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Scheduled end</label>
+      <input type="datetime-local" id="inc-end" style="width:100%;padding:.55rem .75rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-size:.85rem">
+    </div>
+  </div>
+  <div style="margin-bottom:.75rem">
+    <label style="font-size:.72rem;color:var(--ink-3);display:block;margin-bottom:.3rem">Initial message</label>
+    <textarea id="inc-message" rows="2" placeholder="We are investigating reports of..."
+              style="width:100%;padding:.55rem .75rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-size:.85rem;font-family:'Geist',Inter,sans-serif;resize:vertical"></textarea>
+  </div>
+  <button onclick="createIncident()" style="padding:.6rem 1.25rem;background:var(--accent);color:#0E120F;border:none;border-radius:8px;font-weight:700;font-size:.85rem;cursor:pointer">
+    Publish incident
+  </button>
+  <span id="inc-create-msg" style="margin-left:.75rem;font-size:.8rem"></span>
+</div>
+
+<!-- Incident history -->
+<div class="card" style="overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;font-size:.85rem" id="inc-table">
+    <thead>
+      <tr style="border-bottom:1px solid var(--line)">
+        <th style="text-align:left;padding:.75rem 1rem;color:var(--ink-3);font-size:.72rem;font-family:'Geist Mono',monospace">TITLE</th>
+        <th style="text-align:left;padding:.75rem 1rem;color:var(--ink-3);font-size:.72rem;font-family:'Geist Mono',monospace">SEVERITY</th>
+        <th style="text-align:left;padding:.75rem 1rem;color:var(--ink-3);font-size:.72rem;font-family:'Geist Mono',monospace">STATUS</th>
+        <th style="text-align:left;padding:.75rem 1rem;color:var(--ink-3);font-size:.72rem;font-family:'Geist Mono',monospace">CREATED</th>
+        <th style="text-align:left;padding:.75rem 1rem;color:var(--ink-3);font-size:.72rem;font-family:'Geist Mono',monospace">RESOLVED</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inc in incidents %}
+      <tr style="border-bottom:1px solid var(--line);cursor:pointer" onclick="toggleIncident('{{ inc.id }}')">
+        <td style="padding:.75rem 1rem;color:var(--ink);font-weight:600">{{ inc.title }}</td>
+        <td style="padding:.75rem 1rem"><span class="sm-pill {{ 'major_outage' if inc.severity in ['major','critical'] else ('maintenance' if inc.severity == 'maintenance' else 'degraded') }}"><span class="dot"></span>{{ inc.severity|title }}</span></td>
+        <td style="padding:.75rem 1rem;color:var(--ink-2)">{{ inc.status|title }}</td>
+        <td style="padding:.75rem 1rem;color:var(--ink-3);font-family:'Geist Mono',monospace;font-size:.75rem">{{ inc.created_at }}</td>
+        <td style="padding:.75rem 1rem;color:var(--ink-3);font-family:'Geist Mono',monospace;font-size:.75rem">{{ inc.resolved_at or '—' }}</td>
+      </tr>
+      <tr id="detail-{{ inc.id }}" style="display:none">
+        <td colspan="5" style="padding:1rem 1.5rem;background:var(--surface-2)">
+          {% for u in incident_updates.get(inc.id, []) %}
+          <div class="sm-update">
+            <div class="sm-update-time">{{ u.created_at }}</div>
+            <div>{{ u.message }}</div>
+          </div>
+          {% endfor %}
+          {% if inc.status != 'resolved' %}
+          <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <textarea id="update-msg-{{ inc.id }}" rows="2" placeholder="Add an update…"
+                      style="flex:1;min-width:200px;padding:.5rem .75rem;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;color:var(--ink);font-size:.82rem;font-family:'Geist',Inter,sans-serif"></textarea>
+            <div style="display:flex;flex-direction:column;gap:.4rem">
+              <select id="update-status-{{ inc.id }}" class="sm-select">
+                <option value="">Keep status</option>
+                <option value="investigating">Investigating</option>
+                <option value="identified">Identified</option>
+                <option value="monitoring">Monitoring</option>
+                <option value="resolved">Resolved</option>
+              </select>
+              <button onclick="addUpdate('{{ inc.id }}')" style="padding:.5rem 1rem;background:var(--accent);color:#0E120F;border:none;border-radius:8px;font-weight:700;font-size:.8rem;cursor:pointer">Post update</button>
+            </div>
+          </div>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--ink-3)">No incidents recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function(){
+
+  window.updateComponent = function(componentId, newStatus){
+    fetch('/api/admin/status/component/' + componentId, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ status: newStatus })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        var pill = document.getElementById('pill-' + componentId);
+        if (pill) {
+          pill.className = 'sm-pill ' + newStatus;
+          var labels = {{ status_labels|tojson }};
+          pill.innerHTML = '<span class="dot"></span>' + (labels[newStatus] || newStatus);
+        }
+      }
+    })
+    .catch(function(){});
+  };
+
+  // Show schedule fields only when "maintenance" severity or "scheduled" status chosen
+  var sevEl = document.getElementById('inc-severity');
+  var statusEl = document.getElementById('inc-status');
+  var schedFields = document.getElementById('inc-schedule-fields');
+  function toggleSchedule(){
+    var show = sevEl.value === 'maintenance' || statusEl.value === 'scheduled';
+    schedFields.style.display = show ? 'grid' : 'none';
+  }
+  sevEl.addEventListener('change', toggleSchedule);
+  statusEl.addEventListener('change', toggleSchedule);
+
+  window.createIncident = function(){
+    var title    = document.getElementById('inc-title').value.trim();
+    var message  = document.getElementById('inc-message').value.trim();
+    var msgEl    = document.getElementById('inc-create-msg');
+    if (!title || !message) {
+      msgEl.style.color = '#FF6A55';
+      msgEl.textContent = 'Title and message are required.';
+      return;
+    }
+    var payload = {
+      title:        title,
+      component_id: document.getElementById('inc-component').value || null,
+      severity:     document.getElementById('inc-severity').value,
+      status:       document.getElementById('inc-status').value,
+      message:      message,
+      scheduled_start: document.getElementById('inc-start').value || null,
+      scheduled_end:   document.getElementById('inc-end').value || null
+    };
+    fetch('/api/admin/status/incident/create', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) {
+        msgEl.style.color = '#9EE493';
+        msgEl.textContent = 'Published. Reloading…';
+        setTimeout(function(){ window.location.reload(); }, 700);
+      } else {
+        msgEl.style.color = '#FF6A55';
+        msgEl.textContent = d.error || 'Failed to publish.';
+      }
+    })
+    .catch(function(){
+      msgEl.style.color = '#FF6A55';
+      msgEl.textContent = 'Network error.';
+    });
+  };
+
+  window.toggleIncident = function(id){
+    var row = document.getElementById('detail-' + id);
+    if (row) { row.style.display = row.style.display === 'none' ? '' : 'none'; }
+  };
+
+  window.addUpdate = function(id){
+    var msg    = document.getElementById('update-msg-' + id).value.trim();
+    var status = document.getElementById('update-status-' + id).value;
+    if (!msg) { return; }
+    fetch('/api/admin/status/incident/' + id + '/update', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message: msg, status: status || null })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.success) { window.location.reload(); }
+    })
+    .catch(function(){});
+  };
+
+})();
+</script>
+{% endblock %}
