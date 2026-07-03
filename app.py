@@ -18,6 +18,55 @@ app.config["SESSION_COOKIE_SECURE"]    = True   # only send over HTTPS
 app.config["SESSION_COOKIE_HTTPONLY"]  = True   # not accessible from JS
 app.config["SESSION_COOKIE_NAME"]      = "sohana_session"
 
+# ── RATE LIMITING (auth endpoints only) ───────────────────────────────────────
+# Protects against brute-force attacks on login, password reset, and TOTP.
+# Wrapped in try/except so app boots even if flask-limiter fails to import
+# (e.g. on first deploy before requirements install).
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+
+    def _rate_limit_key():
+        """
+        Use IP + user_id when logged in, else IP alone.
+        Behind Cloudflare/Railway, request.remote_addr sees the proxy — trust the
+        X-Forwarded-For header (Railway sets this correctly, Cloudflare grey-cloud
+        passes through).
+        """
+        fwd = request.headers.get("X-Forwarded-For", "")
+        ip  = fwd.split(",")[0].strip() if fwd else (request.remote_addr or "unknown")
+        uid = session.get("user_id", "")
+        return f"{ip}:{uid}" if uid else ip
+
+    limiter = Limiter(
+        key_func = _rate_limit_key,
+        app      = app,
+        default_limits = [],  # no global default — apply per-route only
+        storage_uri    = "memory://",  # in-process; fine for a single Railway service
+        headers_enabled = True,
+    )
+
+    def _limit_error_handler(e):
+        """Return a clean JSON error when the rate limit is hit."""
+        return jsonify({
+            "error": "Too many attempts. Please wait a minute and try again.",
+            "retry_after_seconds": getattr(e, "retry_after", 60)
+        }), 429
+
+    app.register_error_handler(429, _limit_error_handler)
+    RATE_LIMITING_ENABLED = True
+except Exception as _rl_err:
+    import sys
+    print(f"[rate-limit] flask-limiter unavailable — running without rate limits: {_rl_err}",
+          file=sys.stderr, flush=True)
+    RATE_LIMITING_ENABLED = False
+    # Provide a no-op decorator so route decorators below still work
+    class _NoOpLimiter:
+        def limit(self, *a, **kw):
+            def _dec(f): return f
+            return _dec
+    limiter = _NoOpLimiter()
+
 @app.before_request
 def ensure_db():
     if not hasattr(app, "_db_ready"):
@@ -968,6 +1017,7 @@ def forgot_password_page():
 
 
 @app.route("/api/auth/forgot-password", methods=["POST"])
+@limiter.limit("3 per minute")
 def api_forgot_password():
     """Initiate a password reset request.
     Phase 1 (no email): logs the request, returns support instructions.
@@ -1045,6 +1095,7 @@ def api_admin_reset_password(user_id):
 
 
 @app.route("/api/auth/change-password", methods=["POST"])
+@limiter.limit("5 per minute")
 @auth.login_required
 def api_change_password():
     """Any authenticated user can change their own password."""
@@ -1166,6 +1217,7 @@ def api_totp_setup():
 
 
 @app.route("/api/auth/totp/confirm", methods=["POST"])
+@limiter.limit("10 per minute")
 @auth.login_required
 def api_totp_confirm():
     """Verify the user has scanned the QR and can produce a valid code."""
@@ -1187,6 +1239,7 @@ def api_totp_confirm():
 
 
 @app.route("/api/auth/totp/disable", methods=["POST"])
+@limiter.limit("5 per minute")
 @auth.login_required
 def api_totp_disable():
     """Disable TOTP — requires current TOTP code to confirm."""
@@ -1239,53 +1292,9 @@ def _require_totp(user_id: str, code: str):
 # T3 — WIRE 2FA INTO LOGIN FLOWS
 # ══════════════════════════════════════════════════════════════════════════════
 
-@app.route("/api/auth/login-step1", methods=["POST"])
-def api_login_step1():
-    """Phase-1 login: validate password, then check if TOTP is required."""
-    d     = request.json or {}
-    # Accept any field name the frontend might send
-    phone = (d.get("email_or_phone") or d.get("phone") or
-             d.get("email") or "").strip()
-    pw    = (d.get("password") or d.get("pw") or "").strip()
-    if not phone or not pw:
-        return jsonify({"error": "Phone and password are required."}), 400
-    try:
-        user = auth.login_user(phone, pw)
-        row  = fetchone("SELECT totp_enabled, is_admin, admin_role FROM users WHERE id=?",
-                        (user["id"],))
-        if row and row["totp_enabled"]:
-            # Don't create session yet — return a short-lived pending token
-            pending = str(uuid.uuid4())
-            with get_db() as db:
-                db.execute("""CREATE TABLE IF NOT EXISTS pending_logins (
-                    token TEXT PRIMARY KEY, user_id TEXT NOT NULL,
-                    expires_at TEXT NOT NULL)""")
-                db.execute("DELETE FROM pending_logins WHERE user_id=?", (user["id"],))
-                db.execute(
-                    "INSERT INTO pending_logins(token,user_id,expires_at) VALUES(?,?,datetime('now','+5 minutes'))",
-                    (pending, user["id"])
-                )
-            return jsonify({"ok": False, "requires_2fa": True,
-                            "pending_token": pending})
-        # No 2FA — grant session immediately
-        row_d = dict(row) if row else {}
-        session["user_id"]    = user["id"]
-        session["user_name"]  = user["full_name"]
-        session["is_admin"]   = bool(row_d.get("is_admin", 0))
-        if row_d.get("is_admin"):
-            session["admin_role"] = row_d.get("admin_role")
-        return jsonify({"ok": True,
-                        "is_admin":   bool(row_d.get("is_admin", 0)),
-                        "admin_role": row_d.get("admin_role")})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 401
-    except Exception as e:
-        import sys, traceback
-        print(f"[login-step1] {e}\n{traceback.format_exc()}", file=sys.stderr, flush=True)
-        return jsonify({"error": "Login failed. Please try again."}), 500
-
 
 @app.route("/api/auth/login-step2", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_login_step2():
     """Phase-2 login: validate TOTP code and grant session."""
     d     = request.json or {}
@@ -1390,6 +1399,7 @@ def reset_password_page(token):
 
 
 @app.route("/api/auth/reset-password", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_reset_password():
     """Consume a reset token and set the new password."""
     d       = request.json or {}
@@ -1566,6 +1576,7 @@ def google_oauth_callback():
 
 
 @app.route("/api/auth/register", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_register():
     _platform_check("new_registrations_enabled", "New registrations are temporarily paused. Please check back later.")
     d = request.json or {}
@@ -1606,6 +1617,7 @@ def api_register():
         return jsonify({"error": str(e)}), 400
 
 @app.route("/api/auth/login", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_login():
     """Main login endpoint — handles both regular and 2FA flows."""
     d  = request.json or {}
