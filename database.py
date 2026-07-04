@@ -16,10 +16,116 @@ CURRENCIES = {
 }
 
 # Demo exchange rates vs EUR (these update from an API in production)
+# ── EXCHANGE RATES ────────────────────────────────────────────────────────────
+# Mutable dict — refreshed hourly by app.py's APScheduler job (see refresh_exchange_rates).
+# Fallback values used until the first successful API fetch, and if the API is unreachable.
+# Base currency is EUR. All rates are "how many <CUR> = 1 EUR".
 EXCHANGE_RATES = {
     "EUR": 1.0000, "GBP": 0.8560, "USD": 1.0820, "CAD": 1.4710,
     "XAF": 655.96, "GHC": 16.42,  "NGN": 1780.50, "ZAR": 20.15,
 }
+
+# Metadata about the last successful refresh — inspected by /admin and /api/rates
+EXCHANGE_RATES_META = {
+    "source":     "static_fallback",   # will become "frankfurter" or "openerapi" after first live fetch
+    "updated_at": None,                # ISO timestamp of last successful refresh
+    "error":      None,                # last error message if a fetch failed
+}
+
+
+def refresh_exchange_rates():
+    """
+    Fetch live EUR-base exchange rates and mutate EXCHANGE_RATES in place.
+
+    Primary:   open.er-api.com — free, no key, covers ALL 8 SOHANA currencies including XAF/GHC/NGN
+    Fallback:  Frankfurter v1 — ECB rates, refines major currencies (EUR/GBP/USD/CAD/ZAR) when primary is stale
+
+    open.er-api.com is the primary because Frankfurter v1's currency list does not
+    include XAF, GHC, or NGN — the currencies most critical to the SOHANA diaspora market.
+
+    Safe to call from any thread; never raises — logs errors and returns bool for success.
+    """
+    import requests, sys
+    from datetime import datetime
+
+    supported   = list(EXCHANGE_RATES.keys())   # EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR
+    new_rates   = {"EUR": 1.0000}                # base always 1.0
+    source_used = None
+    error_msg   = None
+
+    # ── PRIMARY: open.er-api.com ──
+    try:
+        r = requests.get("https://open.er-api.com/v6/latest/EUR", timeout=8)
+        r.raise_for_status()
+        data    = r.json()
+        fetched = data.get("rates") or {}
+        for cur in supported:
+            rate = fetched.get(cur)
+            if isinstance(rate, (int, float)) and rate > 0:
+                new_rates[cur] = float(rate)
+        if len(new_rates) > 1:
+            source_used = "openerapi"
+    except Exception as e:
+        error_msg = f"openerapi: {e}"
+
+    # ── SECONDARY: Frankfurter (fills any gaps + refines ECB majors) ──
+    ecb_currencies = ["GBP", "USD", "CAD", "ZAR"]  # currencies where ECB precision matters
+    needs_frankfurter = any(c not in new_rates for c in supported) or source_used is not None
+    if needs_frankfurter:
+        try:
+            r = requests.get(
+                "https://api.frankfurter.dev/v1/latest",
+                params  = {"base": "EUR", "symbols": ",".join(ecb_currencies)},
+                timeout = 8
+            )
+            r.raise_for_status()
+            data    = r.json()
+            fetched = data.get("rates") or {}
+            filled_gaps = False
+            for cur, rate in fetched.items():
+                if cur not in new_rates and isinstance(rate, (int, float)) and rate > 0:
+                    new_rates[cur] = float(rate)
+                    filled_gaps = True
+            if source_used is None and filled_gaps:
+                source_used = "frankfurter"
+            elif source_used == "openerapi" and filled_gaps:
+                source_used = "openerapi+frankfurter"
+        except Exception as e:
+            error_msg = (error_msg + " | " if error_msg else "") + f"frankfurter: {e}"
+
+    # ── Nothing worked — keep cached values ──
+    if not source_used or len(new_rates) < 2:
+        EXCHANGE_RATES_META["error"] = error_msg or "no data returned"
+        print(f"[refresh_exchange_rates] failed — keeping cached rates. {error_msg}",
+              file=sys.stderr, flush=True)
+        return False
+
+    # Sanity guard — reject wildly off values (e.g. >5x drift from cached) to avoid
+    # accidentally applying a corrupt API response. Skip on first-ever refresh.
+    if EXCHANGE_RATES_META.get("source") not in (None, "static_fallback"):
+        for cur, new in new_rates.items():
+            old = EXCHANGE_RATES.get(cur)
+            if old and old > 0:
+                drift = abs(new - old) / old
+                if drift > 5.0:   # allow up to 5x — currencies like NGN can move fast
+                    print(f"[refresh_exchange_rates] REJECTED {cur}: "
+                          f"new={new} vs cached={old} (drift {drift*100:.0f}%)",
+                          file=sys.stderr, flush=True)
+                    new_rates.pop(cur, None)
+
+    # Apply — mutate shared dict in place so all import references pick up new values
+    for cur in supported:
+        if cur in new_rates:
+            EXCHANGE_RATES[cur] = new_rates[cur]
+
+    EXCHANGE_RATES_META["source"]     = source_used
+    EXCHANGE_RATES_META["updated_at"] = datetime.utcnow().isoformat() + "Z"
+    EXCHANGE_RATES_META["error"]      = None
+
+    print(f"[refresh_exchange_rates] ✓ updated from {source_used}: "
+          f"{ {k: round(v,4) for k,v in EXCHANGE_RATES.items()} }",
+          file=sys.stderr, flush=True)
+    return True
 
 CONVERSION_FEE_RATE = 0.007  # 0.7%
 
@@ -555,20 +661,6 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_campaigns_creator  ON campaigns(creator_id)",
         "CREATE INDEX IF NOT EXISTS idx_donations_campaign ON campaign_donations(campaign_id, created_at DESC)",
         "CREATE INDEX IF NOT EXISTS idx_campaigns_slug     ON campaigns(slug)",
-        # OTP / 2FA infrastructure (v7.1)
-        """CREATE TABLE IF NOT EXISTS otp_requests (
-            id          TEXT PRIMARY KEY,
-            user_id     TEXT NOT NULL REFERENCES users(id),
-            code        TEXT NOT NULL,
-            method      TEXT NOT NULL DEFAULT 'sms',
-            purpose     TEXT NOT NULL DEFAULT '2fa',
-            used        INTEGER NOT NULL DEFAULT 0,
-            expires_at  TEXT NOT NULL,
-            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-        )""",
-        "CREATE INDEX IF NOT EXISTS idx_otp_user ON otp_requests(user_id, purpose, used, created_at DESC)",
-        "ALTER TABLE users ADD COLUMN twofa_enabled INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE users ADD COLUMN twofa_method  TEXT NOT NULL DEFAULT 'sms'",
     ]
 
     # Run each migration with retry-on-lock + structured logging.

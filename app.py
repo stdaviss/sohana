@@ -2568,7 +2568,12 @@ def api_statement():
 
 @app.route("/api/currency/rates")
 def api_rates():
-    return jsonify({"rates": EXCHANGE_RATES, "base": "EUR"})
+    return jsonify({
+        "rates":      EXCHANGE_RATES,
+        "base":       "EUR",
+        "source":     EXCHANGE_RATES_META.get("source"),
+        "updated_at": EXCHANGE_RATES_META.get("updated_at"),
+    })
 
 @app.route("/api/currency/preview-conversion")
 @auth.login_required
@@ -4913,6 +4918,24 @@ def api_admin_update_incident(incident_id):
     return jsonify({"success": True}), 200
 
 
+
+
+@app.route('/api/admin/rates/refresh', methods=['POST'])
+@admin_required
+def api_admin_refresh_rates():
+    """Manual override — force an exchange-rate refresh now."""
+    ok = refresh_exchange_rates()
+    log_admin_action("exchange_rates_manual_refresh", "system", "rates",
+                      new_data={"ok": ok, "meta": dict(EXCHANGE_RATES_META)})
+    return jsonify({
+        "ok":     ok,
+        "rates":  EXCHANGE_RATES,
+        "source": EXCHANGE_RATES_META.get("source"),
+        "updated_at": EXCHANGE_RATES_META.get("updated_at"),
+        "error":  EXCHANGE_RATES_META.get("error"),
+    }), (200 if ok else 502)
+
+
 # ── SCHEDULED HEALTH CHECKS ────────────────────────────────────────────────────
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -4920,7 +4943,16 @@ try:
     _status_scheduler.add_job(status_module.run_health_checks, 'interval',
                                minutes=2, id='status_health_checks',
                                replace_existing=True)
+    # Exchange-rate refresh — every 60 minutes, with an immediate first run at startup
+    _status_scheduler.add_job(refresh_exchange_rates, 'interval',
+                               minutes=60, id='exchange_rate_refresh',
+                               replace_existing=True, next_run_time=None)
     _status_scheduler.start()
+
+    # Kick off an immediate first refresh in a background thread so app startup
+    # is not blocked by network I/O (Frankfurter usually responds in ~300ms).
+    import threading
+    threading.Thread(target=refresh_exchange_rates, daemon=True).start()
 except Exception as _e:
     import sys
     print(f"[status scheduler] failed to start: {_e}", file=sys.stderr, flush=True)
