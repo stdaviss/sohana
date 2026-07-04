@@ -6,7 +6,8 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       post_transaction, push_notification, calc_withdrawal_fee,
                       get_user_wallets, get_default_wallet, convert_currency,
                       ROSCA_CREATION_FEES, WITHDRAWAL_FEES, CURRENCIES,
-                      EXCHANGE_RATES, CONVERSION_FEE_RATE, ADMIN_ROLES,
+                      EXCHANGE_RATES, EXCHANGE_RATES_META, refresh_exchange_rates,
+                      CONVERSION_FEE_RATE, ADMIN_ROLES,
                       LIMITS, get_period_total, generate_hanatag)
 import auth, rosca, pool, campaign, ncs_engine
 import status as status_module
