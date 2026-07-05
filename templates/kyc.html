@@ -109,7 +109,9 @@
             <option value="residence_permit">Residence permit</option>
           </select>
           <label>Upload document (front side + selfie)</label>
-          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <input type="file" id="file-id" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFilePick('id', this)">
+          <div class="file-stub" id="file-stub-id" onclick="document.getElementById('file-id').click()" style="cursor:pointer">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <div id="file-progress-id" style="display:none;font-size:.82rem;color:var(--accent);margin-top:6px;font-family:'Geist Mono',monospace"></div>
           <label>Notes (optional)</label>
           <textarea id="notes-id" placeholder="Any additional context for our review team"></textarea>
           <button class="btn-tier" onclick="submitKyc('id')">Submit for review</button>
@@ -147,7 +149,9 @@
             <option value="council_tax">Council/property tax bill</option>
           </select>
           <label>Upload document (less than 3 months old)</label>
-          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <input type="file" id="file-address" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFilePick('address', this)">
+          <div class="file-stub" id="file-stub-address" onclick="document.getElementById('file-address').click()" style="cursor:pointer">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <div id="file-progress-address" style="display:none;font-size:.82rem;color:var(--accent);margin-top:6px;font-family:'Geist Mono',monospace"></div>
           <label>Notes (optional)</label>
           <textarea id="notes-addr" placeholder=""></textarea>
           <button class="btn-tier" onclick="submitKyc('address')">Submit for review</button>
@@ -188,7 +192,9 @@
             <option value="employment_contract">Employment contract</option>
           </select>
           <label>Upload document</label>
-          <div class="file-stub">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <input type="file" id="file-funds" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFilePick('funds', this)">
+          <div class="file-stub" id="file-stub-funds" onclick="document.getElementById('file-funds').click()" style="cursor:pointer">📎  Click to upload — PDF, JPG, PNG (max 8 MB)</div>
+          <div id="file-progress-funds" style="display:none;font-size:.82rem;color:var(--accent);margin-top:6px;font-family:'Geist Mono',monospace"></div>
           <label>Notes (optional)</label>
           <textarea id="notes-funds" placeholder=""></textarea>
           <button class="btn-tier" onclick="submitKyc('funds')">Submit for review</button>
@@ -251,25 +257,70 @@ function toggleForm(id) {
   document.getElementById(id).classList.toggle('show');
 }
 
-async function submitKyc(level) {
-  const payload = {level: level};
-  if (level === 'id') {
-    payload.doc_type_id = document.getElementById('doc-id-type').value;
-    payload.notes       = document.getElementById('notes-id').value.trim();
-  } else if (level === 'address') {
-    payload.doc_type_addr = document.getElementById('doc-addr-type').value;
-    payload.notes         = document.getElementById('notes-addr').value.trim();
-  } else if (level === 'funds') {
-    payload.doc_type_funds = document.getElementById('doc-funds-type').value;
-    payload.notes          = document.getElementById('notes-funds').value.trim();
+// Track picked files per level
+var _pickedFiles = { id: null, address: null, funds: null };
+
+function handleFilePick(level, input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+
+  // Client-side size check: 8 MB max
+  if (file.size > 8 * 1024 * 1024) {
+    showAlert('error', 'File is too large — max 8 MB.');
+    input.value = '';
+    return;
   }
+  // Type check
+  var ok = /\.(pdf|jpe?g|png)$/i.test(file.name);
+  if (!ok) {
+    showAlert('error', 'Please upload a PDF, JPG or PNG file.');
+    input.value = '';
+    return;
+  }
+
+  _pickedFiles[level] = file;
+  var stub = document.getElementById('file-stub-' + level);
+  if (stub) {
+    stub.innerHTML = '📄 ' + file.name + '  <span style="color:var(--accent);margin-left:8px">✓ Ready</span>';
+    stub.style.borderColor = 'var(--accent)';
+  }
+}
+
+async function submitKyc(level) {
+  // Require a picked file
+  var file = _pickedFiles[level];
+  if (!file) {
+    showAlert('error', 'Please select a document to upload before submitting.');
+    return;
+  }
+
+  // Build FormData so the file goes with the metadata in a single request
+  var fd = new FormData();
+  fd.append('level',    level);
+  fd.append('document', file);
+  if (level === 'id') {
+    fd.append('doc_type_id', document.getElementById('doc-id-type').value);
+    fd.append('notes',       document.getElementById('notes-id').value.trim());
+  } else if (level === 'address') {
+    fd.append('doc_type_addr', document.getElementById('doc-addr-type').value);
+    fd.append('notes',         document.getElementById('notes-addr').value.trim());
+  } else if (level === 'funds') {
+    fd.append('doc_type_funds', document.getElementById('doc-funds-type').value);
+    fd.append('notes',          document.getElementById('notes-funds').value.trim());
+  }
+
+  // Show progress state
+  var prog = document.getElementById('file-progress-' + level);
+  if (prog) { prog.textContent = 'Uploading…'; prog.style.display = 'block'; }
+
   try {
     const r = await fetch('/api/kyc/submit', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
+      body:   fd
+      // NOTE: do NOT set Content-Type — browser sets multipart boundary automatically
     });
     const data = await r.json();
+    if (prog) prog.style.display = 'none';
     if (data.error) { showAlert('error', data.error); return; }
     showAlert('success', '✓ Submission received. Our team will review it within 1–2 business days.');
     setTimeout(function(){ window.location.reload(); }, 1800);

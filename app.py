@@ -145,14 +145,47 @@ def kyc_page():
 
 KYC_APPROVE_ROLES = {"ceo", "cco", "cfo"}
 
+# KYC uploads directory — Railway persistent volume
+KYC_UPLOAD_DIR = os.environ.get("KYC_UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "kyc_uploads"))
+try:
+    os.makedirs(KYC_UPLOAD_DIR, exist_ok=True)
+except Exception as _e:
+    import sys
+    print(f"[kyc] failed to create upload dir: {_e}", file=sys.stderr, flush=True)
+
+ALLOWED_KYC_EXTENSIONS = {"pdf", "jpg", "jpeg", "png"}
+MAX_KYC_FILE_BYTES     = 8 * 1024 * 1024   # 8 MB
+
+
 @app.route("/api/kyc/submit", methods=["POST"])
 @auth.login_required
 def api_kyc_submit():
-    d    = request.json or {}
-    uid  = session["user_id"]
-    level = d.get("level", "")
+    """
+    Accepts multipart/form-data with a required 'document' file field plus
+    the metadata fields (level, doc_type_*, notes). Saves the file under
+    KYC_UPLOAD_DIR/<user_id>/<uuid>.<ext> and stores the path + metadata.
+    """
+    uid   = session["user_id"]
+    # Read fields from form (multipart) — falls back to JSON body for legacy callers
+    if request.content_type and request.content_type.startswith("multipart/form-data"):
+        level = request.form.get("level", "")
+        doc_type_id    = request.form.get("doc_type_id") or None
+        doc_type_addr  = request.form.get("doc_type_addr") or None
+        doc_type_funds = request.form.get("doc_type_funds") or None
+        notes          = request.form.get("notes") or None
+        upload         = request.files.get("document")
+    else:
+        d = request.json or {}
+        level = d.get("level", "")
+        doc_type_id    = d.get("doc_type_id") or None
+        doc_type_addr  = d.get("doc_type_addr") or None
+        doc_type_funds = d.get("doc_type_funds") or None
+        notes          = d.get("notes") or None
+        upload         = None
+
     if level not in ("id", "address", "funds"):
         return jsonify({"error": "Invalid KYC level. Must be id, address, or funds."}), 400
+
     # Prevent duplicate pending submission for same level
     existing = fetchone(
         "SELECT id FROM kyc_submissions WHERE user_id=? AND level=? AND status='pending'",
@@ -160,16 +193,56 @@ def api_kyc_submit():
     )
     if existing:
         return jsonify({"error": "You already have a pending submission for this level."}), 400
-    sid = str(uuid.uuid4())
+
+    # Validate the file
+    if not upload or not upload.filename:
+        return jsonify({"error": "Please attach a document (PDF, JPG or PNG, max 8 MB)."}), 400
+    orig_name = upload.filename
+    ext = orig_name.rsplit(".", 1)[-1].lower() if "." in orig_name else ""
+    if ext not in ALLOWED_KYC_EXTENSIONS:
+        return jsonify({"error": "Unsupported file type. Use PDF, JPG or PNG."}), 400
+
+    # Size check — read into memory (files are max 8 MB)
+    upload.seek(0, 2)          # seek to end
+    file_size = upload.tell()
+    upload.seek(0)             # reset
+    if file_size > MAX_KYC_FILE_BYTES:
+        return jsonify({"error": "File too large — max 8 MB."}), 400
+    if file_size == 0:
+        return jsonify({"error": "File is empty."}), 400
+
+    # Save file: KYC_UPLOAD_DIR/<user_id>/<uuid>.<ext>
+    sid  = str(uuid.uuid4())
+    user_dir = os.path.join(KYC_UPLOAD_DIR, uid)
+    try:
+        os.makedirs(user_dir, exist_ok=True)
+    except Exception as e:
+        import sys
+        print(f"[kyc] failed to create user dir: {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Server storage error. Please try again."}), 500
+
+    stored_filename = f"{sid}.{ext}"
+    stored_path     = os.path.join(user_dir, stored_filename)
+    try:
+        upload.save(stored_path)
+    except Exception as e:
+        import sys
+        print(f"[kyc] failed to save file: {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Upload failed — please try again."}), 500
+
+    # file_url is the admin-only download route (see api_admin_kyc_download)
+    file_url = f"/api/admin/kyc/download/{sid}"
+    file_mime = upload.mimetype or f"application/{ext}"
+
     with get_db() as db:
         db.execute(
-            """INSERT INTO kyc_submissions(id,user_id,level,doc_type_id,doc_type_addr,doc_type_funds,notes)
-               VALUES(?,?,?,?,?,?,?)""",
+            """INSERT INTO kyc_submissions
+               (id, user_id, level, doc_type_id, doc_type_addr, doc_type_funds, notes,
+                file_url, file_original, file_size_bytes, file_mime)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (sid, uid, level,
-             d.get("doc_type_id") or None,
-             d.get("doc_type_addr") or None,
-             d.get("doc_type_funds") or None,
-             d.get("notes") or None)
+             doc_type_id, doc_type_addr, doc_type_funds, notes,
+             file_url, orig_name, file_size, file_mime)
         )
         # Mark user kyc_status as pending if not already verified
         user = fetchone("SELECT kyc_status FROM users WHERE id=?", (uid,))
@@ -180,6 +253,47 @@ def api_kyc_submit():
         "We've received your documents and will review them within 1–2 business days.",
         "info", "/kyc")
     return jsonify({"ok": True, "submission_id": sid})
+
+
+
+@app.route("/api/admin/kyc/download/<submission_id>")
+@admin_required
+def api_admin_kyc_download(submission_id):
+    """
+    Serves a KYC document file for admin review. Only CEO/CCO/CFO can access
+    (matches KYC_APPROVE_ROLES). Admin action is logged for audit trail.
+    """
+    role = session.get("admin_role", "")
+    if role not in KYC_APPROVE_ROLES:
+        return jsonify({"error": "You do not have permission to view KYC documents."}), 403
+
+    sub = fetchone(
+        "SELECT id, user_id, file_url, file_original, file_mime FROM kyc_submissions WHERE id=?",
+        (submission_id,)
+    )
+    if not sub:
+        return jsonify({"error": "Submission not found."}), 404
+    sub = dict(sub)
+
+    user_id = sub["user_id"]
+    orig    = sub.get("file_original") or ""
+    ext     = orig.rsplit(".", 1)[-1].lower() if "." in orig else "pdf"
+    stored  = os.path.join(KYC_UPLOAD_DIR, user_id, f"{submission_id}.{ext}")
+
+    if not os.path.exists(stored):
+        return jsonify({"error": "File not found on server. It may have been deleted or moved."}), 404
+
+    log_admin_action("kyc_document_viewed", "kyc_submission", submission_id,
+                      new_data={"user_id": user_id, "filename": orig})
+
+    from flask import send_file
+    return send_file(
+        stored,
+        as_attachment    = False,
+        download_name    = orig or f"kyc-{submission_id}.{ext}",
+        mimetype         = sub.get("file_mime") or f"application/{ext}",
+        max_age          = 0,
+    )
 
 
 @app.route("/api/admin/kyc/<submission_id>/approve", methods=["POST"])
@@ -630,6 +744,12 @@ def _run_safe_migrations():
         "ALTER TABLE wallet_transactions ADD COLUMN flag_reason  TEXT",
         "ALTER TABLE wallet_transactions ADD COLUMN reversed_by  TEXT",
         "ALTER TABLE wallet_transactions ADD COLUMN reversed_at  TEXT",
+
+        # ── KYC FILE UPLOADS (v7.6) ──
+        "ALTER TABLE kyc_submissions ADD COLUMN file_url        TEXT",
+        "ALTER TABLE kyc_submissions ADD COLUMN file_original   TEXT",
+        "ALTER TABLE kyc_submissions ADD COLUMN file_size_bytes INTEGER",
+        "ALTER TABLE kyc_submissions ADD COLUMN file_mime       TEXT",
 
         # ── STATUS PAGE TABLES (v7.3) ──
         """CREATE TABLE IF NOT EXISTS service_components (

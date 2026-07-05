@@ -142,6 +142,9 @@ tr:hover td{background:var(--bg-3)}
                 </td>
                 <td><span class="user-meta">{{ s.submitted_at[:16].replace('T',' ') }}</span></td>
                 <td><div class="actions">
+                  {% if s.file_url %}
+                  <a class="btn-act" href="{{ s.file_url }}" target="_blank" rel="noopener" style="background:transparent;border:1px solid var(--line-2);color:var(--accent);text-decoration:none">📎 View doc</a>
+                  {% endif %}
                   <button class="btn-act btn-approve" onclick="approveSub('{{ s.id }}')">✓ Approve</button>
                   <button class="btn-act btn-reject"  onclick="openReject('{{ s.id }}', '{{ s.full_name|e }}')">Reject</button>
                 </div></td>
