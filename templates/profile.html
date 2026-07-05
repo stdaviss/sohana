@@ -390,38 +390,40 @@ function changePassword() {
   .catch(function(){ err.textContent='Network error'; err.style.display='block'; });
 }
 </script>
-id="pane-notif" class="hidden">
+
+<!-- TAB: NOTIFICATIONS -->
+<div id="pane-notif" class="hidden">
   <div class="card" style="max-width:480px;">
     <div class="card-header"><span class="card-title">Notification preferences</span></div>
     <div class="card-body">
       <!-- Marketing consent — separate toggle, separate endpoint, GDPR-compliant -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);">
-        <div>
-          <div style="font-size:.875rem;font-weight:500">Marketing & product updates <span style="font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:600;color:var(--accent);padding:2px 6px;border:1px solid var(--accent);border-radius:99px;margin-left:.35rem;vertical-align:middle">OPT-IN</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);gap:1rem">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.875rem;font-weight:500">Marketing &amp; product updates <span style="font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:600;color:var(--accent);padding:2px 6px;border:1px solid var(--accent);border-radius:99px;margin-left:.35rem;vertical-align:middle">OPT-IN</span></div>
           <div class="text-xs text-muted">New feature announcements, launches, and occasional product news. You can unsubscribe at any time.</div>
         </div>
-        <label style="position:relative;width:40px;height:22px;cursor:pointer">
+        <label style="position:relative;width:40px;height:22px;cursor:pointer;flex-shrink:0;">
           <input type="checkbox" id="n-marketing_consent" {{ 'checked' if profile_user.marketing_consent }}
             onchange="saveMarketingConsent(this.checked)"
-            style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0">
+            style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0;">
           <span class="toggle-track-notif" style="position:absolute;inset:0;border-radius:11px;transition:background .2s;"></span>
           <span class="toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;"></span>
         </label>
       </div>
 
-      <div style="padding:.5rem 0 .75rem;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase">Account notifications</div>
+      <div style="padding:.75rem 0 .5rem;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase">Account notifications</div>
 
       {% for field, label, desc in [
         ('notif_email','Email notifications','Receive updates by email'),
         ('notif_push', 'Push notifications','In-app alerts for contributions and payouts'),
         ('notif_sms',  'SMS notifications', 'Text messages for critical alerts'),
       ] %}
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);">
-        <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);gap:1rem">
+        <div style="flex:1;min-width:0">
           <div style="font-size:.875rem;font-weight:500;">{{ label }}</div>
           <div class="text-xs text-muted">{{ desc }}</div>
         </div>
-        <label style="position:relative;width:40px;height:22px;cursor:pointer;">
+        <label style="position:relative;width:40px;height:22px;cursor:pointer;flex-shrink:0;">
           <input type="checkbox" id="n-{{ field }}" {{ 'checked' if user.get(field,1) }}
             onchange="saveNotifPref('{{ field }}',this.checked)"
             style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0;">
@@ -663,13 +665,13 @@ async function saveNotifPref(field, val) {
   await API.post('/api/profile/update', {[field]: val?1:0});
   toast('Preference updated','success');
 }
-// Toggle styling
+// Toggle styling — mint accent when on, muted when off
 document.querySelectorAll('.toggle-track-notif').forEach(track => {
   const cb = track.previousElementSibling;
   const thumb = track.nextElementSibling;
   const update = () => {
-    track.style.background = cb.checked ? 'var(--blue)' : 'var(--gray-200)';
-    thumb.style.transform = cb.checked ? 'translateX(18px)' : 'none';
+    track.style.background = cb.checked ? '#9EE493' : 'rgba(244,242,236,.15)';
+    thumb.style.transform  = cb.checked ? 'translateX(18px)' : 'translateX(0)';
   };
   cb.addEventListener('change', update); update();
 });
