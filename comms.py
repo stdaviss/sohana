@@ -54,7 +54,22 @@ body{margin:0;padding:0;background:#f4f2ec;font-family:'Helvetica Neue',Helvetic
 .footer{background:#f7f6f2;padding:20px 32px;text-align:center;font-size:12px;color:#aaa;line-height:1.6}
 """
 
-def _build_html(title: str, body_html: str) -> str:
+def _build_html(title: str, body_html: str, unsubscribe_url: str = None) -> str:
+    """
+    Build a branded HTML email. If unsubscribe_url is provided, appends the
+    GDPR-mandated marketing footer with the unsubscribe link and postal address.
+    Only pass unsubscribe_url for MARKETING emails — transactional emails
+    (password reset, OTP, receipts) legally do not need one and shouldn\'t
+    show it (looks weird on a password reset).
+    """
+    marketing_footer = ""
+    if unsubscribe_url:
+        marketing_footer = f"""<br><br>
+    <span style="color:#aaa;font-size:11px">
+      You received this because you opted in to SOHANA updates.<br>
+      <a href="{unsubscribe_url}" style="color:#9ee493;text-decoration:underline">Unsubscribe</a> · <a href="https://sohana.app/privacy" style="color:#9ee493">Privacy</a><br>
+      SOHANA SAS · Paris, France
+    </span>"""
     return f"""<!DOCTYPE html>
 <html><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -65,9 +80,9 @@ def _build_html(title: str, body_html: str) -> str:
   <div class="header"><div class="logo">S · SOHANA</div></div>
   <div class="body">{body_html}</div>
   <div class="footer">
-    SOHANA &nbsp;·&nbsp; sohana.app<br>
+    SOHANA  ·  sohana.app<br>
     Questions? <a href="mailto:{SENDGRID_FROM_EMAIL}" style="color:#9ee493">{SENDGRID_FROM_EMAIL}</a><br>
-    <span style="color:#ccc">&copy; {datetime.now().year} SOHANA</span>
+    <span style="color:#ccc">&copy; {datetime.now().year} SOHANA</span>{marketing_footer}
   </div>
 </div>
 </body></html>"""
@@ -234,6 +249,21 @@ def send_email(to_email: str, to_name: str,
             print(f"[comms.send_email] No template ID for '{template_key}' — using inline HTML",
                   file=sys.stderr, flush=True)
             subject, html = _inline_html(template_key, data, to_name)
+            # If this is a marketing email, inject the unsubscribe footer.
+            # data must contain is_marketing=True and unsubscribe_url=... — the
+            # broadcast sender is responsible for providing both.
+            if data.get("is_marketing") and data.get("unsubscribe_url"):
+                # Re-render the body inside a _build_html shell that has the
+                # marketing footer. We regenerate rather than string-injecting
+                # because _inline_html already wraps in _build_html.
+                # Strategy: strip the outer envelope and rewrap.
+                body_only = html
+                # Extract just the inner body — the templates all use the same shell.
+                import re as _re
+                m = _re.search(r'<div class="body">(.*?)</div>\s*<div class="footer">', body_only, _re.DOTALL)
+                if m:
+                    inner = m.group(1)
+                    html  = _build_html(subject, inner, unsubscribe_url=data["unsubscribe_url"])
             msg = Mail(
                 from_email = From(SENDGRID_FROM_EMAIL, SENDGRID_FROM_NAME),
                 to_emails  = To(to_email, to_name),

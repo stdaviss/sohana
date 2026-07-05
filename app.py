@@ -751,6 +751,56 @@ def _run_safe_migrations():
         "ALTER TABLE kyc_submissions ADD COLUMN file_size_bytes INTEGER",
         "ALTER TABLE kyc_submissions ADD COLUMN file_mime       TEXT",
 
+        # ── MARKETING CONSENT & BROADCASTS (v7.7) ─────────────────────────────
+        # GDPR-compliant consent tracking — required before any marketing email.
+        # marketing_consent defaults to 0 (off). Timestamp + source recorded for audit.
+        "ALTER TABLE users ADD COLUMN marketing_consent        INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN marketing_consent_at     TEXT",
+        "ALTER TABLE users ADD COLUMN marketing_consent_source TEXT",
+        "ALTER TABLE users ADD COLUMN unsubscribed_at          TEXT",
+        "ALTER TABLE users ADD COLUMN unsubscribe_token        TEXT",
+
+        # Same fields on waitlist — 12,438 waitlist members already gave implied
+        # launch-notification consent, but explicit marketing consent still tracked.
+        "ALTER TABLE waitlist ADD COLUMN marketing_consent        INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE waitlist ADD COLUMN marketing_consent_at     TEXT",
+        "ALTER TABLE waitlist ADD COLUMN marketing_consent_source TEXT",
+        "ALTER TABLE waitlist ADD COLUMN unsubscribed_at          TEXT",
+        "ALTER TABLE waitlist ADD COLUMN unsubscribe_token        TEXT",
+
+        """CREATE TABLE IF NOT EXISTS email_broadcasts (
+            id            TEXT PRIMARY KEY,
+            subject       TEXT NOT NULL,
+            body_html     TEXT NOT NULL,
+            body_text     TEXT,
+            audience_json TEXT,           -- JSON blob of filters used
+            audience_size INTEGER NOT NULL DEFAULT 0,
+            status        TEXT NOT NULL DEFAULT 'draft',  -- draft|scheduled|sending|sent|failed|cancelled
+            scheduled_for TEXT,           -- ISO timestamp for scheduled sends
+            created_by    TEXT NOT NULL,  -- admin user_id
+            created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            started_at    TEXT,
+            completed_at  TEXT,
+            sent_count    INTEGER NOT NULL DEFAULT 0,
+            failed_count  INTEGER NOT NULL DEFAULT 0
+        )""",
+        """CREATE TABLE IF NOT EXISTS email_broadcast_recipients (
+            id             TEXT PRIMARY KEY,
+            broadcast_id   TEXT NOT NULL,
+            user_id        TEXT,          -- null if from waitlist
+            waitlist_id    TEXT,          -- null if from users
+            email          TEXT NOT NULL,
+            status         TEXT NOT NULL DEFAULT 'pending',  -- pending|sent|failed|bounced|unsubscribed
+            error          TEXT,
+            sent_at        TEXT,
+            FOREIGN KEY (broadcast_id) REFERENCES email_broadcasts(id)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_broadcast ON email_broadcast_recipients(broadcast_id, status)",
+        "CREATE INDEX IF NOT EXISTS idx_broadcast_recipients_email ON email_broadcast_recipients(email, sent_at)",
+        "CREATE INDEX IF NOT EXISTS idx_users_marketing ON users(marketing_consent, unsubscribed_at)",
+        "CREATE INDEX IF NOT EXISTS idx_users_unsub_token ON users(unsubscribe_token)",
+        "CREATE INDEX IF NOT EXISTS idx_waitlist_unsub_token ON waitlist(unsubscribe_token)",
+
         # ── STATUS PAGE TABLES (v7.3) ──
         """CREATE TABLE IF NOT EXISTS service_components (
             id TEXT PRIMARY KEY,
@@ -4873,6 +4923,155 @@ def _seed_all():
                           (id,title,slug,excerpt,body,category,author_id,is_published,published_at)
                           VALUES(?,?,?,?,?,?,?,1,datetime('now'))""",
                        (bid,title,slug,excerpt,body,cat,admin_id))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MARKETING CONSENT & UNSUBSCRIBE (v7.7)
+# GDPR-compliant infrastructure. Consent is opt-in only. Every marketing email
+# MUST include an unsubscribe link. Unsubscribes take effect immediately and are
+# permanent unless the user explicitly re-opts-in from their profile.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_or_create_unsub_token(entity_type: str, entity_id: str) -> str:
+    """
+    Returns a stable per-user unsubscribe token. Generates and stores one on
+    first use. Same token is reused across all future broadcasts to that user —
+    that way a single link works forever, even after multiple emails.
+
+    entity_type: "users" or "waitlist"
+    """
+    import secrets as _sec
+    table = "users" if entity_type == "users" else "waitlist"
+    row = fetchone(f"SELECT unsubscribe_token FROM {table} WHERE id=?", (entity_id,))
+    if row and dict(row).get("unsubscribe_token"):
+        return dict(row)["unsubscribe_token"]
+    token = _sec.token_urlsafe(24)
+    with get_db() as db:
+        db.execute(f"UPDATE {table} SET unsubscribe_token=? WHERE id=?",
+                    (token, entity_id))
+    return token
+
+
+def build_unsubscribe_url(entity_type: str, entity_id: str) -> str:
+    """Full https URL for the unsubscribe link, ready to drop into any email."""
+    base  = os.environ.get("APP_BASE_URL", "https://sohana.app").rstrip("/")
+    token = _get_or_create_unsub_token(entity_type, entity_id)
+    return f"{base}/unsubscribe/{token}"
+
+
+@app.route("/unsubscribe/<token>", methods=["GET"])
+def unsubscribe_page(token):
+    """
+    One-click unsubscribe landing page — works without login.
+    Looks up token in both users and waitlist, updates unsubscribed_at,
+    then shows a confirmation page with a re-subscribe option.
+    """
+    if not token or len(token) < 20:
+        return render_template("unsubscribe.html",
+                                found=False, email=None, resubscribe=False), 400
+
+    # Check users table
+    user_row = fetchone(
+        "SELECT id, email, full_name, unsubscribed_at FROM users WHERE unsubscribe_token=?",
+        (token,)
+    )
+    wl_row = None
+    if not user_row:
+        wl_row = fetchone(
+            "SELECT id, email, unsubscribed_at FROM waitlist WHERE unsubscribe_token=?",
+            (token,)
+        )
+
+    if not user_row and not wl_row:
+        return render_template("unsubscribe.html",
+                                found=False, email=None, resubscribe=False), 404
+
+    row = dict(user_row or wl_row)
+    table = "users" if user_row else "waitlist"
+    already = bool(row.get("unsubscribed_at"))
+
+    if not already:
+        with get_db() as db:
+            db.execute(
+                f"UPDATE {table} SET marketing_consent=0, unsubscribed_at=datetime('now') WHERE id=?",
+                (row["id"],)
+            )
+
+    return render_template("unsubscribe.html",
+                            found=True, email=row.get("email"),
+                            already=already, token=token, table=table)
+
+
+@app.route("/api/unsubscribe/resubscribe", methods=["POST"])
+def api_resubscribe():
+    """One-click re-subscribe from the unsubscribe confirmation page."""
+    d     = request.json or {}
+    token = d.get("token", "")
+    if not token or len(token) < 20:
+        return jsonify({"error": "Invalid token"}), 400
+
+    # Look up in both tables
+    for table in ("users", "waitlist"):
+        row = fetchone(
+            f"SELECT id FROM {table} WHERE unsubscribe_token=?",
+            (token,)
+        )
+        if row:
+            with get_db() as db:
+                db.execute(
+                    f"""UPDATE {table} SET marketing_consent=1,
+                        marketing_consent_at=datetime('now'),
+                        marketing_consent_source='resubscribe_link',
+                        unsubscribed_at=NULL WHERE id=?""",
+                    (dict(row)["id"],)
+                )
+            return jsonify({"ok": True})
+    return jsonify({"error": "Token not found"}), 404
+
+
+# Profile toggle for marketing consent — user-controlled, works without new UI
+@app.route("/api/profile/marketing-consent", methods=["POST"])
+@auth.login_required
+def api_set_marketing_consent():
+    """Toggle marketing consent from the profile page."""
+    d       = request.json or {}
+    consent = bool(d.get("consent", False))
+    uid     = session["user_id"]
+    with get_db() as db:
+        if consent:
+            db.execute(
+                """UPDATE users SET marketing_consent=1,
+                    marketing_consent_at=datetime('now'),
+                    marketing_consent_source='profile',
+                    unsubscribed_at=NULL WHERE id=?""",
+                (uid,)
+            )
+        else:
+            db.execute(
+                """UPDATE users SET marketing_consent=0,
+                    unsubscribed_at=datetime('now') WHERE id=?""",
+                (uid,)
+            )
+    return jsonify({"ok": True, "marketing_consent": consent})
+
+
+def can_receive_marketing(entity_type: str, entity_id: str) -> bool:
+    """
+    Single source of truth for whether an entity can receive marketing email.
+    Checks marketing_consent=1 AND unsubscribed_at IS NULL.
+    Broadcast sender MUST call this before every send, even after audience
+    filtering — the state can change between audience build and send.
+    """
+    table = "users" if entity_type == "users" else "waitlist"
+    row   = fetchone(
+        f"SELECT marketing_consent, unsubscribed_at FROM {table} WHERE id=?",
+        (entity_id,)
+    )
+    if not row:
+        return False
+    row = dict(row)
+    return bool(row.get("marketing_consent")) and not row.get("unsubscribed_at")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STATUS PAGE — public status page, health checks, incident management (v7.3)

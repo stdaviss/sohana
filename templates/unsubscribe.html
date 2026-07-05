@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsubscribed — SOHANA</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg-2:#161B17;--bg-3:#1C231D;--ink:#F4F2EC;--ink-2:#B7BAB4;--ink-3:#8A8E87;--accent:#9EE493;--accent-2:#cef870;--danger:#FF6A55;--line:rgba(244,242,236,.10);--line-2:rgba(244,242,236,.18)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:.875rem 2rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--ink);font-weight:700;font-size:.975rem}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#0E120F;font-weight:700;font-size:13px;display:grid;place-items:center}
+.wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.card{width:100%;max-width:480px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:16px;padding:2.5rem 2rem;text-align:center}
+.ico{font-size:2.5rem;margin-bottom:1.25rem}
+h1{font-size:1.4rem;font-weight:700;margin-bottom:.75rem;letter-spacing:-.01em}
+h1 em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--accent);font-weight:400}
+p{font-size:.95rem;color:var(--ink-2);line-height:1.65;margin-bottom:1rem}
+.email-pill{display:inline-block;padding:.4rem .85rem;background:var(--bg-3);border:1px solid var(--line-2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.82rem;color:var(--ink-2);margin:.5rem 0 1.25rem}
+.actions{margin-top:1.5rem;display:flex;flex-direction:column;gap:.65rem}
+.btn{display:inline-block;padding:.75rem 1.5rem;border-radius:99px;font-weight:700;text-decoration:none;cursor:pointer;font-family:inherit;font-size:.9rem;border:none;transition:all .15s}
+.btn-primary{background:var(--accent);color:#0E120F}
+.btn-primary:hover{background:var(--accent-2)}
+.btn-ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line-2)}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink-3)}
+.footer-note{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--line);font-size:.78rem;color:var(--ink-3);line-height:1.6}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="brand"><div class="brand-mark">S</div>SOHANA</a>
+</nav>
+
+<div class="wrap">
+  <div class="card">
+    {% if not found %}
+      <div class="ico">🔍</div>
+      <h1>Link <em>expired</em></h1>
+      <p>This unsubscribe link is invalid or has expired. If you received an email from us and want to opt out, please <a href="mailto:privacy@sohana.app" style="color:var(--accent);text-decoration:none">contact privacy@sohana.app</a> directly.</p>
+      <div class="actions">
+        <a href="/" class="btn btn-ghost">← Return to SOHANA</a>
+      </div>
+
+    {% elif already %}
+      <div class="ico">✓</div>
+      <h1>Already <em>unsubscribed</em></h1>
+      <p>You were already unsubscribed from SOHANA marketing emails.</p>
+      {% if email %}<div class="email-pill">{{ email }}</div>{% endif %}
+      <p style="margin-top:1rem">Changed your mind? You can re-subscribe below.</p>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="resubscribe()" id="resub-btn">Re-subscribe to updates</button>
+        <a href="/" class="btn btn-ghost">Return to SOHANA</a>
+      </div>
+
+    {% else %}
+      <div class="ico">👋</div>
+      <h1>You're <em>unsubscribed</em></h1>
+      <p>We won't send you any more marketing emails.</p>
+      {% if email %}<div class="email-pill">{{ email }}</div>{% endif %}
+      <p style="margin-top:1rem;font-size:.85rem;color:var(--ink-3)">You'll still receive essential account emails such as password resets, KYC updates and payment confirmations — these are required and can't be turned off while your account is active.</p>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="resubscribe()" id="resub-btn">Actually, keep me subscribed</button>
+        <a href="/" class="btn btn-ghost">Return to SOHANA</a>
+      </div>
+    {% endif %}
+
+    <div class="footer-note">
+      Questions? <a href="mailto:privacy@sohana.app" style="color:var(--accent);text-decoration:none">privacy@sohana.app</a><br>
+      SOHANA · Pursuing ACPR (France) and FCA (UK) authorisation
+    </div>
+
+    <div id="resub-success" class="hidden" style="margin-top:1.25rem;padding:.85rem;background:rgba(158,228,147,.08);border:1px solid rgba(158,228,147,.25);border-radius:10px;color:var(--accent);font-size:.88rem">
+      ✓ You're re-subscribed. Welcome back.
+    </div>
+    <div id="resub-error" class="hidden" style="margin-top:1.25rem;padding:.85rem;background:rgba(255,106,85,.08);border:1px solid rgba(255,106,85,.25);border-radius:10px;color:var(--danger);font-size:.88rem">
+      Something went wrong. Please try again in a moment.
+    </div>
+  </div>
+</div>
+
+<script>
+function resubscribe(){
+  var btn = document.getElementById('resub-btn');
+  btn.disabled = true;
+  btn.textContent = 'Working…';
+  fetch('/api/unsubscribe/resubscribe',{
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({token: '{{ token }}'})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.ok) {
+      document.getElementById('resub-success').classList.remove('hidden');
+      btn.style.display = 'none';
+    } else {
+      document.getElementById('resub-error').classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Try again';
+    }
+  })
+  .catch(function(){
+    document.getElementById('resub-error').classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'Try again';
+  });
+}
+</script>
+</body>
+</html>
