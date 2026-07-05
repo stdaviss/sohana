@@ -94,6 +94,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Consent-capture broadcast -->
+  <div class="diag-card" style="border:1px solid rgba(158,228,147,.3)">
+    <div class="dh"><span style="font-size:1rem">📣</span><h3>Send Consent-Capture Broadcast</h3></div>
+    <div class="db">
+      <p style="font-size:.83rem;color:var(--ink-2);margin-bottom:.65rem;line-height:1.5">
+        One-time GDPR-compliant email asking existing users to opt in to marketing. Eligible = has email, not admin, has not been asked yet, and is not already opted in.
+      </p>
+      <p style="font-size:.78rem;color:var(--warn);margin-bottom:.85rem;padding:.5rem .75rem;background:rgba(255,179,80,.08);border:1px solid rgba(255,179,80,.25);border-radius:8px">
+        ⚠ Always run the dry-run first. Once sent, users are marked as "asked" and cannot be re-emailed for consent.
+      </p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn-test" onclick="consentDryRun()" style="background:transparent;border:1px solid var(--line-2);color:var(--ink-2)">Preview audience (dry run)</button>
+        <button class="btn-test" onclick="consentSend()" id="cc-send-btn" style="opacity:.5;pointer-events:none">Send to all eligible</button>
+      </div>
+      <div class="result" id="r-consent"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -172,6 +191,43 @@ async function verifyTotpCode(){
     var d = await r.json();
     showResult('r-totp-verify', d, d.ok);
   }catch(e){ showResult('r-totp-verify', {error:e.message}, false); }
+}
+
+async function consentDryRun(){
+  var btn = event.target; btn.disabled=true; btn.textContent='Loading…';
+  try{
+    var r = await fetch('/api/admin/marketing/send-consent-capture',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({dry_run:true})
+    });
+    var d = await r.json();
+    showResult('r-consent', d, d.ok);
+    // Enable the real-send button if dry-run succeeded
+    if (d.ok) {
+      var sendBtn = document.getElementById('cc-send-btn');
+      sendBtn.style.opacity = '1';
+      sendBtn.style.pointerEvents = 'auto';
+      sendBtn.textContent = 'Send to ' + d.audience_size + ' users';
+    }
+  }catch(e){ showResult('r-consent', {error:e.message}, false); }
+  btn.disabled=false; btn.textContent='Preview audience (dry run)';
+}
+
+async function consentSend(){
+  if (!confirm('This will send the consent-capture email to all eligible users. Continue?')) return;
+  var btn = event.target; btn.disabled=true; btn.textContent='Sending…';
+  try{
+    var r = await fetch('/api/admin/marketing/send-consent-capture',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({dry_run:false})
+    });
+    var d = await r.json();
+    showResult('r-consent', d, d.ok);
+    if (d.ok) {
+      btn.style.opacity='.5'; btn.style.pointerEvents='none';
+      btn.textContent = '✓ Broadcast started (' + d.audience_size + ' users)';
+    }
+  }catch(e){ showResult('r-consent', {error:e.message}, false); }
 }
 </script>
 {% endblock %}

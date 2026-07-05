@@ -515,9 +515,10 @@ def profile_page(user_id=None):
     all_badges   = ncs_engine.BADGE_DEFINITIONS
     total_saved  = fetchone("SELECT COALESCE(SUM(amount_cents),0) as s FROM contributions WHERE user_id=? AND status IN ('paid','late')", (profile_user["id"],))["s"]
     wallets      = get_user_wallets(me["id"]) if viewing_self else []
-    _totp_row      = fetchone("SELECT totp_enabled FROM users WHERE id=?", (profile_user["id"],))
+    _extra_row     = fetchone("SELECT totp_enabled, marketing_consent FROM users WHERE id=?", (profile_user["id"],))
     _profile_dict  = dict(profile_user)
-    _profile_dict["totp_enabled"] = bool(_totp_row["totp_enabled"]) if _totp_row else False
+    _profile_dict["totp_enabled"]      = bool(_extra_row["totp_enabled"])      if _extra_row else False
+    _profile_dict["marketing_consent"] = bool(_extra_row["marketing_consent"]) if _extra_row else False
     return render_template("profile.html", user=me, profile_user=_profile_dict,
                            badges=badges, endorsements=endorsements, roscas_done=roscas_done,
                            tier=tier, pay_methods=pay_methods, viewing_self=viewing_self,
@@ -1782,6 +1783,20 @@ def api_register():
             source_of_funds = d.get("source_of_funds") or None,
         )
         session["user_id"] = uid
+        # Persist marketing consent (default False — GDPR opt-in only)
+        wants_marketing = bool(d.get("marketing_consent", False))
+        if wants_marketing:
+            try:
+                with get_db() as db:
+                    db.execute(
+                        """UPDATE users SET marketing_consent=1,
+                            marketing_consent_at=datetime('now'),
+                            marketing_consent_source='registration'
+                            WHERE id=?""",
+                        (uid,)
+                    )
+            except Exception:
+                pass
         push_notification(uid, "Welcome to SOHANA! 🎉", "Your account is ready. Start by joining a circle.", "success", "/circles")
         return jsonify({"ok": True, "user_id": uid})
     except ValueError as e:
@@ -5072,6 +5087,257 @@ def can_receive_marketing(entity_type: str, entity_id: str) -> bool:
     row = dict(row)
     return bool(row.get("marketing_consent")) and not row.get("unsubscribed_at")
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONSENT-CAPTURE EMAIL (v7.7 Phase 2)
+# One-time transactional email sent to existing users asking them to opt in
+# to marketing communications. Because this email is *seeking* consent rather
+# than *delivering* marketing, it can lawfully be sent under GDPR "legitimate
+# interest" — but only ONCE per user. Idempotency enforced by consent_capture_sent_at.
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _consent_capture_html(user_name: str, first_name: str, opt_in_url: str) -> str:
+    """Branded HTML for the consent-capture email."""
+    return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f2ec;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+<div style="max-width:540px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e0ddd5">
+  <div style="background:#0e120f;padding:28px 32px;text-align:center">
+    <div style="color:#9ee493;font-size:22px;font-weight:700;letter-spacing:-.02em">S · SOHANA</div>
+  </div>
+  <div style="padding:32px">
+    <p style="color:#3d3d3d;font-size:15px;line-height:1.65;margin:0 0 16px">Hi {first_name or user_name or "there"},</p>
+    <p style="color:#3d3d3d;font-size:15px;line-height:1.65;margin:0 0 16px">
+      Thanks for being one of the first members of SOHANA. As we get closer to launch, we\'re formalising how we communicate with our community — in line with GDPR.
+    </p>
+    <div style="background:#f7f6f2;border-left:3px solid #9ee493;padding:14px 18px;border-radius:4px;margin:20px 0">
+      <div style="font-size:14px;color:#0e120f;font-weight:700;margin-bottom:6px">Would you like to hear from us about:</div>
+      <ul style="color:#3d3d3d;font-size:14px;line-height:1.7;margin:8px 0 0 0;padding-left:18px">
+        <li>Product launches and new features</li>
+        <li>Regulatory milestones (ACPR / FCA authorisation)</li>
+        <li>Community stories and Njangi tips</li>
+        <li>Occasional announcements about your NCS score</li>
+      </ul>
+    </div>
+    <p style="color:#3d3d3d;font-size:15px;line-height:1.65;margin:0 0 16px">
+      Click the button below to opt in. You\'ll always be able to unsubscribe with one click, from any email or your profile settings.
+    </p>
+    <div style="text-align:center;margin:24px 0">
+      <a href="{opt_in_url}" style="display:inline-block;background:#9ee493;color:#0e120f;padding:13px 28px;border-radius:99px;font-weight:700;font-size:15px;text-decoration:none">Yes, keep me updated →</a>
+    </div>
+    <p style="color:#8a8e87;font-size:13px;line-height:1.65;margin:20px 0 0">
+      <strong>No action needed if you\'d rather not.</strong> If you don\'t click, we simply won\'t send you marketing emails.
+      You\'ll still receive essential account emails (password resets, KYC updates, payment confirmations) — those are required.
+    </p>
+    <p style="color:#aaa;font-size:12px;line-height:1.6;margin-top:24px;padding-top:16px;border-top:1px solid #eee">
+      This is a one-time email under GDPR "legitimate interest" for consent gathering. We will not send you a follow-up on this topic.
+    </p>
+  </div>
+  <div style="background:#f7f6f2;padding:20px 32px;text-align:center;font-size:12px;color:#aaa;line-height:1.6">
+    SOHANA SAS · Paris, France<br>
+    Questions? <a href="mailto:privacy@sohana.app" style="color:#9ee493">privacy@sohana.app</a>
+  </div>
+</div>
+</body></html>"""
+
+
+@app.route("/api/admin/marketing/send-consent-capture", methods=["POST"])
+@admin_required
+def api_send_consent_capture():
+    """
+    Send the one-time GDPR consent-capture email to eligible existing users.
+
+    Eligibility:
+      - Has an email address
+      - Not yet asked (marketing_consent_source IS NULL OR != 'consent_capture_sent')
+      - Not currently opted in (marketing_consent = 0)
+
+    Restricted to CEO/CTO. Uses APScheduler in a background thread so the HTTP
+    response returns immediately — status is trackable via email_broadcasts row.
+    """
+    role = session.get("admin_role", "")
+    if role not in ("ceo", "cto"):
+        return jsonify({"error": "CEO/CTO only."}), 403
+
+    d       = request.json or {}
+    dry_run = bool(d.get("dry_run", False))
+
+    # Build the audience
+    eligible = fetchall(
+        """SELECT id, full_name, first_name, email FROM users
+           WHERE email IS NOT NULL AND email != ""
+             AND is_admin = 0
+             AND (marketing_consent_source IS NULL
+                  OR marketing_consent_source != 'consent_capture_sent')
+             AND (marketing_consent = 0 OR marketing_consent IS NULL)"""
+    )
+    eligible = [dict(r) for r in eligible]
+
+    if dry_run:
+        return jsonify({
+            "ok":              True,
+            "dry_run":         True,
+            "audience_size":   len(eligible),
+            "sample":          [{"email": e["email"], "name": e.get("first_name") or e.get("full_name")}
+                                for e in eligible[:10]],
+        })
+
+    # Create broadcast record for audit trail
+    broadcast_id = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO email_broadcasts
+               (id, subject, body_html, body_text, audience_json, audience_size,
+                status, created_by, started_at)
+               VALUES (?,?,?,?,?,?,?,?,datetime('now'))""",
+            (broadcast_id,
+             "Would you like to hear from SOHANA?",
+             "[consent_capture_template]",
+             "One-time GDPR consent-capture email — see template code",
+             json.dumps({"type": "consent_capture", "audience": "users_no_prior_consent"}),
+             len(eligible),
+             "sending",
+             session.get("user_id"))
+        )
+
+    log_admin_action("consent_capture_broadcast_started", "email_broadcast", broadcast_id,
+                      new_data={"audience_size": len(eligible)})
+
+    # Send in a background thread so the request returns fast
+    def _send_batch():
+        import comms as _comms
+        sent, failed = 0, 0
+        base_url = os.environ.get("APP_BASE_URL", "https://sohana.app").rstrip("/")
+        for u in eligible:
+            try:
+                # Get/create token so the opt-in link uses their persistent token
+                token = _get_or_create_unsub_token("users", u["id"])
+                # The opt-in URL is /consent-optin/<token> — hits an endpoint that
+                # sets consent + redirects to a thank-you page. Reuses the same
+                # token as unsubscribe (safe — token is a random identifier).
+                opt_in_url = f"{base_url}/consent-optin/{token}"
+
+                # Log recipient
+                rid = str(uuid.uuid4())
+                with get_db() as db:
+                    db.execute(
+                        """INSERT INTO email_broadcast_recipients
+                           (id, broadcast_id, user_id, email, status)
+                           VALUES (?,?,?,?,?)""",
+                        (rid, broadcast_id, u["id"], u["email"], "pending")
+                    )
+
+                # Build + send inline HTML (bypasses comms.send_email templates
+                # because this needs a specific one-off design)
+                html    = _consent_capture_html(
+                    user_name  = u.get("full_name") or "",
+                    first_name = u.get("first_name") or "",
+                    opt_in_url = opt_in_url,
+                )
+                subject = "Would you like to hear from SOHANA?"
+
+                # Use SendGrid directly
+                from sendgrid import SendGridAPIClient
+                from sendgrid.helpers.mail import (Mail, From, To, Subject,
+                    HtmlContent, TrackingSettings, ClickTracking, OpenTracking)
+                msg = Mail(
+                    from_email   = From(_comms.SENDGRID_FROM_EMAIL, _comms.SENDGRID_FROM_NAME),
+                    to_emails    = To(u["email"], u.get("full_name") or "SOHANA Member"),
+                    subject      = Subject(subject),
+                    html_content = HtmlContent(html),
+                )
+                ts = TrackingSettings()
+                ts.click_tracking = ClickTracking(enable=False, enable_text=False)
+                ts.open_tracking  = OpenTracking(enable=False)
+                msg.tracking_settings = ts
+
+                sg   = SendGridAPIClient(_comms.SENDGRID_API_KEY)
+                resp = sg.send(msg)
+                ok   = resp.status_code in (200, 202)
+
+                with get_db() as db:
+                    db.execute(
+                        """UPDATE email_broadcast_recipients
+                           SET status=?, sent_at=datetime('now'),
+                               error=?
+                           WHERE id=?""",
+                        ("sent" if ok else "failed",
+                         None if ok else f"HTTP {resp.status_code}",
+                         rid)
+                    )
+                    # Mark this user as asked (idempotency)
+                    db.execute(
+                        """UPDATE users SET marketing_consent_source='consent_capture_sent'
+                           WHERE id=?""",
+                        (u["id"],)
+                    )
+                if ok:
+                    sent += 1
+                else:
+                    failed += 1
+
+                # Rate-limit: sleep briefly to stay under SendGrid free-tier limits
+                import time; time.sleep(0.1)
+
+            except Exception as e:
+                failed += 1
+                import sys
+                print(f"[consent_capture] {u['email']}: {e}", file=sys.stderr, flush=True)
+
+        with get_db() as db:
+            db.execute(
+                """UPDATE email_broadcasts
+                   SET status='sent', completed_at=datetime('now'),
+                       sent_count=?, failed_count=?
+                   WHERE id=?""",
+                (sent, failed, broadcast_id)
+            )
+        import sys
+        print(f"[consent_capture] broadcast {broadcast_id} complete: {sent} sent, {failed} failed",
+              file=sys.stderr, flush=True)
+
+    import threading
+    threading.Thread(target=_send_batch, daemon=True).start()
+
+    return jsonify({
+        "ok":            True,
+        "broadcast_id":  broadcast_id,
+        "audience_size": len(eligible),
+        "message":       f"Sending to {len(eligible)} eligible users in the background. Check /admin/broadcasts for progress.",
+    })
+
+
+@app.route("/consent-optin/<token>", methods=["GET"])
+def consent_optin_landing(token):
+    """
+    User clicked the opt-in link from the consent-capture email.
+    Sets marketing_consent=1 and shows a thank-you page.
+    """
+    if not token or len(token) < 20:
+        return render_template("unsubscribe.html",
+                                found=False, email=None), 400
+
+    row = fetchone(
+        "SELECT id, email FROM users WHERE unsubscribe_token=?",
+        (token,)
+    )
+    if not row:
+        return render_template("unsubscribe.html",
+                                found=False, email=None), 404
+
+    row = dict(row)
+    with get_db() as db:
+        db.execute(
+            """UPDATE users SET marketing_consent=1,
+                marketing_consent_at=datetime('now'),
+                marketing_consent_source='consent_capture_optin',
+                unsubscribed_at=NULL
+                WHERE id=?""",
+            (row["id"],)
+        )
+
+    return render_template("consent_optin_thanks.html", email=row["email"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STATUS PAGE — public status page, health checks, incident management (v7.3)

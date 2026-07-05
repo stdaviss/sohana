@@ -43,7 +43,7 @@
 {% if viewing_self %}
 <!-- SETTINGS TABS -->
 <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;">
-  {% for tab_id, tab_label in [('badges','Badges'),('settings','Settings'),('notif','Notifications'),('methods','Payment Methods'),('limits','Limits'),('hanatag','Hanatag & QR')] %}
+  {% for tab_id, tab_label in [('badges','Badges'),('settings','Settings'),('security','Security'),('notif','Notifications'),('methods','Payment Methods'),('limits','Limits'),('hanatag','Hanatag & QR')] %}
   <button id="ptab-{{ tab_id }}" onclick="switchProfileTab('{{ tab_id }}')"
     style="padding:.6rem 1.1rem;background:none;border:none;font-size:.85rem;white-space:nowrap;cursor:pointer;
            {% if loop.first %}font-weight:600;border-bottom:3px solid var(--blue);color:var(--blue){% else %}font-weight:500;border-bottom:3px solid transparent;color:var(--text-muted){% endif %}">
@@ -126,10 +126,291 @@
 </div>
 
 <!-- TAB: NOTIFICATIONS -->
-<div id="pane-notif" class="hidden">
+<div 
+
+<!-- TAB: SECURITY (2FA + Password change) -->
+<div id="pane-security" class="hidden">
+
+  <!-- ── TWO-FACTOR AUTHENTICATION ── -->
+  <div class="card" style="max-width:540px;margin-bottom:1.25rem">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="card-title">Two-factor authentication (2FA)</span>
+      {% if profile_user.totp_enabled %}
+      <span style="padding:.2rem .65rem;border-radius:99px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.3);font-family:'Geist Mono',monospace;font-size:.68rem;font-weight:700;color:var(--accent,#9EE493)">ACTIVE</span>
+      {% else %}
+      <span style="padding:.2rem .65rem;border-radius:99px;background:rgba(244,242,236,.06);border:1px solid var(--border);font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--text-muted)">OFF</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+
+      {% if not profile_user.totp_enabled %}
+      <!-- ── ENABLE FLOW ── -->
+      <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+        Protect your account with Google Authenticator or any TOTP-compatible app.
+        Every login and payment will require a 6-digit code from your phone.
+      </p>
+
+      <!-- Step 1: Generate QR -->
+      <div id="totp-step-1">
+        <button class="btn-primary" style="width:100%;padding:.75rem"
+                onclick="totpSetup()">
+          🔐 Set up authenticator app
+        </button>
+      </div>
+
+      <!-- Step 2: Scan QR + confirm -->
+      <div id="totp-step-2" style="display:none">
+        <p style="font-size:.84rem;color:var(--text-muted);margin-bottom:.75rem">
+          Scan this QR code with <strong>Google Authenticator</strong>, <strong>Authy</strong>, or <strong>1Password</strong>.
+        </p>
+        <div style="text-align:center;margin-bottom:1rem">
+          <img id="totp-qr-img" src="" alt="Scan with authenticator"
+               style="width:180px;height:180px;border-radius:12px;border:1px solid var(--border)">
+          <div id="totp-secret-display"
+               style="margin-top:.5rem;font-family:'Geist Mono',monospace;font-size:.72rem;
+                      color:var(--text-muted);background:var(--surface-2,#1C231D);
+                      padding:.4rem .75rem;border-radius:6px;display:inline-block;
+                      word-break:break-all;max-width:220px">
+          </div>
+          <p style="font-size:.72rem;color:var(--text-muted);margin-top:.35rem">
+            Or enter the code manually in your app
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Enter the 6-digit code from your app to confirm</label>
+          <input id="totp-confirm-code" type="text" inputmode="numeric" maxlength="6"
+                 placeholder="000000"
+                 style="font-family:'Geist Mono',monospace;font-size:1.4rem;letter-spacing:.2em;
+                        text-align:center;padding:.65rem 1rem;width:100%"
+                 class="form-input"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div id="totp-confirm-err"
+             style="display:none;color:#FF6A55;font-size:.8rem;margin-bottom:.5rem"></div>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn-secondary" style="flex:1"
+                  onclick="totpCancelSetup()">Cancel</button>
+          <button class="btn-primary" style="flex:2"
+                  onclick="totpConfirm()">Activate 2FA</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="totp-step-3" style="display:none;text-align:center;padding:1.5rem 0">
+        <div style="font-size:2rem;margin-bottom:.5rem">🎉</div>
+        <p style="font-weight:700;color:var(--text);margin-bottom:.35rem">2FA is now active</p>
+        <p style="font-size:.84rem;color:var(--text-muted)">
+          You'll be asked for a code every time you sign in and make payments.
+        </p>
+      </div>
+
+      {% else %}
+      <!-- ── DISABLE FLOW ── -->
+      <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:1rem;line-height:1.6">
+        2FA is currently protecting your account. To disable it, enter a valid code
+        from your authenticator app.
+      </p>
+      <div id="totp-disable-form">
+        <div class="form-group">
+          <label class="form-label">Current 6-digit code</label>
+          <input id="totp-disable-code" type="text" inputmode="numeric" maxlength="6"
+                 placeholder="000000"
+                 style="font-family:'Geist Mono',monospace;font-size:1.4rem;letter-spacing:.2em;
+                        text-align:center;padding:.65rem 1rem;width:100%"
+                 class="form-input"
+                 oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div id="totp-disable-err"
+             style="display:none;color:#FF6A55;font-size:.8rem;margin-bottom:.5rem"></div>
+        <button class="btn-danger" style="width:100%;padding:.75rem"
+                onclick="totpDisable()">
+          Disable 2FA
+        </button>
+      </div>
+      <div id="totp-disabled-ok" style="display:none;text-align:center;padding:1rem 0">
+        <p style="font-size:.88rem;color:var(--text-muted)">
+          2FA has been disabled. You can re-enable it at any time.
+        </p>
+        <button class="btn-secondary" style="margin-top:.5rem"
+                onclick="window.location.reload()">Refresh</button>
+      </div>
+      {% endif %}
+
+    </div><!-- /card-body -->
+  </div><!-- /2FA card -->
+
+  <!-- ── CHANGE PASSWORD ── -->
+  <div class="card" style="max-width:540px">
+    <div class="card-header"><span class="card-title">Change password</span></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Current password</label>
+        <input class="form-input" id="pw-current" type="password" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label">New password</label>
+        <input class="form-input" id="pw-new" type="password" placeholder="At least 8 characters"
+               oninput="checkNewPw()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm new password</label>
+        <input class="form-input" id="pw-confirm" type="password" placeholder="Repeat new password"
+               oninput="checkNewPw()">
+      </div>
+      <div id="pw-match-hint"
+           style="font-size:.78rem;margin-bottom:.65rem;display:none"></div>
+      <div id="pw-change-err"
+           style="display:none;color:#FF6A55;font-size:.8rem;margin-bottom:.5rem"></div>
+      <div id="pw-change-ok"
+           style="display:none;color:#9EE493;font-size:.8rem;margin-bottom:.5rem"></div>
+      <button class="btn-primary" style="width:100%;padding:.75rem"
+              onclick="changePassword()">Update password</button>
+    </div>
+  </div>
+
+</div><!-- /pane-security -->
+
+<script>
+/* ── TOTP SETUP ── */
+function totpSetup() {
+  var btn = event.target;
+  btn.disabled = true; btn.textContent = 'Generating…';
+  fetch('/api/auth/totp/setup', { method:'POST', headers:{'Content-Type':'application/json'} })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    btn.disabled = false; btn.textContent = '🔐 Set up authenticator app';
+    if (!d.ok) { alert(d.error || 'Failed to generate QR code'); return; }
+    document.getElementById('totp-qr-img').src = d.qr;
+    document.getElementById('totp-secret-display').textContent = d.secret;
+    document.getElementById('totp-step-1').style.display = 'none';
+    document.getElementById('totp-step-2').style.display = 'block';
+    document.getElementById('totp-confirm-code').focus();
+  })
+  .catch(function(){ btn.disabled=false; btn.textContent='🔐 Set up authenticator app'; alert('Network error'); });
+}
+
+function totpCancelSetup() {
+  document.getElementById('totp-step-2').style.display = 'none';
+  document.getElementById('totp-step-1').style.display = 'block';
+  document.getElementById('totp-confirm-code').value = '';
+  document.getElementById('totp-confirm-err').style.display = 'none';
+}
+
+function totpConfirm() {
+  var code = document.getElementById('totp-confirm-code').value.trim();
+  var err  = document.getElementById('totp-confirm-err');
+  err.style.display = 'none';
+  if (code.length !== 6) { err.textContent = 'Enter a 6-digit code'; err.style.display = 'block'; return; }
+  fetch('/api/auth/totp/confirm', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ code: code })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.ok) {
+      document.getElementById('totp-step-2').style.display = 'none';
+      document.getElementById('totp-step-3').style.display = 'block';
+    } else {
+      err.textContent = d.error || 'Invalid code — try again';
+      err.style.display = 'block';
+      document.getElementById('totp-confirm-code').value = '';
+      document.getElementById('totp-confirm-code').focus();
+    }
+  })
+  .catch(function(){ err.textContent='Network error'; err.style.display='block'; });
+}
+
+/* ── TOTP DISABLE ── */
+function totpDisable() {
+  var code = document.getElementById('totp-disable-code').value.trim();
+  var err  = document.getElementById('totp-disable-err');
+  err.style.display = 'none';
+  if (code.length !== 6) { err.textContent = 'Enter a 6-digit code'; err.style.display = 'block'; return; }
+  fetch('/api/auth/totp/disable', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ code: code })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.ok) {
+      document.getElementById('totp-disable-form').style.display  = 'none';
+      document.getElementById('totp-disabled-ok').style.display   = 'block';
+    } else {
+      err.textContent = d.error || 'Invalid code — try again';
+      err.style.display = 'block';
+      document.getElementById('totp-disable-code').value = '';
+      document.getElementById('totp-disable-code').focus();
+    }
+  })
+  .catch(function(){ err.textContent='Network error'; err.style.display='block'; });
+}
+
+/* ── PASSWORD CHANGE ── */
+function checkNewPw() {
+  var nw  = document.getElementById('pw-new').value;
+  var cnf = document.getElementById('pw-confirm').value;
+  var hint = document.getElementById('pw-match-hint');
+  if (!cnf) { hint.style.display='none'; return; }
+  hint.style.display = 'block';
+  if (nw === cnf) {
+    hint.style.color = '#9EE493'; hint.textContent = '✓ Passwords match';
+  } else {
+    hint.style.color = '#FF6A55'; hint.textContent = '✗ Passwords do not match';
+  }
+}
+
+function changePassword() {
+  var cur = document.getElementById('pw-current').value;
+  var nw  = document.getElementById('pw-new').value;
+  var cnf = document.getElementById('pw-confirm').value;
+  var err = document.getElementById('pw-change-err');
+  var ok  = document.getElementById('pw-change-ok');
+  err.style.display = 'none'; ok.style.display = 'none';
+  if (!cur || !nw || !cnf) { err.textContent='All fields are required'; err.style.display='block'; return; }
+  if (nw !== cnf) { err.textContent='New passwords do not match'; err.style.display='block'; return; }
+  if (nw.length < 8) { err.textContent='New password must be at least 8 characters'; err.style.display='block'; return; }
+  fetch('/api/auth/change-password', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ current_password: cur, new_password: nw })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.ok) {
+      ok.textContent = '✓ Password updated successfully';
+      ok.style.display = 'block';
+      document.getElementById('pw-current').value = '';
+      document.getElementById('pw-new').value = '';
+      document.getElementById('pw-confirm').value = '';
+      document.getElementById('pw-match-hint').style.display = 'none';
+    } else {
+      err.textContent = d.error || 'Failed to update password';
+      err.style.display = 'block';
+    }
+  })
+  .catch(function(){ err.textContent='Network error'; err.style.display='block'; });
+}
+</script>
+id="pane-notif" class="hidden">
   <div class="card" style="max-width:480px;">
     <div class="card-header"><span class="card-title">Notification preferences</span></div>
     <div class="card-body">
+      <!-- Marketing consent — separate toggle, separate endpoint, GDPR-compliant -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-size:.875rem;font-weight:500">Marketing & product updates <span style="font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:600;color:var(--accent);padding:2px 6px;border:1px solid var(--accent);border-radius:99px;margin-left:.35rem;vertical-align:middle">OPT-IN</span></div>
+          <div class="text-xs text-muted">New feature announcements, launches, and occasional product news. You can unsubscribe at any time.</div>
+        </div>
+        <label style="position:relative;width:40px;height:22px;cursor:pointer">
+          <input type="checkbox" id="n-marketing_consent" {{ 'checked' if profile_user.marketing_consent }}
+            onchange="saveMarketingConsent(this.checked)"
+            style="opacity:0;position:absolute;width:100%;height:100%;cursor:pointer;margin:0">
+          <span class="toggle-track-notif" style="position:absolute;inset:0;border-radius:11px;transition:background .2s;"></span>
+          <span class="toggle-thumb" style="position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;"></span>
+        </label>
+      </div>
+
+      <div style="padding:.5rem 0 .75rem;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.04em;text-transform:uppercase">Account notifications</div>
+
       {% for field, label, desc in [
         ('notif_email','Email notifications','Receive updates by email'),
         ('notif_push', 'Push notifications','In-app alerts for contributions and payouts'),
@@ -152,6 +433,29 @@
     </div>
   </div>
 </div>
+
+<script>
+function saveMarketingConsent(consent) {
+  fetch('/api/profile/marketing-consent', {
+    method:  'POST',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify({consent: consent})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (!d.ok && d.error) {
+      alert(d.error);
+      // Revert toggle
+      var el = document.getElementById('n-marketing_consent');
+      if (el) el.checked = !consent;
+    }
+  })
+  .catch(function() {
+    var el = document.getElementById('n-marketing_consent');
+    if (el) el.checked = !consent;
+  });
+}
+</script>
 
 <!-- TAB: PAYMENT METHODS -->
 <div id="pane-methods" class="hidden">

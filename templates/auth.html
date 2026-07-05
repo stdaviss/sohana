@@ -301,6 +301,10 @@ select.form-input{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg
             <input type="checkbox" id="chk-aml">
             <label for="chk-aml">I confirm that the information I have provided is accurate and that funds I use on this platform are from legitimate sources, in accordance with anti-money laundering regulations.</label>
           </div>
+          <div class="chk-row" style="border-top:1px solid var(--line);padding-top:.75rem;margin-top:.25rem">
+            <input type="checkbox" id="chk-marketing">
+            <label for="chk-marketing" style="color:var(--ink-2)"><strong style="color:var(--ink)">Optional:</strong> keep me updated by email about new features, product improvements, and launch announcements. You can unsubscribe at any time from your profile settings.</label>
+          </div>
 
           <div class="step-nav">
             <button class="btn-ghost" onclick="goStep(2)">← Back</button>
@@ -593,8 +597,9 @@ async function doRegister() {
     phone:           document.getElementById('r-phone').value.trim(),
     email:           document.getElementById('r-email').value.trim() || null,
     base_currency:   document.getElementById('r-currency').value,
-    source_of_funds: document.getElementById('r-funds').value,
-    password:        pass
+    source_of_funds:   document.getElementById('r-funds').value,
+    password:          pass,
+    marketing_consent: document.getElementById('chk-marketing').checked
   };
 
   const btn = document.getElementById('btn-register');

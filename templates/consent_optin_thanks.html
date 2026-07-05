@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thanks — SOHANA</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg-2:#161B17;--bg-3:#1C231D;--ink:#F4F2EC;--ink-2:#B7BAB4;--ink-3:#8A8E87;--accent:#9EE493;--accent-2:#cef870;--line:rgba(244,242,236,.10);--line-2:rgba(244,242,236,.18)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:.875rem 2rem;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.55rem;text-decoration:none;color:var(--ink);font-weight:700;font-size:.975rem}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--accent);color:#0E120F;font-weight:700;font-size:13px;display:grid;place-items:center}
+.wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem 1rem}
+.card{width:100%;max-width:480px;background:var(--bg-2);border:1px solid var(--line-2);border-radius:16px;padding:2.5rem 2rem;text-align:center}
+.ico{font-size:2.5rem;margin-bottom:1.25rem}
+h1{font-size:1.4rem;font-weight:700;margin-bottom:.75rem;letter-spacing:-.01em}
+h1 em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--accent);font-weight:400}
+p{font-size:.95rem;color:var(--ink-2);line-height:1.65;margin-bottom:1rem}
+.email-pill{display:inline-block;padding:.4rem .85rem;background:var(--bg-3);border:1px solid var(--line-2);border-radius:99px;font-family:'Geist Mono',monospace;font-size:.82rem;color:var(--ink-2);margin:.5rem 0 1.25rem}
+.actions{margin-top:1.5rem;display:flex;flex-direction:column;gap:.65rem}
+.btn{display:inline-block;padding:.75rem 1.5rem;border-radius:99px;font-weight:700;text-decoration:none;font-family:inherit;font-size:.9rem;transition:all .15s}
+.btn-primary{background:var(--accent);color:#0E120F}
+.btn-primary:hover{background:var(--accent-2)}
+.btn-ghost{background:transparent;color:var(--ink-2);border:1px solid var(--line-2)}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink-3)}
+.footer-note{margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--line);font-size:.78rem;color:var(--ink-3);line-height:1.6}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="brand"><div class="brand-mark">S</div>SOHANA</a>
+</nav>
+<div class="wrap">
+  <div class="card">
+    <div class="ico">🎉</div>
+    <h1>You're <em>in</em></h1>
+    <p>Thanks for opting in. You'll now receive product updates, launch announcements, and occasional community news.</p>
+    {% if email %}<div class="email-pill">{{ email }}</div>{% endif %}
+    <p style="font-size:.85rem;color:var(--ink-3)">You can change your preferences or unsubscribe at any time — every email has a one-click link, and you can also manage it from your profile.</p>
+    <div class="actions">
+      <a href="/dashboard" class="btn btn-primary">Go to my dashboard →</a>
+      <a href="/profile" class="btn btn-ghost">Manage preferences</a>
+    </div>
+    <div class="footer-note">
+      Questions? <a href="mailto:privacy@sohana.app" style="color:var(--accent);text-decoration:none">privacy@sohana.app</a><br>
+      SOHANA · Pursuing ACPR (France) and FCA (UK) authorisation
+    </div>
+  </div>
+</div>
+</body>
+</html>
