@@ -121,6 +121,38 @@
 .tier-card .range{font-family:'Geist Mono',monospace;font-size:1.6rem;font-weight:600;letter-spacing:-.02em;line-height:1}
 .t-prob   .range{color:#A04020}.t-dev .range{color:#925612}
 .t-rel    .range{color:#0F6E56}.t-exemp .range{color:#534AB7}
+
+/* ── Section 04 tier cards — CSS aligned to actual HTML class names (v7.9.1 fix) ── */
+.tier-card.prob { background:#FAECE7; border-color:rgba(216,90,48,.2) }
+.tier-card.dev  { background:#FAEEDA; border-color:rgba(186,117,23,.2) }
+.tier-card.rel  { background:#E1F5EE; border-color:rgba(15,110,86,.2) }
+.tier-card.ex  { background:#EEEDFE; border-color:rgba(83,74,183,.25) }
+
+.tier-card .tier-header{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.35rem}
+.tier-card .tier-name{font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:.28rem .7rem;border-radius:99px;display:inline-block}
+.tier-card .tier-range{font-family:'Geist Mono',monospace;font-size:1.15rem;font-weight:600;letter-spacing:-.02em;line-height:1}
+
+.tier-card.prob .tier-name{background:rgba(216,90,48,.18);color:#A04020}
+.tier-card.dev  .tier-name{background:rgba(186,117,23,.18);color:#925612}
+.tier-card.rel  .tier-name{background:rgba(15,110,86,.18);color:#0F6E56}
+.tier-card.ex .tier-name{background:rgba(83,74,183,.18);color:#534AB7}
+
+.tier-card.prob .tier-range{color:#A04020}
+.tier-card.dev  .tier-range{color:#925612}
+.tier-card.rel  .tier-range{color:#0F6E56}
+.tier-card.ex  .tier-range{color:#534AB7}
+
+/* Body text on the white tier cards — must be dark-on-light to be readable */
+.tier-card p{font-size:.88rem;color:rgba(20,19,15,.72);line-height:1.6;margin-top:.35rem}
+.tier-card h4{font-size:1.05rem;font-weight:600;color:#0E120F;letter-spacing:-.01em;margin-top:.3rem;margin-bottom:.35rem}
+
+.tier-card .tier-perks{list-style:none;padding:0;display:flex;flex-direction:column;gap:.45rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(20,19,15,.08)}
+.tier-card .tier-perks li{font-size:.82rem;color:rgba(20,19,15,.7);line-height:1.5;padding-left:1.3rem;position:relative}
+.tier-card .tier-perks li::before{content:"→";position:absolute;left:0;font-weight:700}
+.tier-card.prob .tier-perks li::before{color:#A04020}
+.tier-card.dev  .tier-perks li::before{color:#925612}
+.tier-card.rel  .tier-perks li::before{color:#0F6E56}
+.tier-card.ex  .tier-perks li::before{color:#534AB7}
 .tier-card h4{font-size:1.05rem;font-weight:700;color:#0E120F;letter-spacing:-.01em;margin-top:.3rem}
 .tier-card .summary{font-size:.85rem;color:rgba(20,19,15,.65);line-height:1.55;min-height:2.6rem}
 .tier-card ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.4rem;margin-top:.85rem;padding-top:.85rem;border-top:1px solid rgba(20,19,15,.08)}

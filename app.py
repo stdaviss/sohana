@@ -5792,6 +5792,9 @@ def _build_passport_context(user_row):
     Returns a dict ready to unpack into render_template kwargs.
     """
     import base64 as _b64, io as _io
+    # Defensive: accept either dict or sqlite3.Row
+    if not isinstance(user_row, dict):
+        user_row = dict(user_row)
     uid = user_row["id"]
 
     # Cycles completed — count from cycles table where user was recipient AND status=completed
@@ -5804,9 +5807,9 @@ def _build_passport_context(user_row):
     # Reliability rate — on-time contributions / total
     rel_row = fetchone(
         """SELECT
-             SUM(CASE WHEN status IN ('paid','on_time') AND paid_at IS NOT NULL THEN 1 ELSE 0 END) AS on_time,
+             SUM(CASE WHEN paid_at IS NOT NULL AND late_days <= 0 THEN 1 ELSE 0 END) AS on_time,
              COUNT(*) AS total
-           FROM contributions WHERE member_id=?""",
+           FROM contributions WHERE user_id=?""",
         (uid,)
     )
     if rel_row:
@@ -5817,7 +5820,7 @@ def _build_passport_context(user_row):
 
     # Endorsement count
     end_row = fetchone(
-        "SELECT COUNT(*) AS c FROM endorsements WHERE endorsee_id=? AND (withdrawn_at IS NULL OR withdrawn_at='')",
+        "SELECT COUNT(*) AS c FROM endorsements WHERE to_id=?",
         (uid,)
     )
     endorsement_count = dict(end_row)["c"] if end_row else 0
@@ -5842,8 +5845,8 @@ def _build_passport_context(user_row):
 
     # Recent activity — 5 most recent NCS events, formatted
     events_rows = fetchall(
-        """SELECT event_type, delta, created_at FROM ncs_events
-           WHERE user_id=? ORDER BY created_at DESC LIMIT 5""",
+        """SELECT event_type, delta, recorded_at FROM ncs_events
+           WHERE user_id=? ORDER BY recorded_at DESC LIMIT 5""",
         (uid,)
     )
     _event_labels = {
@@ -5869,27 +5872,23 @@ def _build_passport_context(user_row):
 
     # Badges — top 6 earned
     badge_rows = fetchall(
-        "SELECT badge_key, earned_at FROM badges WHERE user_id=? ORDER BY earned_at DESC LIMIT 6",
+        "SELECT badge_type, label, earned_at FROM badges WHERE user_id=? ORDER BY earned_at DESC LIMIT 6",
         (uid,)
     )
-    _badge_meta = {
-        "first_contribution": {"icon": "🌱", "label": "First contribution"},
-        "streak_3":           {"icon": "🎯", "label": "3-streak"},
-        "streak_5":           {"icon": "🔥", "label": "5-streak"},
-        "streak_10":          {"icon": "⚡", "label": "10-streak"},
-        "streak_25":          {"icon": "💎", "label": "25-streak"},
-        "cycle_1":            {"icon": "⭕", "label": "1st cycle"},
-        "cycle_5":            {"icon": "🏅", "label": "5 cycles"},
-        "cycle_10":           {"icon": "🏆", "label": "10 cycles"},
-        "score_550":          {"icon": "📈", "label": "Score 550"},
-        "score_650":          {"icon": "💪", "label": "Score 650"},
-        "score_750":          {"icon": "👑", "label": "Score 750"},
+    _badge_icons = {
+        "first_contribution": "🌱", "streak_3": "🎯", "streak_5": "🔥",
+        "streak_10": "⚡", "streak_25": "💎",
+        "cycle_1": "⭕", "cycle_5": "🏅", "cycle_10": "🏆",
+        "score_550": "📈", "score_650": "💪", "score_750": "👑",
     }
     badges = []
     for b in badge_rows:
         b = dict(b)
-        meta = _badge_meta.get(b.get("badge_key"), {"icon": "⭐", "label": b.get("badge_key", "Badge")})
-        badges.append({"icon": meta["icon"], "label": meta["label"]})
+        bt = b.get("badge_type", "")
+        badges.append({
+            "icon":  _badge_icons.get(bt, "⭐"),
+            "label": b.get("label") or bt.replace("_", " ").title() or "Badge",
+        })
 
     # KYC label
     kyc_labels = {"none": "Unverified", "phone": "Phone verified",
@@ -5998,8 +5997,8 @@ def verify_page():
 
     # Look up by passport_id
     row = fetchone(
-        """SELECT id, full_name, first_name, hanatag, country, ncs_score, ncs_tier,
-                  kyc_level, created_at, passport_revoked
+        """SELECT id, full_name, first_name, last_name, hanatag, country, ncs_score, ncs_tier,
+                  kyc_level, created_at, passport_revoked, picture_url
            FROM users WHERE passport_id=?""",
         (passport_id,)
     )
