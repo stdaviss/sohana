@@ -430,13 +430,29 @@ def auth_page():
 
 @app.route("/blog")
 def blog_page():
-    posts = fetchall("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY published_at DESC LIMIT 20")
+    _posts = fetchall("SELECT * FROM blog_posts WHERE is_published=1 ORDER BY published_at DESC LIMIT 20")
+    posts  = []
+    for _p in _posts:
+        _p = dict(_p)
+        _p["cover_url"] = _blog_media_url(_p["cover_media_id"]) if _p.get("cover_media_id") else None
+        if not _p.get("read_minutes"):
+            _p["read_minutes"] = _calc_read_minutes(_p.get("body") or "")
+        posts.append(_p)
     user  = auth.get_current_user() if "user_id" in session else None
     return render_template("blog.html", posts=posts, user=user)
 
 @app.route("/blog/<slug>")
 def blog_post(slug):
     post = fetchone("SELECT * FROM blog_posts WHERE slug=? AND is_published=1", (slug,))
+    if post:
+        post = dict(post)
+        # Render Markdown body to HTML at request time
+        post["body_html"]  = _render_blog_body(post.get("body") or "")
+        # Resolve cover image URL if set
+        post["cover_url"]  = _blog_media_url(post["cover_media_id"]) if post.get("cover_media_id") else None
+        # Derive read time if not stored (older records)
+        if not post.get("read_minutes"):
+            post["read_minutes"] = _calc_read_minutes(post.get("body") or "")
     if not post: return redirect(url_for("blog_page"))
     user = auth.get_current_user() if "user_id" in session else None
     return render_template("blog_post.html", post=post, user=user)
@@ -751,6 +767,49 @@ def _run_safe_migrations():
         "ALTER TABLE kyc_submissions ADD COLUMN file_original   TEXT",
         "ALTER TABLE kyc_submissions ADD COLUMN file_size_bytes INTEGER",
         "ALTER TABLE kyc_submissions ADD COLUMN file_mime       TEXT",
+
+        # ── BLOG UPGRADE (v7.8): cover image, external links, media library ──
+        "ALTER TABLE blog_posts ADD COLUMN cover_media_id  TEXT",
+        "ALTER TABLE blog_posts ADD COLUMN external_link   TEXT",
+        "ALTER TABLE blog_posts ADD COLUMN external_source TEXT",
+        "ALTER TABLE blog_posts ADD COLUMN updated_at      TEXT",
+        "ALTER TABLE blog_posts ADD COLUMN read_minutes    INTEGER",
+
+        """CREATE TABLE IF NOT EXISTS blog_media (
+            id            TEXT PRIMARY KEY,
+            original_name TEXT NOT NULL,
+            file_ext      TEXT NOT NULL,          -- 'jpg' | 'jpeg' | 'png' | 'webp' | 'gif'
+            file_size     INTEGER NOT NULL,
+            mime_type     TEXT NOT NULL,
+            alt_text      TEXT,                   -- accessibility
+            caption       TEXT,                   -- optional user-visible caption
+            uploaded_by   TEXT REFERENCES users(id),
+            uploaded_at   TEXT NOT NULL DEFAULT (datetime('now')),
+            -- Storage path relative to BLOG_MEDIA_DIR — makes migration trivial
+            storage_path  TEXT NOT NULL
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_blog_media_uploaded ON blog_media(uploaded_at DESC)",
+
+        # ── PASSPORT SYSTEM (v7.9) ────────────────────────────────────────────
+        # passport_id is stable public identifier (NCS-<uuid>). is_revoked lets
+        # user hide their passport from external verify lookups without deleting
+        # their account data. share_token is a shorter shareable ID.
+        "ALTER TABLE users ADD COLUMN passport_id       TEXT",
+        "ALTER TABLE users ADD COLUMN passport_revoked  INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN passport_created_at TEXT",
+        "CREATE INDEX IF NOT EXISTS idx_users_passport_id ON users(passport_id)",
+
+        # Verification audit log — every /verify lookup gets a row so passport
+        # holders can see who's checked their passport (via profile).
+        """CREATE TABLE IF NOT EXISTS passport_verifications (
+            id           TEXT PRIMARY KEY,
+            passport_id  TEXT NOT NULL,
+            verifier_ip  TEXT,
+            verifier_ua  TEXT,
+            status       TEXT NOT NULL,      -- valid | revoked | invalid
+            verified_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_pp_verifications ON passport_verifications(passport_id, verified_at DESC)",
 
         # ── MARKETING CONSENT & BROADCASTS (v7.7) ─────────────────────────────
         # GDPR-compliant consent tracking — required before any marketing email.
@@ -1171,6 +1230,340 @@ def admin_users():
     return render_template("admin_users.html", user=user, users=users,
                            can_freeze=can_freeze,
                            actor_role=actor_role["admin_role"] if actor_role else None)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOG MEDIA + RENDERING (v7.8)
+# Local disk storage on Railway persistent volume — Migration to S3/R2 later
+# swaps `_save_blog_media_file` and `serve_blog_media` without touching data.
+# Body format: Markdown. Custom `![alt](media:<uuid>)` syntax resolves at render.
+# ══════════════════════════════════════════════════════════════════════════════
+
+BLOG_MEDIA_DIR = os.environ.get(
+    "BLOG_MEDIA_DIR",
+    os.path.join(os.path.dirname(__file__), "blog_media")
+)
+try:
+    os.makedirs(BLOG_MEDIA_DIR, exist_ok=True)
+except Exception as _e:
+    import sys
+    print(f"[blog] failed to create media dir: {_e}", file=sys.stderr, flush=True)
+
+ALLOWED_BLOG_MEDIA_EXTS  = {"jpg", "jpeg", "png", "webp", "gif"}
+MAX_BLOG_MEDIA_BYTES     = 5 * 1024 * 1024   # 5 MB per image
+BLOG_CATEGORIES          = ["news", "tips", "stories", "update"]
+
+
+def _save_blog_media_file(file_storage, media_id: str, ext: str) -> str:
+    """
+    Persist an uploaded file to disk and return the storage_path (relative to
+    BLOG_MEDIA_DIR). Organised by YYYY/MM to keep any single dir manageable.
+    Migration to S3 later: swap this function to upload to a bucket.
+    """
+    from datetime import datetime as _dt
+    now      = _dt.utcnow()
+    rel_dir  = f"{now.year:04d}/{now.month:02d}"
+    abs_dir  = os.path.join(BLOG_MEDIA_DIR, rel_dir)
+    os.makedirs(abs_dir, exist_ok=True)
+    filename = f"{media_id}.{ext}"
+    file_storage.save(os.path.join(abs_dir, filename))
+    return f"{rel_dir}/{filename}"
+
+
+def _blog_media_url(media_id: str) -> str:
+    """Returns the public URL for a stored media item."""
+    return f"/media/blog/{media_id}"
+
+
+def _render_blog_body(md: str) -> str:
+    """
+    Minimal safe Markdown renderer with SOHANA-specific extensions.
+    Supports: paragraphs, headings, bold, italic, links, lists, code, blockquotes,
+    horizontal rules, and images with either `![alt](media:<uuid>)` (our internal
+    IDs) or `![alt](https://example.com/img.jpg)` (external).
+    """
+    import re, html
+    if not md:
+        return ""
+
+    lines = md.replace("\r\n", "\n").split("\n")
+    out   = []
+    i     = 0
+
+    def esc(s): return html.escape(s, quote=False)
+
+    def resolve_img_src(src: str) -> str:
+        # `media:UUID` → resolve via _blog_media_url
+        m = re.match(r"^media:([a-f0-9-]{8,})$", src.strip())
+        if m: return _blog_media_url(m.group(1))
+        # External URLs — must be http(s) only
+        if re.match(r"^https?://", src.strip()): return esc(src.strip())
+        return "#"   # anything else — refuse
+
+    def inline(s: str) -> str:
+        s = esc(s)
+        # images ![alt](src)
+        s = re.sub(
+            r"!\[([^\]]*)\]\(([^)]+)\)",
+            lambda m: f"<img src=\"{resolve_img_src(m.group(2))}\" alt=\"{m.group(1)}\" loading=\"lazy\" class=\"bp-inline-img\">",
+            s
+        )
+        # links [text](url) — external links open in new tab
+        s = re.sub(
+            r"\[([^\]]+)\]\((https?://[^)]+)\)",
+            r"<a href=\"\2\" target=\"_blank\" rel=\"noopener noreferrer\">\1</a>",
+            s
+        )
+        # bold **text**
+        s = re.sub(r"\*\*([^\*]+)\*\*", r"<strong>\1</strong>", s)
+        # italic *text*
+        s = re.sub(r"(?<!\*)\*([^\*]+)\*(?!\*)", r"<em>\1</em>", s)
+        # inline code `text`
+        s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+        return s
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Blank line
+        if not line.strip():
+            i += 1; continue
+
+        # Headings
+        m = re.match(r"^(#{1,6})\s+(.+)$", line)
+        if m:
+            level = len(m.group(1))
+            out.append(f"<h{level}>{inline(m.group(2).strip())}</h{level}>")
+            i += 1; continue
+
+        # Horizontal rule
+        if re.match(r"^-{3,}$", line.strip()):
+            out.append("<hr>")
+            i += 1; continue
+
+        # Blockquote
+        if line.startswith("> "):
+            block = []
+            while i < len(lines) and lines[i].startswith("> "):
+                block.append(lines[i][2:])
+                i += 1
+            out.append(f"<blockquote>{inline(' '.join(block))}</blockquote>")
+            continue
+
+        # Unordered list
+        if re.match(r"^[-*]\s+", line):
+            items = []
+            while i < len(lines) and re.match(r"^[-*]\s+", lines[i]):
+                items.append(re.sub(r"^[-*]\s+", "", lines[i]))
+                i += 1
+            body_ul = "".join(f"<li>{inline(x)}</li>" for x in items)
+            out.append(f"<ul>{body_ul}</ul>")
+            continue
+
+        # Ordered list
+        if re.match(r"^\d+\.\s+", line):
+            items = []
+            while i < len(lines) and re.match(r"^\d+\.\s+", lines[i]):
+                items.append(re.sub(r"^\d+\.\s+", "", lines[i]))
+                i += 1
+            body_ol = "".join(f"<li>{inline(x)}</li>" for x in items)
+            out.append(f"<ol>{body_ol}</ol>")
+            continue
+
+        # Paragraph — accumulate consecutive non-blank lines
+        para = [line]
+        i += 1
+        while i < len(lines) and lines[i].strip() and not re.match(r"^(#|>|-{3,}|[-*]\s|\d+\.\s)", lines[i]):
+            para.append(lines[i])
+            i += 1
+        out.append(f"<p>{inline(' '.join(para))}</p>")
+
+    return "\n".join(out)
+
+
+# ── PUBLIC MEDIA SERVE ────────────────────────────────────────────────────────
+@app.route("/media/blog/<media_id>")
+def serve_blog_media(media_id):
+    """Public route — serves an image file for a stored blog_media row."""
+    row = fetchone("SELECT storage_path, mime_type FROM blog_media WHERE id=?", (media_id,))
+    if not row: return ("", 404)
+    row = dict(row)
+    full = os.path.join(BLOG_MEDIA_DIR, row["storage_path"])
+    if not os.path.exists(full): return ("", 404)
+    from flask import send_file
+    return send_file(full, mimetype=row["mime_type"], max_age=86400)  # 1-day cache
+
+
+# ── ADMIN: MEDIA UPLOAD / LIST / DELETE ───────────────────────────────────────
+@app.route("/api/admin/blog/media", methods=["POST"])
+@any_admin_required
+def api_admin_blog_media_upload():
+    """Upload an image for use in blog posts. Returns {id, url, alt_text}."""
+    if not (request.content_type or "").startswith("multipart/form-data"):
+        return jsonify({"error": "multipart/form-data expected"}), 400
+    upload = request.files.get("image")
+    if not upload or not upload.filename:
+        return jsonify({"error": "No image selected."}), 400
+
+    orig = upload.filename
+    ext  = orig.rsplit(".", 1)[-1].lower() if "." in orig else ""
+    if ext == "jpg": ext = "jpeg"
+    if ext not in ALLOWED_BLOG_MEDIA_EXTS:
+        return jsonify({"error": "Unsupported format. Use JPG, PNG, WEBP or GIF."}), 400
+
+    upload.seek(0, 2); size = upload.tell(); upload.seek(0)
+    if size == 0:
+        return jsonify({"error": "File is empty."}), 400
+    if size > MAX_BLOG_MEDIA_BYTES:
+        return jsonify({"error": f"File too large — max {MAX_BLOG_MEDIA_BYTES // 1024 // 1024} MB."}), 400
+
+    media_id     = str(uuid.uuid4())
+    alt_text     = (request.form.get("alt_text") or "").strip()[:200]
+    caption      = (request.form.get("caption")  or "").strip()[:500]
+    mime         = upload.mimetype or f"image/{ext}"
+
+    try:
+        storage_path = _save_blog_media_file(upload, media_id, ext)
+    except Exception as e:
+        import sys
+        print(f"[blog media upload] {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Upload failed. Please try again."}), 500
+
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO blog_media
+               (id, original_name, file_ext, file_size, mime_type,
+                alt_text, caption, uploaded_by, storage_path)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (media_id, orig, ext, size, mime,
+             alt_text or None, caption or None,
+             session.get("user_id"), storage_path)
+        )
+    log_admin_action("blog_media_uploaded", "blog_media", media_id,
+                      new_data={"filename": orig, "size": size})
+    return jsonify({
+        "ok":         True,
+        "id":         media_id,
+        "url":        _blog_media_url(media_id),
+        "alt_text":   alt_text,
+        "caption":    caption,
+        "markdown":   f"![{alt_text}](media:{media_id})",
+    })
+
+
+@app.route("/api/admin/blog/media", methods=["GET"])
+@any_admin_required
+def api_admin_blog_media_list():
+    rows = fetchall(
+        "SELECT id, original_name, alt_text, caption, uploaded_at, file_size "
+        "FROM blog_media ORDER BY uploaded_at DESC LIMIT 100"
+    )
+    return jsonify({
+        "media": [
+            {
+                "id":            r["id"],
+                "url":           _blog_media_url(r["id"]),
+                "original_name": r["original_name"],
+                "alt_text":      r["alt_text"] or "",
+                "caption":       r["caption"] or "",
+                "uploaded_at":   r["uploaded_at"],
+                "file_size":     r["file_size"],
+                "markdown":      f"![{r['alt_text'] or ''}](media:{r['id']})",
+            }
+            for r in [dict(x) for x in rows]
+        ]
+    })
+
+
+@app.route("/api/admin/blog/media/<media_id>", methods=["DELETE"])
+@any_admin_required
+def api_admin_blog_media_delete(media_id):
+    row = fetchone("SELECT storage_path FROM blog_media WHERE id=?", (media_id,))
+    if not row: return jsonify({"error": "Not found"}), 404
+    storage_path = dict(row)["storage_path"]
+    try:
+        full = os.path.join(BLOG_MEDIA_DIR, storage_path)
+        if os.path.exists(full):
+            os.remove(full)
+    except Exception:
+        pass
+    with get_db() as db:
+        db.execute("DELETE FROM blog_media WHERE id=?", (media_id,))
+    log_admin_action("blog_media_deleted", "blog_media", media_id)
+    return jsonify({"ok": True})
+
+
+# ── ADMIN: BLOG POST CRUD ─────────────────────────────────────────────────────
+def _calc_read_minutes(body: str) -> int:
+    words = len((body or "").split())
+    return max(1, round(words / 220))   # 220 wpm — Medium/HN average
+
+def _slugify(title: str) -> str:
+    import re
+    s = re.sub(r"[^a-z0-9]+", "-", (title or "").lower().strip()).strip("-")
+    return s[:60] or f"post-{uuid.uuid4().hex[:8]}"
+
+
+@app.route("/api/admin/blog/<post_id>", methods=["GET"])
+@any_admin_required
+def api_admin_blog_get(post_id):
+    row = fetchone("SELECT * FROM blog_posts WHERE id=?", (post_id,))
+    if not row: return jsonify({"error": "Not found"}), 404
+    return jsonify({"post": dict(row)})
+
+
+@app.route("/api/admin/blog/<post_id>", methods=["PUT"])
+@any_admin_required
+def api_admin_blog_update(post_id):
+    d = request.json or {}
+    existing = fetchone("SELECT id, slug FROM blog_posts WHERE id=?", (post_id,))
+    if not existing: return jsonify({"error": "Not found"}), 404
+    existing = dict(existing)
+
+    title    = (d.get("title") or "").strip()
+    if not title: return jsonify({"error": "Title required"}), 400
+
+    new_slug = _slugify(d.get("slug") or title)
+    if new_slug != existing["slug"]:
+        conflict = fetchone(
+            "SELECT id FROM blog_posts WHERE slug=? AND id!=?",
+            (new_slug, post_id)
+        )
+        if conflict:
+            new_slug = f"{new_slug}-{uuid.uuid4().hex[:4]}"
+
+    body     = d.get("body", "") or ""
+    excerpt  = (d.get("excerpt") or "").strip()[:400]
+    category = d.get("category") if d.get("category") in BLOG_CATEGORIES else "news"
+    cover    = d.get("cover_media_id") or None
+    ext_link = (d.get("external_link") or "").strip() or None
+    ext_src  = (d.get("external_source") or "").strip()[:120] or None
+    is_pub   = 1 if d.get("is_published") else 0
+    read_min = _calc_read_minutes(body)
+
+    with get_db() as db:
+        db.execute(
+            """UPDATE blog_posts SET
+                 title=?, slug=?, excerpt=?, body=?, category=?,
+                 cover_media_id=?, external_link=?, external_source=?,
+                 is_published=?, read_minutes=?, updated_at=datetime('now')
+               WHERE id=?""",
+            (title, new_slug, excerpt, body, category,
+             cover, ext_link, ext_src, is_pub, read_min, post_id)
+        )
+    log_admin_action("blog_post_updated", "blog_post", post_id,
+                      new_data={"title": title, "is_published": is_pub})
+    return jsonify({"ok": True, "id": post_id, "slug": new_slug})
+
+
+@app.route("/api/admin/blog/<post_id>", methods=["DELETE"])
+@any_admin_required
+def api_admin_blog_delete(post_id):
+    with get_db() as db:
+        db.execute("DELETE FROM blog_posts WHERE id=?", (post_id,))
+    log_admin_action("blog_post_deleted", "blog_post", post_id)
+    return jsonify({"ok": True})
+
 
 @app.route("/admin/blog")
 @any_admin_required
@@ -3071,12 +3464,38 @@ def api_admin_invite():
 @any_admin_required
 def api_create_blog():
     d = request.json or {}
-    import re
-    slug = re.sub(r"[^a-z0-9]+", "-", d.get("title","").lower().strip())[:60]
+    title = (d.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "Title required"}), 400
+
+    slug = _slugify(d.get("slug") or title)
+    # Ensure uniqueness
+    if fetchone("SELECT id FROM blog_posts WHERE slug=?", (slug,)):
+        slug = f"{slug}-{uuid.uuid4().hex[:4]}"
+
+    body     = d.get("body", "") or ""
+    excerpt  = (d.get("excerpt") or "").strip()[:400]
+    category = d.get("category") if d.get("category") in BLOG_CATEGORIES else "news"
+    cover    = d.get("cover_media_id") or None
+    ext_link = (d.get("external_link") or "").strip() or None
+    ext_src  = (d.get("external_source") or "").strip()[:120] or None
+    is_pub   = 1 if d.get("is_published") else 0
+    read_min = _calc_read_minutes(body)
+    post_id  = str(uuid.uuid4())
+
     with get_db() as db:
-        db.execute("INSERT OR IGNORE INTO blog_posts(id,title,slug,excerpt,body,category,author_id) VALUES(?,?,?,?,?,?,?)",
-                   (str(uuid.uuid4()), d.get("title"), slug, d.get("excerpt",""), d.get("body",""), d.get("category","news"), session["user_id"]))
-    return jsonify({"ok": True})
+        db.execute(
+            """INSERT INTO blog_posts
+               (id, title, slug, excerpt, body, category, author_id,
+                cover_media_id, external_link, external_source,
+                is_published, published_at, read_minutes, updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'),?,datetime('now'))""",
+            (post_id, title, slug, excerpt, body, category, session.get("user_id"),
+             cover, ext_link, ext_src, is_pub, read_min)
+        )
+    log_admin_action("blog_post_created", "blog_post", post_id,
+                      new_data={"title": title, "is_published": is_pub})
+    return jsonify({"ok": True, "id": post_id, "slug": slug})
 
 # ── SEED DATA ─────────────────────────────────────────────────────────────────
 
@@ -5338,6 +5757,348 @@ def consent_optin_landing(token):
         )
 
     return render_template("consent_optin_thanks.html", email=row["email"])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DIGITAL PASSPORT (v7.9)
+# User-generated shareable NCS credential + public verify endpoint.
+# Data is pulled live from users/badges/ncs_events — never edited by users,
+# admin can edit only via a dedicated internal route (not exposed).
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_or_create_passport_id(user_id: str) -> str:
+    """
+    Returns the user\'s stable public passport ID (NCS-<hex>).
+    Generates one on first call and stores it so subsequent shares stay stable.
+    """
+    row = fetchone("SELECT passport_id FROM users WHERE id=?", (user_id,))
+    if row and dict(row).get("passport_id"):
+        return dict(row)["passport_id"]
+    # Generate — 12 hex chars is plenty; format NCS-0x<HEX>...<TAIL>
+    import secrets as _sec
+    hex_full = _sec.token_hex(12).upper()
+    pid = f"NCS-0x{hex_full[:4]}...{hex_full[-7:]}"
+    with get_db() as db:
+        db.execute(
+            "UPDATE users SET passport_id=?, passport_created_at=datetime('now') WHERE id=?",
+            (pid, user_id)
+        )
+    return pid
+
+
+def _build_passport_context(user_row):
+    """
+    Assemble all live data the passport template needs, from a user dict.
+    Returns a dict ready to unpack into render_template kwargs.
+    """
+    import base64 as _b64, io as _io
+    uid = user_row["id"]
+
+    # Cycles completed — count from cycles table where user was recipient AND status=completed
+    cycles_row = fetchone(
+        "SELECT COUNT(*) AS c FROM cycles WHERE recipient_id=? AND status='completed'",
+        (uid,)
+    )
+    cycles_completed = dict(cycles_row)["c"] if cycles_row else 0
+
+    # Reliability rate — on-time contributions / total
+    rel_row = fetchone(
+        """SELECT
+             SUM(CASE WHEN status IN ('paid','on_time') AND paid_at IS NOT NULL THEN 1 ELSE 0 END) AS on_time,
+             COUNT(*) AS total
+           FROM contributions WHERE member_id=?""",
+        (uid,)
+    )
+    if rel_row:
+        rd = dict(rel_row)
+        reliability_pct = round((rd["on_time"] / rd["total"]) * 100, 1) if rd.get("total") else 100.0
+    else:
+        reliability_pct = 100.0
+
+    # Endorsement count
+    end_row = fetchone(
+        "SELECT COUNT(*) AS c FROM endorsements WHERE endorsee_id=? AND (withdrawn_at IS NULL OR withdrawn_at='')",
+        (uid,)
+    )
+    endorsement_count = dict(end_row)["c"] if end_row else 0
+
+    # Tenure — from created_at
+    from datetime import datetime as _dt
+    tenure = "0m"
+    if user_row.get("created_at"):
+        try:
+            joined = _dt.strptime(user_row["created_at"][:10], "%Y-%m-%d")
+            days = (_dt.utcnow() - joined).days
+            if days < 30:
+                tenure = f"{days}d"
+            elif days < 365:
+                tenure = f"{days // 30}m"
+            else:
+                years  = days // 365
+                months = (days % 365) // 30
+                tenure = f"{years}y {months}m" if months else f"{years}y"
+        except Exception:
+            tenure = "0m"
+
+    # Recent activity — 5 most recent NCS events, formatted
+    events_rows = fetchall(
+        """SELECT event_type, delta, created_at FROM ncs_events
+           WHERE user_id=? ORDER BY created_at DESC LIMIT 5""",
+        (uid,)
+    )
+    _event_labels = {
+        "contribution_on_time":     "Contribution on time",
+        "cycle_completed":          "Cycle completed",
+        "contribution_recovered":   "Contribution recovered",
+        "peer_endorsement":         "Peer endorsement received",
+        "peer_endorsement_removed": "Endorsement removed",
+        "dispute_resolved":         "Dispute resolved",
+        "wallet_deposit":           "Wallet deposit",
+        "contribution_late":        "Contribution late",
+        "contribution_missed":      "Contribution missed",
+        "cycle_defaulted":          "Cycle defaulted",
+        "dispute_raised":           "Dispute raised",
+    }
+    recent_events = []
+    for r in events_rows:
+        r = dict(r)
+        recent_events.append({
+            "label": _event_labels.get(r.get("event_type"), r.get("event_type", "Event")),
+            "delta": int(r.get("delta") or 0),
+        })
+
+    # Badges — top 6 earned
+    badge_rows = fetchall(
+        "SELECT badge_key, earned_at FROM badges WHERE user_id=? ORDER BY earned_at DESC LIMIT 6",
+        (uid,)
+    )
+    _badge_meta = {
+        "first_contribution": {"icon": "🌱", "label": "First contribution"},
+        "streak_3":           {"icon": "🎯", "label": "3-streak"},
+        "streak_5":           {"icon": "🔥", "label": "5-streak"},
+        "streak_10":          {"icon": "⚡", "label": "10-streak"},
+        "streak_25":          {"icon": "💎", "label": "25-streak"},
+        "cycle_1":            {"icon": "⭕", "label": "1st cycle"},
+        "cycle_5":            {"icon": "🏅", "label": "5 cycles"},
+        "cycle_10":           {"icon": "🏆", "label": "10 cycles"},
+        "score_550":          {"icon": "📈", "label": "Score 550"},
+        "score_650":          {"icon": "💪", "label": "Score 650"},
+        "score_750":          {"icon": "👑", "label": "Score 750"},
+    }
+    badges = []
+    for b in badge_rows:
+        b = dict(b)
+        meta = _badge_meta.get(b.get("badge_key"), {"icon": "⭐", "label": b.get("badge_key", "Badge")})
+        badges.append({"icon": meta["icon"], "label": meta["label"]})
+
+    # KYC label
+    kyc_labels = {"none": "Unverified", "phone": "Phone verified",
+                  "id_verified": "ID verified", "full": "Fully verified"}
+    kyc_label = kyc_labels.get(user_row.get("kyc_level", "none"), "Unverified")
+    tier_number = {"none": 1, "phone": 1, "id_verified": 2, "full": 3}.get(user_row.get("kyc_level", "none"), 1)
+
+    # Credential line
+    from datetime import datetime as _dt
+    joined_year = 2024
+    if user_row.get("created_at"):
+        try:
+            joined_year = _dt.strptime(user_row["created_at"][:10], "%Y-%m-%d").year
+        except Exception:
+            pass
+    country_code = (user_row.get("country") or "XXX")[:3].upper()
+    credential_line = f"{country_code}-MEMBER · SINCE {joined_year}"
+
+    # Issued date (today)
+    issued_date = _dt.utcnow().strftime("%d %b %Y")
+
+    # Passport ID
+    passport_id = _get_or_create_passport_id(uid)
+
+    # QR code — base64 data URL pointing at verify URL
+    qr_data_url = ""
+    try:
+        import qrcode
+        verify_url = f"{os.environ.get('APP_BASE_URL', 'https://sohana.app')}/verify/{passport_id}"
+        img = qrcode.make(verify_url, box_size=6, border=2)
+        buf = _io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_data_url = "data:image/png;base64," + _b64.b64encode(buf.getvalue()).decode()
+    except Exception as e:
+        import sys
+        print(f"[passport] QR generation failed: {e}", file=sys.stderr, flush=True)
+
+    # Can generate flag — need at least 1 completed cycle for external sharing
+    can_generate = cycles_completed > 0
+
+    return {
+        "user": user_row,
+        "passport_id":       passport_id,
+        "credential_line":   credential_line,
+        "issued_date":       issued_date,
+        "kyc_label":         kyc_label,
+        "tier_number":       tier_number,
+        "cycles_completed":  cycles_completed,
+        "reliability_pct":   reliability_pct,
+        "endorsement_count": endorsement_count,
+        "tenure":            tenure,
+        "recent_events":     recent_events,
+        "badges":            badges,
+        "qr_data_url":       qr_data_url,
+        "can_generate":      can_generate,
+    }
+
+
+@app.route("/passport")
+@auth.login_required
+def user_passport():
+    """The user\'s own passport view. Auto-populated from live data."""
+    user = auth.get_current_user()
+    if not user:
+        return redirect(url_for("auth_page"))
+    ctx = _build_passport_context(dict(user))
+    return render_template("passport.html", **ctx)
+
+
+@app.route("/api/passport/revoke", methods=["POST"])
+@auth.login_required
+def api_passport_revoke():
+    """User revokes their passport from external verification."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE users SET passport_revoked=1 WHERE id=?",
+            (session["user_id"],)
+        )
+    return jsonify({"ok": True, "revoked": True})
+
+
+@app.route("/api/passport/unrevoke", methods=["POST"])
+@auth.login_required
+def api_passport_unrevoke():
+    """User re-enables external verification of their passport."""
+    with get_db() as db:
+        db.execute(
+            "UPDATE users SET passport_revoked=0 WHERE id=?",
+            (session["user_id"],)
+        )
+    return jsonify({"ok": True, "revoked": False})
+
+
+@app.route("/verify", methods=["GET"])
+def verify_page():
+    """
+    Public verify page. Two modes:
+      - No `id` query param: shows the lookup form.
+      - With `id` query param: shows the verification result.
+    """
+    from datetime import datetime as _dt
+
+    passport_id = (request.args.get("id") or "").strip()
+    if not passport_id:
+        return render_template("verify.html", result=None, query=None)
+
+    # Look up by passport_id
+    row = fetchone(
+        """SELECT id, full_name, first_name, hanatag, country, ncs_score, ncs_tier,
+                  kyc_level, created_at, passport_revoked
+           FROM users WHERE passport_id=?""",
+        (passport_id,)
+    )
+    verified_at = _dt.utcnow().strftime("%d %b %Y · %H:%M UTC")
+
+    if not row:
+        # Log the failed lookup
+        try:
+            with get_db() as db:
+                db.execute(
+                    "INSERT INTO passport_verifications (id, passport_id, verifier_ip, verifier_ua, status) VALUES (?,?,?,?,?)",
+                    (str(uuid.uuid4()), passport_id,
+                     request.headers.get("X-Forwarded-For", request.remote_addr or "")[:64],
+                     (request.user_agent.string or "")[:200],
+                     "invalid")
+                )
+        except Exception:
+            pass
+        return render_template("verify.html", query=passport_id, result={
+            "status": "invalid", "verified_at": verified_at
+        })
+
+    row = dict(row)
+
+    if row.get("passport_revoked"):
+        try:
+            with get_db() as db:
+                db.execute(
+                    "INSERT INTO passport_verifications (id, passport_id, verifier_ip, verifier_ua, status) VALUES (?,?,?,?,?)",
+                    (str(uuid.uuid4()), passport_id,
+                     request.headers.get("X-Forwarded-For", request.remote_addr or "")[:64],
+                     (request.user_agent.string or "")[:200],
+                     "revoked")
+                )
+        except Exception:
+            pass
+        return render_template("verify.html", query=passport_id, result={
+            "status": "revoked", "verified_at": verified_at, "passport_id": passport_id
+        })
+
+    # Valid — build full holder context
+    ctx = _build_passport_context(row)
+
+    from datetime import datetime as _dt2
+    joined_year = 2024
+    if row.get("created_at"):
+        try:
+            joined_year = _dt2.strptime(row["created_at"][:10], "%Y-%m-%d").year
+        except Exception:
+            pass
+
+    # Log the successful lookup
+    try:
+        with get_db() as db:
+            db.execute(
+                "INSERT INTO passport_verifications (id, passport_id, verifier_ip, verifier_ua, status) VALUES (?,?,?,?,?)",
+                (str(uuid.uuid4()), passport_id,
+                 request.headers.get("X-Forwarded-For", request.remote_addr or "")[:64],
+                 (request.user_agent.string or "")[:200],
+                 "valid")
+            )
+    except Exception:
+        pass
+
+    # Cryptographic-signature placeholder — real ECDSA signing is on 2027 roadmap.
+    # For now: a stable HMAC of the passport_id + score (proves authenticity of THIS lookup).
+    import hmac as _hmac, hashlib as _hashlib
+    sig_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod").encode()
+    sig_msg = f"{passport_id}:{row.get('ncs_score', 300)}:{verified_at}".encode()
+    signature = _hmac.new(sig_key, sig_msg, _hashlib.sha256).hexdigest()[:32]
+
+    result = {
+        "status":       "valid",
+        "verified_at":  verified_at,
+        "passport_id":  passport_id,
+        "signature":    "0x" + signature.upper(),
+        "holder": {
+            "name":         row.get("full_name") or "Sohana member",
+            "hanatag":      row.get("hanatag") or "member",
+            "initials":     (row.get("first_name") or row.get("full_name") or "S")[:1].upper(),
+            "country":      row.get("country") or "—",
+            "member_since": joined_year,
+            "ncs_score":    row.get("ncs_score") or 300,
+            "tier":         row.get("ncs_tier") or "Probation",
+            "cycles":       ctx["cycles_completed"],
+            "reliability":  ctx["reliability_pct"],
+            "endorsements": ctx["endorsement_count"],
+            "last_updated": verified_at,
+        },
+    }
+
+    return render_template("verify.html", query=passport_id, result=result)
+
+
+@app.route("/verify/<passport_id>")
+def verify_direct(passport_id):
+    """QR-code-friendly direct URL: /verify/NCS-0xAAAA...BBBBBBB"""
+    return redirect(url_for("verify_page", id=passport_id))
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STATUS PAGE — public status page, health checks, incident management (v7.3)

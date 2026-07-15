@@ -94,6 +94,14 @@
 .comp-bar-fill{height:100%;background:linear-gradient(90deg,#9EE493 0%,#cef870 100%);border-radius:99px;width:0;transition:width 1.5s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 12px rgba(158,228,147,.4)}
 .reveal.in .comp-bar-fill[data-w]{width:var(--target-width)}
 .comp-weight{font-family:'Geist Mono',monospace;font-size:1.4rem;font-weight:600;color:#9EE493;letter-spacing:-.02em;min-width:60px;text-align:right}
+.comp-list{display:flex;flex-direction:column;gap:1.75rem;margin-top:2rem}
+.comp{padding:1.5rem 1.65rem;background:rgba(158,228,147,.03);border:1px solid rgba(158,228,147,.12);border-radius:16px;display:flex;flex-direction:column;gap:.85rem;transition:background .25s,border-color .25s}
+.comp:hover{background:rgba(158,228,147,.05);border-color:rgba(158,228,147,.2)}
+.comp-row{display:flex;align-items:baseline;justify-content:space-between;gap:1rem}
+.comp-name{font-size:1.1rem;font-weight:600;color:#F4F2EC;letter-spacing:-.01em}
+.comp-fill{height:100%;background:linear-gradient(90deg,#9EE493 0%,#cef870 100%);border-radius:99px;box-shadow:0 0 12px rgba(158,228,147,.4)}
+.comp-desc{font-size:.95rem;line-height:1.65;color:#B7BAB4;margin:0}
+.comp-desc strong{color:#F4F2EC;font-weight:500}
 
 /* ── 4 TIERS — cards using real tier colors ── */
 .tier-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-top:2rem}
@@ -148,6 +156,34 @@
 .passport-band{margin-top:2.5rem;padding:3.5rem 2.5rem;background:linear-gradient(135deg,#0E120F 0%,#161B17 100%);border:1px solid rgba(158,228,147,.3);border-radius:28px;position:relative;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.5),0 0 60px rgba(158,228,147,.08)}
 .passport-band::before{content:"";position:absolute;inset:0;background:radial-gradient(700px 350px at 50% 0%,rgba(158,228,147,.1),transparent 60%);pointer-events:none}
 .passport-band::after{content:"";position:absolute;top:-50px;right:-50px;width:200px;height:200px;background:repeating-linear-gradient(45deg,rgba(158,228,147,.04) 0 4px,transparent 4px 20px);pointer-events:none}
+/* ── Passport showcase (v7.9 replacement for sample passport) ── */
+.passport-showcase{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:2.5rem;align-items:center}
+@media(max-width:900px){.passport-showcase{grid-template-columns:1fr;gap:2.5rem}}
+.passport-preview{position:relative;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px -20px rgba(14,18,15,.35),0 0 0 1px rgba(14,18,15,.06);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+.passport-preview:hover{transform:translateY(-4px)}
+.passport-preview img{width:100%;height:auto;display:block;border-radius:20px}
+.passport-preview-overlay{position:absolute;top:1rem;right:1rem;pointer-events:none}
+.passport-preview-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.35rem .75rem;background:rgba(158,228,147,.18);border:1px solid rgba(158,228,147,.4);border-radius:99px;color:#9EE493;font-family:'Geist Mono',monospace;font-size:.62rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.passport-preview-badge::before{content:"";display:inline-block;width:6px;height:6px;background:#9EE493;border-radius:50%;box-shadow:0 0 8px #9EE493;animation:live-pulse 2s ease-in-out infinite}
+@keyframes live-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.passport-actions{display:flex;flex-direction:column;gap:1.75rem}
+.passport-actions-eyebrow{font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(20,19,15,.5);margin-bottom:.75rem}
+.passport-actions-title{font-size:2rem;font-weight:500;letter-spacing:-.02em;color:#0E120F;line-height:1.15;margin-bottom:.85rem}
+.passport-actions-title em{font-family:'Instrument Serif',serif;font-style:italic;color:#0F6E56;font-weight:400}
+.passport-actions-copy{font-size:1rem;line-height:1.6;color:rgba(20,19,15,.72);margin:0}
+
+.passport-cta-group{display:flex;flex-direction:column;gap:.65rem}
+.passport-cta-primary{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.95rem 1.75rem;background:#0E120F;color:#9EE493;border:1px solid #0E120F;border-radius:99px;font-family:'Geist',sans-serif;font-weight:600;font-size:.95rem;text-decoration:none;transition:all .2s;box-shadow:0 8px 24px -6px rgba(14,18,15,.3)}
+.passport-cta-primary:hover{background:#161B17;transform:translateY(-1px);box-shadow:0 12px 32px -8px rgba(14,18,15,.4)}
+.passport-cta-ghost{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem 1.75rem;background:transparent;color:#0E120F;border:1px solid rgba(20,19,15,.2);border-radius:99px;font-family:'Geist',sans-serif;font-weight:500;font-size:.9rem;text-decoration:none;transition:all .2s}
+.passport-cta-ghost:hover{background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.4)}
+
+.passport-features{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.55rem}
+.passport-features li{display:flex;align-items:flex-start;gap:.65rem;font-size:.9rem;line-height:1.5;color:rgba(20,19,15,.72)}
+.passport-features .tick{color:#0F6E56;font-weight:700;flex-shrink:0;margin-top:1px}
+.passport-features .mono{font-family:'Geist Mono',monospace;font-size:.82rem;background:rgba(20,19,15,.05);padding:1px 6px;border-radius:4px}
+
 
 /* Passport Card itself — 3D perspective */
 .passport-card{position:relative;max-width:680px;margin:0 auto;background:linear-gradient(135deg,rgba(22,27,23,.95) 0%,rgba(14,18,15,.95) 100%);border:1px solid rgba(158,228,147,.4);border-radius:20px;overflow:hidden;box-shadow:0 25px 60px -15px rgba(0,0,0,.6),inset 0 0 0 1px rgba(158,228,147,.08)}
@@ -659,122 +695,44 @@
   <div class="container">
     <div class="nc-eyebrow reveal">06 · The Circle Passport</div>
     <h2 class="nc-h2 reveal reveal-d1" style="color:#0E120F;">A digital résumé <span class="ital">that travels with you</span>.</h2>
-    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">The Circle Passport is your portable NCS credential — a compact, beautifully designed digital document that summarises your entire Sohana history at a glance. Score. Tier. Years on the platform. Cycles completed. Reliability percentage. Endorsements earned. Badges. Every figure that matters, in one place. Designed to be presented to a landlord, a lender, a partner business, or simply to look at when you want to feel proud of what you have built.</p>
+    <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">The Circle Passport is your portable NCS credential — a beautifully designed digital document that summarises your entire Sohana history at a glance. Score. Tier. Years on the platform. Cycles completed. Reliability percentage. Endorsements earned. Badges. Every figure that matters, in one place. Designed to be presented to a landlord, a lender, a partner business, or simply to look at when you want to feel proud of what you have built.</p>
     <p class="nc-p reveal reveal-d2" style="color:rgba(20,19,15,.74);">Today the passport lives inside Sohana. As we secure partnerships across the continent, the same passport becomes <strong style="color:#0E120F;">a credential you can present off-platform</strong> — verified cryptographically, owned by you, never sold to anyone. <em style="font-family:'Instrument Serif',serif;font-style:italic;color:#0E120F;">It is the visible artefact of years of trustworthy behaviour.</em></p>
 
-    <div class="passport-card reveal reveal-d3" style="background:#fff;border-color:rgba(20,19,15,.08);">
-
-      <!-- Header -->
-      <div class="passport-header" style="background:linear-gradient(180deg,#0E120F 0%,#161B17 100%);">
-        <div class="passport-header-l">
-          <div class="passport-photo-frame">
-            <div style="width:100%;height:100%;background:linear-gradient(135deg,#9EE493,#76E0A1);display:grid;place-items:center;font-family:'Geist',sans-serif;font-weight:700;font-size:1.6rem;color:#0E120F;">AD</div>
-          </div>
-          <div class="passport-id">
-            <div class="passport-handle">@aïcha.diallo</div>
-            <div class="passport-name">Aïcha Diallo</div>
-            <div class="passport-meta">CMR-DIPLOMA · MEMBER SINCE 2024</div>
-          </div>
-        </div>
-        <div class="passport-stamp">
-          NCS<br>VERIFIED<br><span style="font-size:.55rem;letter-spacing:.4em;">2026</span>
+    <!-- Passport preview + CTAs -->
+    <div class="passport-showcase reveal reveal-d3">
+      <div class="passport-preview">
+        <img src="/static/passport-preview.png" alt="Sohana Digital Passport preview" loading="lazy">
+        <div class="passport-preview-overlay">
+          <span class="passport-preview-badge">Live preview</span>
         </div>
       </div>
 
-      <!-- Body -->
-      <div class="passport-body" style="background:#fff;color:#0E120F;">
-
-        <!-- Left column: score + sparkline + stats -->
-        <div class="pp-section">
-          <div class="pp-label" style="color:rgba(20,19,15,.55);">Current Score</div>
-          <div class="pp-score-block">
-            <span class="num">712</span>
-            <span class="of" style="color:rgba(20,19,15,.4);">/ 850</span>
-            <span class="tier-pill">Reliable</span>
-          </div>
-
-          <div class="pp-label" style="color:rgba(20,19,15,.55);margin-top:.85rem;">24-month history</div>
-          <svg class="pp-spark" viewBox="0 0 320 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="sparkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#9EE493" stop-opacity=".4"/>
-                <stop offset="100%" stop-color="#9EE493" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <path class="area" d="M 0 38 L 18 36 L 38 32 L 56 30 L 76 25 L 96 22 L 116 24 L 136 18 L 156 16 L 176 13 L 196 14 L 216 10 L 236 11 L 256 8 L 276 6 L 296 5 L 320 4 L 320 48 L 0 48 Z"/>
-            <path class="line" d="M 0 38 L 18 36 L 38 32 L 56 30 L 76 25 L 96 22 L 116 24 L 136 18 L 156 16 L 176 13 L 196 14 L 216 10 L 236 11 L 256 8 L 276 6 L 296 5 L 320 4"/>
-            <circle class="point" cx="0"   cy="38" r="2"/>
-            <circle class="point" cx="76"  cy="25" r="2"/>
-            <circle class="point" cx="156" cy="16" r="2"/>
-            <circle class="point" cx="236" cy="11" r="2"/>
-            <circle class="point latest" cx="320" cy="4" r="3.5"/>
-          </svg>
-          <div style="font-family:'Geist Mono',monospace;font-size:.65rem;color:rgba(20,19,15,.45);display:flex;justify-content:space-between;letter-spacing:.04em;">
-            <span>Q1 2024 · 480</span>
-            <span>Q1 2026 · 712</span>
-          </div>
-
-          <div class="pp-stats-grid" style="margin-top:.7rem;">
-            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
-              <div class="v" style="color:#0E120F;">12</div>
-              <div class="l" style="color:rgba(20,19,15,.55);">Cycles completed</div>
-            </div>
-            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
-              <div class="v" style="color:#0E120F;">96.4%</div>
-              <div class="l" style="color:rgba(20,19,15,.55);">Reliability</div>
-            </div>
-            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
-              <div class="v" style="color:#0E120F;">2y 4m</div>
-              <div class="l" style="color:rgba(20,19,15,.55);">Tenure</div>
-            </div>
-            <div class="pp-stat" style="background:rgba(20,19,15,.04);border-color:rgba(20,19,15,.08);">
-              <div class="v" style="color:#0E120F;">24</div>
-              <div class="l" style="color:rgba(20,19,15,.55);">Endorsements</div>
-            </div>
-          </div>
+      <div class="passport-actions">
+        <div>
+          <div class="passport-actions-eyebrow">Your credential, in your hands</div>
+          <h3 class="passport-actions-title">Generate your Passport <em>now</em></h3>
+          <p class="passport-actions-copy">Members with any completed cycle can generate and download their own Sohana Digital Passport. It updates automatically as your NCS score changes, and you decide when to share it.</p>
         </div>
 
-        <!-- Right column: badges + history -->
-        <div class="pp-section">
-          <div class="pp-label" style="color:rgba(20,19,15,.55);">Recent activity</div>
-          <div style="display:flex;flex-direction:column;gap:.5rem;font-family:'Geist Mono',monospace;font-size:.78rem;line-height:1.5;">
-            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Cycle completed · Yaoundé Alumni</span><span style="color:#0F6E56;font-weight:600;">+12</span></div>
-            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Contribution on time × 8</span><span style="color:#0F6E56;font-weight:600;">+64</span></div>
-            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Peer endorsement · @kofi</span><span style="color:#0F6E56;font-weight:600;">+3</span></div>
-            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Wallet deposit × 4</span><span style="color:#0F6E56;font-weight:600;">+4</span></div>
-            <div style="display:flex;justify-content:space-between;color:rgba(20,19,15,.7);"><span>Cycle completed · Diaspora Pool</span><span style="color:#0F6E56;font-weight:600;">+12</span></div>
-          </div>
-
-          <div class="pp-label" style="color:rgba(20,19,15,.55);margin-top:.85rem;">Earned badges</div>
-          <div class="pp-badges">
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🌱</span>First contribution</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🎯</span>3-streak</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🔥</span>5-streak</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">⚡</span>10-streak</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">⭕</span>1st cycle</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🏅</span>5 cycles</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">🏆</span>10 cycles</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">📈</span>Score 550</span>
-            <span class="pp-badge" style="background:rgba(15,110,86,.06);border-color:rgba(15,110,86,.2);color:#0F6E56;"><span class="ico">💪</span>Score 650</span>
-          </div>
+        <div class="passport-cta-group">
+          <a href="/passport" class="passport-cta-primary">
+            📄 Generate my passport
+          </a>
+          <a href="/verify" class="passport-cta-ghost">
+            🔍 Verify someone's passport →
+          </a>
         </div>
 
-      </div>
-
-      <!-- Footer -->
-      <div class="passport-footer" style="background:rgba(20,19,15,.04);color:rgba(20,19,15,.6);">
-        <div class="verify-row" style="color:#0F6E56;">Cryptographically signed · ID 0xA3F · 06 May 2026</div>
-        <div>Owned by <span style="color:#0E120F;font-weight:600;">@aïcha.diallo</span> · revocable anytime</div>
-      </div>
-
-      <!-- MRZ-style footer (passport-like) -->
-      <div class="passport-mrz" style="background:#0E120F;">
-        NCS&lt;&lt;DIALLO&lt;AICHA&lt;&lt;CMR&lt;19940312&lt;712&lt;RELIABLE&lt;2026<br>
-        &lt;&lt;&lt;&lt;0xA3F8C2D14E7B9501&lt;&lt;CYCLES012&lt;ENDORSE024&lt;TENURE028M
+        <ul class="passport-features">
+          <li><span class="tick">✓</span> Download as PDF or PNG</li>
+          <li><span class="tick">✓</span> Share via QR code or direct link</li>
+          <li><span class="tick">✓</span> Verifiable by any partner or lender via <span class="mono">verify.sohana.app</span></li>
+          <li><span class="tick">✓</span> Revocable at any time — you own the data</li>
+        </ul>
       </div>
     </div>
 
-    <p class="nc-p reveal reveal-d4" style="color:rgba(20,19,15,.55);font-size:.82rem;font-family:'Geist Mono',monospace;letter-spacing:.02em;line-height:1.65;margin-top:1.5rem;">Above is a representative example of a Circle Passport. Real passports are generated for every Sohana account from their actual on-platform history. The passport is yours, owned by you, and never displayed without your active permission. Cryptographic signing and external verification are scheduled for the 2027 platform release.</p>
+    <p class="nc-p reveal reveal-d4" style="color:rgba(20,19,15,.65);margin-top:2.5rem;font-size:.95rem;font-style:italic;">The passport is yours, owned by you, and never displayed without your active permission. Cryptographic signing and external verification are on the 2027 roadmap for continental partner recognition.</p>
   </div>
 </section>
 

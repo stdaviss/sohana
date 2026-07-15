@@ -1,0 +1,176 @@
+{% extends "page_base.html" %}
+{% block title %}Verify Sohana Passport{% endblock %}
+
+{% block content %}
+<style>
+.vf-wrap{max-width:820px;margin:0 auto;padding:6rem 1.5rem 4rem}
+.vf-eyebrow{font-family:'Geist Mono',monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3,#8A8E87);margin-bottom:1rem;display:inline-flex;align-items:center;gap:.5rem}
+.vf-eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:#9EE493}
+.vf-title{font-size:clamp(2rem,4vw,3rem);font-weight:500;line-height:1.1;letter-spacing:-.03em;color:var(--ink,#F4F2EC);margin-bottom:1.25rem}
+.vf-title em{font-family:'Instrument Serif',serif;font-style:italic;color:#9EE493;font-weight:400}
+.vf-intro{font-size:1.05rem;line-height:1.65;color:var(--ink-2,#B7BAB4);margin-bottom:2.5rem;max-width:640px}
+
+.vf-lookup{background:var(--bg-2,#161B17);border:1px solid var(--line-2,rgba(244,242,236,.18));border-radius:18px;padding:2rem;margin-bottom:2rem}
+.vf-lookup label{display:block;font-family:'Geist Mono',monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.65rem}
+.vf-lookup input{width:100%;padding:.9rem 1.15rem;background:var(--bg-3,#1C231D);border:1.5px solid var(--line-2);border-radius:10px;color:var(--ink);font-family:'Geist Mono',monospace;font-size:.95rem;outline:none;transition:border-color .15s}
+.vf-lookup input:focus{border-color:#9EE493}
+.vf-lookup input::placeholder{color:var(--ink-3);opacity:.6}
+.vf-lookup .row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem}
+.vf-btn{padding:.85rem 1.5rem;background:#9EE493;color:#0E120F;border:none;border-radius:99px;font-weight:700;font-size:.9rem;cursor:pointer;transition:background .15s;font-family:inherit}
+.vf-btn:hover{background:#cef870}
+.vf-btn:disabled{opacity:.5;cursor:not-allowed}
+.vf-btn-ghost{padding:.85rem 1.5rem;background:transparent;color:var(--ink-2);border:1px solid var(--line-2);border-radius:99px;font-weight:500;font-size:.9rem;cursor:pointer;font-family:inherit}
+.vf-btn-ghost:hover{color:var(--ink);border-color:var(--ink-3)}
+
+/* Result states */
+.vf-result{background:var(--bg-2);border-radius:18px;padding:2rem;margin-bottom:2rem;position:relative;overflow:hidden}
+.vf-result-valid{border:1px solid rgba(158,228,147,.35);box-shadow:0 0 60px rgba(158,228,147,.08)}
+.vf-result-revoked{border:1px solid rgba(255,179,80,.35)}
+.vf-result-invalid{border:1px solid rgba(255,106,85,.35)}
+.vf-status-line{display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--line)}
+.vf-status-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;flex-shrink:0}
+.vf-status-icon.ok{background:rgba(158,228,147,.15);color:#9EE493;border:2px solid rgba(158,228,147,.3)}
+.vf-status-icon.warn{background:rgba(255,179,80,.15);color:#FFB350;border:2px solid rgba(255,179,80,.3)}
+.vf-status-icon.err{background:rgba(255,106,85,.15);color:#FF6A55;border:2px solid rgba(255,106,85,.3)}
+.vf-status-text .t{font-size:1.15rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
+.vf-status-text .s{font-size:.85rem;color:var(--ink-2)}
+.vf-status-text .ts{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);letter-spacing:.04em;margin-top:.35rem}
+
+.vf-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.75rem}
+.vf-summary-card{padding:1.1rem;background:var(--bg-3);border:1px solid var(--line);border-radius:12px}
+.vf-summary-card .lbl{font-family:'Geist Mono',monospace;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.5rem}
+.vf-summary-card .val{font-family:'Geist Mono',monospace;font-size:1.5rem;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.vf-summary-card .sub{font-size:.75rem;color:var(--ink-3);margin-top:.2rem}
+
+.vf-identity{display:flex;align-items:center;gap:1.25rem;margin-bottom:1.75rem;padding:1.25rem;background:var(--bg-3);border:1px solid var(--line);border-radius:14px}
+.vf-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,rgba(158,228,147,.25),rgba(158,228,147,.08));display:grid;place-items:center;color:#9EE493;font-weight:600;font-size:1.5rem;flex-shrink:0}
+.vf-identity-info .name{font-size:1.15rem;font-weight:600;color:var(--ink);margin-bottom:.2rem}
+.vf-identity-info .handle{color:#9EE493;font-family:'Geist Mono',monospace;font-size:.85rem;margin-bottom:.25rem}
+.vf-identity-info .meta{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3)}
+
+.vf-tier-pill{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem 1rem;border-radius:99px;font-family:'Geist Mono',monospace;font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.vf-tier-pill.t-probation{background:rgba(216,90,48,.12);color:#D85A30;border:1px solid rgba(216,90,48,.3)}
+.vf-tier-pill.t-developing{background:rgba(186,117,23,.12);color:#BA7517;border:1px solid rgba(186,117,23,.3)}
+.vf-tier-pill.t-reliable{background:rgba(15,110,86,.12);color:#0F6E56;border:1px solid rgba(15,110,86,.3)}
+.vf-tier-pill.t-exemplary{background:rgba(83,74,183,.12);color:#a498ff;border:1px solid rgba(83,74,183,.3)}
+
+.vf-privacy{padding:1.25rem 1.5rem;background:rgba(158,228,147,.05);border:1px solid rgba(158,228,147,.18);border-radius:12px;font-size:.85rem;color:var(--ink-2);line-height:1.6;margin-top:1.5rem}
+.vf-privacy strong{color:var(--ink);font-weight:600}
+
+.vf-help{margin-top:3rem;padding-top:2rem;border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-3);line-height:1.6}
+.vf-help a{color:#9EE493;text-decoration:none}
+.vf-help a:hover{text-decoration:underline}
+</style>
+
+<div class="vf-wrap">
+
+  <div class="vf-eyebrow">Sohana Verify</div>
+  <h1 class="vf-title">Verify a Sohana <em>Passport</em></h1>
+  <p class="vf-intro">
+    Businesses, lenders, and government partners can verify the authenticity of a Sohana Digital Passport here.
+    Enter the passport ID (found on the passport itself or in the QR code) to confirm the credential is valid and see the holder's current standing.
+  </p>
+
+  {% if not result %}
+  <!-- ========== LOOKUP FORM ========== -->
+  <div class="vf-lookup">
+    <form method="GET" action="/verify" onsubmit="return submitLookup(event)">
+      <label for="vf-input">Passport ID</label>
+      <input id="vf-input" name="id" type="text" placeholder="NCS-0xA3F8...E7B9501"
+             value="{{ query or '' }}" autocomplete="off" required>
+      <div class="row">
+        <button type="submit" class="vf-btn">Verify passport</button>
+        <a href="/ncs-page" class="vf-btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center">What is the NCS?</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="vf-privacy">
+    <strong>What Sohana Verify shows:</strong> The holder's name, handle, current NCS score, tier, cycles completed, reliability rate, and tenure — only public, holder-consented information.
+    <strong style="display:block;margin-top:.5rem">What it does not show:</strong> Wallet balances, transaction history, contact details, KYC documents, or any private data.
+    Every verification is logged for the passport holder's records.
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <!-- ========== RESULT ========== -->
+  <div class="vf-result vf-result-{{ result.status }}">
+
+    <div class="vf-status-line">
+      {% if result.status == 'valid' %}
+      <div class="vf-status-icon ok">✓</div>
+      <div class="vf-status-text">
+        <div class="t">Passport verified</div>
+        <div class="s">This passport is authentic and currently valid on the Sohana network.</div>
+        <div class="ts">Verified {{ result.verified_at }} · Passport ID {{ result.passport_id }}</div>
+      </div>
+      {% elif result.status == 'revoked' %}
+      <div class="vf-status-icon warn">⚠</div>
+      <div class="vf-status-text">
+        <div class="t">Passport revoked by holder</div>
+        <div class="s">This passport is authentic but the holder has revoked external sharing. Please contact them directly.</div>
+        <div class="ts">Checked {{ result.verified_at }} · Passport ID {{ result.passport_id }}</div>
+      </div>
+      {% else %}
+      <div class="vf-status-icon err">✕</div>
+      <div class="vf-status-text">
+        <div class="t">Passport not recognised</div>
+        <div class="s">We could not find a Sohana passport with that ID. Please double-check the ID and try again.</div>
+        <div class="ts">Checked {{ result.verified_at }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if result.status == 'valid' %}
+    <!-- Identity strip -->
+    <div class="vf-identity">
+      <div class="vf-avatar">{{ result.holder.initials }}</div>
+      <div class="vf-identity-info">
+        <div class="name">{{ result.holder.name }}</div>
+        <div class="handle">@{{ result.holder.hanatag }}</div>
+        <div class="meta">Member since {{ result.holder.member_since }} · {{ result.holder.country }}</div>
+      </div>
+      <div style="margin-left:auto"><span class="vf-tier-pill t-{{ result.holder.tier|lower }}">{{ result.holder.tier|upper }}</span></div>
+    </div>
+
+    <!-- Summary grid -->
+    <div class="vf-summary-grid">
+      <div class="vf-summary-card"><div class="lbl">NCS Score</div><div class="val" style="color:#9EE493">{{ result.holder.ncs_score }}</div><div class="sub">of 850</div></div>
+      <div class="vf-summary-card"><div class="lbl">Cycles Completed</div><div class="val">{{ result.holder.cycles }}</div><div class="sub">across all Njangis</div></div>
+      <div class="vf-summary-card"><div class="lbl">Reliability</div><div class="val">{{ result.holder.reliability }}%</div><div class="sub">on-time contribution rate</div></div>
+      <div class="vf-summary-card"><div class="lbl">Endorsements</div><div class="val">{{ result.holder.endorsements }}</div><div class="sub">from peer members</div></div>
+    </div>
+
+    <div class="vf-privacy">
+      <strong>Verification signature:</strong> <span style="font-family:'Geist Mono',monospace;font-size:.78rem">{{ result.signature }}</span><br>
+      <strong>Issued by:</strong> Sohana Technologies · <strong>Last updated:</strong> {{ result.holder.last_updated }}<br><br>
+      This verification confirms only that the passport is authentic and unaltered. Business decisions based on this credential remain your own responsibility.
+    </div>
+    {% endif %}
+
+    <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="/verify" class="vf-btn-ghost" style="text-decoration:none;display:inline-flex;align-items:center">← Verify another</a>
+      {% if result.status == 'valid' %}
+      <button class="vf-btn-ghost" onclick="window.print()">🖨 Print verification</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="vf-help">
+    <strong style="color:var(--ink,#F4F2EC)">Are you a partner integrating Sohana Verify?</strong><br>
+    We provide a JSON API for automated verification at high volume. See our <a href="/partnerships">partnerships page</a> for details, or email
+    <a href="mailto:partnerships@sohana.app">partnerships@sohana.app</a>.
+  </div>
+
+</div>
+
+<script>
+function submitLookup(e){
+  var input = document.getElementById('vf-input');
+  var val = (input.value || '').trim();
+  if (!val) { e.preventDefault(); return false; }
+  return true;
+}
+</script>
+{% endblock %}
