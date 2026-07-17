@@ -1,5 +1,6 @@
 import os, uuid, json, io, csv, random
 from datetime import datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from flask import (Flask, render_template, request, session, jsonify,
                    redirect, url_for, Response, send_from_directory)
 from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
@@ -945,6 +946,32 @@ def _run_safe_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_status_checks_component ON status_checks_log(component_id, checked_at)",
         "CREATE INDEX IF NOT EXISTS idx_status_incidents_status ON status_incidents(status, severity)",
+
+        # ── HANATAG PAY HARDENING (P0): two-phase payment intents ─────────────
+        # Backs the initiate/confirm flow. One row per attempted payment; the
+        # id doubles as the idempotency key. status walks
+        # pending → consuming → completed | expired | failed.
+        """CREATE TABLE IF NOT EXISTS payment_intents (
+            id                 TEXT PRIMARY KEY,
+            sender_id          TEXT NOT NULL,
+            recipient_id       TEXT NOT NULL,
+            recipient_hanatag  TEXT,
+            recipient_name     TEXT,
+            amount_cents       INTEGER NOT NULL,
+            fee_cents          INTEGER NOT NULL DEFAULT 0,
+            currency           TEXT NOT NULL,
+            note               TEXT,
+            challenge          TEXT NOT NULL,                    -- 'totp' | 'email_otp'
+            status             TEXT NOT NULL DEFAULT 'pending',  -- pending|consuming|completed|expired|failed
+            idempotency_key    TEXT,
+            result_ref         TEXT,                             -- hanatag_payments.id once executed
+            attempts           INTEGER NOT NULL DEFAULT 0,
+            created_at         TEXT NOT NULL DEFAULT (datetime('now')),
+            expires_at         TEXT NOT NULL,
+            consumed_at        TEXT
+        )""",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_pi_idem ON payment_intents(sender_id, idempotency_key) WHERE idempotency_key IS NOT NULL",
+        "CREATE INDEX IF NOT EXISTS idx_pi_sender ON payment_intents(sender_id, status, created_at DESC)",
     ]
     for sql in migrations:
         try:
@@ -3115,57 +3142,242 @@ def api_withdraw():
     push_notification(session["user_id"], "Withdrawal submitted ✓", f"{CURRENCIES.get(currency,{}).get('symbol','')}{cents/100:.2f} is on its way to {dest}.", "info")
     return jsonify({"ok": True, "withdrawn_cents": cents, "fee_cents": fee})
 
-@app.route("/api/wallet/pay", methods=["POST"])
+# ── HANATAG PAY (two-phase: initiate → confirm) ───────────────────────────────
+# Replaces the old single /api/wallet/pay. That endpoint verified only the
+# *format* of the 6-digit code (any six digits passed), moved money in three
+# separate non-atomic transactions, and had no idempotency. This flow fixes all
+# of that: a payment intent locks amount + payee, a real one-time code is bound
+# to that intent, and both ledger legs + the audit row commit in one
+# write-locked transaction with exactly-once semantics.
+
+PAYMENT_INTENT_TTL_MIN   = 5          # minutes a pay request stays valid
+PAYMENT_MAX_OTP_ATTEMPTS = 3          # wrong-code tries before the intent is burned
+PAYMENT_MAX_AMOUNT_CENTS = 5_000_000  # €50,000 hard per-transfer ceiling
+PAYMENT_NOTE_MAX         = 140
+
+def _parse_amount_to_cents(raw):
+    """Parse a user-supplied amount into integer cents. None on anything invalid."""
+    try:
+        dec = Decimal(str(raw))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+    if not dec.is_finite() or dec <= 0:
+        return None
+    return int((dec * 100).to_integral_value(rounding=ROUND_HALF_UP))
+
+def _clean_note(s):
+    """Sanitise a payment note: strip HTML/control chars, neutralise CSV formulas, cap length."""
+    s = (s or "").strip()
+    s = s.replace("<", "").replace(">", "")                     # no HTML injection into notifications
+    s = "".join(ch for ch in s if ch >= " " or ch == "\n")      # drop control characters
+    if s and s[0] in "=+-@\t\r":                                # neutralise spreadsheet formula start
+        s = "'" + s
+    return s[:PAYMENT_NOTE_MAX]
+
+def _user_has_totp(uid):
+    r = fetchone("SELECT totp_enabled FROM users WHERE id=?", (uid,))
+    return bool(r and r["totp_enabled"])
+
+def _mask_email(e):
+    if not e or "@" not in e:
+        return None
+    name, dom = e.split("@", 1)
+    return name[:1] + "***@" + dom
+
+
+@app.route("/api/wallet/pay/initiate", methods=["POST"])
+@limiter.limit("8 per minute")
 @auth.login_required
-def api_pay():
-    d       = request.json or {}
-    cents   = int(float(d.get("amount", 0)) * 100)
-    hanatag = d.get("hanatag","").strip()
-    note    = d.get("note","")
-    otp     = str(d.get("otp",""))
-    currency= d.get("currency","EUR")
-    if len(otp) != 6 or not otp.isdigit():
-        return jsonify({"error": "Invalid verification code"}), 400
-    if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
-    # ── Freeze check (Pay counts as outgoing transfer) ────────────────
-    fd, fw, freason = _get_freeze_status(session["user_id"])
+def api_pay_initiate():
+    """Phase 1: validate, resolve payee, lock amount + fee, create a pending
+    intent, and (for non-TOTP users) send a one-time code bound to that intent."""
+    d   = request.json or {}
+    uid = session["user_id"]
+
+    cents = _parse_amount_to_cents(d.get("amount"))
+    if cents is None:                    return jsonify({"error": "Enter a valid amount"}), 400
+    if cents > PAYMENT_MAX_AMOUNT_CENTS: return jsonify({"error": "Amount exceeds the per-transfer limit"}), 400
+    currency = (d.get("currency") or "EUR").upper()
+    note     = _clean_note(d.get("note", ""))
+    idem     = (d.get("idempotency_key") or "").strip() or None
+
+    # idempotent re-initiate (double-tapped "Continue" returns the same pending intent)
+    if idem:
+        prior = fetchone("SELECT * FROM payment_intents WHERE sender_id=? AND idempotency_key=?", (uid, idem))
+        if prior and prior["status"] == "pending":
+            return jsonify({"ok": True, "intent_id": prior["id"], "challenge": prior["challenge"],
+                            "recipient_name": prior["recipient_name"], "amount_cents": prior["amount_cents"],
+                            "fee_cents": prior["fee_cents"], "currency": prior["currency"],
+                            "masked_target": None})
+
+    fd, fw, freason = _get_freeze_status(uid)
     if fw: return jsonify({"error": FROZEN_WITHDRAW_MSG, "frozen": True}), 403
-    # ─────────────────────────────────────────────────────────────────
+
+    hanatag = d.get("hanatag", "").strip()
     if not hanatag.startswith("@"): hanatag = f"@{hanatag}"
-    recipient = fetchone("SELECT id, full_name FROM users WHERE hanatag=?", (hanatag,))
-    if not recipient: return jsonify({"error": "Hanatag not found"}), 404
-    if recipient["id"] == session["user_id"]: return jsonify({"error": "Cannot pay yourself"}), 400
-    sw = _get_wallet(session["user_id"], currency)
-    rw = _get_wallet(recipient["id"], currency)
-    if not sw: return jsonify({"error": f"No {currency} wallet"}), 400
-    if not rw:
-        # Recipient doesn't have this currency — open it
-        with get_db() as db:
-            db.execute("INSERT OR IGNORE INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,0)",
-                       (str(uuid.uuid4()), recipient["id"], currency))
-        rw = _get_wallet(recipient["id"], currency)
-    bal = wallet_balance(sw["id"])
-    # ── Pay fee: 2% on amounts over €5,000 ───────────────────────────
+    rec = fetchone("SELECT id, full_name FROM users WHERE hanatag=?", (hanatag,))
+    if not rec:                          return jsonify({"error": "Hanatag not found"}), 404
+    if rec["id"] == uid:                 return jsonify({"error": "Cannot pay yourself"}), 400
+
+    sw = _get_wallet(uid, currency)
+    if not sw:                           return jsonify({"error": f"No {currency} wallet"}), 400
+
     lim = LIMITS["standard"]
-    pay_fee = 0
-    if cents > lim["pay_fee_threshold_cents"]:
-        pay_fee = int(cents * lim["pay_fee_rate"])
-    total_debit = cents + pay_fee
-    if total_debit > bal: return jsonify({"error": "Insufficient balance"}), 400
-    # ─────────────────────────────────────────────────────────────────
-    ref = str(uuid.uuid4())
-    sender = fetchone("SELECT full_name, hanatag FROM users WHERE id=?", (session["user_id"],))
-    stag = sender["hanatag"] or session.get("user_name","user")
-    fee_note = f" (incl. €{pay_fee/100:.2f} fee)" if pay_fee else ""
-    post_transaction(sw["id"], -total_debit, f"Pay to {hanatag}" + (f" — {note}" if note else "") + fee_note, tx_type="pay_out", ref_id=ref)
-    post_transaction(rw["id"], +cents, f"Pay from {stag}" + (f" — {note}" if note else ""), tx_type="pay_in",  ref_id=ref)
+    fee = int(cents * lim["pay_fee_rate"]) if cents > lim["pay_fee_threshold_cents"] else 0
+    if cents + fee > wallet_balance(sw["id"]):
+        return jsonify({"error": "Insufficient balance"}), 400
+
+    iid       = str(uuid.uuid4())
+    challenge = "totp" if _user_has_totp(uid) else "email_otp"
     with get_db() as db:
-        db.execute("INSERT INTO hanatag_payments(id,sender_id,recipient_id,amount_cents,currency,note) VALUES(?,?,?,?,?,?)",
-                   (ref, session["user_id"], recipient["id"], cents, currency, note))
-    sym = CURRENCIES.get(currency,{}).get('symbol','')
-    push_notification(recipient["id"], f"You received {sym}{cents/100:,.2f}!".replace(',', ' '),
-                      f"From {sender['full_name']}" + (f": {note}" if note else ""), "success", "/wallet")
-    return jsonify({"ok": True, "recipient_name": recipient["full_name"], "fee_cents": pay_fee})
+        db.execute("""INSERT INTO payment_intents
+            (id,sender_id,recipient_id,recipient_hanatag,recipient_name,amount_cents,fee_cents,
+             currency,note,challenge,status,idempotency_key,expires_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,'pending',?, datetime('now', ?))""",
+            (iid, uid, rec["id"], hanatag, rec["full_name"], cents, fee, currency, note,
+             challenge, idem, f"+{PAYMENT_INTENT_TTL_MIN} minutes"))
+
+    masked = None
+    if challenge == "email_otp":
+        import comms
+        urow = fetchone("SELECT email, full_name FROM users WHERE id=?", (uid,))
+        sym  = CURRENCIES.get(currency, {}).get("symbol", "")
+        detail = f"{sym}{cents/100:,.2f}".replace(",", " ") + f" to {hanatag}"
+        comms.send_otp(uid, "email", f"pay:{iid}",
+                       to_address=(urow["email"] or ""), to_name=(urow["full_name"] or ""),
+                       extra_data={"otp_pay_detail": detail})
+        masked = _mask_email(urow["email"])
+
+    return jsonify({"ok": True, "intent_id": iid, "challenge": challenge, "masked_target": masked,
+                    "recipient_name": rec["full_name"], "amount_cents": cents,
+                    "fee_cents": fee, "currency": currency})
+
+
+@app.route("/api/wallet/pay/confirm", methods=["POST"])
+@limiter.limit("10 per minute")
+@auth.login_required
+def api_pay_confirm():
+    """Phase 2: verify the code against this intent, then move money atomically."""
+    d    = request.json or {}
+    uid  = session["user_id"]
+    iid  = (d.get("intent_id") or "").strip()
+    code = str(d.get("code", "")).strip()
+    if not iid:                               return jsonify({"error": "Missing payment reference"}), 400
+    if len(code) != 6 or not code.isdigit():  return jsonify({"error": "Enter the 6-digit code"}), 400
+
+    intent = fetchone("SELECT * FROM payment_intents WHERE id=? AND sender_id=?", (iid, uid))
+    if not intent:                            return jsonify({"error": "Payment not found"}), 404
+
+    # idempotent replay of an already-completed intent
+    if intent["status"] == "completed":
+        return jsonify({"ok": True, "ref": intent["result_ref"], "recipient_name": intent["recipient_name"],
+                        "fee_cents": intent["fee_cents"], "idempotent_replay": True})
+    if intent["status"] != "pending":
+        return jsonify({"error": "This payment can no longer be confirmed. Please start again.", "restart": True}), 409
+
+    # expiry
+    if fetchone("SELECT 1 FROM payment_intents WHERE id=? AND expires_at > datetime('now')", (iid,)) is None:
+        with get_db() as db:
+            db.execute("UPDATE payment_intents SET status='expired' WHERE id=? AND status='pending'", (iid,))
+        return jsonify({"error": "This payment request expired. Please start again.", "restart": True}), 410
+
+    # brute-force cap
+    if intent["attempts"] >= PAYMENT_MAX_OTP_ATTEMPTS:
+        with get_db() as db:
+            db.execute("UPDATE payment_intents SET status='failed' WHERE id=?", (iid,))
+        return jsonify({"error": "Too many attempts. Please start the payment again.", "restart": True}), 429
+
+    # verify the code, bound to THIS intent
+    if intent["challenge"] == "totp":
+        ok = _user_has_totp(uid) and _verify_totp_code(uid, code)
+    else:
+        import comms
+        ok = comms.verify_otp(uid, code, f"pay:{iid}")
+    if not ok:
+        with get_db() as db:
+            db.execute("UPDATE payment_intents SET attempts=attempts+1 WHERE id=?", (iid,))
+        return jsonify({"error": "Invalid or expired code"}), 403
+
+    # ── atomic execution: one write-locked transaction, exactly once ──────────
+    sender_name = None
+    try:
+        with get_db(immediate=True) as db:
+            # compare-and-swap: only one confirm may claim a pending intent
+            claimed = db.execute(
+                "UPDATE payment_intents SET status='consuming' WHERE id=? AND status='pending'", (iid,)).rowcount
+            if claimed != 1:
+                again = db.execute("SELECT status,result_ref,recipient_name,fee_cents FROM payment_intents WHERE id=?", (iid,)).fetchone()
+                if again and again["status"] == "completed":
+                    return jsonify({"ok": True, "ref": again["result_ref"], "recipient_name": again["recipient_name"],
+                                    "fee_cents": again["fee_cents"], "idempotent_replay": True})
+                return jsonify({"error": "This payment is already being processed"}), 409
+
+            # re-validate inside the lock
+            fd, fw, freason = _get_freeze_status(uid)
+            if fw:
+                db.execute("UPDATE payment_intents SET status='failed' WHERE id=?", (iid,))
+                return jsonify({"error": FROZEN_WITHDRAW_MSG, "frozen": True}), 403
+
+            currency    = intent["currency"]
+            cents       = intent["amount_cents"]
+            fee         = intent["fee_cents"]
+            total_debit = cents + fee
+
+            sw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?", (uid, currency)).fetchone()
+            if not sw:
+                db.execute("UPDATE payment_intents SET status='failed' WHERE id=?", (iid,))
+                return jsonify({"error": f"No {currency} wallet"}), 400
+
+            rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?", (intent["recipient_id"], currency)).fetchone()
+            if not rw:
+                db.execute("INSERT INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,0)",
+                           (str(uuid.uuid4()), intent["recipient_id"], currency))
+                rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?", (intent["recipient_id"], currency)).fetchone()
+
+            balrow = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 1", (sw["id"],)).fetchone()
+            bal = balrow["balance_after"] if balrow else 0
+            if total_debit > bal:
+                db.execute("UPDATE payment_intents SET status='failed' WHERE id=?", (iid,))
+                return jsonify({"error": "Insufficient balance"}), 400
+
+            ref     = str(uuid.uuid4())
+            sender  = db.execute("SELECT full_name, hanatag FROM users WHERE id=?", (uid,)).fetchone()
+            stag    = (sender["hanatag"] if sender else None) or session.get("user_name", "user")
+            sender_name = sender["full_name"] if sender else "a SOHANA user"
+            note     = intent["note"] or ""
+            fee_note = f" (incl. €{fee/100:.2f} fee)" if fee else ""
+
+            # both legs + audit row share this transaction via _db=db → atomic
+            post_transaction(sw["id"], -total_debit,
+                             f"Pay to {intent['recipient_hanatag']}" + (f" — {note}" if note else "") + fee_note,
+                             tx_type="pay_out", ref_id=ref, _db=db)
+            post_transaction(rw["id"], +cents,
+                             f"Pay from {stag}" + (f" — {note}" if note else ""),
+                             tx_type="pay_in", ref_id=ref, _db=db)
+            db.execute("INSERT INTO hanatag_payments(id,sender_id,recipient_id,amount_cents,currency,note,status) "
+                       "VALUES(?,?,?,?,?,?, 'completed')",
+                       (ref, uid, intent["recipient_id"], cents, currency, note))
+            db.execute("UPDATE payment_intents SET status='completed', result_ref=?, consumed_at=datetime('now') WHERE id=?",
+                       (ref, iid))
+        # commit happens here on clean exit
+    except ValueError as e:
+        # e.g. post_transaction's insufficient-balance guard fired → whole tx rolled back
+        with get_db() as db:
+            db.execute("UPDATE payment_intents SET status='failed' WHERE id=? AND status='consuming'", (iid,))
+        return jsonify({"error": str(e)}), 400
+    except Exception:
+        with get_db() as db:
+            db.execute("UPDATE payment_intents SET status='failed' WHERE id=? AND status='consuming'", (iid,))
+        return jsonify({"error": "Payment could not be completed — no funds were moved."}), 500
+
+    # side effects AFTER the money commits
+    sym = CURRENCIES.get(intent["currency"], {}).get("symbol", "")
+    push_notification(intent["recipient_id"],
+                      f"You received {sym}{intent['amount_cents']/100:,.2f}!".replace(",", " "),
+                      f"From {sender_name}" + (f": {intent['note']}" if intent["note"] else ""),
+                      "success", "/wallet")
+    return jsonify({"ok": True, "ref": ref, "recipient_name": intent["recipient_name"],
+                    "fee_cents": intent["fee_cents"]})
 
 @app.route("/api/wallet/statement")
 @auth.login_required

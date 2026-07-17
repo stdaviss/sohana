@@ -731,10 +731,23 @@ def init_db():
 
 
 @contextmanager
-def get_db():
+def get_db(immediate=False):
+    """
+    Yields a SQLite connection, commits on clean exit, rolls back on exception.
+
+    immediate=True acquires the write lock up-front via BEGIN IMMEDIATE so that
+    money-moving transactions serialise instead of racing on last-row balances.
+    Requires manual transaction control (isolation_level=None) for that one path;
+    the default (immediate=False) path is unchanged and remains fully backward
+    compatible with every existing caller.
+    """
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA busy_timeout=5000")   # wait up to 5s for a lock, don't error out
+    if immediate:
+        conn.isolation_level = None            # take manual control of the transaction
+        conn.execute("BEGIN IMMEDIATE")        # acquire the write lock now
     try:
         yield conn
         conn.commit()

@@ -116,16 +116,22 @@ def _inline_html(template_key: str, data: dict, to_name: str) -> tuple[str, str]
         code    = data.get("otp_code", "------")
         purpose = data.get("otp_purpose", "verification")
         ttl     = data.get("otp_ttl", "10 minutes")
+        pay_detail = data.get("otp_pay_detail", "")
         subj    = f"Your SOHANA {purpose} code: {code}"
+        pay_box = f"""
+<div class="highlight">
+  <div class="label">Payment</div>
+  <div class="value">{pay_detail}</div>
+</div>""" if pay_detail else ""
         body    = f"""
 <p>Hi {name},</p>
 <p>Your SOHANA {purpose} code is:</p>
-<div class="code-box"><div class="code">{code}</div></div>
+<div class="code-box"><div class="code">{code}</div></div>{pay_box}
 <div class="highlight">
   <div class="label">Expires in</div>
   <div class="value">{ttl}</div>
 </div>
-<div class="warn">Never share this code. SOHANA will never ask for it by phone or chat.</div>"""
+<div class="warn">Never share this code. SOHANA will never ask for it by phone or chat. If you did not request this, do not share the code and contact support@sohana.app.</div>"""
         return subj, _build_html(subj, body)
 
     if template_key == "welcome":
@@ -370,8 +376,15 @@ def verify_otp(user_id: str, code: str, purpose: str) -> bool:
 
 
 def send_otp(user_id: str, method: str, purpose: str,
-             to_address: str = "", to_name: str = "") -> bool:
-    """Generate, store, and deliver an OTP via SMS or email."""
+             to_address: str = "", to_name: str = "",
+             extra_data: dict = None) -> bool:
+    """Generate, store, and deliver an OTP via SMS or email.
+
+    `purpose` is stored verbatim so a caller can bind a code to a specific
+    action (e.g. 'pay:<intent_id>'); the human label is derived from the part
+    before any ':'. `extra_data` is merged into the email template data — used
+    to surface the payment amount/payee in the OTP email for dynamic linking.
+    """
     code = _generate_otp()
     if not _store_otp(user_id, code, method, purpose):
         return False
@@ -379,26 +392,34 @@ def send_otp(user_id: str, method: str, purpose: str,
     purpose_labels = {
         "2fa":      "Two-factor authentication",
         "payment":  "Payment verification",
+        "pay":      "Payment verification",
         "login":    "Sign-in verification",
         "register": "Registration",
     }
-    label = purpose_labels.get(purpose, purpose.replace("_", " ").title())
+    base_purpose = purpose.split(":", 1)[0]
+    label = purpose_labels.get(base_purpose,
+                               purpose_labels.get(purpose, purpose.replace("_", " ").title()))
 
     if method == "sms":
-        return send_sms(
-            to_number = to_address,
-            body      = f"Your SOHANA {label} code: {code}. Valid for {OTP_EXPIRY} minutes. Never share this code."
-        )
+        detail = (extra_data or {}).get("otp_pay_detail", "")
+        body   = f"Your SOHANA {label} code: {code}."
+        if detail:
+            body += f" ({detail})"
+        body += f" Valid for {OTP_EXPIRY} minutes. Never share this code."
+        return send_sms(to_number=to_address, body=body)
     else:
+        template_data = {
+            "otp_code":    code,
+            "otp_purpose": label,
+            "otp_ttl":     f"{OTP_EXPIRY} minutes",
+        }
+        if extra_data:
+            template_data.update(extra_data)
         return send_email(
             to_email      = to_address,
             to_name       = to_name,
             template_key  = "2fa",
-            template_data = {
-                "otp_code":    code,
-                "otp_purpose": label,
-                "otp_ttl":     f"{OTP_EXPIRY} minutes",
-            }
+            template_data = template_data,
         )
 
 
