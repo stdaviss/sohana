@@ -1,118 +1,340 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — SOHANA{% endblock %}
 {% block topbar_title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+/* ============ DASHBOARD v2 — scoped under .dsh ============ */
+.dsh{--r-card:16px;max-width:1180px;margin:0 auto;padding:.25rem .25rem 3rem;}
+.dsh *{box-sizing:border-box;}
+
+/* Header */
+.dsh-head{margin:.25rem 0 1.4rem;}
+.dsh-head h1{font-family:'Geist',sans-serif;font-size:1.7rem;font-weight:600;letter-spacing:-.02em;color:var(--ink);margin:0;}
+.dsh-head .serif{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--accent);}
+.dsh-head p{margin:.3rem 0 0;color:var(--ink-3);font-size:.9rem;}
+.dsh-head .htag{font-family:'Geist Mono',monospace;color:var(--accent);}
+
+/* Reusable card */
+.dcard{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r-card);transition:transform .25s cubic-bezier(.2,.7,.2,1),border-color .25s,background .25s;}
+.dcard:hover{transform:translateY(-2px);border-color:var(--line-2);}
+.dcard-pad{padding:1.2rem 1.3rem;}
+.eyebrow{font-family:'Geist Mono',monospace;font-size:.66rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);}
+.mono{font-family:'Geist Mono',monospace;}
+
+/* Hero grid */
+.dsh-hero{display:grid;grid-template-columns:1.65fr 1fr;gap:1rem;margin-bottom:1rem;}
+
+/* Wallet card */
+.wal{display:flex;flex-direction:column;justify-content:space-between;min-height:196px;position:relative;overflow:hidden;}
+.wal::after{content:"";position:absolute;right:-70px;top:-70px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(158,228,147,.14),transparent 68%);pointer-events:none;}
+.wal-top{display:flex;align-items:center;justify-content:space-between;}
+.wal-bal{font-family:'Geist Mono',monospace;font-size:2.9rem;font-weight:500;line-height:1;letter-spacing:-.02em;color:var(--ink);margin:.55rem 0 .1rem;}
+.wal-bal .cur{color:var(--ink-3);font-size:1.5rem;margin-right:.15rem;}
+.wal-chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.15rem;}
+.wal-chip{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:99px;padding:.2rem .55rem;}
+.wal-acts{display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap;}
+.abtn{font-family:'Geist',sans-serif;font-size:.82rem;font-weight:600;border-radius:99px;padding:.5rem 1rem;border:1px solid transparent;cursor:pointer;transition:transform .12s,background .2s,border-color .2s;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;}
+.abtn:active{transform:scale(.96);}
+.abtn-primary{background:var(--accent);color:var(--accent-ink);}
+.abtn-primary:hover{background:var(--accent-2);}
+.abtn-ghost{background:transparent;color:var(--ink-2);border-color:var(--line-2);}
+.abtn-ghost:hover{color:var(--ink);border-color:var(--accent);}
+
+/* NCS gauge card */
+.ncs{display:flex;flex-direction:column;align-items:center;text-align:center;gap:.15rem;}
+.gauge{position:relative;width:150px;height:150px;margin:.2rem 0 .1rem;}
+.gauge svg{transform:rotate(-90deg);}
+.gauge-track{fill:none;stroke:var(--line);stroke-width:10;}
+.gauge-arc{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.2,.7,.2,1);}
+.gauge-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.gauge-num{font-family:'Geist Mono',monospace;font-size:2rem;font-weight:500;line-height:1;color:var(--ink);}
+.gauge-max{font-family:'Geist Mono',monospace;font-size:.66rem;color:var(--ink-3);margin-top:.15rem;}
+.tier-pill{font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-radius:99px;padding:.24rem .7rem;}
+.ncs-badges{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:center;margin-top:.7rem;}
+.bpill{font-family:'Geist Mono',monospace;font-size:.66rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:99px;padding:.2rem .5rem;}
+.ncs-link{margin-top:.7rem;font-size:.78rem;color:var(--accent);text-decoration:none;font-weight:500;}
+.ncs-link:hover{text-decoration:underline;}
+
+/* Stat tiles */
+.dsh-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1rem;}
+.stat{padding:1rem 1.15rem;}
+.stat .lbl{font-family:'Geist Mono',monospace;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem;}
+.stat .val{font-family:'Geist Mono',monospace;font-size:1.7rem;font-weight:500;color:var(--ink);line-height:1;}
+.stat .sub{font-size:.76rem;color:var(--ink-3);margin-top:.35rem;}
+.stat .val.dim{color:var(--ink-3);font-size:1rem;}
+
+/* Body grid */
+.dsh-body{display:grid;grid-template-columns:1fr 340px;gap:1rem;align-items:start;}
+.dcol{display:flex;flex-direction:column;gap:1rem;}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:.2rem .1rem .1rem;}
+.sec-head h2{font-family:'Geist',sans-serif;font-size:1.02rem;font-weight:600;color:var(--ink);margin:0;letter-spacing:-.01em;}
+.view-all{font-size:.78rem;color:var(--accent);text-decoration:none;font-weight:500;}
+.view-all:hover{text-decoration:underline;}
+
+/* Circle cards */
+.circ-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.circ{padding:1.05rem 1.15rem;display:flex;flex-direction:column;gap:.65rem;}
+.circ-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
+.circ-name{font-family:'Geist',sans-serif;font-weight:600;font-size:.95rem;color:var(--ink);}
+.circ-pct{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--accent);}
+.circ-meta{display:flex;gap:.8rem;font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);}
+.track{height:6px;border-radius:99px;background:var(--bg-3);overflow:hidden;}
+.fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);}
+.avstack{display:flex;align-items:center;}
+.av{width:26px;height:26px;border-radius:50%;border:2px solid var(--bg-2);margin-left:-8px;background:linear-gradient(135deg,rgba(158,228,147,.5),rgba(103,232,249,.35));}
+.av:first-child{margin-left:0;}
+.av-more{width:26px;height:26px;border-radius:50%;border:2px solid var(--bg-2);margin-left:-8px;background:var(--bg-3);display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-2);}
+.circ-foot{display:flex;align-items:center;justify-content:space-between;margin-top:.1rem;}
+.slot{font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--ink-2);}
+.slot strong{color:var(--accent);}
+
+/* Marketplace cards */
+.mkt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.mkt{padding:1rem 1.05rem;display:flex;flex-direction:column;gap:.55rem;}
+.mkt-name{font-weight:600;font-size:.9rem;color:var(--ink);}
+.mkt-amt{font-family:'Geist Mono',monospace;font-size:1.15rem;color:var(--ink);}
+.mkt-amt .per{font-size:.72rem;color:var(--ink-3);font-weight:400;}
+.mkt-row{display:flex;align-items:center;justify-content:space-between;margin-top:.15rem;}
+.mkt-mem{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);}
+.spot{font-family:'Geist Mono',monospace;font-size:.64rem;font-weight:600;border-radius:99px;padding:.18rem .5rem;letter-spacing:.04em;}
+.spot.few{background:rgba(255,179,80,.14);color:var(--warn);}
+.spot.some{background:rgba(103,232,249,.12);color:var(--info);}
+.spot.open{background:rgba(158,228,147,.14);color:var(--accent);}
+
+/* Transactions */
+.tx{display:flex;align-items:center;gap:.85rem;padding:.75rem 1.2rem;border-bottom:1px solid var(--line);}
+.tx:last-child{border-bottom:none;}
+.tx-ic{width:34px;height:34px;border-radius:10px;background:var(--bg-3);display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.9rem;color:var(--ink-2);flex-shrink:0;}
+.tx-ic.in{color:var(--accent);} .tx-ic.out{color:var(--danger);}
+.tx-mid{flex:1;min-width:0;}
+.tx-desc{font-size:.85rem;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tx-date{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);margin-top:.1rem;}
+.tx-amt{font-family:'Geist Mono',monospace;font-size:.88rem;font-weight:500;white-space:nowrap;}
+.tx-amt.in{color:var(--accent);} .tx-amt.out{color:var(--ink);}
+
+/* Card head + footer for sidebar cards */
+.chead{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.15rem .6rem;}
+.chead .t{font-weight:600;font-size:.92rem;color:var(--ink);display:flex;align-items:center;gap:.45rem;}
+.cfoot{padding:.7rem 1.15rem;border-top:1px solid var(--line);}
+.count-pill{font-family:'Geist Mono',monospace;font-size:.64rem;font-weight:700;background:rgba(255,106,85,.16);color:var(--danger);border-radius:99px;padding:.1rem .42rem;}
+
+/* Notifications */
+.nlist{display:flex;flex-direction:column;}
+.nitem{display:flex;gap:.7rem;padding:.7rem 1.15rem;border-top:1px solid var(--line);align-items:flex-start;transition:background .2s;}
+.nitem:hover{background:var(--bg-3);}
+.ndot{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.75rem;flex-shrink:0;}
+.ndot.green{background:rgba(158,228,147,.14);color:var(--accent);}
+.ndot.red{background:rgba(255,106,85,.14);color:var(--danger);}
+.ndot.orange{background:rgba(255,179,80,.14);color:var(--warn);}
+.ntext{flex:1;min-width:0;font-size:.8rem;color:var(--ink-2);line-height:1.4;}
+.ntext strong{color:var(--ink);font-weight:600;}
+.ntime{font-family:'Geist Mono',monospace;font-size:.64rem;color:var(--ink-3);margin-top:.2rem;}
+.nempty{padding:1.4rem 1.15rem;text-align:center;color:var(--ink-3);font-size:.82rem;}
+
+/* Tip card */
+.tip{background:linear-gradient(150deg,rgba(158,228,147,.10),var(--bg-2));border:1px solid var(--line);border-radius:var(--r-card);padding:1.2rem 1.3rem;}
+.tip .tmark{width:34px;height:34px;border-radius:10px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-family:'Geist Mono',monospace;margin-bottom:.7rem;}
+.tip h4{margin:0 0 .3rem;font-size:.95rem;color:var(--ink);font-weight:600;}
+.tip p{margin:0 0 .9rem;font-size:.82rem;color:var(--ink-3);line-height:1.5;}
+
+.empty{padding:1.5rem;text-align:center;color:var(--ink-3);font-size:.85rem;}
+
+/* Reveal-on-scroll motion */
+.reveal{opacity:0;transform:translateY(14px);}
+.reveal.in{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1);}
+
+@media(max-width:920px){
+  .dsh-hero{grid-template-columns:1fr;}
+  .dsh-body{grid-template-columns:1fr;}
+  .dsh-stats{grid-template-columns:1fr;}
+  .circ-grid,.mkt-grid{grid-template-columns:1fr;}
+}
+@media(prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;}
+  .fill,.gauge-arc,.dcard{transition:none;}
+}
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title">Welcome back, {{ user.full_name.split()[0] }}!</h1>
-    <p class="page-subtitle">{% if user.get('hanatag') %}{{ user.hanatag }} &nbsp;·&nbsp; {% endif %}Your savings at a glance.</p>
-  </div>
-</div>
+{% set sym = def_wallet.symbol if def_wallet and def_wallet.symbol else '€' %}
+{% set active = my_roscas|selectattr('status','equalto','active')|list %}
+{% set ncs_pct = [[((user.ncs_score-300)/550*100)|round|int, 0]|max, 100]|min %}
 
-<div class="stats-grid stats-grid-4">
-  <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;">
-    <div class="stat-label">Wallet balance</div>
-    <div class="stat-value" id="wallet-balance">€{{ '{:,.2f}'.format(balance/100).replace(',', ' ') }}</div>
-    <div class="wallet-actions">
-      <button class="wallet-btn primary-w" onclick="location.href='/wallet?action=withdraw'">Withdraw</button>
-      <button class="wallet-btn" onclick="location.href='/wallet?action=deposit'">Deposit</button>
-      <button class="wallet-btn" onclick="location.href='/wallet?action=pay'" style="background:rgba(234,88,12,.7);">Pay</button>
-    </div>
-  </div>
-  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
-    <div class="stat-label">Reputation Score</div>
-    <div class="stat-value" style="font-size:2rem;">{{ user.ncs_score }}</div>
-    <div class="rep-stars">{% for i in range(5) %}<span class="rep-star">{{ '★' if (user.ncs_score-300)/110>i else '☆' }}</span>{% endfor %}</div>
-  </div>
-  {% set active = my_roscas|selectattr('status','equalto','active')|list %}
-  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
-    <div class="stat-label">Next contribution</div>
-    {% if active %}
-    <div class="stat-value">€{{ '%.0f'%(active[0].contribution_cents/100) }}</div>
-    <div class="stat-sub">{{ active[0].name[:22] }}</div>
-    {% else %}<div class="stat-value" style="font-size:1rem;color:var(--text-muted);">None due</div>{% endif %}
-  </div>
-  <div class="stat-card" style="flex-direction:column;align-items:flex-start;gap:.3rem;">
-    <div class="stat-label">Upcoming payout</div>
-    {% if active %}
-    <div class="stat-value">€{{ '%.0f'%(active[0].contribution_cents*active[0].max_members/100) }}</div>
-    <div class="stat-sub">{{ active[0].name[:22] }}</div>
-    {% else %}<div class="stat-value" style="font-size:1rem;color:var(--text-muted);">—</div>{% endif %}
-  </div>
-</div>
+<div class="dsh">
 
-<div class="content-grid content-grid-sidebar">
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-    {% if active %}
-    <div>
-      <div class="flex items-center justify-between mb-3"><h2 class="section-title" style="margin:0;">Active ROSCAs</h2><a href="/circles" class="view-all">View all ›</a></div>
-      <div class="content-grid-2">
-        {% for r in active %}
-        <div class="rosca-card">
-          <div class="flex items-center justify-between mb-2"><div class="rosca-card-name">{{ r.name }}</div><div style="font-size:.7rem;opacity:.7;">◑ {{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%</div></div>
-          <div class="rosca-card-meta"><span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span><span>€{{ '%.0f'%(r.contribution_cents/100) }}/cycle</span></div>
-          <div class="rosca-progress"><div class="progress-track"><div class="progress-fill fill-teal" style="width:{{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%"></div></div></div>
-          <div class="member-avatars">{% for i in range([r.member_count,5]|min) %}<div class="member-avatar-sm">{{ loop.index }}</div>{% endfor %}</div>
-          <div class="rosca-card-footer"><span class="payout-position">Slot <strong>#{{ r.slot or '?' }}</strong></span><a href="/circles/{{ r.id }}" class="btn btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2);">View</a></div>
+  <div class="dsh-head reveal">
+    <h1>Welcome back, <span class="serif">{{ user.full_name.split()[0] }}</span></h1>
+    <p>{% if user.get('hanatag') %}<span class="htag">{{ user.hanatag }}</span> &nbsp;·&nbsp; {% endif %}Your savings, at a glance.</p>
+  </div>
+
+  <!-- HERO: wallet + NCS gauge -->
+  <div class="dsh-hero">
+    <div class="dcard dcard-pad wal reveal">
+      <div>
+        <div class="wal-top">
+          <span class="eyebrow">Total balance</span>
+          <span class="wal-chip">{{ def_wallet.currency if def_wallet else 'EUR' }}</span>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <div>
-      <div class="flex items-center justify-between mb-3"><h2 class="section-title" style="margin:0;">Join a ROSCA</h2><a href="/circles" class="view-all">Browse all ›</a></div>
-      <div class="content-grid-3">
-        {% for r in marketplace %}
-        <div class="market-card">
-          <div class="market-card-name">{{ r.name }}</div>
-          <div class="market-card-amount">€{{ '%.0f'%(r.contribution_cents/100) }}<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);">/{{ 'Monthly' if r.frequency_days==30 else 'Weekly' }}</span></div>
-          <div class="market-card-meta">{{ r.member_count }} Members</div>
-          {% set spots=r.max_members-r.member_count %}
-          {% if spots<=2 %}<span class="spot-badge few">{{ spots }} spot{% if spots!=1 %}s{% endif %} left</span>
-          {% elif spots==r.max_members %}<span class="spot-badge open">Open Now</span>
-          {% else %}<span class="spot-badge some">{{ spots }} spots left</span>{% endif %}
+        <div class="wal-bal"><span class="cur">{{ sym }}</span><span id="wallet-balance" data-count="{{ balance/100 }}" data-dp="2">{{ '{:,.2f}'.format(balance/100).replace(',', '\u00a0') }}</span></div>
+        {% if wallets and wallets|length > 1 %}
+        <div class="wal-chips">
+          {% for w in wallets if not w.is_default %}<span class="wal-chip">{{ w.symbol }}{{ '{:,.0f}'.format(w.balance_display) }} {{ w.currency }}</span>{% endfor %}
         </div>
-        {% else %}<div class="empty-state" style="grid-column:1/-1;padding:1.5rem;"><p>No public circles yet.</p></div>
-        {% endfor %}
+        {% endif %}
+      </div>
+      <div class="wal-acts">
+        <a class="abtn abtn-primary" href="/wallet?action=deposit">Deposit</a>
+        <a class="abtn abtn-ghost" href="/wallet?action=withdraw">Withdraw</a>
+        <a class="abtn abtn-ghost" href="/wallet?action=pay">Pay</a>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">Recent Transactions</span><a href="/wallet" class="view-all">View all ›</a></div>
-      {% if recent_tx %}
-      <div class="table-wrap"><table><thead><tr><th>Description</th><th>Amount</th><th>Date</th></tr></thead><tbody>
-        {% for tx in recent_tx %}
-        <tr><td><div class="td-bold">{{ tx.description }}</div></td>
-        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}€{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', ' ') }}</td>
-        <td class="text-muted text-xs">{{ tx.created_at[:10] }}</td></tr>
-        {% endfor %}
-      </tbody></table></div>
-      {% else %}<div class="empty-state" style="padding:1.5rem;"><p>No transactions yet.</p></div>{% endif %}
-    </div>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Notifications {% if unread>0 %}<span class="pill pill-red pill-no-dot" style="font-size:.65rem;margin-left:.3rem;">{{ unread }}</span>{% endif %}</span></div>
-      <div class="notif-list" id="dash-notifs"><div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">Loading…</div></div>
-      <div class="card-footer"><a href="/notifications" class="view-all">View all ›</a></div>
-    </div>
-    <div class="tips-card">
-      <div class="tips-img">🤝</div>
-      <div class="tips-body"><div class="tips-title">Boost Your Turn</div><div class="tips-desc">Pay contributions on time to improve your NCS score and move up the payout queue faster.</div><a href="/ncs" class="btn btn-primary btn-sm btn-full mt-3">My NCS Score</a></div>
-    </div>
-    <div class="card card-pad">
-      <div class="flex items-center justify-between mb-3"><span class="card-title">NCS Score</span><a href="/ncs" class="view-all">Details ›</a></div>
-      <div class="flex items-center gap-3">
-        <div style="font-size:2.5rem;font-weight:800;color:{{ tier.color }};">{{ user.ncs_score }}</div>
-        <div><div class="pill {% if tier.name=='exemplary' %}pill-purple{% elif tier.name=='reliable' %}pill-green{% elif tier.name=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot">{{ tier.label }}</div></div>
+    <div class="dcard dcard-pad ncs reveal">
+      <span class="eyebrow">NCS Score</span>
+      <div class="gauge">
+        <svg width="150" height="150" viewBox="0 0 150 150">
+          <circle class="gauge-track" cx="75" cy="75" r="62"></circle>
+          <circle class="gauge-arc" id="ncs-arc" cx="75" cy="75" r="62"
+                  stroke="{{ tier.color }}" data-pct="{{ ncs_pct }}"></circle>
+        </svg>
+        <div class="gauge-c">
+          <div class="gauge-num" id="ncs-num" data-count="{{ user.ncs_score }}" data-dp="0">{{ user.ncs_score }}</div>
+          <div class="gauge-max">/ 850</div>
+        </div>
       </div>
-      <div class="progress-track mt-3"><div class="progress-fill fill-blue" style="width:{{ ((user.ncs_score-300)/550*100)|round|int }}%"></div></div>
+      <span class="tier-pill" style="color:{{ tier.color }};background:{{ tier.color }}22;">{{ tier.label }}</span>
       {% if badges %}
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.875rem;">
-        {% for b in badges %}<span class="pill pill-amber pill-no-dot" style="font-size:.7rem;">★ {{ b.label }}</span>{% endfor %}
-      </div>{% endif %}
+      <div class="ncs-badges">
+        {% for b in badges %}<span class="bpill">{{ b.label }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      <a class="ncs-link" href="/ncs">View breakdown &rsaquo;</a>
+    </div>
+  </div>
+
+  <!-- STAT TILES -->
+  <div class="dsh-stats">
+    <div class="dcard stat reveal">
+      <div class="lbl">Active circles</div>
+      <div class="val" data-count="{{ active|length }}" data-dp="0">{{ active|length }}</div>
+      <div class="sub">{{ my_roscas|length }} total joined</div>
+    </div>
+    <div class="dcard stat reveal">
+      <div class="lbl">Next contribution</div>
+      {% if active %}
+      <div class="val">{{ sym }}{{ '{:,.0f}'.format(active[0].contribution_cents/100) }}</div>
+      <div class="sub">{{ active[0].name[:24] }}</div>
+      {% else %}
+      <div class="val dim">None due</div>
+      <div class="sub">You're all caught up</div>
+      {% endif %}
+    </div>
+    <div class="dcard stat reveal">
+      <div class="lbl">Upcoming payout</div>
+      {% if active %}
+      <div class="val">{{ sym }}{{ '{:,.0f}'.format(active[0].contribution_cents*active[0].max_members/100) }}</div>
+      <div class="sub">Slot #{{ active[0].slot or '?' }} · {{ active[0].name[:18] }}</div>
+      {% else %}
+      <div class="val dim">&mdash;</div>
+      <div class="sub">Join a circle to start</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="dsh-body">
+    <div class="dcol">
+
+      {% if active %}
+      <div class="reveal">
+        <div class="sec-head"><h2>Active circles</h2><a class="view-all" href="/circles">View all &rsaquo;</a></div>
+        <div class="circ-grid">
+          {% for r in active %}
+          {% set pct = [((r.current_cycle/([r.total_cycles,1]|max))*100)|round|int, 100]|min %}
+          <div class="dcard circ">
+            <div class="circ-top">
+              <div class="circ-name">{{ r.name }}</div>
+              <div class="circ-pct">{{ pct }}%</div>
+            </div>
+            <div class="circ-meta">
+              <span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span>
+              <span>{{ sym }}{{ '{:,.0f}'.format(r.contribution_cents/100) }}/{{ 'mo' if r.frequency_days==30 else ('wk' if r.frequency_days==7 else '2wk') }}</span>
+            </div>
+            <div class="track"><div class="fill" data-w="{{ pct }}"></div></div>
+            <div class="circ-foot">
+              <div class="avstack">
+                {% for i in range([r.member_count,4]|min) %}<span class="av"></span>{% endfor %}
+                {% if r.member_count > 4 %}<span class="av-more">+{{ r.member_count-4 }}</span>{% endif %}
+              </div>
+              <a class="abtn abtn-ghost" href="/circles/{{ r.id }}" style="padding:.35rem .8rem;font-size:.76rem;">View</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="reveal">
+        <div class="sec-head"><h2>Discover circles</h2><a class="view-all" href="/circles">Browse all &rsaquo;</a></div>
+        <div class="mkt-grid">
+          {% for r in marketplace %}
+          {% set spots = r.max_members - r.member_count %}
+          <a class="dcard mkt" href="/circles" style="text-decoration:none;">
+            <div class="mkt-name">{{ r.name }}</div>
+            <div class="mkt-amt">{{ sym }}{{ '{:,.0f}'.format(r.contribution_cents/100) }}<span class="per">/{{ 'Monthly' if r.frequency_days==30 else ('Weekly' if r.frequency_days==7 else 'Fortnightly') }}</span></div>
+            <div class="mkt-row">
+              <span class="mkt-mem">{{ r.member_count }}/{{ r.max_members }} members</span>
+              {% if spots<=2 and spots>0 %}<span class="spot few">{{ spots }} left</span>
+              {% elif spots==r.max_members %}<span class="spot open">Open</span>
+              {% elif spots>0 %}<span class="spot some">{{ spots }} left</span>
+              {% else %}<span class="spot few">Full</span>{% endif %}
+            </div>
+          </a>
+          {% else %}
+          <div class="dcard empty" style="grid-column:1/-1;">No public circles yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="dcard reveal">
+        <div class="chead"><span class="t">Recent transactions</span><a class="view-all" href="/wallet">View all &rsaquo;</a></div>
+        {% if recent_tx %}
+        <div>
+          {% for tx in recent_tx %}
+          {% set incoming = tx.amount_cents>0 %}
+          <div class="tx">
+            <div class="tx-ic {{ 'in' if incoming else 'out' }}">{{ '↓' if incoming else '↑' }}</div>
+            <div class="tx-mid">
+              <div class="tx-desc">{{ tx.description }}</div>
+              <div class="tx-date">{{ tx.created_at[:10] }}</div>
+            </div>
+            <div class="tx-amt {{ 'in' if incoming else 'out' }}">{{ '+' if incoming else '−' }}{{ sym }}{{ '{:,.2f}'.format((tx.amount_cents|abs)/100).replace(',', '\u00a0') }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">No transactions yet.</div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- SIDEBAR -->
+    <div class="dcol">
+      <div class="dcard reveal">
+        <div class="chead"><span class="t">Notifications {% if unread>0 %}<span class="count-pill">{{ unread }}</span>{% endif %}</span></div>
+        <div class="nlist" id="dash-notifs"><div class="nempty">Loading…</div></div>
+        <div class="cfoot"><a class="view-all" href="/notifications">View all &rsaquo;</a></div>
+      </div>
+
+      <div class="tip reveal">
+        <div class="tmark">↑</div>
+        <h4>Boost your turn</h4>
+        <p>Pay contributions on time to raise your NCS score and move up the payout queue faster.</p>
+        <a class="abtn abtn-primary" href="/ncs" style="width:100%;justify-content:center;">My NCS score</a>
+      </div>
     </div>
   </div>
 </div>
@@ -135,36 +357,90 @@
 
 {% block scripts %}
 <script>
-async function doDep(){const btn=document.getElementById('btn-ddep');const a=parseFloat(document.getElementById('dd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/deposit',{amount:a});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('deposit-modal');document.getElementById('wallet-balance').textContent='€'+(d.new_balance_cents/100).toFixed(2);toast('Deposited €'+a.toFixed(2),'success');}
+/* ---- deposit (kept from v1) ---- */
+async function doDep(){const btn=document.getElementById('btn-ddep');const a=parseFloat(document.getElementById('dd-amt').value);if(!a||a<1){toast('Enter amount','error');return;}setLoading(btn,true);const d=await API.post('/api/wallet/deposit',{amount:a});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('deposit-modal');var wb=document.getElementById('wallet-balance');if(wb)wb.textContent=(d.new_balance_cents/100).toFixed(2);toast('Deposited €'+a.toFixed(2),'success');}
 
-// Load dashboard notifications inline
-async function loadDashNotifs() {
-  const el = document.getElementById('dash-notifs');
-  if (!el) return;
-  try {
-    const d = await API.get('/api/notifications');
-    if (!d || !d.notifications) {
-      el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">No notifications yet.</div>';
-      return;
+/* ---- notifications (kept, restyled markup) ---- */
+async function loadDashNotifs(){
+  const el=document.getElementById('dash-notifs');
+  if(!el)return;
+  try{
+    const d=await API.get('/api/notifications');
+    if(!d||!d.notifications||!d.notifications.length){
+      el.innerHTML='<div class="nempty">You\'re all caught up.</div>';return;
     }
-    if (!d.notifications.length) {
-      el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">You\'re all caught up!</div>';
-      return;
-    }
-    el.innerHTML = d.notifications.slice(0, 4).map(n => `
-      <div class="notif-item" onclick="${n.link ? 'location.href=\'' + n.link + '\'' : ''}" style="cursor:${n.link ? 'pointer' : 'default'};${!n.is_read ? 'background:var(--blue-lt);' : ''}">
-        <div class="notif-dot-icon ${n.notif_type === 'success' ? 'green' : n.notif_type === 'danger' ? 'red' : 'orange'}">${n.notif_type === 'success' ? '✓' : 'ℹ'}</div>
-        <div class="notif-body">
-          <div class="notif-text"><strong>${n.title}</strong><br><span style="font-weight:400;">${n.body}</span></div>
-          <div class="notif-time">${n.created_at.slice(0, 16).replace('T', ' ')}</div>
-        </div>
-        <span class="notif-arrow">›</span>
-      </div>`).join('');
-  } catch (err) {
-    el.innerHTML = '<div style="padding:1rem;color:var(--text-muted);font-size:.85rem;text-align:center;">Could not load notifications.</div>';
+    el.innerHTML=d.notifications.slice(0,5).map(function(n){
+      var cls=n.notif_type==='success'?'green':(n.notif_type==='danger'?'red':'orange');
+      var ic=n.notif_type==='success'?'✓':(n.notif_type==='danger'?'!':'i');
+      var click=n.link?('location.href=\''+n.link+'\''):'';
+      return '<div class="nitem" style="cursor:'+(n.link?'pointer':'default')+'" onclick="'+click+'">'
+        +'<div class="ndot '+cls+'">'+ic+'</div>'
+        +'<div class="ntext"><strong>'+n.title+'</strong><br>'+n.body
+        +'<div class="ntime">'+n.created_at.slice(0,16).replace('T',' ')+'</div></div></div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div class="nempty">Could not load notifications.</div>';
   }
 }
-// Run on page load
-document.addEventListener('DOMContentLoaded', loadDashNotifs);
+
+/* ---- motion layer: count-up, gauge, reveal, progress ---- */
+(function(){
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  function countUp(elm){
+    var target=parseFloat(elm.getAttribute('data-count'))||0;
+    var dp=parseInt(elm.getAttribute('data-dp')||'0',10);
+    if(reduce){elm.textContent=fmt(target,dp);return;}
+    var start=performance.now(),dur=900;
+    function tick(now){
+      var p=Math.min((now-start)/dur,1);
+      var e=1-Math.pow(1-p,3);
+      elm.textContent=fmt(target*e,dp);
+      if(p<1)requestAnimationFrame(tick);else elm.textContent=fmt(target,dp);
+    }
+    requestAnimationFrame(tick);
+  }
+  function fmt(v,dp){
+    var s=v.toFixed(dp);
+    var parts=s.split('.');
+    parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0');
+    return parts.join('.');
+  }
+
+  function animGauge(){
+    var arc=document.getElementById('ncs-arc');
+    if(!arc)return;
+    var r=arc.r.baseVal.value,C=2*Math.PI*r;
+    var pct=parseFloat(arc.getAttribute('data-pct'))||0;
+    arc.style.strokeDasharray=C;
+    arc.style.strokeDashoffset=reduce?C*(1-pct/100):C;
+    if(!reduce){requestAnimationFrame(function(){requestAnimationFrame(function(){arc.style.strokeDashoffset=C*(1-pct/100);});});}
+  }
+
+  function fills(){
+    document.querySelectorAll('.fill[data-w]').forEach(function(f){
+      var w=f.getAttribute('data-w')+'%';
+      if(reduce){f.style.width=w;return;}
+      requestAnimationFrame(function(){requestAnimationFrame(function(){f.style.width=w;});});
+    });
+  }
+
+  function reveal(){
+    var items=document.querySelectorAll('.reveal');
+    if(reduce||!('IntersectionObserver' in window)){items.forEach(function(i){i.classList.add('in');});return;}
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} });
+    },{threshold:.12});
+    items.forEach(function(i,idx){ i.style.transitionDelay=Math.min(idx*45,320)+'ms'; io.observe(i); });
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    loadDashNotifs();
+    reveal();
+    fills();
+    animGauge();
+    document.querySelectorAll('[data-count]').forEach(countUp);
+  });
+})();
 </script>
 {% endblock %}
