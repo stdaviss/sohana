@@ -269,6 +269,17 @@
       <li><a href="/admin/status"     class="{{ 'active' if '/admin/status'     in p }}"><span class="nav-icon">🟢</span>Status</a></li>
     </ul>
   </div>
+  {% if session.get('admin_role') in ['ceo','cfo','cto','compliance'] %}
+  <hr class="sidebar-divider">
+  <div class="sidebar-section">
+    <span class="sidebar-label">Finance Suite</span>
+    <ul class="sidebar-nav">
+      <li><a href="/admin/finance/treasury"     class="{{ 'active' if '/admin/finance/treasury'    in p }}"><span class="nav-icon">◈</span>Treasury Engine</a></li>
+      <li><a href="/admin/finance/micro-mutual"  class="{{ 'active' if '/admin/finance/micro-mutual' in p }}"><span class="nav-icon">◇</span>Micro Mutual</a></li>
+      <li><a href="/admin/finance/portfolios"    class="{{ 'active' if '/admin/finance/portfolios'  in p }}"><span class="nav-icon">⬢</span>Client Portfolios</a></li>
+    </ul>
+  </div>
+  {% endif %}
   {% endif %}
   <div class="sidebar-bottom">
     <a href="/profile"><span class="nav-icon">👤</span>My Profile</a>
