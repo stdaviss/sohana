@@ -7,7 +7,7 @@
 <div style="padding:.5rem 0;">
   <ul class="admin-nav">
     <li><a href="/admin">← Back to Dashboard</a></li>
-    <li><a href="/admin/waitlist" class="active">📧 Waitlist</a></li>
+    <li><a href="/admin/waitlist" class="active">◈ Waitlist</a></li>
   </ul>
 </div>
 {% endblock %}
@@ -40,7 +40,7 @@
       {% for s in signups %}
       <tr>
         <td style="color:var(--admin-muted);">{{ loop.index }}</td>
-        <td style="color:#fff;font-weight:500;">{{ s.email }}</td>
+        <td style="color:#F4F2EC;font-weight:500;">{{ s.email }}</td>
         <td style="color:var(--admin-muted);">{{ s.name or '—' }}</td>
         <td style="color:var(--admin-muted);font-size:.8rem;">{{ s.created_at[:16].replace('T',' ') }}</td>
       </tr>
@@ -49,7 +49,7 @@
   </table>
   {% else %}
   <div style="padding:3rem;text-align:center;color:var(--admin-muted);">
-    <div style="font-size:2rem;margin-bottom:.5rem;">📧</div>
+    <div style="font-size:2rem;margin-bottom:.5rem;">◈</div>
     <p>No waitlist signups yet. Share your landing page to start collecting emails.</p>
   </div>
   {% endif %}

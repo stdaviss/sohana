@@ -75,13 +75,13 @@
     <div style="display:flex;align-items:center;gap:1rem;">
       <canvas id="risk-donut" width="110" height="110"></canvas>
       <div style="font-size:.78rem;">
-        {% for label,val,color in [('High Risk','28 (17.9%)','#f87171'),('Medium Risk','68 (43.6%)','#fbbf24'),('Low Risk','60 (38.5%)','#34d399')] %}
+        {% for label,val,color in [('High Risk','28 (17.9%)','#FF6A55'),('Medium Risk','68 (43.6%)','#FFB350'),('Low Risk','60 (38.5%)','#9EE493')] %}
         <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;">
           <div style="width:9px;height:9px;border-radius:50%;background:{{ color }};"></div>
           <span style="color:var(--admin-muted);">{{ label }}</span>
         </div>
         {% endfor %}
-        <div style="font-size:1.6rem;font-weight:800;color:#fff;margin-top:.5rem;">{{ stats.fraud_alerts }}<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total</span></div>
+        <div style="font-size:1.6rem;font-weight:800;color:#F4F2EC;margin-top:.5rem;">{{ stats.fraud_alerts }}<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total</span></div>
       </div>
     </div>
   </div>
@@ -90,11 +90,11 @@
   <div class="acard acard-pad">
     <div class="acard-title" style="margin-bottom:.75rem;">Alerts by Type <a class="view-all-link" style="float:right;">View all</a></div>
     {% for label,val,pct,color in [
-      ('Suspicious Transactions',65,'41.7%','#f87171'),
+      ('Suspicious Transactions',65,'41.7%','#FF6A55'),
       ('Account Takeover',32,'20.5%','#fb923c'),
-      ('Identity Verification',26,'16.7%','#fbbf24'),
-      ('Multiple Accounts',18,'11.5%','#60a5fa'),
-      ('Policy Violations',15,'9.6%','#a78bfa'),
+      ('Identity Verification',26,'16.7%','#FFB350'),
+      ('Multiple Accounts',18,'11.5%','#67E8F9'),
+      ('Policy Violations',15,'9.6%','#B7AFF0'),
     ] %}
     <div style="margin-bottom:.5rem;">
       <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.2rem;">
@@ -122,7 +122,7 @@
           <td><span class="apill {% if a.risk_level=='high' %}apill-red{% elif a.risk_level=='medium' %}apill-amber{% else %}apill-blue{% endif %}" style="font-size:.65rem;">{{ a.alert_type.replace('_',' ').title() }}</span></td>
           <td style="font-size:.8rem;">{{ a.full_name or 'Unknown' }}</td>
           <td style="font-size:.8rem;">{% if a.amount_cents %}€{{ '%.0f'%(a.amount_cents/100) }}{% else %}—{% endif %}</td>
-          <td><span style="background:rgba(248,113,113,.2);color:#f87171;padding:.15rem .5rem;border-radius:20px;font-size:.7rem;font-weight:700;">{{ a.risk_score }}</span></td>
+          <td><span style="background:rgba(248,113,113,.2);color:#FF6A55;padding:.15rem .5rem;border-radius:20px;font-size:.7rem;font-weight:700;">{{ a.risk_score }}</span></td>
           <td style="font-size:.72rem;color:var(--admin-muted);white-space:nowrap;">{{ a.created_at[11:16] }}</td>
         </tr>
         {% else %}
@@ -137,7 +137,7 @@
     <div class="acard-title" style="margin-bottom:.875rem;">Top Risky Countries</div>
     {% for country,tx,level in [('Nigeria','2,456','high'),('Ghana','1,782','high'),("Côte d'Ivoire",'934','medium'),('Togo','512','medium'),('Benin','298','low')] %}
     <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
-      <div style="flex:1;font-size:.83rem;font-weight:500;color:#fff;">{{ country }}</div>
+      <div style="flex:1;font-size:.83rem;font-weight:500;color:#F4F2EC;">{{ country }}</div>
       <div style="font-size:.8rem;color:var(--admin-muted);">{{ tx }} txns</div>
       <span class="apill {% if level=='high' %}apill-red{% elif level=='medium' %}apill-amber{% else %}apill-green{% endif %}" style="font-size:.65rem;">{{ level.title() }}</span>
     </div>
@@ -151,19 +151,19 @@
       {% for svc in ['Login Security','Data Encryption','API Security','Firewall Protection','Intrusion Detection'] %}
       <div class="sys-status-row">
         <div class="sys-dot ok"></div>
-        <span style="font-size:.83rem;flex:1;color:#fff;">{{ svc }}</span>
-        <span style="font-size:.75rem;color:#34d399;font-weight:600;">✓ Secure</span>
+        <span style="font-size:.83rem;flex:1;color:#F4F2EC;">{{ svc }}</span>
+        <span style="font-size:.75rem;color:#9EE493;font-weight:600;">✓ Secure</span>
       </div>
       {% endfor %}
     </div>
     <div class="acard acard-pad">
       <div class="acard-title" style="margin-bottom:.75rem;">Active Sessions</div>
       <canvas id="sessions-donut" width="100" height="100" style="display:block;margin:0 auto .5rem;"></canvas>
-      <div style="text-align:center;font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:.5rem;">1,248<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total Sessions</span></div>
+      <div style="text-align:center;font-size:1.4rem;font-weight:800;color:#F4F2EC;margin-bottom:.5rem;">1,248<span style="font-size:.7rem;color:var(--admin-muted);font-weight:400;"> Total Sessions</span></div>
       <div style="display:flex;justify-content:center;gap:1rem;font-size:.72rem;">
-        <span style="color:#34d399;">● Trusted 874</span>
-        <span style="color:#fbbf24;">● Unsecured 256</span>
-        <span style="color:#a78bfa;">● Unknown 118</span>
+        <span style="color:#9EE493;">● Trusted 874</span>
+        <span style="color:#FFB350;">● Unsecured 256</span>
+        <span style="color:#B7AFF0;">● Unknown 118</span>
       </div>
     </div>
   </div>
@@ -181,7 +181,7 @@
     ] %}
     <div style="display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
       <div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;background:{% if level=='High' %}rgba(248,113,113,.2){% elif level=='Medium' %}rgba(251,191,36,.15){% else %}rgba(96,165,250,.15){% endif %};">{% if level=='High' %}🔴{% elif level=='Medium' %}🟡{% else %}🔵{% endif %}</div>
-      <div style="flex:1;"><div style="font-size:.8rem;font-weight:500;color:#fff;">{{ label }}</div><div style="font-size:.7rem;color:var(--admin-muted);">{{ note }}</div></div>
+      <div style="flex:1;"><div style="font-size:.8rem;font-weight:500;color:#F4F2EC;">{{ label }}</div><div style="font-size:.7rem;color:var(--admin-muted);">{{ note }}</div></div>
       <span class="apill {% if level=='High' %}apill-red{% elif level=='Medium' %}apill-amber{% else %}apill-blue{% endif %}" style="font-size:.65rem;align-self:center;">{{ level }}</span>
     </div>
     {% endfor %}
@@ -193,8 +193,8 @@
     <div style="display:flex;align-items:center;gap:.5rem;padding:.45rem 0;border-bottom:1px solid var(--admin-border);">
       <span style="font-size:.9rem;">⚡</span>
       <span style="flex:1;font-size:.8rem;color:var(--admin-text);">{{ rule }}</span>
-      <span style="font-weight:700;font-size:.82rem;color:#fff;">{{ cnt }}</span>
-      <span style="font-size:.7rem;color:#34d399;">{{ delta }}</span>
+      <span style="font-weight:700;font-size:.82rem;color:#F4F2EC;">{{ cnt }}</span>
+      <span style="font-size:.7rem;color:#9EE493;">{{ delta }}</span>
     </div>
     {% endfor %}
   </div>
@@ -216,11 +216,11 @@
 setTimeout(()=>{
   // Alert time line chart
   const c1=document.getElementById('alert-time-chart');
-  if(c1){const ctx=c1.getContext('2d');const W=c1.width=c1.offsetWidth*2;const H=c1.height=240;const pts=[20,35,25,60,45,80,55,70,40,65,50,85,70,90,75,65,80,55,45,60,70,85,75,90,80];const mn=0,mx=100;const tx=i=>(i/(pts.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle='#f87171';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();ctx.beginPath();ctx.moveTo(tx(0),H-10);pts.forEach((p,i)=>ctx.lineTo(tx(i),ty(p)));ctx.lineTo(tx(pts.length-1),H-10);ctx.closePath();ctx.fillStyle='rgba(248,113,113,.15)';ctx.fill();}
+  if(c1){const ctx=c1.getContext('2d');const W=c1.width=c1.offsetWidth*2;const H=c1.height=240;const pts=[20,35,25,60,45,80,55,70,40,65,50,85,70,90,75,65,80,55,45,60,70,85,75,90,80];const mn=0,mx=100;const tx=i=>(i/(pts.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle='#FF6A55';ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();ctx.beginPath();ctx.moveTo(tx(0),H-10);pts.forEach((p,i)=>ctx.lineTo(tx(i),ty(p)));ctx.lineTo(tx(pts.length-1),H-10);ctx.closePath();ctx.fillStyle='rgba(248,113,113,.15)';ctx.fill();}
   // Risk donut
-  function donut(id,segs){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=55,cy=55,r=42,t=12;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
-  donut('risk-donut',[[17.9,'#f87171'],[43.6,'#fbbf24'],[38.5,'#34d399']]);
-  donut('sessions-donut',[[70,'#34d399'],[20.5,'#fbbf24'],[9.5,'#a78bfa']]);
+  function donut(id,segs){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=55,cy=55,r=42,t=12;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161B17';ctx.fill();}
+  donut('risk-donut',[[17.9,'#FF6A55'],[43.6,'#FFB350'],[38.5,'#9EE493']]);
+  donut('sessions-donut',[[70,'#9EE493'],[20.5,'#FFB350'],[9.5,'#B7AFF0']]);
 },100);
 </script>
 {% endblock %}

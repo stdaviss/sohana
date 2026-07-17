@@ -46,7 +46,7 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;">
       <div class="astat-label">{{ label }}</div><span style="font-size:1rem;">{{ icon }}</span>
     </div>
-    <div class="astat-value" style="font-size:1.5rem;color:{% if up is none %}#60a5fa{% elif up %}#34d399{% else %}#f87171{% endif %};">{{ val }}</div>
+    <div class="astat-value" style="font-size:1.5rem;color:{% if up is none %}#67E8F9{% elif up %}#9EE493{% else %}#FF6A55{% endif %};">{{ val }}</div>
     <div class="astat-delta {{ 'up' if up else 'down' if up is not none else '' }}" style="font-size:.7rem;margin-top:.2rem;">{{ delta }}</div>
   </div>
   {% endfor %}
@@ -59,17 +59,17 @@
     <div style="display:flex;align-items:center;gap:1rem;">
       <canvas id="kyc-donut" width="120" height="120"></canvas>
       <div style="font-size:.78rem;">
-        <div style="font-size:1.3rem;font-weight:800;color:#fff;margin-bottom:.5rem;">{{ stats.total_users }}<br><span style="font-size:.7rem;font-weight:400;color:var(--admin-muted);">Total Customers</span></div>
-        {% for label,val,color in [('Verified','69.3%','#34d399'),('In Review','14.6%','#60a5fa'),('Pending','12.0%','#fbbf24'),('Rejected','4.1%','#f87171')] %}
+        <div style="font-size:1.3rem;font-weight:800;color:#F4F2EC;margin-bottom:.5rem;">{{ stats.total_users }}<br><span style="font-size:.7rem;font-weight:400;color:var(--admin-muted);">Total Customers</span></div>
+        {% for label,val,color in [('Verified','69.3%','#9EE493'),('In Review','14.6%','#67E8F9'),('Pending','12.0%','#FFB350'),('Rejected','4.1%','#FF6A55')] %}
         <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem;">
           <div style="width:8px;height:8px;border-radius:50%;background:{{ color }};"></div>
           <span style="color:var(--admin-muted);">{{ label }}</span>
-          <span style="color:#fff;font-weight:600;margin-left:auto;">{{ val }}</span>
+          <span style="color:#F4F2EC;font-weight:600;margin-left:auto;">{{ val }}</span>
         </div>
         {% endfor %}
       </div>
     </div>
-    <div style="margin-top:.75rem;"><a style="font-size:.78rem;color:#a78bfa;cursor:pointer;">View full KYC report →</a></div>
+    <div style="margin-top:.75rem;"><a style="font-size:.78rem;color:#B7AFF0;cursor:pointer;">View full KYC report →</a></div>
   </div>
 
   <!-- AML Alerts over time -->
@@ -80,8 +80,8 @@
     </div>
     <canvas id="aml-chart" height="140" style="width:100%;"></canvas>
     <div style="display:flex;gap:1rem;margin-top:.5rem;font-size:.72rem;">
-      <span style="color:#a78bfa;">● Total Alerts</span>
-      <span style="color:#f87171;">● High Priority</span>
+      <span style="color:#B7AFF0;">● Total Alerts</span>
+      <span style="color:#FF6A55;">● High Priority</span>
     </div>
   </div>
 
@@ -92,7 +92,7 @@
     <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;">
       <span style="font-size:.85rem;">⚠</span>
       <span style="flex:1;font-size:.8rem;color:var(--admin-text);">{{ label }}</span>
-      <span style="font-weight:600;font-size:.8rem;color:#fff;">{{ cnt }}</span>
+      <span style="font-weight:600;font-size:.8rem;color:#F4F2EC;">{{ cnt }}</span>
       <span style="font-size:.72rem;color:var(--admin-muted);">({{ pct }})</span>
     </div>
     {% endfor %}
@@ -115,18 +115,18 @@
       ] %}
       <div>
         <div style="font-size:.7rem;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.2rem;">{{ label }}</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#fff;">{{ val }}</div>
-        <div style="font-size:.7rem;color:{% if up %}#34d399{% else %}#f87171{% endif %};">{{ '↑' if up else '↓' }} {{ delta }}</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#F4F2EC;">{{ val }}</div>
+        <div style="font-size:.7rem;color:{% if up %}#9EE493{% else %}#FF6A55{% endif %};">{{ '↑' if up else '↓' }} {{ delta }}</div>
       </div>
       {% endfor %}
     </div>
-    <a style="font-size:.78rem;color:#a78bfa;cursor:pointer;">View transactions monitor →</a>
+    <a style="font-size:.78rem;color:#B7AFF0;cursor:pointer;">View transactions monitor →</a>
   </div>
 
   <!-- Risk exposure -->
   <div class="acard acard-pad">
     <div class="acard-title" style="margin-bottom:.875rem;">Risk Exposure by Category <a class="view-all-link" style="float:right;">View full report</a></div>
-    {% for cat,level,color,w in [('Customer Risk','High','#f87171','85%'),('Geographic Risk','Medium','#fbbf24','60%'),('Product / Service Risk','Medium','#fbbf24','55%'),('Channel Risk','Low','#34d399','35%'),('Delivery Risk','Low','#34d399','25%')] %}
+    {% for cat,level,color,w in [('Customer Risk','High','#FF6A55','85%'),('Geographic Risk','Medium','#FFB350','60%'),('Product / Service Risk','Medium','#FFB350','55%'),('Channel Risk','Low','#9EE493','35%'),('Delivery Risk','Low','#9EE493','25%')] %}
     <div style="margin-bottom:.6rem;">
       <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:.25rem;">
         <span style="color:var(--admin-text);">{{ cat }}</span>
@@ -147,7 +147,7 @@
       {% for label in ['Low','Medium','High'] %}
       <div style="color:var(--admin-muted);text-align:center;padding:.3rem;font-size:.68rem;">{{ label }}</div>
       {% endfor %}
-      {% for row,cells in [('High',[('#34d399',''),('#fbbf24',''),('#f87171','12')]),('Medium',[('#34d399',''),('#fbbf24','7'),('#fb923c','')]),('Low',[('#34d399',''),('#34d399',''),('#fbbf24','')])] %}
+      {% for row,cells in [('High',[('#9EE493',''),('#FFB350',''),('#FF6A55','12')]),('Medium',[('#9EE493',''),('#FFB350','7'),('#fb923c','')]),('Low',[('#9EE493',''),('#9EE493',''),('#FFB350','')])] %}
       <div style="color:var(--admin-muted);padding:.3rem;font-size:.68rem;display:flex;align-items:center;">{{ row }}</div>
       {% for color,badge in cells %}
       <div style="background:{{ color }}33;border:1px solid {{ color }}44;border-radius:6px;height:40px;display:flex;align-items:center;justify-content:center;">
@@ -168,13 +168,13 @@
       <thead><tr><th>Report</th><th>Regulator</th><th>Due Date</th><th>Status</th></tr></thead>
       <tbody>
         {% for name,reg,due,status,color in [
-          ('Quarterly AML Report','BoG','Jun 15, 2024','In Progress','#60a5fa'),
-          ('Suspicious Activity Report','FIU','May 31, 2024','Submitted','#34d399'),
-          ('KYC Compliance Report','BoG','May 30, 2024','Submitted','#34d399'),
+          ('Quarterly AML Report','BoG','Jun 15, 2024','In Progress','#67E8F9'),
+          ('Suspicious Activity Report','FIU','May 31, 2024','Submitted','#9EE493'),
+          ('KYC Compliance Report','BoG','May 30, 2024','Submitted','#9EE493'),
           ('Annual Compliance Report','SEC','Aug 15, 2024','Not Started','rgba(255,255,255,.3)'),
         ] %}
         <tr>
-          <td style="font-weight:500;color:#fff;font-size:.8rem;">{{ name }}</td>
+          <td style="font-weight:500;color:#F4F2EC;font-size:.8rem;">{{ name }}</td>
           <td style="font-size:.8rem;">{{ reg }}</td>
           <td style="font-size:.75rem;color:var(--admin-muted);">{{ due }}</td>
           <td><span style="background:{{ color }}22;color:{{ color }};padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;">{{ status }}</span></td>
@@ -188,7 +188,7 @@
   <div class="acard acard-pad">
     <div class="acard-title" style="margin-bottom:.875rem;">Policy Exceptions</div>
     <div class="acontent-grid acontent-2" style="gap:.75rem;margin-bottom:.875rem;">
-      {% for label,val,delta,color in [('Active Exceptions','23','+9.5%','#f87171'),('Pending Approval','8','+0%','#fbbf24'),('Expired Exceptions','3','-11.1%','#34d399'),('Reviewed (30d)','45','+15.4%','#60a5fa')] %}
+      {% for label,val,delta,color in [('Active Exceptions','23','+9.5%','#FF6A55'),('Pending Approval','8','+0%','#FFB350'),('Expired Exceptions','3','-11.1%','#9EE493'),('Reviewed (30d)','45','+15.4%','#67E8F9')] %}
       <div style="text-align:center;background:rgba(255,255,255,.03);border-radius:8px;padding:.75rem;">
         <div style="font-size:1.5rem;font-weight:800;color:{{ color }};">{{ val }}</div>
         <div style="font-size:.7rem;color:var(--admin-muted);margin-top:.2rem;">{{ label }}</div>
@@ -209,7 +209,7 @@
     ] %}
     <div style="display:flex;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);">
       <span style="font-size:.9rem;">📅</span>
-      <div style="flex:1;"><div style="font-size:.8rem;color:#fff;">{{ task }}</div><div style="font-size:.7rem;color:var(--admin-muted);margin-top:.1rem;">{{ date }}</div></div>
+      <div style="flex:1;"><div style="font-size:.8rem;color:#F4F2EC;">{{ task }}</div><div style="font-size:.7rem;color:var(--admin-muted);margin-top:.1rem;">{{ date }}</div></div>
     </div>
     {% endfor %}
   </div>
@@ -218,10 +218,10 @@
 {% block scripts %}
 <script>
 setTimeout(()=>{
-  function donut(id,segs,size=60){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=size,cy=size,r=size-8,t=14;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161b22';ctx.fill();}
-  donut('kyc-donut',[[69.3,'#34d399'],[14.6,'#60a5fa'],[12,'#fbbf24'],[4.1,'#f87171']]);
+  function donut(id,segs,size=60){const c=document.getElementById(id);if(!c)return;const ctx=c.getContext('2d');const cx=size,cy=size,r=size-8,t=14;let a=-Math.PI/2;segs.forEach(([v,col])=>{const ang=(v/100)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=col;ctx.fill();a+=ang;});ctx.beginPath();ctx.arc(cx,cy,r-t,0,Math.PI*2);ctx.fillStyle='#161B17';ctx.fill();}
+  donut('kyc-donut',[[69.3,'#9EE493'],[14.6,'#67E8F9'],[12,'#FFB350'],[4.1,'#FF6A55']]);
   const c=document.getElementById('aml-chart');
-  if(c){const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=280;const p1=[30,45,38,52,41,65,48,55,42,60,53,70,45,58,62,48,55,68,60,72,58,65,70,62,75];const p2=[8,12,10,18,12,22,15,18,12,20,16,25,14,18,20,14,18,25,20,28,22,24,28,22,30];const mn=0,mx=80;const tx=i=>(i/(p1.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);[p1,p2].forEach((pts,pi)=>{const color=pi===0?'#a78bfa':'#f87171';ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();});}
+  if(c){const ctx=c.getContext('2d');const W=c.width=c.offsetWidth*2;const H=c.height=280;const p1=[30,45,38,52,41,65,48,55,42,60,53,70,45,58,62,48,55,68,60,72,58,65,70,62,75];const p2=[8,12,10,18,12,22,15,18,12,20,16,25,14,18,20,14,18,25,20,28,22,24,28,22,30];const mn=0,mx=80;const tx=i=>(i/(p1.length-1))*(W-20)+10;const ty=v=>H-10-((v-mn)/(mx-mn))*(H-20);[p1,p2].forEach((pts,pi)=>{const color=pi===0?'#B7AFF0':'#FF6A55';ctx.beginPath();pts.forEach((p,i)=>i===0?ctx.moveTo(tx(i),ty(p)):ctx.lineTo(tx(i),ty(p)));ctx.strokeStyle=color;ctx.lineWidth=2;ctx.lineJoin='round';ctx.stroke();});}
 },100);
 </script>
 {% endblock %}

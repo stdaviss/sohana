@@ -3,46 +3,48 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}SOHANA Admin{% endblock %}</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}">
 <style>
-:root{--admin-bg:#0d1117;--admin-sidebar:#161b22;--admin-border:rgba(255,255,255,.08);--admin-text:#e6edf3;--admin-muted:rgba(255,255,255,.45);--admin-hover:rgba(255,255,255,.06);--admin-active:#7c3aed;}
-body{background:var(--admin-bg);color:var(--admin-text);}
+:root{--admin-bg:#0E120F;--admin-sidebar:#161B17;--admin-surface:#1C231D;--admin-border:rgba(244,242,236,.10);--admin-border-2:rgba(244,242,236,.18);--admin-text:#F4F2EC;--admin-muted:#8A8E87;--admin-muted-2:#B7BAB4;--admin-hover:rgba(158,228,147,.08);--admin-active:#9EE493;}
+body{background:var(--admin-bg);color:var(--admin-text);font-family:'Geist',system-ui,sans-serif;}
 .admin-shell{display:flex;min-height:100vh;}
 .admin-sidebar{width:220px;background:var(--admin-sidebar);border-right:1px solid var(--admin-border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;}
 .admin-logo{padding:1.1rem 1.25rem;border-bottom:1px solid var(--admin-border);display:flex;align-items:center;gap:.6rem;}
-.admin-logo-text{color:#fff;font-weight:800;font-size:.95rem;}
-.admin-logo-role{font-size:.7rem;color:rgba(255,255,255,.4);font-weight:400;margin-top:.1rem;}
-.admin-section-label{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);padding:.75rem 1.25rem .35rem;display:block;}
+.admin-logo-mark{width:26px;height:26px;border-radius:8px;background:var(--admin-active);display:grid;place-items:center;color:#0E120F;font-weight:700;font-size:13px;letter-spacing:-.02em;flex-shrink:0;}
+.admin-logo-text{color:var(--admin-text);font-weight:700;font-size:.95rem;letter-spacing:.02em;}
+.admin-logo-role{font-size:.7rem;color:var(--admin-muted);font-weight:400;margin-top:.1rem;font-family:'Geist Mono',monospace;}
+.admin-section-label{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--admin-muted);padding:.75rem 1.25rem .35rem;display:block;font-family:'Geist Mono',monospace;}
 .admin-nav{list-style:none;padding:0 .75rem;}
 .admin-nav li{margin-bottom:2px;}
-.admin-nav a{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;border-radius:6px;color:rgba(255,255,255,.65);font-size:.83rem;transition:all .15s;text-decoration:none;}
-.admin-nav a:hover{background:var(--admin-hover);color:#fff;}
-.admin-nav a.active{background:var(--admin-active);color:#fff;font-weight:500;}
+.admin-nav a{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;border-radius:8px;color:var(--admin-muted-2);font-size:.83rem;transition:all .15s;text-decoration:none;border-left:2px solid transparent;}
+.admin-nav a:hover{background:var(--admin-hover);color:var(--admin-text);}
+.admin-nav a.active{background:rgba(158,228,147,.10);color:var(--admin-text);font-weight:500;border-left:2px solid var(--admin-active);}
 .admin-divider{border:none;border-top:1px solid var(--admin-border);margin:.5rem .75rem;}
 .admin-user-row{padding:.875rem 1.25rem;border-top:1px solid var(--admin-border);margin-top:auto;display:flex;align-items:center;gap:.6rem;}
-.admin-user-avatar{width:32px;height:32px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff;flex-shrink:0;}
-.admin-user-name{font-size:.82rem;font-weight:600;color:#fff;}
-.admin-user-role{font-size:.7rem;color:rgba(255,255,255,.4);}
+.admin-user-avatar{width:32px;height:32px;border-radius:50%;background:var(--admin-active);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#0E120F;flex-shrink:0;}
+.admin-user-name{font-size:.82rem;font-weight:600;color:var(--admin-text);}
+.admin-user-role{font-size:.7rem;color:var(--admin-muted);font-family:'Geist Mono',monospace;}
 .admin-main{margin-left:220px;flex:1;display:flex;flex-direction:column;}
 .admin-topbar{background:var(--admin-sidebar);border-bottom:1px solid var(--admin-border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:90;}
-.admin-topbar-title{font-size:1rem;font-weight:600;color:#fff;flex:1;}
+.admin-topbar-title{font-size:1rem;font-weight:600;color:var(--admin-text);flex:1;}
 .admin-topbar-subtitle{font-size:.78rem;color:var(--admin-muted);}
 .admin-page{padding:1.5rem;}
 .admin-page-header{margin-bottom:1.25rem;}
-.admin-page-title{font-size:1.3rem;font-weight:700;color:#fff;margin-bottom:.2rem;}
+.admin-page-title{font-size:1.3rem;font-weight:700;color:var(--admin-text);margin-bottom:.2rem;letter-spacing:-.02em;}
 .admin-page-sub{font-size:.82rem;color:var(--admin-muted);}
-.acard{background:#161b22;border:1px solid var(--admin-border);border-radius:12px;}
+.acard{background:var(--admin-sidebar);border:1px solid var(--admin-border);border-radius:14px;}
 .acard-pad{padding:1.1rem 1.25rem;}
 .acard-header{padding:.875rem 1.25rem;border-bottom:1px solid var(--admin-border);display:flex;align-items:center;justify-content:space-between;}
-.acard-title{font-size:.88rem;font-weight:600;color:#fff;}
+.acard-title{font-size:.88rem;font-weight:600;color:var(--admin-text);}
 .acard-body{padding:1rem 1.25rem;}
-.astat{background:#161b22;border:1px solid var(--admin-border);border-radius:12px;padding:.875rem 1.1rem;}
-.astat-label{font-size:.7rem;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;}
-.astat-value{font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1;}
+.astat{background:var(--admin-sidebar);border:1px solid var(--admin-border);border-radius:14px;padding:.875rem 1.1rem;}
+.astat-label{font-size:.7rem;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem;font-family:'Geist Mono',monospace;}
+.astat-value{font-size:1.6rem;font-weight:700;color:var(--admin-text);line-height:1.1;font-family:'Geist Mono',monospace;}
 .astat-sub{font-size:.72rem;color:var(--admin-muted);margin-top:.2rem;}
-.astat-delta{font-size:.72rem;font-weight:600;margin-top:.2rem;}
-.astat-delta.up{color:#34d399;} .astat-delta.down{color:#f87171;}
+.astat-delta{font-size:.72rem;font-weight:600;margin-top:.2rem;font-family:'Geist Mono',monospace;}
+.astat-delta.up{color:#9EE493;} .astat-delta.down{color:#FF6A55;}
 .astats-grid{display:grid;gap:.875rem;margin-bottom:1.25rem;}
 .astats-6{grid-template-columns:repeat(6,1fr);}
 .astats-5{grid-template-columns:repeat(5,1fr);}
@@ -52,26 +54,26 @@ body{background:var(--admin-bg);color:var(--admin-text);}
 .acontent-2{grid-template-columns:1fr 1fr;}
 .acontent-3{grid-template-columns:1fr 1fr 1fr;}
 .acontent-sb{grid-template-columns:1fr 300px;}
-.apill{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;}
-.apill-green{background:rgba(52,211,153,.15);color:#34d399;} .apill-red{background:rgba(248,113,113,.15);color:#f87171;}
-.apill-amber{background:rgba(251,191,36,.15);color:#fbbf24;} .apill-blue{background:rgba(96,165,250,.15);color:#60a5fa;}
-.apill-purple{background:rgba(167,139,250,.15);color:#a78bfa;}
+.apill{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:99px;font-size:.7rem;font-weight:600;font-family:'Geist Mono',monospace;}
+.apill-green{background:rgba(158,228,147,.15);color:#9EE493;} .apill-red{background:rgba(255,106,85,.15);color:#FF6A55;}
+.apill-amber{background:rgba(255,179,80,.15);color:#FFB350;} .apill-blue{background:rgba(103,232,249,.15);color:#67E8F9;}
+.apill-purple{background:rgba(83,74,183,.20);color:#B7AFF0;}
 .atable{width:100%;border-collapse:collapse;}
-.atable th{text-align:left;font-size:.68rem;font-weight:600;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;padding:.6rem 1rem;border-bottom:1px solid var(--admin-border);white-space:nowrap;background:rgba(255,255,255,.02);}
+.atable th{text-align:left;font-size:.68rem;font-weight:600;color:var(--admin-muted);text-transform:uppercase;letter-spacing:.05em;padding:.6rem 1rem;border-bottom:1px solid var(--admin-border);white-space:nowrap;background:rgba(244,242,236,.02);font-family:'Geist Mono',monospace;}
 .atable td{padding:.7rem 1rem;border-bottom:1px solid var(--admin-border);font-size:.82rem;color:var(--admin-text);}
 .atable tr:last-child td{border-bottom:none;}
-.atable tr:hover td{background:rgba(255,255,255,.03);}
+.atable tr:hover td{background:rgba(244,242,236,.03);}
 .afeed-item{display:flex;gap:.75rem;padding:.7rem 1.25rem;border-bottom:1px solid var(--admin-border);}
 .afeed-item:last-child{border-bottom:none;}
 .afeed-dot{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;}
 .afeed-body{flex:1;}
-.afeed-title{font-size:.82rem;font-weight:500;color:#fff;}
+.afeed-title{font-size:.82rem;font-weight:500;color:var(--admin-text);}
 .afeed-sub{font-size:.72rem;color:var(--admin-muted);margin-top:.1rem;}
-.afeed-time{font-size:.68rem;color:rgba(255,255,255,.25);white-space:nowrap;}
+.afeed-time{font-size:.68rem;color:var(--admin-muted);white-space:nowrap;font-family:'Geist Mono',monospace;}
 .sys-status-row{display:flex;align-items:center;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--admin-border);font-size:.82rem;}
 .sys-status-row:last-child{border-bottom:none;}
-.sys-dot{width:7px;height:7px;border-radius:50%;} .sys-dot.ok{background:#34d399;} .sys-dot.warn{background:#fbbf24;} .sys-dot.err{background:#f87171;}
-.view-all-link{font-size:.75rem;color:#a78bfa;cursor:pointer;font-weight:500;}
+.sys-dot{width:7px;height:7px;border-radius:50%;} .sys-dot.ok{background:#9EE493;} .sys-dot.warn{background:#FFB350;} .sys-dot.err{background:#FF6A55;}
+.view-all-link{font-size:.75rem;color:#9EE493;cursor:pointer;font-weight:500;}
 .view-all-link:hover{text-decoration:underline;}
 @media(max-width:1400px){.astats-6{grid-template-columns:repeat(3,1fr)}.astats-5{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:960px){.astats-4{grid-template-columns:repeat(2,1fr)}.acontent-2,.acontent-3,.acontent-sb{grid-template-columns:1fr}}
@@ -82,7 +84,7 @@ body{background:var(--admin-bg);color:var(--admin-text);}
 <div class="admin-shell">
 <aside class="admin-sidebar">
   <div class="admin-logo">
-    <div style="display:flex;gap:3px;"><div class="logo-dot logo-dot-1"></div><div class="logo-dot logo-dot-2"></div><div class="logo-dot logo-dot-3"></div></div>
+    <div class="admin-logo-mark">S</div>
     <div><div class="admin-logo-text">SOHANA</div><div class="admin-logo-role">{% block sidebar_role %}Admin Portal{% endblock %}</div></div>
   </div>
 
@@ -95,7 +97,7 @@ body{background:var(--admin-bg);color:var(--admin-text);}
       <div class="admin-user-role">{{ user['admin_role'] if user['admin_role'] else 'admin'|upper }}</div>
     </div>
     <button onclick="API.post('/api/auth/logout',{}).then(()=>location.href='/admin/login')"
-      style="background:none;border:none;color:rgba(255,255,255,.3);font-size:.75rem;cursor:pointer;">↩</button>
+      style="background:none;border:none;color:var(--admin-muted);font-size:.75rem;cursor:pointer;">&larr;</button>
   </div>
 </aside>
 
@@ -106,13 +108,7 @@ body{background:var(--admin-bg);color:var(--admin-text);}
       <div class="admin-topbar-subtitle">{% block topbar_sub %}{% endblock %}</div>
     </div>
     <div style="display:flex;align-items:center;gap:.75rem;">
-      <button style="background:rgba(255,255,255,.06);border:1px solid var(--admin-border);border-radius:8px;padding:.4rem .75rem;color:rgba(255,255,255,.7);font-size:.78rem;cursor:pointer;">
-        📅 Today
-      </button>
-      <button style="background:#7c3aed;border:none;border-radius:8px;padding:.4rem .875rem;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">
-        ↓ Export
-      </button>
-      <div style="width:32px;height:32px;border-radius:50%;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#fff;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--admin-active);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;color:#0E120F;">
         {{ user.full_name[0]|upper }}
       </div>
     </div>
