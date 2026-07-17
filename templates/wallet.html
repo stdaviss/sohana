@@ -1,143 +1,304 @@
 {% extends "base.html" %}
 {% block title %}Wallet — SOHANA{% endblock %}
 {% block topbar_title %}Wallet{% endblock %}
+
+{% block head %}
+<style>
+/* ============ WALLET v2 — scoped under .wlt ============ */
+.wlt{--r:16px;--violet:#8D84E8;--orange:#F0803C;max-width:1180px;margin:0 auto;padding:.25rem .25rem 3rem;}
+.wlt *{box-sizing:border-box;}
+.wlt .mono{font-family:'Geist Mono',monospace;}
+.wlt .eyebrow{font-family:'Geist Mono',monospace;font-size:.66rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);}
+
+.dcard{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);transition:transform .25s cubic-bezier(.2,.7,.2,1),border-color .25s;}
+.dcard.hoverable:hover{transform:translateY(-2px);border-color:var(--line-2);}
+.dcard-pad{padding:1.2rem 1.3rem;}
+
+/* header */
+.wlt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:.25rem 0 1.1rem;}
+.wlt-head h1{font-family:'Geist',sans-serif;font-size:1.6rem;font-weight:600;letter-spacing:-.02em;color:var(--ink);margin:0;}
+.wlt-head p{margin:.3rem 0 0;color:var(--ink-3);font-size:.86rem;}
+.wlt-acts{display:flex;gap:.5rem;flex-wrap:wrap;}
+.abtn{font-family:'Geist',sans-serif;font-size:.82rem;font-weight:600;border-radius:99px;padding:.5rem 1rem;border:1px solid transparent;cursor:pointer;transition:transform .12s,background .2s,border-color .2s,color .2s;text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;}
+.abtn:active{transform:scale(.96);}
+.abtn-primary{background:var(--accent);color:var(--accent-ink);}
+.abtn-primary:hover{background:var(--accent-2);}
+.abtn-orange{background:var(--orange);color:#fff;}
+.abtn-orange:hover{filter:brightness(1.05);}
+.abtn-ghost{background:transparent;color:var(--ink-2);border-color:var(--line-2);}
+.abtn-ghost:hover{color:var(--ink);border-color:var(--accent);}
+
+/* currency selector */
+.cur-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem;}
+.cur-card{display:flex;align-items:center;gap:.6rem;padding:.6rem .9rem;border-radius:12px;border:1px solid var(--line);background:var(--bg-2);text-decoration:none;transition:border-color .2s,transform .2s,background .2s;min-width:132px;}
+.cur-card:hover{transform:translateY(-2px);border-color:var(--line-2);}
+.cur-card.on{border-color:var(--accent);background:rgba(158,228,147,.08);}
+.cur-flag{font-size:1.15rem;line-height:1;}
+.cur-code{font-family:'Geist Mono',monospace;font-size:.72rem;font-weight:600;color:var(--ink-3);}
+.cur-card.on .cur-code{color:var(--accent);}
+.cur-bal{font-family:'Geist Mono',monospace;font-size:.9rem;font-weight:500;color:var(--ink);}
+.cur-open{display:flex;align-items:center;gap:.4rem;padding:.6rem 1rem;border-radius:12px;border:1.5px dashed var(--line-2);background:none;color:var(--ink-3);cursor:pointer;font-size:.82rem;font-weight:500;font-family:'Geist',sans-serif;transition:border-color .2s,color .2s;}
+.cur-open:hover{border-color:var(--accent);color:var(--ink-2);}
+
+/* main grid */
+.wlt-main{display:grid;grid-template-columns:1.55fr 1fr;gap:1rem;margin-bottom:1rem;}
+
+/* balance card */
+.bal{position:relative;overflow:hidden;display:flex;flex-direction:column;}
+.bal-grad{position:absolute;inset:0;background:radial-gradient(120% 90% at 15% 0%,rgba(158,228,147,.12),transparent 60%);pointer-events:none;}
+.bal-top{display:flex;align-items:center;justify-content:space-between;position:relative;}
+.cur-chip{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:99px;padding:.25rem .7rem;}
+.bal-amt{font-family:'Geist Mono',monospace;font-size:2.7rem;font-weight:500;letter-spacing:-.02em;line-height:1;color:var(--ink);margin:.5rem 0 .15rem;position:relative;}
+.bal-amt .cur{color:var(--ink-3);font-size:1.4rem;margin-right:.12rem;}
+.bal-sub{font-size:.78rem;color:var(--ink-3);position:relative;}
+.spark{position:relative;height:74px;margin:.6rem 0 .2rem;}
+.spark svg{width:100%;height:100%;display:block;overflow:visible;}
+.spark .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.spark .ar{fill:url(#wgrad);opacity:0;transition:opacity .8s ease .3s;}
+.spark.in .ar{opacity:1;}
+.bal-actions{display:flex;gap:1.1rem;margin-top:.7rem;position:relative;flex-wrap:wrap;}
+.cact{display:flex;flex-direction:column;align-items:center;gap:.4rem;background:none;border:none;cursor:pointer;font-family:'Geist',sans-serif;}
+.cact .ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:1.05rem;color:#0E120F;transition:transform .14s;}
+.cact:hover .ic{transform:translateY(-2px);}
+.cact:active .ic{transform:scale(.94);}
+.cact .lbl{font-size:.72rem;color:var(--ink-2);}
+.ic-dep{background:var(--accent);} .ic-wd{background:var(--bg-3);color:var(--ink);} .ic-pay{background:var(--orange);color:#fff;} .ic-cv{background:var(--violet);color:#fff;}
+
+/* overview */
+.ov h3{font-family:'Geist',sans-serif;font-size:.95rem;font-weight:600;color:var(--ink);margin:0 0 1rem;}
+.ov-total{display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.ov-tnum{font-family:'Geist Mono',monospace;font-size:1.7rem;font-weight:500;color:var(--ink);letter-spacing:-.01em;}
+.ov-tlbl{font-size:.74rem;color:var(--ink-3);margin-bottom:.15rem;}
+.donut{width:96px;height:96px;flex-shrink:0;position:relative;}
+.donut svg{transform:rotate(-90deg);}
+.donut .seg{fill:none;stroke-width:11;transition:stroke-dashoffset 1s cubic-bezier(.2,.7,.2,1);}
+.ov-legend{margin-top:1.1rem;display:flex;flex-direction:column;gap:.55rem;}
+.leg{display:flex;align-items:center;gap:.55rem;font-size:.82rem;}
+.leg .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.leg .lname{color:var(--ink-2);flex:1;}
+.leg .lval{font-family:'Geist Mono',monospace;color:var(--ink);}
+.leg .lpct{font-family:'Geist Mono',monospace;color:var(--ink-3);width:44px;text-align:right;}
+.ov-link{margin-top:1rem;font-size:.78rem;color:var(--accent);text-decoration:none;font-weight:500;display:inline-block;}
+.ov-link:hover{text-decoration:underline;}
+
+/* fee strip */
+.fee-strip{display:flex;flex-wrap:wrap;gap:1.4rem;padding:1rem 1.3rem;margin-bottom:1rem;align-items:center;}
+.fee{display:flex;align-items:center;gap:.6rem;}
+.fee .fic{width:32px;height:32px;border-radius:9px;background:var(--bg-3);display:grid;place-items:center;color:var(--accent);font-size:.9rem;flex-shrink:0;}
+.fee .flbl{font-size:.72rem;color:var(--ink-3);line-height:1.2;}
+.fee .fval{font-family:'Geist Mono',monospace;font-size:.9rem;color:var(--ink);font-weight:500;}
+.fee.wide .fval{font-size:.8rem;}
+
+/* transactions */
+.tx-head{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.3rem .7rem;gap:.6rem;flex-wrap:wrap;}
+.tx-head .t{font-family:'Geist',sans-serif;font-weight:600;font-size:.95rem;color:var(--ink);display:flex;align-items:center;gap:.45rem;}
+.tx-head .tools{display:flex;gap:.5rem;align-items:center;}
+.tx-sel{font-family:'Geist',sans-serif;font-size:.78rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:99px;padding:.4rem .8rem;cursor:pointer;}
+.tx-list{display:flex;flex-direction:column;}
+.tx-row{display:flex;align-items:center;gap:.85rem;padding:.8rem 1.3rem;border-top:1px solid var(--line);transition:background .18s;}
+.tx-row:hover{background:var(--bg-3);}
+.tx-ic{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:.95rem;flex-shrink:0;background:var(--bg-3);color:var(--ink-2);}
+.tx-ic.in{background:rgba(158,228,147,.14);color:var(--accent);}
+.tx-mid{flex:1;min-width:0;}
+.tx-desc{font-size:.86rem;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tx-t{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);margin-top:.12rem;}
+.tx-pill{font-family:'Geist Mono',monospace;font-size:.64rem;font-weight:600;border-radius:99px;padding:.2rem .55rem;white-space:nowrap;}
+.tp-mint{background:rgba(158,228,147,.14);color:var(--accent);}
+.tp-red{background:rgba(255,106,85,.14);color:var(--danger);}
+.tp-amber{background:rgba(255,179,80,.14);color:var(--warn);}
+.tp-violet{background:rgba(141,132,232,.16);color:#B7AFF0;}
+.tp-neutral{background:var(--bg-3);color:var(--ink-2);}
+.tx-right{text-align:right;flex-shrink:0;}
+.tx-amt{font-family:'Geist Mono',monospace;font-size:.9rem;font-weight:500;white-space:nowrap;}
+.tx-amt.in{color:var(--accent);} .tx-amt.out{color:var(--ink);}
+.tx-meta{font-family:'Geist Mono',monospace;font-size:.68rem;color:var(--ink-3);margin-top:.15rem;white-space:nowrap;}
+.tx-col-type{width:150px;flex-shrink:0;}
+.tx-foot{padding:.85rem 1.3rem;border-top:1px solid var(--line);text-align:center;}
+.view-all{font-size:.8rem;color:var(--accent);text-decoration:none;font-weight:500;}
+.view-all:hover{text-decoration:underline;}
+.empty{padding:2.5rem 1.3rem;text-align:center;color:var(--ink-3);font-size:.85rem;}
+
+/* freeze banner */
+.freeze{display:flex;gap:.85rem;align-items:flex-start;background:rgba(255,106,85,.10);border:1px solid rgba(255,106,85,.3);border-radius:var(--r);padding:1rem 1.25rem;margin-bottom:1.1rem;}
+.freeze .fm{font-family:'Geist Mono',monospace;color:var(--danger);font-size:1.1rem;line-height:1;flex-shrink:0;margin-top:.1rem;}
+.freeze .ft{font-weight:600;color:var(--danger);margin-bottom:.25rem;font-size:.9rem;}
+.freeze .fb{font-size:.82rem;color:var(--ink-2);line-height:1.5;}
+.freeze a{color:var(--danger);font-weight:600;}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(14px);}
+.reveal.in{opacity:1;transform:none;transition:opacity .6s cubic-bezier(.2,.7,.2,1),transform .6s cubic-bezier(.2,.7,.2,1);}
+
+@media(max-width:900px){
+  .wlt-main{grid-template-columns:1fr;}
+  .tx-col-type{display:none;}
+  .tx-right .tx-bal{display:none;}
+  .cur-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:.3rem;-webkit-overflow-scrolling:touch;}
+  .cur-card{flex-shrink:0;}
+  .bal-amt{font-size:2.2rem;}
+  .wlt-head h1{font-size:1.35rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;}
+  .dcard,.spark .ar,.donut .seg{transition:none;}
+}
+</style>
+{% endblock %}
+
 {% block content %}
 {% if user.get('freeze_deposits') or user.get('freeze_withdrawals') %}
-<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.875rem;align-items:start;">
-  <span style="font-size:1.3rem;flex-shrink:0;">🔒</span>
+<div class="freeze">
+  <span class="fm">!</span>
   <div>
-    <div style="font-weight:700;color:#b91c1c;margin-bottom:.3rem;">
-      {% if user.get('freeze_deposits') and user.get('freeze_withdrawals') %}
-        Your deposits and withdrawals are currently restricted
-      {% elif user.get('freeze_deposits') %}
-        Your deposits are currently restricted
-      {% else %}
-        Your withdrawals and payments are currently restricted
-      {% endif %}
+    <div class="ft">
+      {% if user.get('freeze_deposits') and user.get('freeze_withdrawals') %}Your deposits and withdrawals are currently restricted
+      {% elif user.get('freeze_deposits') %}Your deposits are currently restricted
+      {% else %}Your withdrawals and payments are currently restricted{% endif %}
     </div>
-    <div style="font-size:.875rem;color:#7f1d1d;line-height:1.5;">
-      To resolve this, please contact our customer service team at
-      <strong>support@sohana.app</strong> or visit the
-      <a href="/blog" style="color:#b91c1c;font-weight:600;">Help Centre</a>.
-      Please reference your account phone number when you contact us.
-    </div>
+    <div class="fb">To resolve this, contact <strong>support@sohana.app</strong> or visit the <a href="/blog">Help Centre</a>. Please reference your account phone number.</div>
   </div>
 </div>
 {% endif %}
 
-<div class="page-header">
-  <div><h1 class="page-title">My Wallet</h1><p class="page-subtitle">Multi-currency wallet — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR</p></div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-    <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">⬇ Statement</a>
-    <button class="btn btn-outline" onclick="openModal('withdraw-modal')">⬆ Withdraw</button>
-    <button class="btn btn-primary" onclick="openModal('deposit-modal')">⬇ Deposit</button>
-    <button class="btn btn-orange" onclick="openModal('pay-modal')">⚡ Pay</button>
-  </div>
-</div>
+<div class="wlt">
 
-<!-- Currency tabs (Wise-style) -->
-<div style="margin-bottom:1.25rem;">
-  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;">
+  <div class="wlt-head reveal">
+    <div>
+      <h1>My Wallet</h1>
+      <p>Multi-currency wallet — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR</p>
+    </div>
+    <div class="wlt-acts">
+      <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="abtn abtn-ghost">↓ Statement</a>
+      <button class="abtn abtn-ghost" onclick="openModal('withdraw-modal')">↑ Withdraw</button>
+      <button class="abtn abtn-primary" onclick="openModal('deposit-modal')">↓ Deposit</button>
+      <button class="abtn abtn-orange" onclick="openModal('pay-modal')">→ Pay</button>
+    </div>
+  </div>
+
+  <!-- currency selector -->
+  <div class="cur-row reveal">
     {% for w in wallets %}
     {% set cur = currencies.get(w.currency, {}) %}
-    <a href="/wallet?currency={{ w.currency }}"
-      style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px solid {{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--border)' }};background:{{ 'var(--blue-lt)' if w.currency==active_wallet.currency else 'var(--white)' }};text-decoration:none;transition:all .15s;">
-      <span style="font-size:1rem;">{{ cur.get('flag','') }}</span>
+    <a class="cur-card {{ 'on' if active_wallet and w.currency==active_wallet.currency }}" href="/wallet?currency={{ w.currency }}">
+      <span class="cur-flag">{{ cur.get('flag','') }}</span>
       <div>
-        <div style="font-size:.78rem;font-weight:600;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--gray-700)' }};">{{ w.currency }}</div>
-        <div style="font-size:.82rem;font-weight:700;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--navy)' }};">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(w.balance / 100).replace(',', ' ') }}</div>
+        <div class="cur-code">{{ w.currency }}</div>
+        <div class="cur-bal">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(w.balance/100).replace(',', '\u00a0') }}</div>
       </div>
     </a>
     {% endfor %}
     {% if available_to_open %}
-    <button onclick="openModal('open-currency-modal')" style="display:flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px dashed var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:.82rem;font-weight:500;">
-      + Open balance
-    </button>
+    <button class="cur-open" onclick="openModal('open-currency-modal')">+ Open balance</button>
     {% endif %}
   </div>
 
-  <!-- Active balance card -->
-  {% if active_wallet %}
-  {% set cur = currencies.get(active_wallet.currency, {}) %}
-  <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;max-width:380px;">
-    <div style="display:flex;align-items:center;gap:.5rem;width:100%;">
-      <span style="font-size:1.4rem;">{{ cur.get('flag','') }}</span>
-      <div style="flex:1;">
-        <div style="font-size:.72rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;">{{ cur.get('name',active_wallet.currency) }}</div>
-        <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(active_wallet.balance / 100).replace(',', ' ') }}</div>
+  <!-- main: balance + overview -->
+  <div class="wlt-main">
+    {% if active_wallet %}
+    {% set cur = currencies.get(active_wallet.currency, {}) %}
+    <div class="dcard dcard-pad bal reveal">
+      <div class="bal-grad"></div>
+      <div class="bal-top">
+        <span class="eyebrow">{{ cur.get('name', active_wallet.currency) }}</span>
+        <span class="cur-chip">{{ active_wallet.currency }}</span>
+      </div>
+      <div class="bal-amt"><span class="cur">{{ cur.get('symbol','') }}</span><span id="wallet-balance" data-count="{{ active_wallet.balance/100 }}" data-dp="2">{{ '{:,.2f}'.format(active_wallet.balance/100).replace(',', '\u00a0') }}</span></div>
+      <div class="bal-sub">Available balance</div>
+
+      <div class="spark" id="spark">
+        <svg viewBox="0 0 600 74" preserveAspectRatio="none">
+          <defs><linearGradient id="wgrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stop-color="var(--accent)" stop-opacity=".26"/>
+            <stop offset="1" stop-color="var(--accent)" stop-opacity="0"/>
+          </linearGradient></defs>
+          <path class="ar" id="spark-area" d=""></path>
+          <path class="ln" id="spark-line" d=""></path>
+        </svg>
+      </div>
+
+      <div class="bal-actions">
+        <button class="cact" onclick="openModal('deposit-modal')"><span class="ic ic-dep">↓</span><span class="lbl">Deposit</span></button>
+        <button class="cact" onclick="openModal('withdraw-modal')"><span class="ic ic-wd">↑</span><span class="lbl">Withdraw</span></button>
+        <button class="cact" onclick="openModal('pay-modal')"><span class="ic ic-pay">→</span><span class="lbl">Pay</span></button>
+        {% if wallets|length > 1 %}<button class="cact" onclick="openModal('convert-modal')"><span class="ic ic-cv">⟳</span><span class="lbl">Convert</span></button>{% endif %}
       </div>
     </div>
-    <div class="wallet-actions">
-      <button class="wallet-btn primary-w" onclick="openModal('withdraw-modal')">Withdraw</button>
-      <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
-      <button class="wallet-btn" onclick="openModal('pay-modal')" style="background:rgba(234,88,12,.8);">Pay</button>
-      {% if wallets|length > 1 %}
-      <button class="wallet-btn" onclick="openModal('convert-modal')" style="background:rgba(124,58,237,.7);">Convert</button>
-      {% endif %}
+    {% endif %}
+
+    <div class="dcard dcard-pad ov reveal">
+      <h3>Wallet overview</h3>
+      <div class="ov-total">
+        <div>
+          <div class="ov-tlbl">Total balance (all currencies)</div>
+          <div class="ov-tnum"><span class="cur" style="color:var(--ink-3)">€</span><span id="ov-total-num" data-count="0" data-dp="2">0.00</span></div>
+        </div>
+        <div class="donut" id="donut">
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r="40" fill="none" stroke="var(--line)" stroke-width="11"></circle>
+            <!-- segments injected by JS -->
+          </svg>
+        </div>
+      </div>
+      <div class="ov-legend" id="ov-legend"></div>
+      <a class="ov-link" href="/wallet">View all balances →</a>
     </div>
   </div>
-  {% endif %}
-</div>
 
-<!-- Fees + Limits notice -->
-<div class="card card-pad" style="background:var(--blue-lt);border-color:#bfdbfe;margin-bottom:.75rem;font-size:.82rem;">
-  <strong>Fees:</strong>&nbsp;
-  Conversion: <strong>0.7%</strong> &nbsp;·&nbsp;
-  SEPA: <strong>1%</strong> &nbsp;·&nbsp;
-  UK: <strong>1.5%</strong> &nbsp;·&nbsp;
-  US ACH: <strong>2%</strong> &nbsp;·&nbsp;
-  SWIFT: <strong>3.5%</strong> &nbsp;·&nbsp;
-  Mobile Money: <strong>1.5%</strong> &nbsp;·&nbsp;
-  Pay under €&#8239;5&#160;000: <strong>Free</strong> &nbsp;·&nbsp;
-  Pay over €&#8239;5&#160;000: <strong>2%</strong>
-</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem;">
-  <div class="card card-pad" style="border-left:3px solid var(--blue);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily deposit limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
+  <!-- fee strip -->
+  <div class="dcard fee-strip reveal">
+    <div class="fee"><span class="fic">⟳</span><div><div class="flbl">Conversion fee</div><div class="fval">{{ '%g'|format(conversion_fee_pct) }}%</div></div></div>
+    <div class="fee"><span class="fic">⇆</span><div><div class="flbl">SEPA transfer</div><div class="fval">{{ '%g'|format(withdrawal_fees.get('bank_eu',0.01)*100) }}%</div></div></div>
+    <div class="fee"><span class="fic">⇄</span><div><div class="flbl">UK transfer</div><div class="fval">{{ '%g'|format(withdrawal_fees.get('bank_uk',0.015)*100) }}%</div></div></div>
+    <div class="fee"><span class="fic">▤</span><div><div class="flbl">US ACH</div><div class="fval">{{ '%g'|format(withdrawal_fees.get('bank_us',0.02)*100) }}%</div></div></div>
+    <div class="fee"><span class="fic">◍</span><div><div class="flbl">SWIFT transfer</div><div class="fval">{{ '%g'|format(withdrawal_fees.get('bank_swift',0.035)*100) }}%</div></div></div>
+    <div class="fee"><span class="fic">▢</span><div><div class="flbl">Mobile money</div><div class="fval">{{ '%g'|format(withdrawal_fees.get('mobile_money',0.015)*100) }}%</div></div></div>
+    <div class="fee wide"><span class="fic">◈</span><div><div class="flbl">Pay under €&#8239;5&#160;000: <strong style="color:var(--ink)">Free</strong></div><div class="fval">Over €&#8239;5&#160;000: 2%</div></div></div>
   </div>
-  <div class="card card-pad" style="border-left:3px solid var(--orange);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily withdrawal limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;3&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
-  </div>
-  <div class="card card-pad" style="border-left:3px solid var(--purple);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Monthly withdrawal limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets 1st of month</div>
-  </div>
-</div>
 
-<!-- Transaction history -->
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">{{ currencies.get(active_wallet.currency,{}).get('flag','') }} {{ active_wallet.currency if active_wallet else 'EUR' }} Transactions</span>
-    <div style="display:flex;gap:.5rem;">
-      <select class="filter-select" id="tx-filter" onchange="filterTx()">
-        <option value="all">All</option><option value="credit">Credits</option><option value="debit">Debits</option>
-      </select>
-      <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">CSV ↓</a>
+  <!-- transactions -->
+  <div class="dcard reveal">
+    <div class="tx-head">
+      <span class="t">{{ currencies.get(active_wallet.currency,{}).get('flag','') if active_wallet }} {{ active_wallet.currency if active_wallet else 'EUR' }} transactions</span>
+      <div class="tools">
+        <select class="tx-sel" id="tx-filter" onchange="filterTx()">
+          <option value="all">All transactions</option>
+          <option value="credit">Credits</option>
+          <option value="debit">Debits</option>
+        </select>
+        <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="abtn abtn-ghost" style="padding:.4rem .8rem;font-size:.76rem;">↓ Export</a>
+      </div>
     </div>
-  </div>
-  {% if transactions %}
-  <div class="table-wrap">
-    <table><thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Balance</th><th>Date</th></tr></thead>
-    <tbody id="tx-table">
+    {% if transactions %}
+    {% set sym = currencies.get(active_wallet.currency,{}).get('symbol','') %}
+    <div class="tx-list" id="tx-table">
       {% for tx in transactions %}
-      <tr class="tx-row {{ 'credit' if tx.amount_cents>0 else 'debit' }}">
-        <td><div class="td-bold">{{ tx.description }}</div></td>
-        <td><span class="pill {{ 'pill-green' if tx.amount_cents>0 else 'pill-red' }} pill-no-dot" style="font-size:.7rem;">{{ (tx.tx_type or '').replace('_',' ').title() }}</span></td>
-        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', '\u00a0') }}</td>
-        <td class="text-muted">{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.balance_after/100).replace(',', '\u00a0') }}</td>
-        <td class="text-muted text-xs">{{ tx.created_at[:16].replace('T',' ') }}</td>
-      </tr>
+      {% set inc = tx.amount_cents>0 %}
+      {% set tt = (tx.tx_type or '') %}
+      <div class="tx-row {{ 'credit' if inc else 'debit' }}">
+        <div class="tx-ic {{ 'in' if inc else '' }}">{{ '↓' if inc else ('⟳' if tt=='conversion' else ('→' if tt in ['transfer','pay','payment'] else ('◎' if 'rosca' in tt or 'contribution' in tt else '↑'))) }}</div>
+        <div class="tx-mid">
+          <div class="tx-desc">{{ tx.description }}</div>
+          <div class="tx-t">{{ tt.replace('_',' ').title() if tt else 'Transaction' }}</div>
+        </div>
+        <div class="tx-col-type">
+          {% if inc %}<span class="tx-pill tp-mint">{{ tt.replace('_',' ').title() if tt else 'Credit' }}</span>
+          {% elif tt=='conversion' %}<span class="tx-pill tp-violet">Conversion</span>
+          {% elif tt=='fee' %}<span class="tx-pill tp-amber">Fee</span>
+          {% elif 'rosca' in tt or 'contribution' in tt %}<span class="tx-pill tp-mint">{{ tt.replace('_',' ').title() }}</span>
+          {% else %}<span class="tx-pill tp-red">{{ tt.replace('_',' ').title() if tt else 'Debit' }}</span>{% endif %}
+        </div>
+        <div class="tx-right">
+          <div class="tx-amt {{ 'in' if inc else 'out' }}">{{ '+' if inc else '−' }}{{ sym }}{{ '{:,.2f}'.format((tx.amount_cents|abs)/100).replace(',', '\u00a0') }}</div>
+          <div class="tx-meta"><span class="tx-bal">{{ sym }}{{ '{:,.2f}'.format(tx.balance_after/100).replace(',', '\u00a0') }} · </span>{{ tx.created_at[:16].replace('T',' ') }}</div>
+        </div>
+      </div>
       {% endfor %}
-    </tbody></table>
+    </div>
+    <div class="tx-foot"><a class="view-all" href="/history">View all transactions →</a></div>
+    {% else %}
+    <div class="empty">No {{ active_wallet.currency if active_wallet else '' }} transactions yet.</div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="empty-state" style="padding:3rem;"><p>No {{ active_wallet.currency if active_wallet else '' }} transactions yet.</p></div>
-  {% endif %}
 </div>
 {% endblock %}
 
@@ -352,7 +513,7 @@ async function doWd(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('o
 
 let payRec=null,payTimer=null;
 function lookupTag(){clearTimeout(payTimer);payTimer=setTimeout(async()=>{const tag=document.getElementById('pay-tag').value.trim();if(tag.length<3)return;const d=await API.get('/api/profile/lookup-hanatag?tag=@'+tag.replace('@',''));const res=document.getElementById('pay-res');if(d.ok){payRec=d.user;res.innerHTML=`<div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;"><strong>✓ ${d.user.full_name}</strong></div>`;document.getElementById('btn-pay2').disabled=false;}else{payRec=null;res.innerHTML=`<div style="background:var(--red-lt);border:1px solid #fca5a5;border-radius:var(--radius-sm);padding:.4rem .75rem;font-size:.83rem;color:var(--red);">Not found</div>`;document.getElementById('btn-pay2').disabled=true;}},500);}
-function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=parseFloat(document.getElementById('pay-amt').value)||0;if(a<1){toast('Enter amount','error');return;}const cur=document.getElementById('pay-cur').value;const sym=SYMS[cur]?.symbol||'';document.getElementById('p-name').textContent=payRec.full_name;document.getElementById('p-tag').textContent='@'+document.getElementById('pay-tag').value;const payFeeNote=a>5000?' (incl. 2% fee above € 5 000)':'';document.getElementById('p-amt').textContent=fmtMoney(a,sym)+' '+cur+payFeeNote;document.getElementById('pay-s1').style.display='none';document.getElementById('pay-s2').style.display='';document.getElementById('potp0').focus();}
+function payS2(){if(!payRec){toast('Confirm recipient','error');return;}const a=parseFloat(document.getElementById('pay-amt').value)||0;if(a<1){toast('Enter amount','error');return;}const cur=document.getElementById('pay-cur').value;const sym=SYMS[cur]?.symbol||'';document.getElementById('p-name').textContent=payRec.full_name;document.getElementById('p-tag').textContent='@'+document.getElementById('pay-tag').value;const payFeeNote=a>5000?' (incl. 2% fee above € 5 000)':'';document.getElementById('p-amt').textContent=fmtMoney(a,sym)+' '+cur+payFeeNote;document.getElementById('pay-s1').style.display='none';document.getElementById('pay-s2').style.display='';document.getElementById('potp0').focus();}
 async function doPay(){const code=[0,1,2,3,4,5].map(i=>document.getElementById('potp'+i).value).join('');if(code.length<6){toast('Enter 6-digit code','error');return;}const btn=document.getElementById('btn-payc');setLoading(btn,true);const d=await API.post('/api/wallet/pay',{hanatag:'@'+document.getElementById('pay-tag').value.replace('@',''),amount:parseFloat(document.getElementById('pay-amt').value),currency:document.getElementById('pay-cur').value,note:document.getElementById('pay-note').value,otp:code});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}closeModal('pay-modal');toast('Sent to '+d.recipient_name+'!','success');setTimeout(()=>location.reload(),1500);}
 
 function oN(i,el,prefix='otp'){const v=el.value;if(v&&i<5)document.getElementById(prefix+(i+1)).focus();}
@@ -363,8 +524,109 @@ document.addEventListener('DOMContentLoaded', () => {
   if (action === 'deposit')  openModal('deposit-modal');
   if (action === 'withdraw') openModal('withdraw-modal');
   if (action === 'pay')      openModal('pay-modal');
-  // Clean the URL so refreshing doesn't re-open the modal
   if (action) history.replaceState({}, '', '/wallet');
 });
+</script>
+
+<!-- ===== visual layer: count-up, reveal, allocation donut, balance sparkline ===== -->
+<script>
+(function(){
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var WALLETS=[{% for w in wallets %}{cur:"{{ w.currency }}",bal:{{ w.balance }}}{{ "," if not loop.last }}{% endfor %}];
+  var TXBAL={{ transactions|map(attribute='balance_after')|list|tojson }};
+  var PALETTE=['#9EE493','#F0803C','#8D84E8','#67E8F9','#CEF870','#FFB350'];
+
+  function fmt(v,dp){var s=(+v).toFixed(dp).split('.');s[0]=s[0].replace(/\B(?=(\d{3})+(?!\d))/g,'\u00a0');return s.join('.');}
+  function countUp(el){var t=parseFloat(el.getAttribute('data-count'))||0,dp=parseInt(el.getAttribute('data-dp')||'0',10);
+    if(reduce){el.textContent=fmt(t,dp);return;}
+    var s=performance.now(),dur=900;
+    (function tick(now){var p=Math.min((now-s)/dur,1),e=1-Math.pow(1-p,3);el.textContent=fmt(t*e,dp);if(p<1)requestAnimationFrame(tick);else el.textContent=fmt(t,dp);})(s);
+  }
+
+  // total + donut from real balances converted to EUR via RATES
+  function overview(){
+    var parts=WALLETS.map(function(w){var r=(RATES[w.cur]||1)||1;return{cur:w.cur,eur:(w.bal/100)/r};})
+                     .filter(function(p){return p.eur>0;})
+                     .sort(function(a,b){return b.eur-a.eur;});
+    var total=parts.reduce(function(s,p){return s+p.eur;},0);
+    var tn=document.getElementById('ov-total-num');
+    if(tn){tn.setAttribute('data-count',total.toFixed(2));countUp(tn);}
+    var svg=document.querySelector('#donut svg');
+    var legend=document.getElementById('ov-legend');
+    if(!svg||!legend||total<=0)return;
+    var r=40,C=2*Math.PI*r,off=0;
+    // build legend rows: top 3 + Others
+    var rows=[],shown=parts.slice(0,3),others=parts.slice(3);
+    shown.forEach(function(p,i){rows.push({name:p.cur,eur:p.eur,color:PALETTE[i%PALETTE.length]});});
+    if(others.length){var oe=others.reduce(function(s,p){return s+p.eur;},0);rows.push({name:'Others',eur:oe,color:PALETTE[3]});}
+    // donut segments (all parts, colored by shown/others)
+    var segParts=shown.map(function(p,i){return{eur:p.eur,color:PALETTE[i%PALETTE.length]};});
+    if(others.length){segParts.push({eur:others.reduce(function(s,p){return s+p.eur;},0),color:PALETTE[3]});}
+    segParts.forEach(function(sp,i){
+      var frac=sp.eur/total, len=frac*C;
+      var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('class','seg');c.setAttribute('cx','48');c.setAttribute('cy','48');c.setAttribute('r',r);
+      c.setAttribute('fill','none');c.setAttribute('stroke',sp.color);c.setAttribute('stroke-width','11');
+      c.setAttribute('stroke-dasharray',C);
+      c.style.strokeDashoffset=reduce?(C-len-off):C;
+      c.setAttribute('data-final',(C-len-off));
+      c.setAttribute('transform','rotate('+(off/C*360)+' 48 48)');
+      svg.appendChild(c);
+      off+=len;
+    });
+    if(!reduce){requestAnimationFrame(function(){requestAnimationFrame(function(){
+      svg.querySelectorAll('.seg').forEach(function(c){c.style.strokeDashoffset=c.getAttribute('data-final');});
+    });});}
+    legend.innerHTML=rows.map(function(row){
+      var pct=(row.eur/total*100);
+      return '<div class="leg"><span class="dot" style="background:'+row.color+'"></span>'
+        +'<span class="lname">'+row.name+'</span>'
+        +'<span class="lval">€'+fmt(row.eur,2)+'</span>'
+        +'<span class="lpct">'+pct.toFixed(1)+'%</span></div>';
+    }).join('');
+  }
+
+  // balance sparkline from balance_after history (DESC -> chronological)
+  function sparkline(){
+    var wrap=document.getElementById('spark');
+    var line=document.getElementById('spark-line'),area=document.getElementById('spark-area');
+    if(!wrap||!line||!area)return;
+    var s=(TXBAL||[]).slice().reverse().map(function(c){return c/100;});
+    if(s.length<2){wrap.style.display='none';return;}
+    if(s.length>40)s=s.slice(s.length-40);
+    var W=600,H=74,pad=4;
+    var mn=Math.min.apply(null,s),mx=Math.max.apply(null,s),rng=(mx-mn)||1;
+    var pts=s.map(function(v,i){
+      var x=pad+(i/(s.length-1))*(W-2*pad);
+      var y=H-pad-((v-mn)/rng)*(H-2*pad);
+      return [x,y];
+    });
+    var d=pts.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+    line.setAttribute('d',d);
+    area.setAttribute('d',d+' L'+pts[pts.length-1][0].toFixed(1)+' '+H+' L'+pts[0][0].toFixed(1)+' '+H+' Z');
+    if(!reduce){
+      var L=line.getTotalLength();
+      line.style.strokeDasharray=L;line.style.strokeDashoffset=L;
+      requestAnimationFrame(function(){requestAnimationFrame(function(){
+        line.style.transition='stroke-dashoffset 1.2s cubic-bezier(.2,.7,.2,1)';
+        line.style.strokeDashoffset=0;wrap.classList.add('in');
+      });});
+    }else{wrap.classList.add('in');}
+  }
+
+  function reveal(){
+    var items=document.querySelectorAll('.reveal');
+    if(reduce||!('IntersectionObserver' in window)){items.forEach(function(i){i.classList.add('in');});return;}
+    var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.1});
+    items.forEach(function(i,idx){i.style.transitionDelay=Math.min(idx*45,300)+'ms';io.observe(i);});
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    reveal();
+    document.querySelectorAll('#wallet-balance[data-count]').forEach(countUp);
+    overview();
+    sparkline();
+  });
+})();
 </script>
 {% endblock %}
