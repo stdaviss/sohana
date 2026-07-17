@@ -1,0 +1,2283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sohana — Micro Mutual Fund Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        /* ── RESET & BASE ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --bg-primary: #07111D;
+            --bg-card: #111C2D;
+            --bg-card2: #17263A;
+            --gold: #D4AF37;
+            --gold-dim: rgba(212, 175, 55, .12);
+            --gold-bdr: rgba(212, 175, 55, .25);
+            --positive: #28C76F;
+            --negative: #EA5455;
+            --warning: #FF9F43;
+            --text-primary: #F8F9FA;
+            --text-muted: #8E9AAF;
+            --border: rgba(255, 255, 255, .08);
+            --radius: 12px;
+            --radius-lg: 18px;
+            --shadow: 0 8px 40px rgba(0, 0, 0, .55);
+            --sidebar-w: 280px;
+            --header-h: 64px;
+            --transition: .25s cubic-bezier(.4, 0, .2, 1);
+        }
+        html {
+            font-size: 14px;
+            scroll-behavior: smooth;
+        }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', 'IBM Plex Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            background: none;
+            color: inherit;
+        }
+        input,
+        select {
+            font-family: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            outline: none;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 20px;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            padding: 0 0 1.5rem 0;
+            z-index: 300;
+            transition: transform var(--transition);
+        }
+        .sidebar-brand {
+            padding: 1.2rem 1.5rem 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .sidebar-brand .logo {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 1.3rem;
+            letter-spacing: .5px;
+            color: var(--gold);
+        }
+        .sidebar-brand .sub {
+            font-size: .6rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+            margin-left: 4px;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.2rem .8rem .8rem .8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .sidebar-nav .nav-label {
+            font-size: .6rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            padding: .6rem 1rem .3rem 1rem;
+            opacity: .6;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: .6rem 1rem;
+            border-radius: var(--radius);
+            font-size: .82rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .sidebar-nav a:hover {
+            background: rgba(255, 255, 255, .04);
+            color: var(--text-primary);
+        }
+        .sidebar-nav a.active {
+            background: var(--gold-dim);
+            color: var(--gold);
+        }
+        .sidebar-nav a.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8%;
+            height: 84%;
+            width: 3px;
+            background: var(--gold);
+            border-radius: 0 4px 4px 0;
+        }
+        .sidebar-nav a .icon {
+            font-size: 1.1rem;
+            width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar-nav a .badge {
+            margin-left: auto;
+            background: var(--gold-dim);
+            color: var(--gold);
+            font-size: .6rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 100px;
+        }
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            font-size: .7rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-footer .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--gold);
+            font-size: .8rem;
+        }
+
+        /* ── MAIN WRAP ── */
+        .main-wrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            height: var(--header-h);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1.8rem;
+            flex-shrink: 0;
+            gap: 1.2rem;
+        }
+        .header .menu-toggle {
+            display: none;
+            font-size: 1.3rem;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .04);
+        }
+        .header .spacer {
+            flex: 1;
+        }
+        .header .hdr-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .75rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, .04);
+            padding: 4px 12px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .header .hdr-item .num {
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .header .hdr-item .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--positive);
+            display: inline-block;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .25;
+            }
+        }
+        .header .hdr-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .header .hdr-actions button {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all var(--transition);
+            color: var(--text-muted);
+        }
+        .header .hdr-actions button:hover {
+            background: var(--gold-dim);
+            border-color: var(--gold-bdr);
+            color: var(--gold);
+        }
+        .header .hdr-actions .avatar-sm {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: .75rem;
+            color: var(--gold);
+            border: 1px solid var(--gold-bdr);
+        }
+
+        /* ── SCROLL CONTENT ── */
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.2rem 1.8rem 3rem 1.8rem;
+        }
+
+        /* ── KPI ROW (10 cards) ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: .8rem;
+            margin-bottom: 1.4rem;
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: .9rem 1rem;
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            animation: fadeUp .4s ease both;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover {
+            border-color: var(--gold-bdr);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        .kpi-card .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .kpi-card .kpi-icon {
+            font-size: 1.1rem;
+            opacity: .6;
+        }
+        .kpi-card .kpi-label {
+            font-size: .6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--text-muted);
+        }
+        .kpi-card .kpi-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+            margin-top: 2px;
+        }
+        .kpi-card .kpi-value.gold {
+            color: var(--gold);
+        }
+        .kpi-card .kpi-value.pos {
+            color: var(--positive);
+        }
+        .kpi-card .kpi-value.neg {
+            color: var(--negative);
+        }
+        .kpi-card .kpi-sub {
+            font-size: .62rem;
+            color: var(--text-muted);
+            margin-top: 3px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kpi-card .kpi-sub .trend {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 500;
+        }
+        .kpi-card .kpi-sub .trend.up {
+            color: var(--positive);
+        }
+        .kpi-card .kpi-sub .trend.down {
+            color: var(--negative);
+        }
+        .kpi-card .mini-spark {
+            height: 20px;
+            margin-top: 6px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            opacity: .3;
+        }
+        .kpi-card .mini-spark .bar {
+            flex: 1;
+            background: var(--gold);
+            border-radius: 2px 2px 0 0;
+            height: calc(20% + 10% * var(--h, .5));
+            min-height: 2px;
+        }
+
+        /* ── TWO-COLUMN LAYOUT ── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.2rem;
+            margin-bottom: 1.4rem;
+        }
+        .two-col .col-main {
+            min-width: 0;
+        }
+        .two-col .col-side {
+            min-width: 0;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 1.2rem;
+            transition: border-color var(--transition);
+        }
+        .card:hover {
+            border-color: rgba(255, 255, 255, .12);
+        }
+        .card-header {
+            padding: 1rem 1.4rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .card-header .c-tit {
+            font-weight: 600;
+            font-size: .92rem;
+            color: var(--text-primary);
+        }
+        .card-header .c-sub {
+            font-size: .7rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .card-header .c-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+        .card-body {
+            padding: 1.2rem 1.4rem 1.4rem 1.4rem;
+        }
+
+        /* ── FUND CONFIG FORM ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+        .form-grid .f-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .form-grid .f-group label {
+            font-size: .62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-muted);
+        }
+        .form-grid .f-group input,
+        .form-grid .f-group select {
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .5rem .8rem;
+            font-size: .82rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            transition: all var(--transition);
+            width: 100%;
+        }
+        .form-grid .f-group input:focus,
+        .form-grid .f-group select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px var(--gold-dim);
+        }
+        .form-grid .f-group input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: .75rem;
+        }
+        .form-grid .f-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238E9AAF' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 34px;
+        }
+        .form-grid .f-group .hint {
+            font-size: .6rem;
+            color: var(--text-muted);
+            opacity: .7;
+        }
+
+        /* ── SOLVER ── */
+        .solver-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            padding: .8rem 0 .4rem 0;
+            border-top: 1px solid var(--border);
+            margin-top: 1rem;
+        }
+        .solver-wrap .s-label {
+            font-size: .68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+        .solver-wrap .s-options {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-card2);
+            border-radius: 100px;
+            padding: 3px;
+            border: 1px solid var(--border);
+        }
+        .solver-wrap .s-options button {
+            padding: 4px 16px;
+            border-radius: 100px;
+            font-size: .7rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all var(--transition);
+            background: transparent;
+        }
+        .solver-wrap .s-options button.active {
+            background: var(--gold);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+        .solver-wrap .s-options button:hover:not(.active) {
+            color: var(--text-primary);
+        }
+        .solver-wrap .s-result {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--gold);
+            background: var(--gold-dim);
+            padding: 2px 14px;
+            border-radius: 100px;
+            border: 1px solid var(--gold-bdr);
+        }
+
+        /* ── CAPITAL PROGRESS ── */
+        .progress-ring-wrap {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: .4rem 0;
+        }
+        .progress-ring-wrap .ring {
+            flex-shrink: 0;
+        }
+        .progress-ring-wrap .ring-info {
+            flex: 1;
+        }
+        .progress-ring-wrap .ring-info .r-label {
+            font-size: .7rem;
+            color: var(--text-muted);
+        }
+        .progress-ring-wrap .ring-info .r-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .progress-ring-wrap .ring-info .r-sub {
+            font-size: .75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .progress-ring-wrap .ring-info .r-bar {
+            margin-top: 8px;
+            height: 6px;
+            background: var(--bg-card2);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+        .progress-ring-wrap .ring-info .r-bar .fill {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--gold), #E8C84A);
+            transition: width .9s cubic-bezier(.4, 0, .2, 1);
+            width: 0%;
+        }
+
+        /* ── MEMBER TABLE ── */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .8rem;
+        }
+        .table-wrap thead {
+            background: var(--bg-card2);
+        }
+        .table-wrap th {
+            padding: .6rem 1rem;
+            text-align: left;
+            font-size: .6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .table-wrap td {
+            padding: .55rem 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .table-wrap tr:last-child td {
+            border-bottom: none;
+        }
+        .table-wrap tbody tr:hover td {
+            background: rgba(255, 255, 255, .02);
+        }
+        .table-wrap .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .table-wrap .status {
+            display: inline-block;
+            padding: 1px 10px;
+            border-radius: 100px;
+            font-size: .6rem;
+            font-weight: 600;
+        }
+        .table-wrap .status.active {
+            background: rgba(40, 199, 111, .15);
+            color: var(--positive);
+        }
+        .table-wrap .status.pending {
+            background: rgba(255, 159, 67, .15);
+            color: var(--warning);
+        }
+        .table-wrap .status.exit {
+            background: rgba(234, 84, 85, .15);
+            color: var(--negative);
+        }
+        .table-wrap .roi-badge {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            font-size: .75rem;
+        }
+        .table-wrap .roi-badge.pos {
+            color: var(--positive);
+        }
+        .table-wrap .roi-badge.neg {
+            color: var(--negative);
+        }
+
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            gap: .8rem;
+            margin-bottom: .8rem;
+            flex-wrap: wrap;
+        }
+        .table-toolbar input {
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: .4rem .8rem;
+            font-size: .78rem;
+            color: var(--text-primary);
+            flex: 1;
+            min-width: 160px;
+        }
+        .table-toolbar input::placeholder {
+            color: var(--text-muted);
+        }
+        .table-toolbar .btn {
+            padding: .4rem 1rem;
+            border-radius: 8px;
+            font-size: .72rem;
+            font-weight: 600;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .table-toolbar .btn:hover {
+            border-color: var(--gold-bdr);
+            color: var(--text-primary);
+        }
+        .table-toolbar .btn.gold {
+            background: var(--gold);
+            color: var(--bg-primary);
+            border-color: var(--gold);
+        }
+        .table-toolbar .btn.gold:hover {
+            background: #E8C84A;
+        }
+
+        .table-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: .6rem 0 0 0;
+            font-size: .7rem;
+            color: var(--text-muted);
+        }
+
+        /* ── ACTIVITY ── */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: .5rem .6rem;
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, .02);
+            border-left: 2px solid var(--gold);
+            transition: background var(--transition);
+        }
+        .activity-item:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+        .activity-item .a-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .8rem;
+            flex-shrink: 0;
+        }
+        .activity-item .a-body {
+            flex: 1;
+        }
+        .activity-item .a-body .a-text {
+            font-size: .78rem;
+            color: var(--text-primary);
+        }
+        .activity-item .a-body .a-text strong {
+            color: var(--gold);
+        }
+        .activity-item .a-body .a-time {
+            font-size: .6rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .activity-item .a-amount {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: .78rem;
+            font-weight: 500;
+            color: var(--positive);
+        }
+
+        /* ── WIDGETS (right sidebar) ── */
+        .widget {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: .9rem 1rem;
+            margin-bottom: .8rem;
+        }
+        .widget .w-tit {
+            font-size: .62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .widget .w-val {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .widget .w-sub {
+            font-size: .65rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .widget .w-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: .74rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+        }
+        .widget .w-row:last-child {
+            border-bottom: none;
+        }
+        .widget .w-row .w-rt {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .widget .w-row .w-rt.gold {
+            color: var(--gold);
+        }
+        .widget .w-row .w-rt.pos {
+            color: var(--positive);
+        }
+
+        /* ── CHART PLACEHOLDERS ── */
+        .chart-placeholder {
+            height: 120px;
+            background: var(--bg-card2);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: .7rem;
+            border: 1px dashed var(--border);
+            position: relative;
+            overflow: hidden;
+        }
+        .chart-placeholder .mock-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            width: 80%;
+            height: 70%;
+        }
+        .chart-placeholder .mock-bars .mb {
+            flex: 1;
+            background: var(--gold-dim);
+            border-radius: 3px 3px 0 0;
+            height: calc(20% + 10% * var(--h, .5));
+            min-height: 6px;
+            transition: height .6s;
+        }
+        .chart-placeholder .mock-bars .mb.high {
+            background: var(--gold);
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .kpi-card:nth-child(1) {
+            animation-delay: .00s;
+        }
+        .kpi-card:nth-child(2) {
+            animation-delay: .03s;
+        }
+        .kpi-card:nth-child(3) {
+            animation-delay: .06s;
+        }
+        .kpi-card:nth-child(4) {
+            animation-delay: .09s;
+        }
+        .kpi-card:nth-child(5) {
+            animation-delay: .12s;
+        }
+        .kpi-card:nth-child(6) {
+            animation-delay: .15s;
+        }
+        .kpi-card:nth-child(7) {
+            animation-delay: .18s;
+        }
+        .kpi-card:nth-child(8) {
+            animation-delay: .21s;
+        }
+        .kpi-card:nth-child(9) {
+            animation-delay: .24s;
+        }
+        .kpi-card:nth-child(10) {
+            animation-delay: .27s;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1200px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+            .two-col .col-side {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: .8rem;
+            }
+        }
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 400;
+                width: 280px;
+                height: 100vh;
+                box-shadow: 4px 0 30px rgba(0, 0, 0, .7);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .header .menu-toggle {
+                display: flex;
+            }
+            .scroll-content {
+                padding: 1rem 1rem 2rem 1rem;
+            }
+            .two-col .col-side {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 700px) {
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: .6rem;
+            }
+            .kpi-card .kpi-value {
+                font-size: 1rem;
+            }
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .header .hdr-item {
+                display: none;
+            }
+            .header {
+                padding: 0 1rem;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+            .card-header {
+                padding: .8rem 1rem;
+            }
+            .solver-wrap {
+                flex-direction: column;
+                align-items: stretch;
+                gap: .6rem;
+            }
+            .solver-wrap .s-options {
+                flex-wrap: wrap;
+                border-radius: 12px;
+                background: transparent;
+                border: none;
+                padding: 0;
+                gap: 4px;
+            }
+            .solver-wrap .s-options button {
+                background: var(--bg-card2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 4px 14px;
+            }
+            .solver-wrap .s-options button.active {
+                background: var(--gold);
+                border-color: var(--gold);
+            }
+            .progress-ring-wrap {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .table-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .table-toolbar input {
+                min-width: unset;
+            }
+            .two-col .col-side {
+                display: block;
+            }
+        }
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* ── UTILITY ── */
+        .flex {
+            display: flex;
+        }
+        .flex-col {
+            flex-direction: column;
+        }
+        .items-center {
+            align-items: center;
+        }
+        .gap-1 {
+            gap: 6px;
+        }
+        .gap-2 {
+            gap: 12px;
+        }
+        .gap-3 {
+            gap: 18px;
+        }
+        .mt-1 {
+            margin-top: 6px;
+        }
+        .mt-2 {
+            margin-top: 12px;
+        }
+        .mt-3 {
+            margin-top: 18px;
+        }
+        .mb-1 {
+            margin-bottom: 6px;
+        }
+        .mb-2 {
+            margin-bottom: 12px;
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .text-gold {
+            color: var(--gold);
+        }
+        .text-pos {
+            color: var(--positive);
+        }
+        .text-neg {
+            color: var(--negative);
+        }
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .w-full {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+
+        /* overlay for mobile sidebar */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .6);
+            z-index: 350;
+        }
+        .overlay.open {
+            display: block;
+        }
+        @media (min-width: 993px) {
+            .overlay {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-brand">
+            <span class="logo">SOHANA</span>
+            <span class="sub">Micro Mutual Fund</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Main</div>
+            <a href="#" class="active"><span class="icon">📊</span> Dashboard</a>
+            <a href="#"><span class="icon">⚙️</span> Fund Configuration</a>
+            <a href="#"><span class="icon">📐</span> Capital Planner</a>
+            <a href="#"><span class="icon">📈</span> Investment Strategy</a>
+            <a href="#"><span class="icon">🔄</span> ROI Simulator</a>
+            <a href="#"><span class="icon">🔬</span> Scenario Analysis</a>
+            <div class="nav-label" style="margin-top:8px;">Data</div>
+            <a href="#"><span class="icon">👥</span> Members <span class="badge" id="memberBadge">0</span></a>
+            <a href="#"><span class="icon">📄</span> Reports</a>
+            <a href="#"><span class="icon">🔧</span> Settings</a>
+            <a href="#" style="margin-top:auto;border-top:1px solid var(--border);padding-top:.8rem;color:var(--negative);">
+                <span class="icon">⏻</span> Logout
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="avatar">JD</div>
+            <div>
+                <div style="font-weight:500;color:var(--text-primary);font-size:.72rem;">Jane Doe</div>
+                <div style="font-size:.6rem;">Fund Manager</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- overlay for mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- ─── MAIN WRAP ─── -->
+    <div class="main-wrap">
+
+        <!-- ─── HEADER ─── -->
+        <header class="header">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">☰</button>
+            <span style="font-weight:600;font-size:.85rem;color:var(--text-primary);">Dashboard</span>
+            <div class="spacer"></div>
+            <div class="hdr-item">
+                <span class="dot"></span>
+                <span>Live</span>
+                <span class="num" id="fxDisplay">USD 1.0000</span>
+            </div>
+            <div class="hdr-item">
+                <span>📅</span>
+                <span class="num" id="dateDisplay">—</span>
+            </div>
+            <div class="hdr-actions">
+                <button aria-label="Search">🔍</button>
+                <button aria-label="Notifications">🔔</button>
+                <button aria-label="Dark mode">🌙</button>
+                <div class="avatar-sm">JD</div>
+            </div>
+        </header>
+
+        <!-- ─── SCROLL CONTENT ─── -->
+        <main class="scroll-content" id="scrollContent">
+
+            <!-- ── KPI ROW (10 cards) ── -->
+            <section class="kpi-grid" id="kpiGrid" aria-label="Key performance indicators">
+                <!-- injected by JS -->
+            </section>
+
+            <!-- ── TWO-COLUMN: CONFIG + SIDEBAR ── -->
+            <div class="two-col">
+                <div class="col-main">
+
+                    <!-- ── FUND CONFIGURATION ── -->
+                    <section class="card" id="fundConfig" aria-label="Fund configuration">
+                        <div class="card-header">
+                            <span class="c-tit">⚙️ Fund Configuration</span>
+                            <span class="c-sub">Micro Mutual Fund</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-grid">
+                                <div class="f-group">
+                                    <label>Fund Name</label>
+                                    <input type="text" id="fundName" value="Sohana Alpha Fund" placeholder="e.g. Sohana Alpha Fund" />
+                                </div>
+                                <div class="f-group">
+                                    <label>Investment Type</label>
+                                    <select id="investType">
+                                        <option value="mixed">Mixed Portfolio</option>
+                                        <option value="agriculture">Agriculture</option>
+                                        <option value="realestate">Real Estate</option>
+                                        <option value="treasury">Treasury Bills</option>
+                                        <option value="bonds">Government Bonds</option>
+                                        <option value="sme">SMEs</option>
+                                        <option value="moneymarket">Money Market</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="stocks">Stocks</option>
+                                        <option value="etf">ETFs</option>
+                                        <option value="renewable">Renewable Energy</option>
+                                        <option value="infrastructure">Infrastructure</option>
+                                        <option value="startups">Startups</option>
+                                        <option value="crypto">Crypto</option>
+                                    </select>
+                                </div>
+                                <div class="f-group">
+                                    <label>Currency</label>
+                                    <select id="currency">
+                                        <option value="USD">🇺🇸 USD</option>
+                                        <option value="EUR">🇪🇺 EUR</option>
+                                        <option value="GBP">🇬🇧 GBP</option>
+                                        <option value="NGN">🇳🇬 NGN</option>
+                                        <option value="KES">🇰🇪 KES</option>
+                                        <option value="ZAR">🇿🇦 ZAR</option>
+                                        <option value="XOF">🌍 XOF</option>
+                                        <option value="GHS">🇬🇭 GHS</option>
+                                        <option value="EGP">🇪🇬 EGP</option>
+                                        <option value="MAD">🇲🇦 MAD</option>
+                                    </select>
+                                </div>
+                                <div class="f-group">
+                                    <label>Contribution Frequency</label>
+                                    <select id="frequency">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="biweekly">Biweekly</option>
+                                        <option value="monthly" selected>Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="annually">Annually</option>
+                                    </select>
+                                </div>
+                                <div class="f-group">
+                                    <label>Number of Members</label>
+                                    <input type="number" id="members" value="50" min="2" max="1000" step="1" />
+                                    <span class="hint">Min 2 · Max 1,000</span>
+                                </div>
+                                <div class="f-group">
+                                    <label>Contribution per Member</label>
+                                    <input type="number" id="contrib" value="100" min="1" step="5" />
+                                    <span class="hint">In base currency</span>
+                                </div>
+                                <div class="f-group">
+                                    <label>Target Capital</label>
+                                    <input type="number" id="targetCapital" value="250000" min="0" step="1000" />
+                                    <span class="hint">0 = no target</span>
+                                </div>
+                                <div class="f-group">
+                                    <label>Target Duration (years)</label>
+                                    <input type="number" id="targetDuration" value="3" min="0.5" max="30" step="0.5" />
+                                </div>
+                                <div class="f-group">
+                                    <label>Expected Annual ROI (%)</label>
+                                    <input type="number" id="annualROI" value="12" min="0" max="500" step="0.5" />
+                                </div>
+                                <div class="f-group">
+                                    <label>Management Fee (%)</label>
+                                    <input type="number" id="mgmtFee" value="10" min="0" max="50" step="0.5" />
+                                    <span class="hint">% of gross returns</span>
+                                </div>
+                                <div class="f-group">
+                                    <label>Inflation Rate (%)</label>
+                                    <input type="number" id="inflation" value="3" min="0" max="50" step="0.1" />
+                                </div>
+                                <div class="f-group">
+                                    <label>Compounding Frequency</label>
+                                    <select id="compounding">
+                                        <option value="none">Simple</option>
+                                        <option value="annual" selected>Annual</option>
+                                        <option value="semiannual">Semi-annual</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="daily">Daily</option>
+                                    </select>
+                                </div>
+                                <div class="f-group">
+                                    <label>Investment Region</label>
+                                    <input type="text" id="region" value="West Africa" placeholder="e.g. East Africa, ASEAN" />
+                                </div>
+                                <div class="f-group">
+                                    <label>Investment Category</label>
+                                    <select id="category">
+                                        <option value="mixed">Mixed Portfolio</option>
+                                        <option value="agriculture">Agriculture</option>
+                                        <option value="realestate">Real Estate</option>
+                                        <option value="treasury">Treasury Bills</option>
+                                        <option value="bonds">Government Bonds</option>
+                                        <option value="sme">SMEs</option>
+                                        <option value="moneymarket">Money Market</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="stocks">Stocks</option>
+                                        <option value="etf">ETFs</option>
+                                        <option value="renewable">Renewable Energy</option>
+                                        <option value="infrastructure">Infrastructure</option>
+                                        <option value="startups">Startups</option>
+                                        <option value="crypto">Crypto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- ── DYNAMIC SOLVER ── -->
+                            <div class="solver-wrap">
+                                <span class="s-label">Solve for</span>
+                                <div class="s-options" role="group" aria-label="Solver selector">
+                                    <button data-solve="members" class="active">Members</button>
+                                    <button data-solve="contrib">Contribution</button>
+                                    <button data-solve="duration">Duration</button>
+                                    <button data-solve="target">Capital Target</button>
+                                </div>
+                                <span class="s-result" id="solverResult">—</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── KPI SECOND ROW ── -->
+                    <section class="card" id="kpiSecond" aria-label="Fund metrics">
+                        <div class="card-header">
+                            <span class="c-tit">📈 Fund Performance</span>
+                            <span class="c-sub" id="fundHealthLabel">● Healthy</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="kpi-grid" id="kpiGrid2" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:0;">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── CHARTS SECTION (placeholders) ── -->
+                    <section class="card" id="chartsSection" aria-label="Charts">
+                        <div class="card-header">
+                            <span class="c-tit">📉 Analytics</span>
+                            <span class="c-sub">Capital &amp; returns</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;">
+                                <div>
+                                    <div style="font-size:.6rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:.4px;margin-bottom:4px;">Capital Growth</div>
+                                    <div class="chart-placeholder">
+                                        <div class="mock-bars" id="mockChart1">
+                                            <div class="mb" style="--h:.3"></div>
+                                            <div class="mb" style="--h:.5"></div>
+                                            <div class="mb" style="--h:.7"></div>
+                                            <div class="mb" style="--h:.9"></div>
+                                            <div class="mb high" style="--h:1"></div>
+                                            <div class="mb" style="--h:.8"></div>
+                                            <div class="mb" style="--h:.6"></div>
+                                            <div class="mb" style="--h:.4"></div>
+                                            <div class="mb" style="--h:.2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:.6rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:.4px;margin-bottom:4px;">Contribution Timeline</div>
+                                    <div class="chart-placeholder">
+                                        <div class="mock-bars" id="mockChart2">
+                                            <div class="mb" style="--h:.2"></div>
+                                            <div class="mb" style="--h:.4"></div>
+                                            <div class="mb" style="--h:.6"></div>
+                                            <div class="mb high" style="--h:.8"></div>
+                                            <div class="mb" style="--h:.7"></div>
+                                            <div class="mb" style="--h:.5"></div>
+                                            <div class="mb" style="--h:.3"></div>
+                                            <div class="mb" style="--h:.1"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:.6rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:.4px;margin-bottom:4px;">Fund Value</div>
+                                    <div class="chart-placeholder">
+                                        <div class="mock-bars" id="mockChart3">
+                                            <div class="mb" style="--h:.1"></div>
+                                            <div class="mb" style="--h:.3"></div>
+                                            <div class="mb" style="--h:.5"></div>
+                                            <div class="mb" style="--h:.7"></div>
+                                            <div class="mb high" style="--h:.9"></div>
+                                            <div class="mb" style="--h:.8"></div>
+                                            <div class="mb" style="--h:.6"></div>
+                                            <div class="mb" style="--h:.4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size:.6rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);letter-spacing:.4px;margin-bottom:4px;">Projected ROI</div>
+                                    <div class="chart-placeholder">
+                                        <div class="mock-bars" id="mockChart4">
+                                            <div class="mb" style="--h:.2"></div>
+                                            <div class="mb" style="--h:.4"></div>
+                                            <div class="mb" style="--h:.6"></div>
+                                            <div class="mb" style="--h:.8"></div>
+                                            <div class="mb high" style="--h:1"></div>
+                                            <div class="mb" style="--h:.9"></div>
+                                            <div class="mb" style="--h:.7"></div>
+                                            <div class="mb" style="--h:.5"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── MEMBER TABLE ── -->
+                    <section class="card" id="memberTable" aria-label="Member analytics">
+                        <div class="card-header">
+                            <span class="c-tit">👥 Member Analytics</span>
+                            <span class="c-sub" id="memberCountLabel">0 members</span>
+                            <div class="c-actions">
+                                <button class="btn" style="padding:2px 12px;border-radius:6px;font-size:.65rem;">Export</button>
+                                <button class="btn" style="padding:2px 12px;border-radius:6px;font-size:.65rem;">Filter</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-toolbar">
+                                <input type="text" id="memberSearch" placeholder="Search members…" aria-label="Search members" />
+                                <button class="btn gold" id="refreshMembers">⟳ Refresh</button>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Member</th>
+                                            <th>Contribution</th>
+                                            <th>Ownership %</th>
+                                            <th>Fund Units</th>
+                                            <th>NAV</th>
+                                            <th>Profit</th>
+                                            <th>ROI</th>
+                                            <th>Projected Exit</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="memberTableBody">
+                                        <!-- injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-footer">
+                                <span id="tableMemberCount">0 members</span>
+                                <span>Showing <span id="showCount">0</span></span>
+                            </div>
+                        </div>
+                    </section>
+
+                </div><!-- /col-main -->
+
+                <!-- ─── RIGHT SIDEBAR ─── -->
+                <aside class="col-side" aria-label="Widgets">
+
+                    <!-- Capital Progress -->
+                    <div class="card" style="margin-bottom:.8rem;">
+                        <div class="card-header" style="padding:.7rem 1rem;">
+                            <span class="c-tit" style="font-size:.82rem;">📊 Capital Progress</span>
+                        </div>
+                        <div class="card-body" style="padding:.8rem 1rem 1rem 1rem;">
+                            <div class="progress-ring-wrap">
+                                <div class="ring">
+                                    <svg viewBox="0 0 120 120" width="100" height="100">
+                                        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--bg-card2)" stroke-width="10"/>
+                                        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--gold)" stroke-width="10"
+                                        stroke-dasharray="314.16" stroke-dashoffset="314.16"
+                                        stroke-linecap="round" transform="rotate(-90 60 60)"
+                                        id="progressRing"/>
+                                        <text x="60" y="56" text-anchor="middle" fill="var(--text-primary)" font-size="18" font-weight="600" font-family="'IBM Plex Mono',monospace" id="progressPct">0%</text>
+                                        <text x="60" y="72" text-anchor="middle" fill="var(--text-muted)" font-size="8" font-family="'Inter',sans-serif">RAISED</text>
+                                    </svg>
+                                </div>
+                                <div class="ring-info">
+                                    <div class="r-label">Capital Raised</div>
+                                    <div class="r-value" id="raisedDisplay">$0</div>
+                                    <div class="r-sub">Target: <span id="targetDisplay">$0</span></div>
+                                    <div class="r-bar"><div class="fill" id="progressFill" style="width:0%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Widgets -->
+                    <div class="widget">
+                        <div class="w-tit">🏦 Fund Health</div>
+                        <div class="w-val" id="healthScore" style="color:var(--positive);">92%</div>
+                        <div class="w-sub" id="healthLabel">● Strong fundamentals</div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="w-tit">📊 Market Snapshot</div>
+                        <div class="w-row"><span>S&P 500</span><span class="w-rt pos">+1.2%</span></div>
+                        <div class="w-row"><span>Gold</span><span class="w-rt pos">+0.7%</span></div>
+                        <div class="w-row"><span>US Treasury 10Y</span><span class="w-rt">4.15%</span></div>
+                        <div class="w-row"><span>Oil (WTI)</span><span class="w-rt neg">-0.3%</span></div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="w-tit">💱 Currency Rates</div>
+                        <div class="w-row"><span>USD/EUR</span><span class="w-rt">0.92</span></div>
+                        <div class="w-row"><span>USD/NGN</span><span class="w-rt">1,485</span></div>
+                        <div class="w-row"><span>USD/KES</span><span class="w-rt">145</span></div>
+                        <div class="w-row"><span>USD/ZAR</span><span class="w-rt">18.7</span></div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="w-tit">🏆 Top Contributors</div>
+                        <div class="w-row"><span>#1 · A. Mensah</span><span class="w-rt gold">$12,400</span></div>
+                        <div class="w-row"><span>#2 · F. Okafor</span><span class="w-rt gold">$10,200</span></div>
+                        <div class="w-row"><span>#3 · L. Diop</span><span class="w-rt gold">$8,750</span></div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="w-tit">🔔 Investment Alerts</div>
+                        <div class="w-row"><span>⚠️ ROI target adjusted</span><span class="w-rt" style="color:var(--warning);">2h ago</span></div>
+                        <div class="w-row"><span>✅ New member joined</span><span class="w-rt pos">5h ago</span></div>
+                        <div class="w-row"><span>📈 Fund NAV updated</span><span class="w-rt pos">1d ago</span></div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="w-tit">📅 Upcoming Contributions</div>
+                        <div class="w-row"><span>Next cycle</span><span class="w-rt">3 days</span></div>
+                        <div class="w-row"><span>Total due</span><span class="w-rt gold" id="nextDue">$0</span></div>
+                        <div class="w-row"><span>Members due</span><span class="w-rt" id="membersDue">0</span></div>
+                    </div>
+
+                </aside>
+            </div>
+
+            <!-- ─── RECENT ACTIVITY ─── -->
+            <section class="card" id="activityPanel" aria-label="Recent activity">
+                <div class="card-header">
+                    <span class="c-tit">🕒 Recent Activity</span>
+                    <span class="c-sub">Live feed</span>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list" id="activityList">
+                        <!-- injected by JS -->
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        /* ════════════════════════════════════════════════════
+           SOHANA — Micro Mutual Fund Engine
+           Vanilla JS · Full Calculation Engine
+           ════════════════════════════════════════════════════ */
+
+        // ─── STATE ───
+        const state = {
+            members: 50,
+            contrib: 100,
+            targetCapital: 250000,
+            targetDuration: 3,
+            annualROI: 12,
+            mgmtFee: 10,
+            inflation: 3,
+            compounding: 'annual',
+            frequency: 'monthly',
+            currency: 'USD',
+            solveMode: 'members', // 'members' | 'contrib' | 'duration' | 'target'
+            fundName: 'Sohana Alpha Fund',
+            investType: 'mixed',
+            region: 'West Africa',
+            category: 'mixed',
+        };
+
+        const SYM = {
+            USD: '$',
+            EUR: '€',
+            GBP: '£',
+            NGN: '₦',
+            KES: 'KSh',
+            ZAR: 'R',
+            XOF: 'CFA',
+            GHS: '₵',
+            EGP: 'E£',
+            MAD: 'DH',
+        };
+
+        const FREQ_MAP = {
+            daily: 365,
+            weekly: 52,
+            biweekly: 26,
+            monthly: 12,
+            quarterly: 4,
+            annually: 1,
+        };
+
+        const COMPOUND_MAP = {
+            none: 1,
+            annual: 1,
+            semiannual: 2,
+            quarterly: 4,
+            monthly: 12,
+            daily: 365,
+        };
+
+        let activityLog = [];
+
+        // ─── HELPERS ───
+        function fmt(v, cur) {
+            const s = SYM[cur] || cur || '$';
+            if (Math.abs(v) >= 1e6) return `${s}${(v/1e6).toFixed(2)}M`;
+            if (Math.abs(v) >= 1e3) return `${s}${(v/1e3).toFixed(1)}K`;
+            return `${s}${v.toFixed(2)}`;
+        }
+
+        function fmtFull(v, cur) {
+            const s = SYM[cur] || cur || '$';
+            return `${s}${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function pct(v) {
+            return `${v.toFixed(1)}%`;
+        }
+
+        function pctFull(v) {
+            return `${v.toFixed(2)}%`;
+        }
+
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+
+        function getVal(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            const v = parseFloat(el.value);
+            return isNaN(v) ? 0 : v;
+        }
+
+        function getInt(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            const v = parseInt(el.value);
+            return isNaN(v) ? 0 : v;
+        }
+
+        function getStr(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+
+        function getSel(id) {
+            const el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+
+        // ─── READ CONFIG FROM UI ───
+        function readConfig() {
+            state.members = clamp(getInt('members'), 2, 1000);
+            state.contrib = Math.max(0.01, getVal('contrib'));
+            state.targetCapital = Math.max(0, getVal('targetCapital'));
+            state.targetDuration = Math.max(0.1, getVal('targetDuration'));
+            state.annualROI = Math.max(0, getVal('annualROI'));
+            state.mgmtFee = clamp(getVal('mgmtFee'), 0, 50);
+            state.inflation = Math.max(0, getVal('inflation'));
+            state.compounding = getSel('compounding');
+            state.frequency = getSel('frequency');
+            state.currency = getSel('currency');
+            state.fundName = getStr('fundName') || 'Sohana Alpha Fund';
+            state.investType = getSel('investType');
+            state.region = getStr('region') || 'West Africa';
+            state.category = getSel('category');
+            return state;
+        }
+
+        // ─── SOLVER ───
+        function solve() {
+            const cfg = readConfig();
+            const { members, contrib, targetCapital, targetDuration, annualROI, compounding, mgmtFee, inflation } = cfg;
+            const mode = state.solveMode;
+
+            // base: total capital = members * contrib
+            let totalCapital = members * contrib;
+            let solvedValue = null;
+            let solvedLabel = '';
+
+            // effective ROI after fee & inflation (approximate)
+            const effROI = annualROI * (1 - mgmtFee / 100) - inflation;
+
+            // compound factor
+            const n = COMPOUND_MAP[compounding] || 1;
+            const t = targetDuration;
+            const r = annualROI / 100;
+            const f = mgmtFee / 100;
+
+            // gross return factor
+            let grossFactor;
+            if (compounding === 'none') {
+                grossFactor = 1 + r * t;
+            } else {
+                grossFactor = Math.pow(1 + r / n, n * t);
+            }
+            const netFactor = 1 + (grossFactor - 1) * (1 - f);
+
+            switch (mode) {
+                case 'members':
+                    if (targetCapital > 0 && contrib > 0) {
+                        const needed = Math.ceil(targetCapital / (contrib * netFactor));
+                        solvedValue = clamp(needed, 2, 1000);
+                        solvedLabel = `${solvedValue} members`;
+                    } else {
+                        solvedValue = members;
+                        solvedLabel = `${members} members`;
+                    }
+                    break;
+                case 'contrib':
+                    if (targetCapital > 0 && members > 0) {
+                        const needed = targetCapital / (members * netFactor);
+                        solvedValue = Math.max(0.01, needed);
+                        solvedLabel = fmtFull(solvedValue, cfg.currency);
+                    } else {
+                        solvedValue = contrib;
+                        solvedLabel = fmtFull(contrib, cfg.currency);
+                    }
+                    break;
+                case 'duration':
+                    if (targetCapital > 0 && totalCapital > 0 && annualROI > 0) {
+                        // solve for t: totalCapital * (1 + r_eff)^t = targetCapital
+                        const rEff = annualROI / 100 * (1 - f) - inflation / 100;
+                        if (rEff > 0) {
+                            const tNeeded = Math.log(targetCapital / totalCapital) / Math.log(1 + rEff);
+                            solvedValue = Math.max(0.1, tNeeded);
+                            solvedLabel = `${solvedValue.toFixed(1)} years`;
+                        } else {
+                            solvedValue = targetDuration;
+                            solvedLabel = `${targetDuration.toFixed(1)} years`;
+                        }
+                    } else {
+                        solvedValue = targetDuration;
+                        solvedLabel = `${targetDuration.toFixed(1)} years`;
+                    }
+                    break;
+                case 'target':
+                    if (totalCapital > 0 && targetDuration > 0 && annualROI > 0) {
+                        const rEff = annualROI / 100 * (1 - f) - inflation / 100;
+                        if (rEff > 0) {
+                            const projected = totalCapital * Math.pow(1 + rEff, targetDuration);
+                            solvedValue = Math.max(0, projected);
+                            solvedLabel = fmtFull(solvedValue, cfg.currency);
+                        } else {
+                            solvedValue = targetCapital;
+                            solvedLabel = fmtFull(targetCapital, cfg.currency);
+                        }
+                    } else {
+                        solvedValue = targetCapital;
+                        solvedLabel = fmtFull(targetCapital, cfg.currency);
+                    }
+                    break;
+                default:
+                    solvedValue = null;
+                    solvedLabel = '—';
+            }
+
+            // update UI
+            const el = document.getElementById('solverResult');
+            if (el) el.textContent = solvedLabel;
+
+            // also update the disabled state of inputs
+            const inputs = {
+                members: document.getElementById('members'),
+                contrib: document.getElementById('contrib'),
+                targetDuration: document.getElementById('targetDuration'),
+                targetCapital: document.getElementById('targetCapital'),
+            };
+            Object.entries(inputs).forEach(([key, inp]) => {
+                if (!inp) return;
+                if (mode === key) {
+                    inp.disabled = true;
+                    inp.style.opacity = '0.5';
+                } else {
+                    inp.disabled = false;
+                    inp.style.opacity = '1';
+                }
+            });
+
+            return { solvedValue, solvedLabel, totalCapital, grossFactor, netFactor };
+        }
+
+        // ─── COMPUTE FULL METRICS ───
+        function computeAll() {
+            const cfg = readConfig();
+            const { members, contrib, targetCapital, targetDuration, annualROI, mgmtFee, inflation, compounding, currency,
+                frequency } = cfg;
+
+            const totalCapital = members * contrib;
+            const n = COMPOUND_MAP[compounding] || 1;
+            const r = annualROI / 100;
+            const f = mgmtFee / 100;
+            const t = targetDuration;
+
+            // gross return factor
+            let grossFactor;
+            if (compounding === 'none') {
+                grossFactor = 1 + r * t;
+            } else {
+                grossFactor = Math.pow(1 + r / n, n * t);
+            }
+            const grossReturn = totalCapital * (grossFactor - 1);
+            const feeAmount = grossReturn * f;
+            const netReturn = grossReturn - feeAmount;
+            const exitValue = totalCapital + netReturn;
+
+            // per member
+            const perMemberContrib = totalCapital / members;
+            const perMemberReturn = netReturn / members;
+            const perMemberExit = perMemberContrib + perMemberReturn;
+            const memberROI = perMemberContrib > 0 ? (perMemberReturn / perMemberContrib) * 100 : 0;
+
+            // inflation-adjusted
+            const inflFactor = Math.pow(1 + inflation / 100, t);
+            const realExit = exitValue / inflFactor;
+            const realReturn = realExit - totalCapital;
+
+            // NAV (Net Asset Value) = total capital + net return (simplified)
+            const nav = exitValue;
+
+            // fund multiple
+            const multiple = totalCapital > 0 ? exitValue / totalCapital : 1;
+
+            // capital efficiency
+            const capitalEfficiency = targetCapital > 0 ? (totalCapital / targetCapital) * 100 : 100;
+
+            // health score (0-100)
+            let health = 70;
+            if (targetCapital > 0) {
+                const ratio = totalCapital / targetCapital;
+                if (ratio >= 1) health = 95;
+                else if (ratio >= 0.75) health = 85;
+                else if (ratio >= 0.5) health = 70;
+                else if (ratio >= 0.25) health = 50;
+                else health = 30;
+            }
+            if (annualROI > 0) health = Math.min(100, health + (annualROI / 20));
+            if (mgmtFee > 20) health -= 10;
+            health = clamp(health, 10, 100);
+
+            // fund health label
+            let healthLabel = '● Critical';
+            let healthColor = 'var(--negative)';
+            if (health >= 80) { healthLabel = '● Excellent';
+                healthColor = 'var(--positive)'; } else if (health >= 60) { healthLabel = '● Healthy';
+                healthColor = 'var(--positive)'; } else if (health >= 40) { healthLabel = '● Stable';
+                healthColor = 'var(--warning)'; } else if (health >= 25) { healthLabel = '● Watch';
+                healthColor = 'var(--warning)'; } else { healthLabel = '● Critical';
+                healthColor = 'var(--negative)'; }
+
+            // frequency multiplier
+            const freqMult = FREQ_MAP[frequency] || 12;
+            const perCycle = contrib / (freqMult / 12);
+
+            // next due
+            const nextDue = perCycle * members;
+
+            return {
+                totalCapital,
+                grossReturn,
+                feeAmount,
+                netReturn,
+                exitValue,
+                perMemberContrib,
+                perMemberReturn,
+                perMemberExit,
+                memberROI,
+                realExit,
+                realReturn,
+                nav,
+                multiple,
+                capitalEfficiency,
+                health,
+                healthLabel,
+                healthColor,
+                perCycle,
+                nextDue,
+                grossFactor,
+                netFactor: 1 + (grossFactor - 1) * (1 - f),
+                members,
+                contrib,
+                targetCapital,
+                targetDuration,
+                annualROI,
+                mgmtFee,
+                inflation,
+                compounding,
+                currency,
+                frequency,
+            };
+        }
+
+        // ─── RENDER KPI ROW (10 cards) ───
+        function renderKPIs(m) {
+            const grid = document.getElementById('kpiGrid');
+            if (!grid) return;
+            const cur = m.currency;
+            const cards = [{
+                icon: '🏦',
+                label: 'Assets Under Management',
+                value: fmtFull(m.totalCapital, cur),
+                sub: `+${pct(m.annualROI)} projected`
+            }, {
+                icon: '🎯',
+                label: 'Capital Target',
+                value: m.targetCapital > 0 ? fmtFull(m.targetCapital, cur) : '—',
+                sub: m.targetCapital > 0 ? `${pct((m.totalCapital/m.targetCapital)*100)} funded` : 'No target set'
+            }, {
+                icon: '📈',
+                label: 'Capital Raised',
+                value: fmtFull(m.totalCapital, cur),
+                sub: `${m.members} members · ${fmtFull(m.contrib, cur)} avg`
+            }, {
+                icon: '📉',
+                label: 'Remaining Capital',
+                value: m.targetCapital > 0 ? fmtFull(Math.max(0, m.targetCapital - m.totalCapital), cur) : '—',
+                sub: m.targetCapital > 0 ? `${pct(Math.max(0, (m.targetCapital - m.totalCapital)/m.targetCapital*100))} to go` :
+                    '—'
+            }, {
+                icon: '💎',
+                label: 'Projected Exit Value',
+                value: fmtFull(m.exitValue, cur),
+                sub: `${m.multiple.toFixed(2)}× multiple`
+            }, {
+                icon: '📊',
+                label: 'Fund NAV',
+                value: fmtFull(m.nav, cur),
+                sub: `${fmtFull(m.nav / m.members, cur)} / member`
+            }, {
+                icon: '👥',
+                label: 'Investor Count',
+                value: `${m.members}`,
+                sub: `${m.members} active`
+            }, {
+                icon: '💰',
+                label: 'Avg Contribution',
+                value: fmtFull(m.contrib, cur),
+                sub: `per member`
+            }, {
+                icon: '📈',
+                label: 'Annual Return',
+                value: pct(m.annualROI),
+                sub: `net of ${pct(m.mgmtFee)} fee`
+            }, {
+                icon: '📊',
+                label: 'Internal Rate of Return',
+                value: pct(m.memberROI),
+                sub: `per member (${m.targetDuration}y)`
+            }, ];
+
+            grid.innerHTML = cards.map((c, i) => `
+            <div class="kpi-card" style="animation-delay:${(i*0.03).toFixed(2)}s">
+              <div class="kpi-top">
+                <span class="kpi-icon">${c.icon}</span>
+              </div>
+              <div class="kpi-label">${c.label}</div>
+              <div class="kpi-value ${c.value.includes('—')?'':''}">${c.value}</div>
+              <div class="kpi-sub">${c.sub}</div>
+              <div class="mini-spark">
+                ${Array.from({length:8},(_,j)=>`<div class="bar" style="--h:${0.2+Math.random()*0.8}"></div>`).join('')}
+              </div>
+            </div>
+          `).join('');
+
+            // update badge
+            const badge = document.getElementById('memberBadge');
+            if (badge) badge.textContent = m.members;
+        }
+
+        // ─── RENDER SECONDARY KPI ROW ───
+        function renderKPI2(m) {
+            const grid = document.getElementById('kpiGrid2');
+            if (!grid) return;
+            const cur = m.currency;
+            const cards = [{
+                icon: '🏦',
+                label: 'Assets Under Management',
+                value: fmtFull(m.totalCapital, cur),
+                sub: `${m.members} members`
+            }, {
+                icon: '💎',
+                label: 'Projected Exit Value',
+                value: fmtFull(m.exitValue, cur),
+                sub: `${m.multiple.toFixed(2)}× multiple`
+            }, {
+                icon: '📈',
+                label: 'Current ROI',
+                value: pct(m.memberROI),
+                sub: `per member`
+            }, {
+                icon: '❤️',
+                label: 'Fund Health',
+                value: `${Math.round(m.health)}%`,
+                sub: m.healthLabel,
+                color: m.healthColor
+            }, {
+                icon: '📉',
+                label: 'Capital Remaining',
+                value: m.targetCapital > 0 ? fmtFull(Math.max(0, m.targetCapital - m.totalCapital), cur) : '—',
+                sub: m.targetCapital > 0 ? `${pct(Math.max(0,(m.targetCapital-m.totalCapital)/m.targetCapital*100))} left` :
+                    '—'
+            }, {
+                icon: '⚡',
+                label: 'Capital Efficiency',
+                value: m.targetCapital > 0 ? pct(m.capitalEfficiency) : '—',
+                sub: m.targetCapital > 0 ? `${pct(Math.min(100,m.capitalEfficiency))} of target` : 'No target'
+            }, {
+                icon: '✕',
+                label: 'Fund Multiple',
+                value: `${m.multiple.toFixed(2)}×`,
+                sub: `${m.targetDuration}y horizon`
+            }, {
+                icon: '📅',
+                label: 'Expected Exit Date',
+                value: new Date(Date.now() + m.targetDuration * 365 * 24 * 60 * 60 * 1000).toLocaleDateString(
+                'en-US', { month: 'short', year: 'numeric' }),
+                sub: `${m.targetDuration} years`
+            }, ];
+
+            grid.innerHTML = cards.map((c, i) => `
+            <div class="kpi-card" style="animation-delay:${(i*0.03+0.3).toFixed(2)}s">
+              <div class="kpi-top">
+                <span class="kpi-icon">${c.icon}</span>
+              </div>
+              <div class="kpi-label">${c.label}</div>
+              <div class="kpi-value" style="${c.color?`color:${c.color}`:''}">${c.value}</div>
+              <div class="kpi-sub">${c.sub}</div>
+            </div>
+          `).join('');
+
+            // fund health label
+            const label = document.getElementById('fundHealthLabel');
+            if (label) {
+                label.textContent = m.healthLabel;
+                label.style.color = m.healthColor;
+            }
+        }
+
+        // ─── RENDER MEMBER TABLE ───
+        function renderMembers(m) {
+            const tbody = document.getElementById('memberTableBody');
+            if (!tbody) return;
+            const cur = m.currency;
+            const search = document.getElementById('memberSearch');
+            const q = search ? search.value.toLowerCase() : '';
+
+            const count = Math.min(m.members, 100);
+            const names = [
+                'A. Mensah', 'F. Okafor', 'L. Diop', 'K. Nkosi', 'M. Bello',
+                'S. Adeyemi', 'C. Mwangi', 'T. Oladele', 'N. Kamara', 'J. Ndlovu',
+                'P. Osei', 'R. Hassan', 'D. Okonkwo', 'E. Nwachukwu', 'I. Sow',
+                'A. Ibrahim', 'B. Traoré', 'O. Balogun', 'U. Igbokwe', 'G. Mensah',
+                'H. Diallo', 'K. Toure', 'L. Nkurunziza', 'M. Dlamini', 'N. Moyo',
+                'O. Onyekachi', 'P. Chilufya', 'Q. Abiola', 'R. Maposa', 'T. Nyirenda',
+                'V. Oluoch', 'W. Mwale', 'X. Nxumalo', 'Y. Adebayo', 'Z. Banda',
+            ];
+
+            const membersList = [];
+            for (let i = 0; i < count; i++) {
+                const name = names[i % names.length] + (i >= names.length ? ` ${Math.floor(i/names.length)+1}` : '');
+                const base = m.perMemberContrib;
+                const profit = m.perMemberReturn * (0.85 + Math.random() * 0.3);
+                const roi = (profit / base) * 100;
+                const nav = base + profit;
+                const statuses = ['active', 'active', 'active', 'pending', 'active', 'exit'];
+                const status = statuses[i % statuses.length];
+                membersList.push({
+                    id: i + 1,
+                    name,
+                    contrib: base,
+                    profit,
+                    roi,
+                    nav,
+                    status,
+                    ownership: (1 / m.members) * 100,
+                    units: (m.nav > 0) ? (base / (m.nav / m.members)) : 0,
+                    exit: base + profit,
+                });
+            }
+
+            let filtered = membersList;
+            if (q) {
+                filtered = filtered.filter(mm => mm.name.toLowerCase().includes(q));
+            }
+
+            const rows = filtered.map(mm => `
+            <tr>
+              <td><span style="font-weight:500;">${mm.name}</span></td>
+              <td class="mono">${fmtFull(mm.contrib, cur)}</td>
+              <td>${mm.ownership.toFixed(1)}%</td>
+              <td class="mono">${mm.units.toFixed(2)}</td>
+              <td class="mono">${fmtFull(mm.nav, cur)}</td>
+              <td class="mono ${mm.profit>=0?'text-pos':'text-neg'}">${mm.profit>=0?'+':''}${fmtFull(mm.profit, cur)}</td>
+              <td><span class="roi-badge ${mm.roi>=0?'pos':'neg'}">${mm.roi>=0?'+':''}${mm.roi.toFixed(1)}%</span></td>
+              <td class="mono">${fmtFull(mm.exit, cur)}</td>
+              <td><span class="status ${mm.status}">${mm.status.charAt(0).toUpperCase()+mm.status.slice(1)}</span></td>
+            </tr>
+          `).join('');
+
+            tbody.innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:1.2rem;">No members found</td></tr>`;
+
+            document.getElementById('memberCountLabel').textContent = `${m.members} members`;
+            document.getElementById('tableMemberCount').textContent = `${m.members} members`;
+            document.getElementById('showCount').textContent = `${filtered.length} shown`;
+        }
+
+        // ─── RENDER CAPITAL PROGRESS ───
+        function renderProgress(m) {
+            const pct = m.targetCapital > 0 ? Math.min((m.totalCapital / m.targetCapital) * 100, 100) : 0;
+            const ring = document.getElementById('progressRing');
+            const pctEl = document.getElementById('progressPct');
+            const fill = document.getElementById('progressFill');
+            const raised = document.getElementById('raisedDisplay');
+            const target = document.getElementById('targetDisplay');
+
+            if (ring) {
+                const circ = 2 * Math.PI * 50;
+                const offset = circ * (1 - pct / 100);
+                ring.style.strokeDashoffset = offset.toFixed(2);
+                ring.style.stroke = pct >= 100 ? 'var(--positive)' : 'var(--gold)';
+            }
+            if (pctEl) pctEl.textContent = `${Math.round(pct)}%`;
+            if (fill) fill.style.width = `${Math.min(pct, 100)}%`;
+            if (raised) raised.textContent = fmtFull(m.totalCapital, m.currency);
+            if (target) target.textContent = m.targetCapital > 0 ? fmtFull(m.targetCapital, m.currency) : 'No target';
+
+            // next due
+            const due = document.getElementById('nextDue');
+            if (due) due.textContent = fmtFull(m.nextDue, m.currency);
+            const dueMembers = document.getElementById('membersDue');
+            if (dueMembers) dueMembers.textContent = m.members;
+
+            // health widget
+            const healthScore = document.getElementById('healthScore');
+            const healthLabel = document.getElementById('healthLabel');
+            if (healthScore) {
+                healthScore.textContent = `${Math.round(m.health)}%`;
+                healthScore.style.color = m.healthColor;
+            }
+            if (healthLabel) {
+                healthLabel.textContent = m.healthLabel;
+                healthLabel.style.color = m.healthColor;
+            }
+        }
+
+        // ─── RENDER ACTIVITY ───
+        function renderActivity(m) {
+            const list = document.getElementById('activityList');
+            if (!list) return;
+
+            // generate some activity if empty
+            if (activityLog.length === 0) {
+                const events = [
+                    { icon: '👤', text: '<strong>5 new members</strong> joined the fund', time: 'Just now' },
+                    { icon: '💰', text: 'Contribution of <strong>' + fmtFull(m.totalCapital / 4, m.currency) +
+                            '</strong> received', time: '1h ago' },
+                    { icon: '📈', text: 'ROI updated to <strong>' + pct(m.annualROI) + '</strong>', time: '3h ago' },
+                    { icon: '🎯', text: 'Capital target <strong>' + (m.targetCapital > 0 ? fmtFull(m.targetCapital,
+                            m.currency) : 'set') + '</strong>', time: '5h ago' },
+                    { icon: '📊', text: 'Fund NAV reached <strong>' + fmtFull(m.nav, m.currency) + '</strong>',
+                    time: '1d ago' },
+                    { icon: '✅', text: 'First investment executed', time: '2d ago' },
+                ];
+                activityLog = events;
+            }
+
+            list.innerHTML = activityLog.map(a => `
+            <div class="activity-item">
+              <div class="a-icon">${a.icon}</div>
+              <div class="a-body">
+                <div class="a-text">${a.text}</div>
+                <div class="a-time">${a.time}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // ─── UPDATE FX & DATE ───
+        function updateFX() {
+            const cur = getSel('currency') || 'USD';
+            const el = document.getElementById('fxDisplay');
+            if (el) {
+                const rate = (cur === 'USD') ? 1.0000 : (0.85 + Math.random() * 0.3);
+                el.textContent = `USD ${rate.toFixed(4)}`;
+            }
+            const dateEl = document.getElementById('dateDisplay');
+            if (dateEl) {
+                const d = new Date();
+                dateEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        }
+
+        // ─── MAIN RENDER ───
+        function render() {
+            const solver = solve();
+            const m = computeAll();
+
+            renderKPIs(m);
+            renderKPI2(m);
+            renderMembers(m);
+            renderProgress(m);
+            renderActivity(m);
+            updateFX();
+
+            // update chart placeholders with random heights for visual variety
+            document.querySelectorAll('.mock-bars .mb').forEach(el => {
+                const h = 0.15 + Math.random() * 0.75;
+                el.style.setProperty('--h', h);
+            });
+        }
+
+        // ─── SOLVER BUTTONS ───
+        function initSolver() {
+            document.querySelectorAll('.s-options button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.s-options button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    state.solveMode = this.dataset.solve;
+                    render();
+                });
+            });
+        }
+
+        // ─── SIDEBAR TOGGLE ───
+        function initSidebar() {
+            const toggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (toggle && sidebar && overlay) {
+                const open = () => {
+                    sidebar.classList.add('open');
+                    overlay.classList.add('open');
+                };
+                const close = () => {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('open');
+                };
+                toggle.addEventListener('click', open);
+                overlay.addEventListener('click', close);
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') close();
+                });
+            }
+        }
+
+        // ─── LIVE INPUTS ───
+        function initInputs() {
+            const ids = [
+                'members', 'contrib', 'targetCapital', 'targetDuration',
+                'annualROI', 'mgmtFee', 'inflation', 'compounding',
+                'frequency', 'currency', 'fundName', 'investType',
+                'region', 'category'
+            ];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('input', render);
+                    el.addEventListener('change', render);
+                }
+            });
+
+            // search
+            const search = document.getElementById('memberSearch');
+            if (search) search.addEventListener('input', render);
+
+            // refresh button
+            const refresh = document.getElementById('refreshMembers');
+            if (refresh) refresh.addEventListener('click', render);
+        }
+
+        // ─── INIT ───
+        document.addEventListener('DOMContentLoaded', function() {
+            initSolver();
+            initSidebar();
+            initInputs();
+            render();
+
+            // periodic refresh (every 30s)
+            setInterval(() => {
+                updateFX();
+                // slightly update activity
+                if (Math.random() > 0.7) {
+                    const msgs = [
+                        { icon: '💰', text: 'Contribution of <strong>' + fmtFull(rand(500, 5000), getSel(
+                                'currency')) + '</strong> received', time: 'Just now' },
+                        { icon: '👤', text: 'New member <strong>joined</strong> the fund', time: 'Just now' },
+                        { icon: '📈', text: 'ROI <strong>updated</strong> to ' + pct(8 + Math.random() * 10),
+                            time: 'Just now' },
+                    ];
+                    const pick = msgs[Math.floor(Math.random() * msgs.length)];
+                    activityLog.unshift(pick);
+                    if (activityLog.length > 12) activityLog.pop();
+                    renderActivity(computeAll());
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sohana — Treasury Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        /* ───────────────────────────── RESET & VARIABLES ───────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --bg-primary: #07111D;
+            --bg-card: #111C2D;
+            --bg-card2: #17263A;
+            --bg-card3: #1E3150;
+            --gold: #D4AF37;
+            --gold-dim: rgba(212, 175, 55, .10);
+            --gold-bdr: rgba(212, 175, 55, .20);
+            --gold-glow: rgba(212, 175, 55, .25);
+            --positive: #28C76F;
+            --positive-dim: rgba(40, 199, 111, .10);
+            --negative: #EA5455;
+            --negative-dim: rgba(234, 84, 85, .10);
+            --warning: #FF9F43;
+            --warning-dim: rgba(255, 159, 67, .10);
+            --text-primary: #F8F9FA;
+            --text-muted: #8E9AAF;
+            --text-dim: #5A6E8A;
+            --border: rgba(255, 255, 255, .06);
+            --radius: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --shadow: 0 8px 48px rgba(0, 0, 0, .55);
+            --sidebar-w: 260px;
+            --header-h: 60px;
+            --transition: .22s cubic-bezier(.4, 0, .2, 1);
+            --font-sans: 'Inter', 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+        }
+        html {
+            font-size: 13.5px;
+        }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            background: none;
+            color: inherit;
+        }
+        input,
+        select,
+        textarea {
+            font-family: inherit;
+            color: inherit;
+            background: none;
+            border: none;
+            outline: none;
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 20px;
+        }
+
+        /* ───────────────────────────── SIDEBAR ───────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--bg-card);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            overflow-y: auto;
+            z-index: 400;
+            transition: transform var(--transition);
+        }
+        .sidebar-brand {
+            padding: 1rem 1.5rem .8rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .sidebar-brand .logo {
+            font-weight: 800;
+            font-size: 1.2rem;
+            letter-spacing: .5px;
+            color: var(--gold);
+        }
+        .sidebar-brand .logo span {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+        .sidebar-brand .sub {
+            font-size: .55rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            margin-left: 2px;
+            opacity: .7;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: .8rem .6rem .6rem .6rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .sidebar-nav .nav-label {
+            font-size: .55rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            padding: .6rem 1rem .3rem 1rem;
+            opacity: .5;
+        }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: .5rem 1rem;
+            border-radius: var(--radius);
+            font-size: .78rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .sidebar-nav a:hover {
+            background: rgba(255, 255, 255, .04);
+            color: var(--text-primary);
+        }
+        .sidebar-nav a.active {
+            background: var(--gold-dim);
+            color: var(--gold);
+        }
+        .sidebar-nav a.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 12%;
+            height: 76%;
+            width: 3px;
+            background: var(--gold);
+            border-radius: 0 4px 4px 0;
+        }
+        .sidebar-nav a .icon {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar-nav a .badge {
+            margin-left: auto;
+            background: var(--gold-dim);
+            color: var(--gold);
+            font-size: .55rem;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 100px;
+        }
+        .sidebar-nav a .badge.pos {
+            background: var(--positive-dim);
+            color: var(--positive);
+        }
+        .sidebar-nav a .badge.neg {
+            background: var(--negative-dim);
+            color: var(--negative);
+        }
+        .sidebar-footer {
+            padding: .8rem 1.2rem;
+            border-top: 1px solid var(--border);
+            font-size: .65rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-footer .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--gold);
+            font-size: .7rem;
+        }
+
+        /* ───────────────────────────── MAIN WRAP ───────────────────────────── */
+        .main-wrap {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ───────────────────────────── HEADER ───────────────────────────── */
+        .header {
+            height: var(--header-h);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            flex-shrink: 0;
+            gap: 1rem;
+        }
+        .header .menu-toggle {
+            display: none;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .04);
+        }
+        .header .spacer {
+            flex: 1;
+        }
+        .header .hdr-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .7rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, .04);
+            padding: 3px 12px;
+            border-radius: 100px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .header .hdr-item .num {
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: .75rem;
+        }
+        .header .hdr-item .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--positive);
+            display: inline-block;
+            animation: pulse-dot 2.5s infinite;
+        }
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .2;
+            }
+        }
+        .header .hdr-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .header .hdr-actions button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .04);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .9rem;
+            transition: all var(--transition);
+            color: var(--text-muted);
+        }
+        .header .hdr-actions button:hover {
+            background: var(--gold-dim);
+            border-color: var(--gold-bdr);
+            color: var(--gold);
+        }
+        .header .hdr-actions .avatar-sm {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: .7rem;
+            color: var(--gold);
+            border: 1px solid var(--gold-bdr);
+        }
+
+        /* ───────────────────────────── SCROLL CONTENT ───────────────────────────── */
+        .scroll-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.5rem 2.5rem 1.5rem;
+        }
+
+        /* ───────────────────────────── KPI ROW ───────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+            gap: .7rem;
+            margin-bottom: 1.2rem;
+        }
+        .kpi-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: .8rem 1rem;
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            animation: fadeUp .4s ease both;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card:hover {
+            border-color: var(--gold-bdr);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        .kpi-card .kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
+        .kpi-card .kpi-icon {
+            font-size: 1rem;
+            opacity: .5;
+        }
+        .kpi-card .kpi-label {
+            font-size: .55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--text-muted);
+        }
+        .kpi-card .kpi-value {
+            font-family: var(--font-mono);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-top: 1px;
+        }
+        .kpi-card .kpi-value.gold {
+            color: var(--gold);
+        }
+        .kpi-card .kpi-value.pos {
+            color: var(--positive);
+        }
+        .kpi-card .kpi-value.neg {
+            color: var(--negative);
+        }
+        .kpi-card .kpi-sub {
+            font-size: .6rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kpi-card .kpi-sub .trend {
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+        .kpi-card .kpi-sub .trend.up {
+            color: var(--positive);
+        }
+        .kpi-card .kpi-sub .trend.down {
+            color: var(--negative);
+        }
+        .kpi-card .mini-spark {
+            height: 16px;
+            margin-top: 4px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            opacity: .25;
+        }
+        .kpi-card .mini-spark .bar {
+            flex: 1;
+            background: var(--gold);
+            border-radius: 2px 2px 0 0;
+            height: calc(15% + 10% * var(--h, .5));
+            min-height: 2px;
+        }
+
+        /* ───────────────────────────── CARDS ───────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 1rem;
+            transition: border-color var(--transition);
+        }
+        .card:hover {
+            border-color: rgba(255, 255, 255, .10);
+        }
+        .card-header {
+            padding: .8rem 1.2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .card-header .c-tit {
+            font-weight: 600;
+            font-size: .85rem;
+            color: var(--text-primary);
+        }
+        .card-header .c-sub {
+            font-size: .65rem;
+            color: var(--text-muted);
+            margin-left: auto;
+        }
+        .card-header .c-actions {
+            display: flex;
+            gap: 4px;
+            margin-left: auto;
+        }
+        .card-header .c-actions button {
+            padding: 2px 10px;
+            border-radius: 6px;
+            font-size: .6rem;
+            font-weight: 600;
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            transition: all var(--transition);
+        }
+        .card-header .c-actions button:hover {
+            border-color: var(--gold-bdr);
+            color: var(--text-primary);
+        }
+        .card-header .c-actions button.gold {
+            background: var(--gold);
+            color: var(--bg-primary);
+            border-color: var(--gold);
+        }
+        .card-body {
+            padding: 1rem 1.2rem 1.2rem 1.2rem;
+        }
+
+        /* ───────────────────────────── TWO-COLUMN ───────────────────────────── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .two-col .col-main {
+            min-width: 0;
+        }
+        .two-col .col-side {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: .8rem;
+        }
+
+        /* ───────────────────────────── CAPITAL STATE ENGINE ───────────────────────────── */
+        .state-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 4px;
+            padding: .6rem 0 .2rem 0;
+            flex-wrap: wrap;
+        }
+        .state-node {
+            flex: 1;
+            min-width: 60px;
+            text-align: center;
+            padding: .5rem .3rem;
+            border-radius: var(--radius);
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+            position: relative;
+        }
+        .state-node .s-icon {
+            font-size: 1.1rem;
+            display: block;
+        }
+        .state-node .s-label {
+            font-size: .5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .state-node .s-amount {
+            font-family: var(--font-mono);
+            font-size: .7rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1px;
+        }
+        .state-node.active {
+            border-color: var(--gold);
+            background: var(--gold-dim);
+            box-shadow: 0 0 20px var(--gold-glow);
+        }
+        .state-node.active .s-label {
+            color: var(--gold);
+        }
+        .state-node.active .s-amount {
+            color: var(--gold);
+        }
+        .state-arrow {
+            color: var(--text-dim);
+            font-size: 1rem;
+            flex-shrink: 0;
+            padding: 0 2px;
+        }
+        .state-node .s-pulse {
+            display: none;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+            margin: 2px auto 0 auto;
+            animation: pulse-dot 1.8s infinite;
+        }
+        .state-node.active .s-pulse {
+            display: block;
+        }
+
+        /* ───────────────────────────── LIQUIDITY BUCKETS ───────────────────────────── */
+        .bucket-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: .6rem;
+        }
+        .bucket-card {
+            background: var(--bg-card2);
+            border-radius: var(--radius);
+            padding: .7rem .8rem;
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+        }
+        .bucket-card:hover {
+            border-color: var(--gold-bdr);
+        }
+        .bucket-card .b-label {
+            font-size: .55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-muted);
+        }
+        .bucket-card .b-value {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1px;
+        }
+        .bucket-card .b-range {
+            font-size: .55rem;
+            color: var(--text-dim);
+            margin-top: 1px;
+        }
+        .bucket-card .b-bar {
+            height: 3px;
+            background: var(--bg-primary);
+            border-radius: 100px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .bucket-card .b-bar .fill {
+            height: 100%;
+            border-radius: 100px;
+            transition: width .8s ease;
+        }
+
+        /* ───────────────────────────── LENDING ENGINE ───────────────────────────── */
+        .lending-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: .6rem;
+        }
+        .lending-metric {
+            background: var(--bg-card2);
+            border-radius: var(--radius);
+            padding: .6rem .7rem;
+            border: 1px solid var(--border);
+        }
+        .lending-metric .lm-label {
+            font-size: .5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-muted);
+        }
+        .lending-metric .lm-value {
+            font-family: var(--font-mono);
+            font-size: .95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1px;
+        }
+        .lending-metric .lm-value.pos {
+            color: var(--positive);
+        }
+        .lending-metric .lm-value.neg {
+            color: var(--negative);
+        }
+        .lending-metric .lm-value.gold {
+            color: var(--gold);
+        }
+
+        /* ───────────────────────────── MUTUAL FUND INTEGRATION ───────────────────────────── */
+        .fund-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: .6rem;
+        }
+        .fund-card {
+            background: var(--bg-card2);
+            border-radius: var(--radius);
+            padding: .7rem .8rem;
+            border: 1px solid var(--border);
+            transition: all var(--transition);
+        }
+        .fund-card:hover {
+            border-color: var(--gold-bdr);
+        }
+        .fund-card .f-name {
+            font-weight: 600;
+            font-size: .8rem;
+            color: var(--text-primary);
+        }
+        .fund-card .f-manager {
+            font-size: .6rem;
+            color: var(--text-muted);
+        }
+        .fund-card .f-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: .65rem;
+            margin-top: 3px;
+            color: var(--text-muted);
+        }
+        .fund-card .f-row .f-val {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+        .fund-card .f-row .f-val.pos {
+            color: var(--positive);
+        }
+        .fund-card .f-row .f-val.neg {
+            color: var(--negative);
+        }
+        .fund-card .f-row .f-val.gold {
+            color: var(--gold);
+        }
+
+        /* ───────────────────────────── EVENT BUS / ACTIVITY ───────────────────────────── */
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: .4rem .6rem;
+            border-radius: var(--radius);
+            background: rgba(255, 255, 255, .02);
+            border-left: 2px solid var(--gold);
+            transition: background var(--transition);
+            font-size: .75rem;
+        }
+        .event-item:hover {
+            background: rgba(255, 255, 255, .04);
+        }
+        .event-item .e-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--gold-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .7rem;
+            flex-shrink: 0;
+        }
+        .event-item .e-body {
+            flex: 1;
+        }
+        .event-item .e-body .e-text {
+            color: var(--text-primary);
+        }
+        .event-item .e-body .e-text strong {
+            color: var(--gold);
+        }
+        .event-item .e-body .e-time {
+            font-size: .55rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .event-item .e-amount {
+            font-family: var(--font-mono);
+            font-size: .7rem;
+            font-weight: 600;
+            color: var(--positive);
+            flex-shrink: 0;
+        }
+        .event-item .e-amount.neg {
+            color: var(--negative);
+        }
+
+        /* ───────────────────────────── TABLE ───────────────────────────── */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .75rem;
+        }
+        .table-wrap thead {
+            background: var(--bg-card2);
+        }
+        .table-wrap th {
+            padding: .5rem .8rem;
+            text-align: left;
+            font-size: .55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        .table-wrap td {
+            padding: .4rem .8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, .03);
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .table-wrap tr:last-child td {
+            border-bottom: none;
+        }
+        .table-wrap tbody tr:hover td {
+            background: rgba(255, 255, 255, .02);
+        }
+        .table-wrap .mono {
+            font-family: var(--font-mono);
+        }
+        .table-wrap .status {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 100px;
+            font-size: .55rem;
+            font-weight: 700;
+        }
+        .table-wrap .status.active {
+            background: var(--positive-dim);
+            color: var(--positive);
+        }
+        .table-wrap .status.pending {
+            background: var(--warning-dim);
+            color: var(--warning);
+        }
+        .table-wrap .status.reserved {
+            background: var(--gold-dim);
+            color: var(--gold);
+        }
+        .table-wrap .status.deployed {
+            background: rgba(100, 150, 255, .15);
+            color: #6496FF;
+        }
+        .table-wrap .status.returning {
+            background: rgba(100, 200, 255, .12);
+            color: #64C8FF;
+        }
+
+        /* ───────────────────────────── WIDGETS ───────────────────────────── */
+        .widget {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            padding: .7rem .8rem;
+        }
+        .widget .w-tit {
+            font-size: .55rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        .widget .w-val {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .widget .w-sub {
+            font-size: .6rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .widget .w-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+            font-size: .68rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .04);
+        }
+        .widget .w-row:last-child {
+            border-bottom: none;
+        }
+        .widget .w-row .w-rt {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .widget .w-row .w-rt.gold {
+            color: var(--gold);
+        }
+        .widget .w-row .w-rt.pos {
+            color: var(--positive);
+        }
+        .widget .w-row .w-rt.neg {
+            color: var(--negative);
+        }
+
+        /* ───────────────────────────── PROGRESS RING ───────────────────────────── */
+        .progress-ring-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            padding: .2rem 0;
+        }
+        .progress-ring-wrap .ring {
+            flex-shrink: 0;
+        }
+        .progress-ring-wrap .ring-info {
+            flex: 1;
+        }
+        .progress-ring-wrap .ring-info .r-label {
+            font-size: .6rem;
+            color: var(--text-muted);
+        }
+        .progress-ring-wrap .ring-info .r-value {
+            font-family: var(--font-mono);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .progress-ring-wrap .ring-info .r-sub {
+            font-size: .65rem;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+        .progress-ring-wrap .ring-info .r-bar {
+            margin-top: 6px;
+            height: 4px;
+            background: var(--bg-card2);
+            border-radius: 100px;
+            overflow: hidden;
+        }
+        .progress-ring-wrap .ring-info .r-bar .fill {
+            height: 100%;
+            border-radius: 100px;
+            background: linear-gradient(90deg, var(--gold), #E8C84A);
+            transition: width 1s cubic-bezier(.4, 0, .2, 1);
+            width: 0%;
+        }
+
+        /* ───────────────────────────── ANIMATIONS ───────────────────────────── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .kpi-card:nth-child(1) {
+            animation-delay: .00s;
+        }
+        .kpi-card:nth-child(2) {
+            animation-delay: .03s;
+        }
+        .kpi-card:nth-child(3) {
+            animation-delay: .06s;
+        }
+        .kpi-card:nth-child(4) {
+            animation-delay: .09s;
+        }
+        .kpi-card:nth-child(5) {
+            animation-delay: .12s;
+        }
+        .kpi-card:nth-child(6) {
+            animation-delay: .15s;
+        }
+        .kpi-card:nth-child(7) {
+            animation-delay: .18s;
+        }
+        .kpi-card:nth-child(8) {
+            animation-delay: .21s;
+        }
+        .kpi-card:nth-child(9) {
+            animation-delay: .24s;
+        }
+        .kpi-card:nth-child(10) {
+            animation-delay: .27s;
+        }
+        .kpi-card:nth-child(11) {
+            animation-delay: .30s;
+        }
+        .kpi-card:nth-child(12) {
+            animation-delay: .33s;
+        }
+
+        /* ───────────────────────────── RESPONSIVE ───────────────────────────── */
+        @media (max-width: 1200px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+            .two-col .col-side {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: .8rem;
+            }
+        }
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 500;
+                width: 280px;
+                height: 100vh;
+                box-shadow: 4px 0 40px rgba(0, 0, 0, .8);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .header .menu-toggle {
+                display: flex;
+            }
+            .scroll-content {
+                padding: .8rem 1rem 2rem 1rem;
+            }
+            .two-col .col-side {
+                grid-template-columns: 1fr;
+            }
+            .state-flow {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+            .state-node {
+                min-width: 70px;
+                flex-shrink: 0;
+            }
+            .state-arrow {
+                flex-shrink: 0;
+            }
+        }
+        @media (max-width: 700px) {
+            .kpi-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: .5rem;
+            }
+            .kpi-card .kpi-value {
+                font-size: 1rem;
+            }
+            .header {
+                padding: 0 .8rem;
+            }
+            .header .hdr-item {
+                display: none;
+            }
+            .card-body {
+                padding: .8rem;
+            }
+            .card-header {
+                padding: .6rem .8rem;
+            }
+            .bucket-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .fund-grid {
+                grid-template-columns: 1fr;
+            }
+            .lending-metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+            .two-col .col-side {
+                display: block;
+            }
+            .progress-ring-wrap {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+        }
+        @media (max-width: 480px) {
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .bucket-grid {
+                grid-template-columns: 1fr;
+            }
+            .lending-metrics {
+                grid-template-columns: 1fr;
+            }
+            .state-node {
+                min-width: 55px;
+                padding: .3rem .2rem;
+            }
+            .state-node .s-icon {
+                font-size: .8rem;
+            }
+            .state-node .s-amount {
+                font-size: .6rem;
+            }
+        }
+
+        /* ───────────────────────────── UTILITY ───────────────────────────── */
+        .flex {
+            display: flex;
+        }
+        .flex-col {
+            flex-direction: column;
+        }
+        .items-center {
+            align-items: center;
+        }
+        .gap-1 {
+            gap: 6px;
+        }
+        .gap-2 {
+            gap: 10px;
+        }
+        .mt-1 {
+            margin-top: 4px;
+        }
+        .mt-2 {
+            margin-top: 10px;
+        }
+        .mb-1 {
+            margin-bottom: 4px;
+        }
+        .mb-2 {
+            margin-bottom: 10px;
+        }
+        .text-muted {
+            color: var(--text-muted);
+        }
+        .text-gold {
+            color: var(--gold);
+        }
+        .text-pos {
+            color: var(--positive);
+        }
+        .text-neg {
+            color: var(--negative);
+        }
+        .mono {
+            font-family: var(--font-mono);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .w-full {
+            width: 100%;
+        }
+        .text-center {
+            text-align: center;
+        }
+
+        /* overlay for mobile sidebar */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .6);
+            z-index: 450;
+        }
+        .overlay.open {
+            display: block;
+        }
+        @media (min-width: 993px) {
+            .overlay {
+                display: none !important;
+            }
+        }
+
+        /* scrollable state flow */
+        .state-scroll {
+            overflow-x: auto;
+            padding: 2px 0 6px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .state-scroll::-webkit-scrollbar {
+            height: 2px;
+        }
+        .state-scroll::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <div class="sidebar-brand">
+            <span class="logo">SOHANA<span>∞</span></span>
+            <span class="sub">Treasury Engine</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Core</div>
+            <a href="#" class="active" data-section="dashboard"><span class="icon">📊</span> Dashboard</a>
+            <a href="#" data-section="state"><span class="icon">🔁</span> Capital State</a>
+            <a href="#" data-section="liquidity"><span class="icon">💧</span> Liquidity Buckets</a>
+            <a href="#" data-section="lending"><span class="icon">🏦</span> Lending Engine</a>
+            <div class="nav-label">Products</div>
+            <a href="#" data-section="funds"><span class="icon">📈</span> Mutual Funds <span class="badge pos">4</span></a>
+            <a href="#" data-section="rosca"><span class="icon">🔄</span> ROSCAs <span class="badge">8</span></a>
+            <a href="#" data-section="reserves"><span class="icon">🛡️</span> Reserves</a>
+            <div class="nav-label">Operations</div>
+            <a href="#" data-section="events"><span class="icon">📡</span> Event Bus <span class="badge">12</span></a>
+            <a href="#" data-section="managers"><span class="icon">👔</span> Managers</a>
+            <a href="#" data-section="reports"><span class="icon">📄</span> Reports</a>
+            <a href="#" style="margin-top:auto;border-top:1px solid var(--border);padding-top:.6rem;color:var(--negative);">
+                <span class="icon">⏻</span> Logout
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="avatar">JD</div>
+            <div>
+                <div style="font-weight:600;color:var(--text-primary);font-size:.7rem;">Jane Doe</div>
+                <div style="font-size:.6rem;">Treasury Officer</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- overlay for mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- ─── MAIN WRAP ─── -->
+    <div class="main-wrap">
+
+        <!-- ─── HEADER ─── -->
+        <header class="header">
+            <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">☰</button>
+            <span style="font-weight:600;font-size:.8rem;color:var(--text-primary);">Treasury Dashboard</span>
+            <div class="spacer"></div>
+            <div class="hdr-item">
+                <span class="dot"></span>
+                <span>Live</span>
+                <span class="num" id="fxDisplay">USD 1.0000</span>
+            </div>
+            <div class="hdr-item">
+                <span>📅</span>
+                <span class="num" id="dateDisplay">—</span>
+            </div>
+            <div class="hdr-actions">
+                <button aria-label="Search">🔍</button>
+                <button aria-label="Notifications">🔔</button>
+                <button aria-label="Dark mode">🌙</button>
+                <div class="avatar-sm">JD</div>
+            </div>
+        </header>
+
+        <!-- ─── SCROLL CONTENT ─── -->
+        <main class="scroll-content" id="scrollContent">
+
+            <!-- ── KPI ROW (12 cards) ── -->
+            <section class="kpi-grid" id="kpiGrid" aria-label="Key performance indicators">
+                <!-- injected by JS -->
+            </section>
+
+            <!-- ─── TWO-COLUMN: MAIN + SIDEBAR ─── -->
+            <div class="two-col">
+                <div class="col-main">
+
+                    <!-- ── CAPITAL STATE ENGINE ── -->
+                    <section class="card" id="stateCard" aria-label="Capital State Engine">
+                        <div class="card-header">
+                            <span class="c-tit">🔁 Capital State Engine</span>
+                            <span class="c-sub">Event‑driven state transitions</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="state-scroll">
+                                <div class="state-flow" id="stateFlow">
+                                    <!-- injected by JS -->
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem;font-size:.6rem;color:var(--text-dim);">
+                                <span>⬤ <span style="color:var(--gold);">Active</span></span>
+                                <span>⬤ <span style="color:var(--text-muted);">Inactive</span></span>
+                                <span style="margin-left:auto;">Every monetary unit exists in exactly one state</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── LIQUIDITY BUCKETS ── -->
+                    <section class="card" id="liquidityCard" aria-label="Liquidity Buckets">
+                        <div class="card-header">
+                            <span class="c-tit">💧 Liquidity Buckets</span>
+                            <span class="c-sub">Capital segmentation by time horizon</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="bucket-grid" id="bucketGrid">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── LENDING ENGINE ── -->
+                    <section class="card" id="lendingCard" aria-label="Lending Engine">
+                        <div class="card-header">
+                            <span class="c-tit">🏦 Lending Engine</span>
+                            <span class="c-sub">Available Lending Capacity = Idle − Required Liquidity − Reserved − Risk Buffer</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="lending-metrics" id="lendingMetrics">
+                                <!-- injected by JS -->
+                            </div>
+                            <div style="margin-top:.6rem;font-size:.6rem;color:var(--text-muted);">
+                                Only positive values become lendable · <span id="lendingStatus" style="color:var(--positive);">● Lending capacity available</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── MICRO MUTUAL FUND INTEGRATION ── -->
+                    <section class="card" id="fundsCard" aria-label="Micro Mutual Fund Integration">
+                        <div class="card-header">
+                            <span class="c-tit">📈 Micro Mutual Funds</span>
+                            <span class="c-sub">Settlement &amp; liquidity engine for accredited managers</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="fund-grid" id="fundGrid">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- ── EVENT BUS / ACTIVITY ── -->
+                    <section class="card" id="eventsCard" aria-label="Treasury Event Bus">
+                        <div class="card-header">
+                            <span class="c-tit">📡 Treasury Event Bus</span>
+                            <span class="c-sub">Immutable, timestamped, auditable</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="event-list" id="eventList">
+                                <!-- injected by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                </div><!-- /col-main -->
+
+                <!-- ─── RIGHT SIDEBAR ─── -->
+                <aside class="col-side" aria-label="Treasury widgets">
+
+                    <!-- Treasury Health -->
+                    <div class="widget">
+                        <div class="w-tit">🏥 Treasury Health</div>
+                        <div class="w-val" id="healthScore" style="color:var(--positive);">94%</div>
+                        <div class="w-sub" id="healthLabel">● Strong · All obligations covered</div>
+                    </div>
+
+                    <!-- Coverage Ratio -->
+                    <div class="widget">
+                        <div class="w-tit">📊 Coverage Ratio</div>
+                        <div class="w-val" id="coverageRatio" style="color:var(--gold);">2.4×</div>
+                        <div class="w-sub">Liquid assets ÷ short‑term obligations</div>
+                    </div>
+
+                    <!-- Capital Utilisation -->
+                    <div class="widget">
+                        <div class="w-tit">⚡ Capital Utilisation</div>
+                        <div class="progress-ring-wrap" style="gap:.6rem;">
+                            <div class="ring">
+                                <svg viewBox="0 0 90 90" width="64" height="64">
+                                    <circle cx="45" cy="45" r="36" fill="none" stroke="var(--bg-card2)" stroke-width="7"/>
+                                    <circle cx="45" cy="45" r="36" fill="none" stroke="var(--gold)" stroke-width="7"
+                                    stroke-dasharray="226.19" stroke-dashoffset="226.19"
+                                    stroke-linecap="round" transform="rotate(-90 45 45)" id="utilRing"/>
+                                    <text x="45" y="43" text-anchor="middle" fill="var(--text-primary)" font-size="13" font-weight="700" font-family="var(--font-mono)" id="utilPct">0%</text>
+                                    <text x="45" y="57" text-anchor="middle" fill="var(--text-muted)" font-size="6" font-family="var(--font-sans)">utilised</text>
+                                </svg>
+                            </div>
+                            <div style="flex:1;">
+                                <div style="font-size:.55rem;color:var(--text-muted);">Idle</div>
+                                <div style="font-family:var(--font-mono);font-size:.9rem;font-weight:600;color:var(--text-primary);" id="idleDisplay">$0</div>
+                                <div style="font-size:.55rem;color:var(--text-muted);margin-top:2px;">Deployed</div>
+                                <div style="font-family:var(--font-mono);font-size:.9rem;font-weight:600;color:var(--gold);" id="deployedDisplay">$0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Contributors -->
+                    <div class="widget">
+                        <div class="w-tit">🏆 Top Contributors</div>
+                        <div class="w-row"><span>#1 · A. Mensah</span><span class="w-rt gold">$12,400</span></div>
+                        <div class="w-row"><span>#2 · F. Okafor</span><span class="w-rt gold">$10,200</span></div>
+                        <div class="w-row"><span>#3 · L. Diop</span><span class="w-rt gold">$8,750</span></div>
+                        <div class="w-row"><span>#4 · K. Nkosi</span><span class="w-rt gold">$7,100</span></div>
+                    </div>
+
+                    <!-- Investment Alerts -->
+                    <div class="widget">
+                        <div class="w-tit">🔔 Investment Alerts</div>
+                        <div class="w-row"><span>⚠️ ROI target adjusted</span><span class="w-rt" style="color:var(--warning);">2h ago</span></div>
+                        <div class="w-row"><span>✅ New member joined</span><span class="w-rt pos">5h ago</span></div>
+                        <div class="w-row"><span>📈 Fund NAV updated</span><span class="w-rt pos">1d ago</span></div>
+                        <div class="w-row"><span>🔁 Treasury rebalanced</span><span class="w-rt">2d ago</span></div>
+                    </div>
+
+                    <!-- Upcoming Obligations -->
+                    <div class="widget">
+                        <div class="w-tit">📅 Upcoming Obligations</div>
+                        <div class="w-row"><span>ROSCA payouts</span><span class="w-rt gold">$18,500</span></div>
+                        <div class="w-row"><span>Withdrawals</span><span class="w-rt gold">$12,200</span></div>
+                        <div class="w-row"><span>Vendor payments</span><span class="w-rt gold">$4,800</span></div>
+                        <div class="w-row" style="border-top:1px solid var(--border);padding-top:4px;margin-top:2px;">
+                            <span style="font-weight:600;">Total</span>
+                            <span class="w-rt gold" style="font-weight:700;">$35,500</span>
+                        </div>
+                    </div>
+
+                </aside>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        /* ═══════════════════════════════════════════════════════════════════
+           SOHANA TREASURY ENGINE — Full JavaScript Implementation
+           ═══════════════════════════════════════════════════════════════════ */
+
+        // ─── STATE ───
+        const state = {
+            // Treasury balances (in USD)
+            incoming: 12450,
+            reserved: 38200,
+            idle: 187500,
+            deployed: 342000,
+            returning: 18600,
+
+            // Liquidity buckets
+            bucket1: 45000, // 0-7 days
+            bucket2: 62300, // 7-30 days
+            bucket3: 89400, // 1-6 months
+            bucket4: 154000, // 6+ months
+
+            // Lending
+            requiredLiquidity: 35000,
+            riskBuffer: 15000,
+            outstandingLoans: 278000,
+            performingLoans: 245000,
+            nonPerformingLoans: 33000,
+            recoveryRate: 0.62,
+            defaultRate: 0.042,
+            expectedLoss: 18700,
+            provisioning: 21200,
+            collateralCoverage: 1.8,
+
+            // Mutual funds
+            funds: [
+                { id: 'F1', name: 'Sohana Alpha Fund', manager: 'A. Mensah', aum: 124000, nav: 1.142, cash: 18600,
+                    performance: 14.2 },
+                { id: 'F2', name: 'West Africa Growth', manager: 'F. Okafor', aum: 87600, nav: 1.085, cash: 12400,
+                    performance: 8.5 },
+                { id: 'F3', name: 'Reserve Yield Fund', manager: 'L. Diop', aum: 45300, nav: 1.021, cash: 8200,
+                    performance: 2.1 },
+                { id: 'F4', name: 'Infrastructure Pool', manager: 'K. Nkosi', aum: 186000, nav: 1.098, cash: 15400,
+                    performance: 9.8 },
+            ],
+
+            // Event log
+            events: [],
+
+            // Config
+            currency: 'USD',
+            totalAUM: 0,
+        };
+
+        const SYM = { USD: '$', EUR: '€', GBP: '£', NGN: '₦', KES: 'KSh', ZAR: 'R', XOF: 'CFA', GHS: '₵', EGP: 'E£',
+            MAD: 'DH' };
+
+        // ─── HELPERS ───
+        function fmt(v, cur) {
+            const s = SYM[cur] || '$';
+            if (Math.abs(v) >= 1e6) return `${s}${(v/1e6).toFixed(2)}M`;
+            if (Math.abs(v) >= 1e3) return `${s}${(v/1e3).toFixed(1)}K`;
+            return `${s}${v.toFixed(2)}`;
+        }
+
+        function fmtFull(v, cur) {
+            const s = SYM[cur] || '$';
+            return `${s}${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        function pct(v) { return `${v.toFixed(1)}%`; }
+
+        function pctFull(v) { return `${v.toFixed(2)}%`; }
+
+        function clamp(v, mn, mx) { return Math.max(mn, Math.min(mx, v)); }
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+
+        // ─── COMPUTE TREASURY METRICS ───
+        function computeMetrics() {
+            const s = state;
+            const totalCapital = s.incoming + s.reserved + s.idle + s.deployed + s.returning;
+            const totalLiquidity = s.bucket1 + s.bucket2 + s.bucket3 + s.bucket4;
+            const totalAssets = totalCapital + s.outstandingLoans;
+
+            // Available lending capacity
+            const lendingCapacity = Math.max(0, s.idle - s.requiredLiquidity - s.reserved - s.riskBuffer);
+
+            // Coverage ratio
+            const shortTermObligations = s.reserved + s.requiredLiquidity;
+            const coverageRatio = shortTermObligations > 0 ? (s.bucket1 + s.bucket2 + s.idle) / shortTermObligations : 0;
+
+            // Health score
+            let health = 70;
+            if (coverageRatio >= 2) health += 15;
+            else if (coverageRatio >= 1.5) health += 8;
+            else if (coverageRatio < 1) health -= 20;
+            if (s.nonPerformingLoans / s.outstandingLoans < 0.05) health += 5;
+            else if (s.nonPerformingLoans / s.outstandingLoans > 0.1) health -= 10;
+            health = clamp(health, 10, 100);
+
+            // Utilisation
+            const utilisation = totalCapital > 0 ? (s.deployed / totalCapital) * 100 : 0;
+
+            // Fund total AUM
+            const fundAUM = s.funds.reduce((acc, f) => acc + f.aum, 0);
+
+            // Total AUM
+            const totalAUM = totalCapital + fundAUM + s.outstandingLoans;
+
+            return {
+                totalCapital,
+                totalLiquidity,
+                totalAssets,
+                lendingCapacity,
+                coverageRatio,
+                health,
+                utilisation,
+                fundAUM,
+                totalAUM,
+                shortTermObligations,
+                totalIdle: s.idle,
+                totalDeployed: s.deployed + s.outstandingLoans,
+            };
+        }
+
+        // ─── INIT EVENTS ───
+        function initEvents() {
+            const s = state;
+            if (s.events.length === 0) {
+                const templates = [
+                    { icon: '💰', text: 'Contribution of <strong>$12,400</strong> received from ROSCA #7', time: '2m ago' },
+                    { icon: '🔁', text: 'Capital transitioned from <strong>Idle</strong> → <strong>Deployed</strong> (Money Market)',
+                        time: '18m ago' },
+                    { icon: '📈', text: 'Fund <strong>Sohana Alpha</strong> NAV updated to <strong>$1.142</strong>',
+                        time: '1h ago' },
+                    { icon: '💳', text: 'Loan repayment of <strong>$4,800</strong> received (SME #12)', time: '2h ago' },
+                    { icon: '🔒', text: 'Capital <strong>Reserved</strong> for upcoming ROSCA payouts: $18,500',
+                        time: '3h ago' },
+                    { icon: '📊', text: 'Treasury rebalanced — allocated <strong>$25,000</strong> to Bucket 3',
+                        time: '5h ago' },
+                    { icon: '👤', text: 'New member <strong>joined</strong> Micro Mutual Fund', time: '7h ago' },
+                    { icon: '📉', text: 'Interest credited: <strong>$1,240</strong> from Treasury Bills', time: '12h ago' },
+                    { icon: '🏛️', text: 'Management fee collected: <strong>$890</strong>', time: '1d ago' },
+                    { icon: '🔄', text: 'ROSCA #3 completed — <strong>$8,500</strong> distributed', time: '1d ago' },
+                ];
+                s.events = templates;
+            }
+        }
+
+        // ─── RENDER KPI ROW ───
+        function renderKPIs(m) {
+            const grid = document.getElementById('kpiGrid');
+            if (!grid) return;
+            const cur = state.currency;
+            const cards = [{
+                icon: '🏦',
+                label: 'Assets Under Treasury',
+                value: fmtFull(m.totalAssets, cur),
+                sub: `${fmtFull(state.deployed, cur)} deployed`
+            }, {
+                icon: '💧',
+                label: 'Idle Capital',
+                value: fmtFull(state.idle, cur),
+                sub: `${pct(m.utilisation)} utilised`
+            }, {
+                icon: '📊',
+                label: 'Capital Deployed',
+                value: fmtFull(state.deployed, cur),
+                sub: `${fmtFull(state.deployed + state.outstandingLoans, cur)} incl. loans`
+            }, {
+                icon: '🛡️',
+                label: 'Liquidity Coverage',
+                value: `${m.coverageRatio.toFixed(1)}×`,
+                sub: m.coverageRatio >= 2 ? '✅ Strong' : m.coverageRatio >= 1.2 ? '⚠️ Adequate' : '❌ Insufficient'
+            }, {
+                icon: '🏦',
+                label: 'Lending Capacity',
+                value: fmtFull(m.lendingCapacity, cur),
+                sub: m.lendingCapacity > 0 ? '✅ Available' : '❌ No capacity'
+            }, {
+                icon: '💰',
+                label: 'Operational Cash',
+                value: fmtFull(state.bucket1, cur),
+                sub: '0–7 day liquidity'
+            }, {
+                icon: '📈',
+                label: 'Projected Obligations',
+                value: fmtFull(state.reserved + state.requiredLiquidity, cur),
+                sub: 'Reserved + required liquidity'
+            }, {
+                icon: '📅',
+                label: 'Daily Yield',
+                value: `$${(state.deployed * 0.00012).toFixed(2)}`,
+                sub: '~0.012% on deployed capital'
+            }, {
+                icon: '📊',
+                label: 'Monthly Yield',
+                value: fmtFull(state.deployed * 0.0036, cur),
+                sub: '~0.36% on deployed capital'
+            }, {
+                icon: '📈',
+                label: 'Portfolio Allocation',
+                value: `${pct((state.deployed / m.totalAssets) * 100)}`,
+                sub: `${pct((state.idle / m.totalAssets) * 100)} idle`
+            }, {
+                icon: '❤️',
+                label: 'Treasury Health',
+                value: `${Math.round(m.health)}%`,
+                sub: m.health >= 80 ? '● Excellent' : m.health >= 60 ? '● Healthy' : '● Watch'
+            }, {
+                icon: '⚡',
+                label: 'Capital Utilisation',
+                value: pct(m.utilisation),
+                sub: `${fmtFull(state.idle, cur)} idle`
+            }, ];
+
+            grid.innerHTML = cards.map((c, i) => `
+            <div class="kpi-card" style="animation-delay:${(i*0.025).toFixed(2)}s">
+              <div class="kpi-top">
+                <span class="kpi-icon">${c.icon}</span>
+              </div>
+              <div class="kpi-label">${c.label}</div>
+              <div class="kpi-value">${c.value}</div>
+              <div class="kpi-sub">${c.sub}</div>
+              <div class="mini-spark">
+                ${Array.from({length:6},(_,j)=>`<div class="bar" style="--h:${0.15+Math.random()*0.7}"></div>`).join('')}
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // ─── RENDER STATE FLOW ───
+        function renderStateFlow() {
+            const container = document.getElementById('stateFlow');
+            if (!container) return;
+            const s = state;
+            const cur = s.currency;
+            const states = [
+                { key: 'incoming', label: 'Incoming', icon: '📥', amount: s.incoming, active: s.incoming > 0 },
+                { key: 'reserved', label: 'Reserved', icon: '🔒', amount: s.reserved, active: s.reserved > 0 },
+                { key: 'idle', label: 'Idle', icon: '💧', amount: s.idle, active: s.idle > 0 },
+                { key: 'deployed', label: 'Deployed', icon: '📊', amount: s.deployed, active: s.deployed > 0 },
+                { key: 'returning', label: 'Returning', icon: '↩️', amount: s.returning, active: s.returning > 0 },
+            ];
+
+            container.innerHTML = states.map((st, i) => `
+            <div class="state-node ${st.active ? 'active' : ''}">
+              <span class="s-icon">${st.icon}</span>
+              <div class="s-label">${st.label}</div>
+              <div class="s-amount">${st.active ? fmtFull(st.amount, cur) : '—'}</div>
+              <div class="s-pulse"></div>
+            </div>
+            ${i < states.length - 1 ? `<span class="state-arrow">→</span>` : ''}
+          `).join('');
+        }
+
+        // ─── RENDER LIQUIDITY BUCKETS ───
+        function renderBuckets(m) {
+            const grid = document.getElementById('bucketGrid');
+            if (!grid) return;
+            const s = state;
+            const cur = s.currency;
+            const total = s.bucket1 + s.bucket2 + s.bucket3 + s.bucket4;
+            const buckets = [
+                { key: 'B1', label: 'Operational', range: '0–7 days', amount: s.bucket1, color: '#28C76F' },
+                { key: 'B2', label: 'Short‑Term', range: '7–30 days', amount: s.bucket2, color: '#FF9F43' },
+                { key: 'B3', label: 'Strategic', range: '1–6 months', amount: s.bucket3, color: '#D4AF37' },
+                { key: 'B4', label: 'Long‑Term', range: '6+ months', amount: s.bucket4, color: '#6496FF' },
+            ];
+
+            grid.innerHTML = buckets.map(b => {
+                const pct = total > 0 ? (b.amount / total) * 100 : 0;
+                return `
+              <div class="bucket-card">
+                <div class="b-label">${b.label}</div>
+                <div class="b-value">${fmtFull(b.amount, cur)}</div>
+                <div class="b-range">${b.range}</div>
+                <div class="b-bar"><div class="fill" style="width:${pct}%;background:${b.color};"></div></div>
+              </div>
+            `;
+            }).join('');
+        }
+
+        // ─── RENDER LENDING ENGINE ───
+        function renderLending(m) {
+            const grid = document.getElementById('lendingMetrics');
+            if (!grid) return;
+            const s = state;
+            const cur = s.currency;
+
+            const metrics = [
+                { label: 'Lending Capacity', value: fmtFull(m.lendingCapacity, cur), cls: m.lendingCapacity > 0 ? 'pos' :
+                        'neg' },
+                { label: 'Outstanding Loans', value: fmtFull(s.outstandingLoans, cur), cls: 'gold' },
+                { label: 'Performing Loans', value: fmtFull(s.performingLoans, cur), cls: 'pos' },
+                { label: 'Non‑Performing', value: fmtFull(s.nonPerformingLoans, cur), cls: 'neg' },
+                { label: 'Recovery Rate', value: pct(s.recoveryRate * 100), cls: 'pos' },
+                { label: 'Default Rate', value: pct(s.defaultRate * 100), cls: 'neg' },
+                { label: 'Expected Loss', value: fmtFull(s.expectedLoss, cur), cls: 'neg' },
+                { label: 'Provisioning', value: fmtFull(s.provisioning, cur), cls: 'gold' },
+                { label: 'Collateral Coverage', value: `${s.collateralCoverage.toFixed(1)}×`, cls: 'pos' },
+            ];
+
+            grid.innerHTML = metrics.map(mt => `
+            <div class="lending-metric">
+              <div class="lm-label">${mt.label}</div>
+              <div class="lm-value ${mt.cls}">${mt.value}</div>
+            </div>
+          `).join('');
+
+            const status = document.getElementById('lendingStatus');
+            if (status) {
+                if (m.lendingCapacity > 0) {
+                    status.textContent = '● Lending capacity available';
+                    status.style.color = 'var(--positive)';
+                } else {
+                    status.textContent = '● No lending capacity — insufficient idle capital';
+                    status.style.color = 'var(--negative)';
+                }
+            }
+        }
+
+        // ─── RENDER MUTUAL FUNDS ───
+        function renderFunds() {
+            const grid = document.getElementById('fundGrid');
+            if (!grid) return;
+            const s = state;
+            const cur = s.currency;
+
+            grid.innerHTML = s.funds.map(f => `
+            <div class="fund-card">
+              <div class="f-name">${f.name}</div>
+              <div class="f-manager">👔 ${f.manager}</div>
+              <div class="f-row"><span>AUM</span><span class="f-val gold">${fmtFull(f.aum, cur)}</span></div>
+              <div class="f-row"><span>NAV</span><span class="f-val">${f.nav.toFixed(4)}</span></div>
+              <div class="f-row"><span>Cash</span><span class="f-val">${fmtFull(f.cash, cur)}</span></div>
+              <div class="f-row"><span>Performance</span><span class="f-val ${f.performance >= 0 ? 'pos' : 'neg'}">${f.performance >= 0 ? '+' : ''}${pct(f.performance)}</span></div>
+            </div>
+          `).join('');
+        }
+
+        // ─── RENDER EVENTS ───
+        function renderEvents() {
+            const list = document.getElementById('eventList');
+            if (!list) return;
+            const s = state;
+
+            list.innerHTML = s.events.slice(0, 12).map(e => `
+            <div class="event-item">
+              <div class="e-icon">${e.icon}</div>
+              <div class="e-body">
+                <div class="e-text">${e.text}</div>
+                <div class="e-time">${e.time}</div>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // ─── RENDER WIDGETS ───
+        function renderWidgets(m) {
+            const s = state;
+            const cur = s.currency;
+
+            // Health
+            const healthEl = document.getElementById('healthScore');
+            const healthLabel = document.getElementById('healthLabel');
+            if (healthEl) {
+                healthEl.textContent = `${Math.round(m.health)}%`;
+                healthEl.style.color = m.health >= 80 ? 'var(--positive)' : m.health >= 60 ? 'var(--warning)' :
+                    'var(--negative)';
+            }
+            if (healthLabel) {
+                if (m.health >= 80) healthLabel.textContent = '● Excellent · All obligations covered';
+                else if (m.health >= 60) healthLabel.textContent = '● Healthy · Adequate liquidity';
+                else if (m.health >= 40) healthLabel.textContent = '● Watch · Monitor closely';
+                else healthLabel.textContent = '● Critical · Immediate attention required';
+            }
+
+            // Coverage
+            const covEl = document.getElementById('coverageRatio');
+            if (covEl) {
+                covEl.textContent = `${m.coverageRatio.toFixed(1)}×`;
+                covEl.style.color = m.coverageRatio >= 2 ? 'var(--positive)' : m.coverageRatio >= 1.2 ? 'var(--warning)' :
+                    'var(--negative)';
+            }
+
+            // Utilisation ring
+            const utilRing = document.getElementById('utilRing');
+            const utilPct = document.getElementById('utilPct');
+            if (utilRing && utilPct) {
+                const circ = 2 * Math.PI * 36;
+                const pctVal = clamp(m.utilisation, 0, 100);
+                const offset = circ * (1 - pctVal / 100);
+                utilRing.style.strokeDashoffset = offset.toFixed(2);
+                utilRing.style.stroke = pctVal > 70 ? 'var(--gold)' : pctVal > 40 ? 'var(--warning)' : 'var(--positive)';
+                utilPct.textContent = `${Math.round(pctVal)}%`;
+            }
+
+            // Idle / Deployed
+            const idleEl = document.getElementById('idleDisplay');
+            const deployedEl = document.getElementById('deployedDisplay');
+            if (idleEl) idleEl.textContent = fmtFull(s.idle, cur);
+            if (deployedEl) deployedEl.textContent = fmtFull(s.deployed + s.outstandingLoans, cur);
+        }
+
+        // ─── UPDATE FX & DATE ───
+        function updateFX() {
+            const el = document.getElementById('fxDisplay');
+            if (el) {
+                const rate = 1.0000 + (Math.random() - 0.5) * 0.02;
+                el.textContent = `USD ${rate.toFixed(4)}`;
+            }
+            const dateEl = document.getElementById('dateDisplay');
+            if (dateEl) {
+                const d = new Date();
+                dateEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        }
+
+        // ─── SIDEBAR TOGGLE ───
+        function initSidebar() {
+            const toggle = document.getElementById('menuToggle');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (toggle && sidebar && overlay) {
+                const open = () => { sidebar.classList.add('open');
+                    overlay.classList.add('open'); };
+                const close = () => { sidebar.classList.remove('open');
+                    overlay.classList.remove('open'); };
+                toggle.addEventListener('click', open);
+                overlay.addEventListener('click', close);
+                document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+            }
+        }
+
+        // ─── MAIN RENDER ───
+        function render() {
+            const m = computeMetrics();
+            renderKPIs(m);
+            renderStateFlow();
+            renderBuckets(m);
+            renderLending(m);
+            renderFunds();
+            renderEvents();
+            renderWidgets(m);
+            updateFX();
+        }
+
+        // ─── SIMULATE LIVE UPDATES ───
+        function simulateActivity() {
+            const s = state;
+            const templates = [
+                { icon: '💰', text: `Contribution of <strong>${fmtFull(rand(500, 8000), s.currency)}</strong> received`,
+                    time: 'Just now' },
+                { icon: '🔁', text: 'Capital <strong>Idle → Deployed</strong> (Treasury Bills)', time: 'Just now' },
+                { icon: '📈', text: `Fund NAV updated — +${pct(rand(0.5, 3))}`, time: 'Just now' },
+                { icon: '💳', text: `Loan repayment of <strong>${fmtFull(rand(2000, 12000), s.currency)}</strong> received`,
+                    time: 'Just now' },
+                { icon: '🔒', text: `Capital <strong>Reserved</strong> for obligations: ${fmtFull(rand(5000, 25000), s.currency)}`,
+                    time: 'Just now' },
+                { icon: '👤', text: 'New <strong>member</strong> joined a mutual fund', time: 'Just now' },
+                { icon: '📊', text: `Treasury rebalanced — ${fmtFull(rand(10000, 50000), s.currency)} allocated`,
+                    time: 'Just now' },
+                { icon: '🏛️', text: `Management fee collected: <strong>${fmtFull(rand(300, 2000), s.currency)}</strong>`,
+                    time: 'Just now' },
+            ];
+            const pick = templates[Math.floor(Math.random() * templates.length)];
+            s.events.unshift(pick);
+            if (s.events.length > 30) s.events.pop();
+
+            // Slight balance fluctuation
+            const delta = (Math.random() - 0.5) * 500;
+            s.idle = Math.max(1000, s.idle + delta);
+            s.deployed = Math.max(1000, s.deployed - delta * 0.3 + rand(0, 200));
+
+            render();
+        }
+
+        // ─── INIT ───
+        document.addEventListener('DOMContentLoaded', function() {
+            initSidebar();
+            initEvents();
+            render();
+
+            // Live updates every 8 seconds
+            setInterval(() => {
+                simulateActivity();
+                updateFX();
+            }, 8000);
+
+            // Update FX more frequently
+            setInterval(updateFX, 3000);
+        });
+    </script>
+</body>
+</html>

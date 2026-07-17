@@ -6099,6 +6099,59 @@ def verify_direct(passport_id):
     return redirect(url_for("verify_page", id=passport_id))
 
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FINANCE SUITE (v7.11)
+# Gated dashboards for CFO-level financial operations. Access limited to CEO,
+# CFO, CTO (read for debugging), Compliance (read for reporting). Everyone else
+# gets 403. Templates are the standalone HTML files built by the finance team —
+# design-system migration to SOHANA tokens is scheduled for v8.0.
+#
+# Data is currently mocked (client-side rand()). Live data wiring against
+# wallet_transactions / cycles / campaign_donations is also v8.0 scope.
+# ══════════════════════════════════════════════════════════════════════════════
+
+FINANCE_SUITE_ROLES = {"ceo", "cfo", "cto", "compliance"}
+
+
+def _finance_suite_required(f):
+    """Decorator: only CEO / CFO / CTO / Compliance may access."""
+    from functools import wraps
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("admin_login"))
+        role = (session.get("admin_role") or "").lower()
+        if role not in FINANCE_SUITE_ROLES:
+            log_admin_action(
+                "finance_suite_access_denied",
+                "finance_suite",
+                request.path,
+                new_data={"attempted_role": role or "none"}
+            )
+            return render_template("error.html",
+                error_title="Access restricted",
+                error_message="The Finance Suite is available only to CEO, CFO, CTO, and Compliance roles. If you believe this is an error, contact the CEO."
+            ), 403
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.route("/admin/finance/treasury")
+@_finance_suite_required
+def finance_treasury_engine():
+    """Capital State Engine — macro treasury dashboard."""
+    log_admin_action("finance_suite_view", "treasury_engine", None)
+    return render_template("finance_treasury_engine.html")
+
+
+@app.route("/admin/finance/micro-mutual")
+@_finance_suite_required
+def finance_micro_mutual():
+    """Micro Mutual Fund Engine — fund-level operations."""
+    log_admin_action("finance_suite_view", "micro_mutual", None)
+    return render_template("finance_micro_mutual.html")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # STATUS PAGE — public status page, health checks, incident management (v7.3)
 # ══════════════════════════════════════════════════════════════════════════════
