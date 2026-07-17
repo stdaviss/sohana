@@ -790,6 +790,49 @@ def _run_safe_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_blog_media_uploaded ON blog_media(uploaded_at DESC)",
 
+        # ── FINANCE SUITE PORTFOLIOS (v8.0) ───────────────────────────────────
+        # Portfolio management for advisors. Financial advisors and CFO/CEO can
+        # create simulated client portfolios, track them over time, and record
+        # holdings. Currency is stored, growth is simulated by risk profile.
+        """CREATE TABLE IF NOT EXISTS finance_portfolios (
+            id                   TEXT PRIMARY KEY,
+            client_name          TEXT NOT NULL,
+            client_email         TEXT,
+            advisor_id           TEXT NOT NULL,
+            risk_profile         TEXT NOT NULL DEFAULT 'moderate',
+            initial_capital_cents INTEGER NOT NULL,
+            currency             TEXT NOT NULL DEFAULT 'USD',
+            target_return_pct    REAL NOT NULL DEFAULT 8.0,
+            time_horizon_years   INTEGER NOT NULL DEFAULT 5,
+            notes                TEXT,
+            is_deleted           INTEGER NOT NULL DEFAULT 0,
+            created_at           TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at           TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_fin_pf_advisor ON finance_portfolios(advisor_id, is_deleted)",
+
+        """CREATE TABLE IF NOT EXISTS finance_portfolio_holdings (
+            id             TEXT PRIMARY KEY,
+            portfolio_id   TEXT NOT NULL REFERENCES finance_portfolios(id),
+            asset_class    TEXT NOT NULL,
+            asset_name     TEXT NOT NULL,
+            allocation_pct REAL NOT NULL,
+            notes          TEXT,
+            created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_fin_holdings_pf ON finance_portfolio_holdings(portfolio_id)",
+
+        """CREATE TABLE IF NOT EXISTS finance_portfolio_snapshots (
+            id                TEXT PRIMARY KEY,
+            portfolio_id      TEXT NOT NULL REFERENCES finance_portfolios(id),
+            snapshot_date     TEXT NOT NULL,
+            total_value_cents INTEGER NOT NULL,
+            return_pct        REAL NOT NULL,
+            created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(portfolio_id, snapshot_date)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_fin_snap_pf ON finance_portfolio_snapshots(portfolio_id, snapshot_date DESC)",
+
         # ── PASSPORT SYSTEM (v7.9) ────────────────────────────────────────────
         # passport_id is stable public identifier (NCS-<uuid>). is_revoked lets
         # user hide their passport from external verify lookups without deleting
@@ -6151,6 +6194,413 @@ def finance_micro_mutual():
     """Micro Mutual Fund Engine — fund-level operations."""
     log_admin_action("finance_suite_view", "micro_mutual", None)
     return render_template("finance_micro_mutual.html")
+
+
+# ── PORTFOLIO MANAGEMENT (v8.0) ──────────────────────────────────────────────
+# Advisors create client portfolios, holdings are simulated, historical snapshots
+# generate a growth curve. Full CRUD gated to FINANCE_SUITE_ROLES.
+
+RISK_PROFILES = {
+    "conservative": {"annual_return_mean": 0.04, "annual_vol": 0.05, "label": "Conservative"},
+    "moderate":     {"annual_return_mean": 0.08, "annual_vol": 0.12, "label": "Moderate"},
+    "growth":       {"annual_return_mean": 0.12, "annual_vol": 0.18, "label": "Growth"},
+    "aggressive":   {"annual_return_mean": 0.18, "annual_vol": 0.28, "label": "Aggressive"},
+}
+
+DEFAULT_HOLDINGS = {
+    # Curated per-risk allocation. Advisors can edit after creation.
+    "conservative": [
+        {"asset_class": "Bonds",          "asset_name": "African Sovereign Bond Index",     "allocation_pct": 55.0},
+        {"asset_class": "Gold",           "asset_name": "XAU Physical Reserve Allocation",   "allocation_pct": 20.0},
+        {"asset_class": "Cash",           "asset_name": "USD / EUR Multi-Currency Cash",     "allocation_pct": 20.0},
+        {"asset_class": "Equities",       "asset_name": "Pan-African Blue Chip Index",       "allocation_pct":  5.0},
+    ],
+    "moderate": [
+        {"asset_class": "Equities",       "asset_name": "Pan-African Blue Chip Index",       "allocation_pct": 40.0},
+        {"asset_class": "Bonds",          "asset_name": "African Sovereign Bond Index",      "allocation_pct": 30.0},
+        {"asset_class": "Gold",           "asset_name": "XAU Physical Reserve Allocation",   "allocation_pct": 15.0},
+        {"asset_class": "Real Estate",    "asset_name": "Diaspora Real Estate REIT",         "allocation_pct": 10.0},
+        {"asset_class": "Cash",           "asset_name": "Multi-Currency Cash Reserve",       "allocation_pct":  5.0},
+    ],
+    "growth": [
+        {"asset_class": "Equities",       "asset_name": "Pan-African Growth Equities",       "allocation_pct": 55.0},
+        {"asset_class": "Bonds",          "asset_name": "Corporate Bond Basket",             "allocation_pct": 15.0},
+        {"asset_class": "Real Estate",    "asset_name": "Diaspora Real Estate REIT",         "allocation_pct": 15.0},
+        {"asset_class": "Commodities",    "asset_name": "Cobalt / Platinum / Manganese",     "allocation_pct": 10.0},
+        {"asset_class": "Cash",           "asset_name": "Cash Reserve",                      "allocation_pct":  5.0},
+    ],
+    "aggressive": [
+        {"asset_class": "Equities",       "asset_name": "Frontier Market Equities",          "allocation_pct": 50.0},
+        {"asset_class": "Venture",        "asset_name": "African Tech Venture Basket",       "allocation_pct": 25.0},
+        {"asset_class": "Commodities",    "asset_name": "Rare Earth + Battery Metals",       "allocation_pct": 15.0},
+        {"asset_class": "Real Estate",    "asset_name": "Emerging Market REITs",             "allocation_pct":  7.0},
+        {"asset_class": "Cash",           "asset_name": "Working Capital",                   "allocation_pct":  3.0},
+    ],
+}
+
+
+def _generate_portfolio_snapshots(portfolio_id: str, initial_cents: int, risk_profile: str,
+                                    created_at: str, days: int = 365):
+    """
+    Deterministically generate historical snapshots for a portfolio using a
+    seeded random walk. Uses the portfolio_id as the seed so the curve is
+    stable across page loads. Writes snapshots for every 7 days back from now.
+    """
+    import hashlib
+    from datetime import datetime as _dt, timedelta as _td
+
+    profile = RISK_PROFILES.get(risk_profile, RISK_PROFILES["moderate"])
+    mean_daily = profile["annual_return_mean"] / 252
+    vol_daily  = profile["annual_vol"] / (252 ** 0.5)
+
+    # Seed from portfolio_id for reproducibility
+    seed_bytes = hashlib.md5(portfolio_id.encode()).digest()
+    seed = int.from_bytes(seed_bytes[:4], "big") % (2**31)
+
+    def next_rand():
+        nonlocal seed
+        seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF
+        return seed / 0x7FFFFFFF
+
+    # Portfolio start date (creation date, capped at `days` back)
+    try:
+        start = _dt.strptime(created_at[:10], "%Y-%m-%d")
+    except Exception:
+        start = _dt.utcnow() - _td(days=30)
+    earliest = _dt.utcnow() - _td(days=days)
+    if start < earliest:
+        start = earliest
+
+    value = float(initial_cents)
+    snapshots = []
+    current = start
+    now = _dt.utcnow()
+    while current <= now:
+        # Box-Muller for normal-ish distribution
+        u1 = next_rand() or 0.0001
+        u2 = next_rand()
+        z = ((-2 * (u1 or 0.0001).__abs__()) ** 0.5) * (u2 - 0.5) * 2
+        # Days advanced this step (weekly snapshots)
+        step_days = 7
+        drift = mean_daily * step_days
+        shock = vol_daily * z * (step_days ** 0.5)
+        value = value * (1 + drift + shock)
+        return_pct = ((value / initial_cents) - 1) * 100
+        snapshots.append((current.strftime("%Y-%m-%d"), int(value), round(return_pct, 3)))
+        current = current + _td(days=step_days)
+
+    # Persist snapshots (batch)
+    with get_db() as db:
+        for date_str, val_cents, ret_pct in snapshots:
+            try:
+                db.execute(
+                    """INSERT OR REPLACE INTO finance_portfolio_snapshots
+                       (id, portfolio_id, snapshot_date, total_value_cents, return_pct)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    (str(uuid.uuid4()), portfolio_id, date_str, val_cents, ret_pct)
+                )
+            except Exception:
+                pass
+    return snapshots
+
+
+def _get_portfolio_current_value(portfolio_id: str, initial_cents: int) -> dict:
+    """Return the most recent snapshot value or fall back to initial capital."""
+    row = fetchone(
+        """SELECT total_value_cents, return_pct, snapshot_date FROM finance_portfolio_snapshots
+           WHERE portfolio_id=? ORDER BY snapshot_date DESC LIMIT 1""",
+        (portfolio_id,)
+    )
+    if row:
+        r = dict(row)
+        return {
+            "current_value_cents": r["total_value_cents"],
+            "return_pct":          r["return_pct"],
+            "as_of":               r["snapshot_date"],
+        }
+    return {"current_value_cents": initial_cents, "return_pct": 0.0, "as_of": None}
+
+
+# ── Page routes ──────────────────────────────────────────────────────────────
+
+@app.route("/admin/finance/portfolios")
+@_finance_suite_required
+def finance_portfolios_page():
+    """List + manage client portfolios."""
+    log_admin_action("finance_suite_view", "portfolios_list", None)
+    return render_template("finance_portfolios.html")
+
+
+# ── JSON API ─────────────────────────────────────────────────────────────────
+
+@app.route("/api/finance/portfolios", methods=["GET"])
+@_finance_suite_required
+def api_finance_portfolios_list():
+    """List all non-deleted portfolios accessible to the current advisor.
+    CEO/CFO see all portfolios; other authorised roles see only their own."""
+    role = (session.get("admin_role") or "").lower()
+    admin_id = session.get("user_id")
+
+    if role in ("ceo", "cfo"):
+        rows = fetchall(
+            """SELECT * FROM finance_portfolios WHERE is_deleted=0
+               ORDER BY updated_at DESC"""
+        )
+    else:
+        rows = fetchall(
+            """SELECT * FROM finance_portfolios WHERE is_deleted=0 AND advisor_id=?
+               ORDER BY updated_at DESC""",
+            (admin_id,)
+        )
+
+    portfolios = []
+    for r in rows:
+        d = dict(r)
+        current = _get_portfolio_current_value(d["id"], d["initial_capital_cents"])
+        d.update(current)
+        portfolios.append(d)
+
+    return jsonify({"ok": True, "portfolios": portfolios})
+
+
+@app.route("/api/finance/portfolios", methods=["POST"])
+@_finance_suite_required
+def api_finance_portfolios_create():
+    """Create a new client portfolio. Auto-generates default holdings + backfills
+    snapshot history so the curve is populated from day one."""
+    d = request.json or {}
+    client_name = (d.get("client_name") or "").strip()
+    if not client_name:
+        return jsonify({"error": "client_name required"}), 400
+
+    risk = (d.get("risk_profile") or "moderate").lower()
+    if risk not in RISK_PROFILES:
+        return jsonify({"error": f"risk_profile must be one of {list(RISK_PROFILES.keys())}"}), 400
+
+    try:
+        initial_cents = int(float(d.get("initial_capital") or 0) * 100)
+    except (ValueError, TypeError):
+        return jsonify({"error": "initial_capital must be numeric"}), 400
+    if initial_cents < 100:
+        return jsonify({"error": "initial_capital must be at least 1.00"}), 400
+
+    currency = (d.get("currency") or "USD").upper()
+    target   = float(d.get("target_return_pct") or 8.0)
+    horizon  = int(d.get("time_horizon_years") or 5)
+    notes    = (d.get("notes") or "").strip()
+    email    = (d.get("client_email") or "").strip()
+
+    # Optional backdate: user can enter how many days ago portfolio was created
+    # (defaults to now). This lets advisors seed historical curves.
+    from datetime import datetime as _dt, timedelta as _td
+    backdate_days = int(d.get("backdate_days") or 90)
+    if backdate_days < 0: backdate_days = 0
+    if backdate_days > 730: backdate_days = 730
+    created_at = (_dt.utcnow() - _td(days=backdate_days)).strftime("%Y-%m-%d %H:%M:%S")
+
+    portfolio_id = str(uuid.uuid4())
+    advisor_id = session.get("user_id")
+
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO finance_portfolios
+               (id, client_name, client_email, advisor_id, risk_profile,
+                initial_capital_cents, currency, target_return_pct,
+                time_horizon_years, notes, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (portfolio_id, client_name, email, advisor_id, risk, initial_cents,
+             currency, target, horizon, notes, created_at, created_at)
+        )
+
+        # Seed default holdings for this risk profile
+        for h in DEFAULT_HOLDINGS.get(risk, DEFAULT_HOLDINGS["moderate"]):
+            db.execute(
+                """INSERT INTO finance_portfolio_holdings
+                   (id, portfolio_id, asset_class, asset_name, allocation_pct)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (str(uuid.uuid4()), portfolio_id, h["asset_class"], h["asset_name"], h["allocation_pct"])
+            )
+
+    # Backfill historical snapshots
+    _generate_portfolio_snapshots(portfolio_id, initial_cents, risk, created_at, days=backdate_days or 30)
+
+    log_admin_action("finance_portfolio_create", "portfolio", portfolio_id,
+                      new_data={"client": client_name, "capital_cents": initial_cents, "risk": risk})
+
+    return jsonify({"ok": True, "portfolio_id": portfolio_id})
+
+
+@app.route("/api/finance/portfolios/<pid>", methods=["GET"])
+@_finance_suite_required
+def api_finance_portfolios_detail(pid):
+    """Portfolio detail: metadata + holdings + full snapshot history."""
+    row = fetchone("SELECT * FROM finance_portfolios WHERE id=? AND is_deleted=0", (pid,))
+    if not row:
+        return jsonify({"error": "Portfolio not found"}), 404
+    p = dict(row)
+
+    # Role check: non-CEO/CFO can only see their own portfolios
+    role = (session.get("admin_role") or "").lower()
+    if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
+        return jsonify({"error": "Not authorised"}), 403
+
+    holdings = [dict(r) for r in fetchall(
+        "SELECT * FROM finance_portfolio_holdings WHERE portfolio_id=? ORDER BY allocation_pct DESC",
+        (pid,)
+    )]
+    snapshots = [dict(r) for r in fetchall(
+        """SELECT snapshot_date, total_value_cents, return_pct
+           FROM finance_portfolio_snapshots
+           WHERE portfolio_id=? ORDER BY snapshot_date ASC""",
+        (pid,)
+    )]
+    current = _get_portfolio_current_value(pid, p["initial_capital_cents"])
+    p.update(current)
+    p["holdings"]  = holdings
+    p["snapshots"] = snapshots
+    p["risk_label"] = RISK_PROFILES.get(p["risk_profile"], {}).get("label", "Moderate")
+
+    return jsonify({"ok": True, "portfolio": p})
+
+
+@app.route("/api/finance/portfolios/<pid>", methods=["PUT"])
+@_finance_suite_required
+def api_finance_portfolios_update(pid):
+    """Update editable portfolio metadata (name, email, notes, target)."""
+    row = fetchone("SELECT * FROM finance_portfolios WHERE id=? AND is_deleted=0", (pid,))
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    p = dict(row)
+
+    role = (session.get("admin_role") or "").lower()
+    if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
+        return jsonify({"error": "Not authorised"}), 403
+
+    d = request.json or {}
+    updates, params = [], []
+    for field in ("client_name", "client_email", "notes"):
+        if field in d:
+            updates.append(f"{field}=?"); params.append((d[field] or "").strip())
+    if "target_return_pct" in d:
+        updates.append("target_return_pct=?"); params.append(float(d["target_return_pct"]))
+    if "time_horizon_years" in d:
+        updates.append("time_horizon_years=?"); params.append(int(d["time_horizon_years"]))
+
+    if not updates:
+        return jsonify({"error": "Nothing to update"}), 400
+
+    updates.append("updated_at=datetime('now')")
+    params.append(pid)
+    with get_db() as db:
+        db.execute(f"UPDATE finance_portfolios SET {', '.join(updates)} WHERE id=?", params)
+
+    log_admin_action("finance_portfolio_update", "portfolio", pid, new_data=d)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/finance/portfolios/<pid>", methods=["DELETE"])
+@_finance_suite_required
+def api_finance_portfolios_delete(pid):
+    """Soft delete a portfolio (sets is_deleted=1). Snapshots and holdings preserved for audit."""
+    row = fetchone("SELECT * FROM finance_portfolios WHERE id=? AND is_deleted=0", (pid,))
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    p = dict(row)
+
+    role = (session.get("admin_role") or "").lower()
+    if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
+        return jsonify({"error": "Not authorised"}), 403
+
+    with get_db() as db:
+        db.execute(
+            "UPDATE finance_portfolios SET is_deleted=1, updated_at=datetime('now') WHERE id=?",
+            (pid,)
+        )
+    log_admin_action("finance_portfolio_delete", "portfolio", pid,
+                      new_data={"client": p["client_name"]})
+    return jsonify({"ok": True})
+
+
+@app.route("/api/finance/portfolios/<pid>/refresh", methods=["POST"])
+@_finance_suite_required
+def api_finance_portfolios_refresh(pid):
+    """Extend the snapshot series forward to today. Idempotent (INSERT OR REPLACE
+    per date). Advisors call this to bring the curve up to date."""
+    row = fetchone("SELECT * FROM finance_portfolios WHERE id=? AND is_deleted=0", (pid,))
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    p = dict(row)
+    _generate_portfolio_snapshots(pid, p["initial_capital_cents"], p["risk_profile"], p["created_at"], days=730)
+    log_admin_action("finance_portfolio_refresh", "portfolio", pid)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/finance/portfolios/<pid>/holdings", methods=["POST"])
+@_finance_suite_required
+def api_finance_portfolios_add_holding(pid):
+    """Add a new holding to an existing portfolio."""
+    row = fetchone("SELECT * FROM finance_portfolios WHERE id=? AND is_deleted=0", (pid,))
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    p = dict(row)
+    role = (session.get("admin_role") or "").lower()
+    if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
+        return jsonify({"error": "Not authorised"}), 403
+
+    d = request.json or {}
+    asset_class = (d.get("asset_class") or "").strip()
+    asset_name  = (d.get("asset_name") or "").strip()
+    try:
+        alloc = float(d.get("allocation_pct") or 0)
+    except (ValueError, TypeError):
+        return jsonify({"error": "allocation_pct must be numeric"}), 400
+
+    if not (asset_class and asset_name and 0 < alloc <= 100):
+        return jsonify({"error": "asset_class, asset_name, and 0<allocation_pct<=100 required"}), 400
+
+    hid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO finance_portfolio_holdings
+               (id, portfolio_id, asset_class, asset_name, allocation_pct, notes)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (hid, pid, asset_class, asset_name, alloc, (d.get("notes") or "").strip())
+        )
+    return jsonify({"ok": True, "holding_id": hid})
+
+
+@app.route("/api/finance/holdings/<hid>", methods=["DELETE"])
+@_finance_suite_required
+def api_finance_holdings_delete(hid):
+    """Delete a holding from a portfolio."""
+    h = fetchone("SELECT * FROM finance_portfolio_holdings WHERE id=?", (hid,))
+    if not h:
+        return jsonify({"error": "Holding not found"}), 404
+    h = dict(h)
+    row = fetchone("SELECT advisor_id FROM finance_portfolios WHERE id=?", (h["portfolio_id"],))
+    if row:
+        role = (session.get("admin_role") or "").lower()
+        if role not in ("ceo", "cfo") and dict(row)["advisor_id"] != session.get("user_id"):
+            return jsonify({"error": "Not authorised"}), 403
+    with get_db() as db:
+        db.execute("DELETE FROM finance_portfolio_holdings WHERE id=?", (hid,))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/finance/risk-profiles", methods=["GET"])
+@_finance_suite_required
+def api_finance_risk_profiles():
+    """List available risk profiles with their default holdings — used by the create form."""
+    profiles = {}
+    for key, meta in RISK_PROFILES.items():
+        profiles[key] = {
+            "label":             meta["label"],
+            "annual_return_pct": meta["annual_return_mean"] * 100,
+            "annual_volatility": meta["annual_vol"] * 100,
+            "default_holdings":  DEFAULT_HOLDINGS.get(key, []),
+        }
+    return jsonify({"ok": True, "profiles": profiles})
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STATUS PAGE — public status page, health checks, incident management (v7.3)

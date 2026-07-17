@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sohana — Client Portfolios</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0 }
+        :root {
+            --bg-primary: #07111D;
+            --bg-card: #111C2D;
+            --bg-card2: #17263A;
+            --bg-card3: #1E3150;
+            --gold: #D4AF37;
+            --gold-dim: rgba(212, 175, 55, .10);
+            --gold-bdr: rgba(212, 175, 55, .20);
+            --positive: #28C76F;
+            --positive-dim: rgba(40, 199, 111, .10);
+            --negative: #EA5455;
+            --negative-dim: rgba(234, 84, 85, .10);
+            --warning: #FF9F43;
+            --text-primary: #F8F9FA;
+            --text-muted: #8E9AAF;
+            --text-dim: #6B7A93;
+            --border: rgba(255, 255, 255, .08);
+            --border-strong: rgba(255, 255, 255, .16);
+        }
+        html, body { background: var(--bg-primary); color: var(--text-primary); font-family: 'Inter', -apple-system, sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; }
+        body { padding-bottom: 3rem }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem }
+        .mono { font-family: 'IBM Plex Mono', monospace }
+
+        .page-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap }
+        .page-hdr h1 { font-size: 1.75rem; font-weight: 600; letter-spacing: -.02em; margin-bottom: .35rem }
+        .page-hdr h1 span { color: var(--gold) }
+        .page-hdr p { color: var(--text-muted); font-size: .92rem; max-width: 620px }
+
+        .btn { padding: .65rem 1.15rem; border-radius: 8px; font-family: inherit; font-weight: 600; font-size: .85rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: .5rem; border: none; transition: all .15s; }
+        .btn-primary { background: var(--gold); color: var(--bg-primary) }
+        .btn-primary:hover { background: #E5C557 }
+        .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-strong) }
+        .btn-ghost:hover { color: var(--text-primary); border-color: var(--gold-bdr) }
+        .btn-danger { background: var(--negative-dim); color: var(--negative); border: 1px solid rgba(234,84,85,.3) }
+        .btn-danger:hover { background: rgba(234,84,85,.18) }
+        .btn-sm { padding: .4rem .75rem; font-size: .78rem }
+
+        /* KPI strip at top */
+        .kpi-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem }
+        .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem }
+        .kpi .l { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem }
+        .kpi .v { font-family: 'IBM Plex Mono', monospace; font-size: 1.5rem; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary) }
+        .kpi .v.gold { color: var(--gold) }
+        .kpi .v.pos { color: var(--positive) }
+        .kpi .v.neg { color: var(--negative) }
+        .kpi .s { font-size: .72rem; color: var(--text-dim); margin-top: .3rem }
+
+        /* Portfolio grid */
+        .pf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.15rem }
+        .pf-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; cursor: pointer; transition: all .2s; position: relative; overflow: hidden }
+        .pf-card:hover { border-color: var(--gold-bdr); transform: translateY(-2px); box-shadow: 0 20px 40px -20px rgba(0,0,0,.6) }
+        .pf-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.15rem }
+        .pf-card .client { font-size: 1.05rem; font-weight: 600; color: var(--text-primary); letter-spacing: -.01em; margin-bottom: .25rem }
+        .pf-card .email { font-size: .8rem; color: var(--text-muted) }
+        .pf-card .risk-pill { padding: .25rem .65rem; border-radius: 99px; font-family: 'IBM Plex Mono', monospace; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 600 }
+        .pf-card .risk-pill.conservative { background: rgba(103, 232, 249, .12); color: #67E8F9 }
+        .pf-card .risk-pill.moderate { background: var(--gold-dim); color: var(--gold) }
+        .pf-card .risk-pill.growth { background: var(--positive-dim); color: var(--positive) }
+        .pf-card .risk-pill.aggressive { background: var(--negative-dim); color: var(--negative) }
+        .pf-card .cap-row { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .8rem }
+        .pf-card .cap-row .val { font-family: 'IBM Plex Mono', monospace; font-size: 1.75rem; font-weight: 600; letter-spacing: -.02em; color: var(--text-primary) }
+        .pf-card .cap-row .cur { font-family: 'IBM Plex Mono', monospace; font-size: .82rem; color: var(--text-muted); font-weight: 500 }
+        .pf-card .return-row { display: flex; justify-content: space-between; padding: .7rem 0; border-top: 1px solid var(--border); font-size: .8rem }
+        .pf-card .return-row .k { color: var(--text-muted) }
+        .pf-card .return-row .v { font-family: 'IBM Plex Mono', monospace; font-weight: 600 }
+        .pf-card .return-row .v.pos { color: var(--positive) }
+        .pf-card .return-row .v.neg { color: var(--negative) }
+        .pf-card .mini-chart { margin: 1rem 0 0; height: 44px; opacity: .85 }
+        .pf-card .mini-chart svg { width: 100%; height: 100% }
+        .pf-card .actions { display: flex; gap: .5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border) }
+
+        .empty-state { text-align: center; padding: 4rem 1.5rem; background: var(--bg-card); border: 1px dashed var(--border-strong); border-radius: 14px; margin-top: 2rem }
+        .empty-state .ico { font-size: 2.5rem; color: var(--gold); opacity: .6; margin-bottom: 1rem }
+        .empty-state h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: .5rem }
+        .empty-state p { color: var(--text-muted); max-width: 460px; margin: 0 auto 1.5rem }
+
+        /* Modal */
+        .modal-backdrop { position: fixed; inset: 0; background: rgba(7, 17, 29, .85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 2rem 1rem; backdrop-filter: blur(6px); overflow-y: auto }
+        .modal-backdrop.open { display: flex }
+        .modal { background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: 16px; max-width: 640px; width: 100%; padding: 2rem; max-height: calc(100vh - 4rem); overflow-y: auto; margin: auto }
+        .modal-hdr { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem }
+        .modal-hdr h2 { font-size: 1.2rem; font-weight: 600 }
+        .modal-hdr .close { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.3rem; padding: 0; line-height: 1 }
+        .modal-hdr .close:hover { color: var(--text-primary) }
+
+        .form-row { margin-bottom: 1.15rem }
+        .form-row label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .5rem }
+        .form-row input, .form-row select, .form-row textarea { width: 100%; padding: .75rem 1rem; background: var(--bg-primary); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text-primary); font-family: inherit; font-size: .9rem; outline: none; transition: border-color .15s }
+        .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--gold) }
+        .form-row textarea { min-height: 80px; resize: vertical; font-family: 'IBM Plex Sans', sans-serif }
+        .form-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem }
+        @media(max-width:520px){ .form-two { grid-template-columns: 1fr } }
+        .form-hint { font-size: .75rem; color: var(--text-dim); margin-top: .35rem }
+
+        .risk-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: .5rem }
+        .risk-choice { padding: .8rem; background: var(--bg-primary); border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; transition: all .15s; text-align: left }
+        .risk-choice:hover { border-color: var(--border-strong) }
+        .risk-choice.selected { border-color: var(--gold); background: var(--gold-dim) }
+        .risk-choice .rc-name { font-weight: 600; font-size: .85rem; margin-bottom: .2rem }
+        .risk-choice .rc-meta { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--text-muted); letter-spacing: .04em }
+        .risk-choice.selected .rc-meta { color: var(--gold) }
+
+        .form-actions { display: flex; justify-content: flex-end; gap: .65rem; padding-top: 1rem; border-top: 1px solid var(--border); margin-top: 1.5rem }
+
+        /* Detail view */
+        .detail-hdr { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 2rem; margin-bottom: 1.5rem }
+        .detail-hdr-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1.5rem }
+        .detail-hdr h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -.02em; margin-bottom: .25rem }
+        .detail-hdr .sub { color: var(--text-muted); font-size: .9rem }
+        .detail-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.25rem; padding-top: 1.5rem; border-top: 1px solid var(--border) }
+        .dm .lbl { font-family: 'IBM Plex Mono', monospace; font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem }
+        .dm .val { font-family: 'IBM Plex Mono', monospace; font-size: 1.35rem; font-weight: 600; letter-spacing: -.02em }
+        .dm .val.gold { color: var(--gold) } .dm .val.pos { color: var(--positive) } .dm .val.neg { color: var(--negative) }
+
+        .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem }
+        @media(max-width:900px){ .detail-grid { grid-template-columns: 1fr } }
+        .panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem }
+        .panel h3 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center }
+        .panel h3 .badge { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; padding: .2rem .55rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 99px; color: var(--text-muted); letter-spacing: .04em; font-weight: 500 }
+
+        .chart-large-wrap { height: 320px; margin: 1rem 0 }
+        .chart-large-wrap svg { width: 100%; height: 100% }
+
+        .holdings-table { width: 100%; border-collapse: collapse; margin-top: .5rem; font-size: .85rem }
+        .holdings-table th { font-family: 'IBM Plex Mono', monospace; font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; text-align: left; padding: .6rem .5rem; border-bottom: 1px solid var(--border) }
+        .holdings-table td { padding: .7rem .5rem; border-bottom: 1px solid rgba(255,255,255,.04) }
+        .holdings-table .asset-class { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--text-muted); letter-spacing: .04em; text-transform: uppercase }
+        .holdings-table .alloc { font-family: 'IBM Plex Mono', monospace; font-weight: 600; text-align: right; color: var(--gold) }
+        .holdings-table .del-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: .3rem; font-size: 1rem }
+        .holdings-table .del-btn:hover { color: var(--negative) }
+        .holdings-table tr:last-child td { border-bottom: none }
+
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--bg-card2); border: 1px solid var(--gold-bdr); border-radius: 8px; padding: .85rem 1.15rem; font-size: .85rem; color: var(--text-primary); box-shadow: 0 20px 40px -10px rgba(0,0,0,.6); z-index: 3000; opacity: 0; transform: translateY(20px); transition: all .3s; max-width: 340px }
+        .toast.show { opacity: 1; transform: translateY(0) }
+        .toast.error { border-color: rgba(234,84,85,.4) }
+
+        .loading { text-align: center; padding: 3rem; color: var(--text-muted) }
+        .breadcrumb { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.25rem; font-size: .82rem; color: var(--text-muted) }
+        .breadcrumb a { color: var(--gold); text-decoration: none }
+        .breadcrumb a:hover { text-decoration: underline }
+    </style>
+</head>
+<body>
+<!-- NAV BAR (same style as other Finance Suite pages, embedded inline) -->
+<style>
+.fs-nav{position:sticky;top:0;z-index:1000;background:#07111D;border-bottom:1px solid rgba(212,175,55,.25);padding:.65rem 1.5rem;display:flex;align-items:center;gap:1.5rem;font-family:'Inter',-apple-system,sans-serif;flex-wrap:wrap}
+.fs-nav-brand{display:flex;align-items:center;gap:.55rem;color:#D4AF37;font-weight:700;font-size:.88rem;letter-spacing:.02em;text-decoration:none;transition:opacity .15s}
+.fs-nav-brand:hover{opacity:.85}
+.fs-nav-mark{width:24px;height:24px;border-radius:6px;background:#D4AF37;color:#07111D;display:grid;place-items:center;font-weight:800;font-size:.72rem;font-family:'IBM Plex Mono',monospace}
+.fs-nav-divider{width:1px;height:20px;background:rgba(255,255,255,.1)}
+.fs-nav-links{display:flex;gap:.4rem;flex:1;flex-wrap:wrap}
+.fs-nav-link{padding:.45rem .9rem;color:#8E9AAF;border-radius:8px;text-decoration:none;font-size:.82rem;font-weight:500;transition:all .15s;border:1px solid transparent;display:inline-flex;align-items:center;gap:.4rem}
+.fs-nav-link:hover{color:#F8F9FA;background:rgba(255,255,255,.04)}
+.fs-nav-link.active{color:#D4AF37;background:rgba(212,175,55,.1);border-color:rgba(212,175,55,.3)}
+.fs-nav-link .fs-nav-ico{font-size:.9rem;opacity:.85}
+.fs-nav-exit{color:#8E9AAF;text-decoration:none;font-size:.75rem;padding:.4rem .8rem;border:1px solid rgba(255,255,255,.1);border-radius:8px;transition:all .15s;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em}
+.fs-nav-exit:hover{color:#F8F9FA;border-color:rgba(255,255,255,.25)}
+@media(max-width:700px){.fs-nav{padding:.6rem 1rem;gap:.75rem}.fs-nav-divider,.fs-nav-exit{display:none}.fs-nav-link{padding:.4rem .65rem;font-size:.75rem}}
+</style>
+<nav class="fs-nav" role="navigation" aria-label="Finance Suite">
+  <a href="/admin/finance/treasury" class="fs-nav-brand">
+    <span class="fs-nav-mark">$</span>
+    <span>Finance Suite</span>
+  </a>
+  <div class="fs-nav-divider" aria-hidden="true"></div>
+  <div class="fs-nav-links">
+    <a href="/admin/finance/treasury"    class="fs-nav-link"><span class="fs-nav-ico">◈</span> Treasury Engine</a>
+    <a href="/admin/finance/micro-mutual" class="fs-nav-link"><span class="fs-nav-ico">◇</span> Micro Mutual</a>
+    <a href="/admin/finance/portfolios"   class="fs-nav-link active"><span class="fs-nav-ico">⬢</span> Client Portfolios</a>
+  </div>
+  <a href="/admin/dashboard" class="fs-nav-exit">← Admin</a>
+</nav>
+
+<div class="container">
+
+  <!-- LIST VIEW -->
+  <div id="listView">
+    <div class="page-hdr">
+      <div>
+        <h1>Client <span>Portfolios</span></h1>
+        <p>Create and manage simulated investment portfolios for clients. Growth is modelled from the selected risk profile using seeded random walks — reproducible per portfolio, refreshable at any time.</p>
+      </div>
+      <button class="btn btn-primary" onclick="openCreateModal()">
+        <span style="font-size:1.1rem;line-height:1">+</span> New portfolio
+      </button>
+    </div>
+
+    <div class="kpi-strip" id="kpiStrip">
+      <div class="kpi"><div class="l">Portfolios</div><div class="v gold" id="kpiCount">—</div><div class="s">Active client accounts</div></div>
+      <div class="kpi"><div class="l">Total AUM</div><div class="v" id="kpiAum">—</div><div class="s">Sum of current values (USD)</div></div>
+      <div class="kpi"><div class="l">Total capital deployed</div><div class="v" id="kpiCapital">—</div><div class="s">Sum of initial capital</div></div>
+      <div class="kpi"><div class="l">Avg return</div><div class="v" id="kpiReturn">—</div><div class="s">Weighted by capital</div></div>
+    </div>
+
+    <div id="portfolioGrid" class="pf-grid">
+      <div class="loading">Loading portfolios…</div>
+    </div>
+  </div>
+
+  <!-- DETAIL VIEW -->
+  <div id="detailView" style="display:none">
+    <div class="breadcrumb">
+      <a href="#" onclick="showList();return false">← All portfolios</a>
+      <span>/</span>
+      <span id="dCrumbName">—</span>
+    </div>
+
+    <div class="detail-hdr">
+      <div class="detail-hdr-top">
+        <div>
+          <h2 id="dName">—</h2>
+          <div class="sub" id="dSub">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="refreshPortfolio()">↻ Refresh</button>
+          <button class="btn btn-ghost btn-sm" onclick="openEditModal()">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePortfolio()">Delete</button>
+        </div>
+      </div>
+      <div class="detail-metrics">
+        <div class="dm"><div class="lbl">Current value</div><div class="val gold" id="dValue">—</div></div>
+        <div class="dm"><div class="lbl">Initial capital</div><div class="val" id="dInitial">—</div></div>
+        <div class="dm"><div class="lbl">Total return</div><div class="val" id="dReturn">—</div></div>
+        <div class="dm"><div class="lbl">Risk profile</div><div class="val" id="dRisk">—</div></div>
+        <div class="dm"><div class="lbl">Time horizon</div><div class="val" id="dHorizon">—</div></div>
+        <div class="dm"><div class="lbl">Target return</div><div class="val" id="dTarget">—</div></div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="panel">
+        <h3>Performance history <span class="badge" id="dSnapCount">—</span></h3>
+        <div class="chart-large-wrap"><svg id="dChart" viewBox="0 0 800 320" preserveAspectRatio="none"></svg></div>
+      </div>
+
+      <div class="panel">
+        <h3>Holdings <button class="btn btn-ghost btn-sm" onclick="openAddHoldingModal()" style="padding:.35rem .75rem;font-size:.75rem">+ Add</button></h3>
+        <table class="holdings-table" id="dHoldings"><tbody></tbody></table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:1.5rem" id="dNotesPanel">
+      <h3>Notes</h3>
+      <p id="dNotes" style="color:var(--text-muted);font-size:.9rem;line-height:1.65;white-space:pre-wrap">—</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- CREATE / EDIT MODAL -->
+<div class="modal-backdrop" id="createModal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h2 id="createTitle">New client portfolio</h2>
+      <button class="close" onclick="closeCreateModal()" aria-label="Close">✕</button>
+    </div>
+    <form id="createForm" onsubmit="submitPortfolio(event)">
+      <div class="form-row">
+        <label>Client name *</label>
+        <input type="text" id="fClientName" required maxlength="120" placeholder="Aïcha Diallo">
+      </div>
+      <div class="form-two">
+        <div class="form-row"><label>Client email</label><input type="email" id="fClientEmail" maxlength="180" placeholder="aicha@example.com"></div>
+        <div class="form-row"><label>Currency</label><select id="fCurrency"><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="XAF">XAF</option><option value="GHC">GHC</option><option value="NGN">NGN</option><option value="ZAR">ZAR</option></select></div>
+      </div>
+      <div class="form-two">
+        <div class="form-row"><label>Initial capital *</label><input type="number" id="fCapital" required min="1" step="100" value="50000"></div>
+        <div class="form-row"><label>Backdate (days)</label><input type="number" id="fBackdate" min="0" max="730" value="90"><div class="form-hint">Portfolio start date to simulate growth from</div></div>
+      </div>
+      <div class="form-row">
+        <label>Risk profile *</label>
+        <div class="risk-cards" id="riskCards"></div>
+        <input type="hidden" id="fRisk" value="moderate">
+      </div>
+      <div class="form-two">
+        <div class="form-row"><label>Target return %</label><input type="number" id="fTarget" min="0" max="100" step=".5" value="8"></div>
+        <div class="form-row"><label>Time horizon (years)</label><input type="number" id="fHorizon" min="1" max="50" value="5"></div>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="fNotes" maxlength="1000" placeholder="Investment strategy, client preferences, meeting notes…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeCreateModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="createSubmitBtn">Create portfolio</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADD HOLDING MODAL -->
+<div class="modal-backdrop" id="holdingModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <h2>Add holding</h2>
+      <button class="close" onclick="closeHoldingModal()">✕</button>
+    </div>
+    <form onsubmit="submitHolding(event)">
+      <div class="form-row"><label>Asset class *</label><input type="text" id="hClass" required maxlength="60" placeholder="Equities · Bonds · Gold · Real Estate"></div>
+      <div class="form-row"><label>Asset name *</label><input type="text" id="hName" required maxlength="120" placeholder="e.g. Pan-African Blue Chip Index"></div>
+      <div class="form-row"><label>Allocation % *</label><input type="number" id="hAlloc" required min=".01" max="100" step=".1" placeholder="15.5"></div>
+      <div class="form-row"><label>Notes</label><input type="text" id="hNotes" maxlength="240"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeHoldingModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add holding</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   Client Portfolios · v8.0 · frontend
+   Full CRUD wired to /api/finance/portfolios and helpers.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+let PORTFOLIOS = [];
+let CURRENT = null;   // currently open portfolio
+let RISK_PROFILES = {};
+let editingId = null; // if editing, hold portfolio id
+
+const CURR_SYMBOL = { USD:'$', EUR:'€', GBP:'£', XAF:'Fr', GHC:'₵', NGN:'₦', ZAR:'R', CAD:'C$' };
+
+function fmt(v, dp=2) { if(v==null||isNaN(v))return'—'; return Number(v).toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp}); }
+function fmtMoney(cents, cur){ return (CURR_SYMBOL[cur]||'$') + fmt((cents||0)/100, 0); }
+function toast(msg, isError){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+async function apiGet(url) {
+  const r = await fetch(url);
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok || d.error) throw new Error(d.error || 'Request failed');
+  return d;
+}
+async function apiSend(url, method, body) {
+  const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(()=>({}));
+  if (!r.ok || d.error) throw new Error(d.error || 'Request failed');
+  return d;
+}
+
+async function loadRiskProfiles() {
+  try {
+    const d = await apiGet('/api/finance/risk-profiles');
+    RISK_PROFILES = d.profiles;
+    renderRiskCards();
+  } catch (e) { console.error(e); }
+}
+
+function renderRiskCards() {
+  const container = document.getElementById('riskCards');
+  const selected  = document.getElementById('fRisk').value;
+  container.innerHTML = Object.entries(RISK_PROFILES).map(([key, p]) => `
+    <button type="button" class="risk-choice ${selected===key?'selected':''}" onclick="selectRisk('${key}')">
+      <div class="rc-name">${p.label}</div>
+      <div class="rc-meta">${p.annual_return_pct.toFixed(1)}% · vol ${p.annual_volatility.toFixed(0)}%</div>
+    </button>
+  `).join('');
+}
+function selectRisk(key) {
+  document.getElementById('fRisk').value = key;
+  renderRiskCards();
+}
+
+/* ═══════════════════════ LIST VIEW ═══════════════════════ */
+
+async function loadPortfolios() {
+  try {
+    const d = await apiGet('/api/finance/portfolios');
+    PORTFOLIOS = d.portfolios;
+    renderList();
+  } catch (e) {
+    toast('Failed to load portfolios: ' + e.message, true);
+    document.getElementById('portfolioGrid').innerHTML = '<div class="loading">Failed to load. <a href="#" onclick="loadPortfolios();return false" style="color:var(--gold)">Retry</a></div>';
+  }
+}
+
+function renderList() {
+  const grid = document.getElementById('portfolioGrid');
+  const kpiCount = document.getElementById('kpiCount');
+  const kpiAum = document.getElementById('kpiAum');
+  const kpiCapital = document.getElementById('kpiCapital');
+  const kpiReturn = document.getElementById('kpiReturn');
+
+  if (PORTFOLIOS.length === 0) {
+    kpiCount.textContent = '0';
+    kpiAum.textContent = '$0';
+    kpiCapital.textContent = '$0';
+    kpiReturn.textContent = '—';
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="ico">⬢</div>
+        <h3>No portfolios yet</h3>
+        <p>Create a portfolio to start tracking simulated performance for a client. Default holdings are pre-populated per risk profile; you can edit them after creation.</p>
+        <button class="btn btn-primary" onclick="openCreateModal()"><span style="font-size:1.1rem">+</span> Create your first portfolio</button>
+      </div>`;
+    return;
+  }
+
+  // KPI aggregation
+  let totalCapital = 0, totalCurrent = 0;
+  PORTFOLIOS.forEach(p => {
+    totalCapital += p.initial_capital_cents;
+    totalCurrent += p.current_value_cents;
+  });
+  const weightedReturn = totalCapital > 0 ? ((totalCurrent / totalCapital - 1) * 100) : 0;
+
+  kpiCount.textContent = PORTFOLIOS.length;
+  kpiAum.textContent = '$' + fmt(totalCurrent / 100, 0);
+  kpiCapital.textContent = '$' + fmt(totalCapital / 100, 0);
+  kpiReturn.textContent = (weightedReturn >= 0 ? '+' : '') + weightedReturn.toFixed(2) + '%';
+  kpiReturn.className = 'v ' + (weightedReturn >= 0 ? 'pos' : 'neg');
+
+  grid.innerHTML = PORTFOLIOS.map(p => {
+    const ret = Number(p.return_pct || 0);
+    const retClass = ret >= 0 ? 'pos' : 'neg';
+    return `
+      <div class="pf-card" onclick="openDetail('${p.id}')">
+        <div class="pf-card-top">
+          <div>
+            <div class="client">${escapeHtml(p.client_name)}</div>
+            <div class="email">${p.client_email ? escapeHtml(p.client_email) : '<span style="color:var(--text-dim)">No email</span>'}</div>
+          </div>
+          <span class="risk-pill ${p.risk_profile}">${p.risk_profile}</span>
+        </div>
+        <div class="cap-row">
+          <div class="val">${fmtMoney(p.current_value_cents, p.currency)}</div>
+          <div class="cur">${p.currency}</div>
+        </div>
+        <div class="mini-chart">${miniSpark(p.id)}</div>
+        <div class="return-row">
+          <span class="k">Initial capital</span>
+          <span class="v">${fmtMoney(p.initial_capital_cents, p.currency)}</span>
+        </div>
+        <div class="return-row">
+          <span class="k">Total return</span>
+          <span class="v ${retClass}">${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%</span>
+        </div>
+        <div class="return-row">
+          <span class="k">Target</span>
+          <span class="v" style="color:var(--text-muted)">${p.target_return_pct.toFixed(1)}% · ${p.time_horizon_years}y</span>
+        </div>
+        <div class="actions" onclick="event.stopPropagation()">
+          <button class="btn btn-ghost btn-sm" onclick="openDetail('${p.id}')">View</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePortfolioFromCard('${p.id}','${escapeHtml(p.client_name).replace(/'/g,"\\\\'")}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function miniSpark(pid) {
+  // Small SVG placeholder — real spark loaded on detail view. For list, we draw a stub.
+  // If we cached snapshots elsewhere we could draw more; for now a subtle motif.
+  return '<svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0,32 Q40,28 60,22 T120,14 T200,8" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity=".6"/><path d="M0,32 Q40,28 60,22 T120,14 T200,8 L200,40 L0,40 Z" fill="url(#g)" opacity=".2"/><defs><linearGradient id="g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#D4AF37"/><stop offset="1" stop-color="#D4AF37" stop-opacity="0"/></linearGradient></defs></svg>';
+}
+
+/* ═══════════════════════ CREATE / EDIT ═══════════════════════ */
+
+function openCreateModal() {
+  editingId = null;
+  document.getElementById('createTitle').textContent = 'New client portfolio';
+  document.getElementById('createForm').reset();
+  document.getElementById('fCapital').value = '50000';
+  document.getElementById('fBackdate').value = '90';
+  document.getElementById('fTarget').value = '8';
+  document.getElementById('fHorizon').value = '5';
+  document.getElementById('fRisk').value = 'moderate';
+  document.getElementById('createSubmitBtn').textContent = 'Create portfolio';
+  // Show backdate + capital + currency + risk fields (only shown on create)
+  ['fCapital','fBackdate','fCurrency'].forEach(id => document.getElementById(id).closest('.form-row').style.display = '');
+  document.getElementById('riskCards').closest('.form-row').style.display = '';
+  renderRiskCards();
+  document.getElementById('createModal').classList.add('open');
+}
+function closeCreateModal() { document.getElementById('createModal').classList.remove('open'); }
+
+function openEditModal() {
+  if (!CURRENT) return;
+  editingId = CURRENT.id;
+  document.getElementById('createTitle').textContent = 'Edit portfolio';
+  document.getElementById('fClientName').value = CURRENT.client_name || '';
+  document.getElementById('fClientEmail').value = CURRENT.client_email || '';
+  document.getElementById('fTarget').value = CURRENT.target_return_pct;
+  document.getElementById('fHorizon').value = CURRENT.time_horizon_years;
+  document.getElementById('fNotes').value = CURRENT.notes || '';
+  // Hide fields that can't change after creation
+  ['fCapital','fBackdate','fCurrency'].forEach(id => document.getElementById(id).closest('.form-row').style.display = 'none');
+  document.getElementById('riskCards').closest('.form-row').style.display = 'none';
+  document.getElementById('createSubmitBtn').textContent = 'Save changes';
+  document.getElementById('createModal').classList.add('open');
+}
+
+async function submitPortfolio(e) {
+  e.preventDefault();
+  const btn = document.getElementById('createSubmitBtn');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = 'Saving…';
+  try {
+    if (editingId) {
+      const payload = {
+        client_name:        document.getElementById('fClientName').value.trim(),
+        client_email:       document.getElementById('fClientEmail').value.trim(),
+        target_return_pct:  parseFloat(document.getElementById('fTarget').value),
+        time_horizon_years: parseInt(document.getElementById('fHorizon').value),
+        notes:              document.getElementById('fNotes').value.trim(),
+      };
+      await apiSend('/api/finance/portfolios/' + editingId, 'PUT', payload);
+      toast('Portfolio updated');
+      closeCreateModal();
+      await openDetail(editingId);
+      await loadPortfolios();
+    } else {
+      const payload = {
+        client_name:        document.getElementById('fClientName').value.trim(),
+        client_email:       document.getElementById('fClientEmail').value.trim(),
+        currency:           document.getElementById('fCurrency').value,
+        initial_capital:    parseFloat(document.getElementById('fCapital').value),
+        backdate_days:      parseInt(document.getElementById('fBackdate').value) || 0,
+        risk_profile:       document.getElementById('fRisk').value,
+        target_return_pct:  parseFloat(document.getElementById('fTarget').value),
+        time_horizon_years: parseInt(document.getElementById('fHorizon').value),
+        notes:              document.getElementById('fNotes').value.trim(),
+      };
+      const d = await apiSend('/api/finance/portfolios', 'POST', payload);
+      toast('Portfolio created');
+      closeCreateModal();
+      await loadPortfolios();
+      if (d.portfolio_id) await openDetail(d.portfolio_id);
+    }
+  } catch (err) {
+    toast('Save failed: ' + err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = originalText;
+  }
+}
+
+async function deletePortfolioFromCard(pid, name) {
+  if (!confirm(`Delete portfolio for ${name}?\n\nHoldings and historical snapshots will be preserved for audit but the portfolio will no longer appear.`)) return;
+  try {
+    await apiSend('/api/finance/portfolios/' + pid, 'DELETE');
+    toast('Portfolio deleted');
+    await loadPortfolios();
+  } catch (e) { toast('Delete failed: ' + e.message, true); }
+}
+
+async function deletePortfolio() {
+  if (!CURRENT) return;
+  if (!confirm(`Delete portfolio for ${CURRENT.client_name}?\n\nThis is a soft delete — history is preserved.`)) return;
+  try {
+    await apiSend('/api/finance/portfolios/' + CURRENT.id, 'DELETE');
+    toast('Portfolio deleted');
+    showList();
+    await loadPortfolios();
+  } catch (e) { toast('Delete failed: ' + e.message, true); }
+}
+
+/* ═══════════════════════ DETAIL VIEW ═══════════════════════ */
+
+async function openDetail(pid) {
+  document.getElementById('listView').style.display = 'none';
+  document.getElementById('detailView').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  try {
+    const d = await apiGet('/api/finance/portfolios/' + pid);
+    CURRENT = d.portfolio;
+    renderDetail(CURRENT);
+  } catch (e) {
+    toast('Failed to load portfolio: ' + e.message, true);
+    showList();
+  }
+}
+
+function showList() {
+  CURRENT = null;
+  document.getElementById('listView').style.display = '';
+  document.getElementById('detailView').style.display = 'none';
+}
+
+function renderDetail(p) {
+  document.getElementById('dCrumbName').textContent = p.client_name;
+  document.getElementById('dName').textContent = p.client_name;
+  const sub = [p.client_email, `${p.currency} portfolio`, `Advisor: ${p.advisor_id === '{{ session.user_id }}' ? 'You' : p.advisor_id.substring(0,8) + '…'}`].filter(Boolean).join(' · ');
+  document.getElementById('dSub').textContent = sub;
+
+  document.getElementById('dValue').textContent = fmtMoney(p.current_value_cents, p.currency);
+  document.getElementById('dInitial').textContent = fmtMoney(p.initial_capital_cents, p.currency);
+  const ret = Number(p.return_pct || 0);
+  const dr = document.getElementById('dReturn');
+  dr.textContent = (ret >= 0 ? '+' : '') + ret.toFixed(2) + '%';
+  dr.className = 'val ' + (ret >= 0 ? 'pos' : 'neg');
+  document.getElementById('dRisk').textContent = p.risk_label || p.risk_profile;
+  document.getElementById('dHorizon').textContent = p.time_horizon_years + 'y';
+  document.getElementById('dTarget').textContent = p.target_return_pct.toFixed(1) + '%';
+  document.getElementById('dSnapCount').textContent = (p.snapshots || []).length + ' snapshots';
+  document.getElementById('dNotes').textContent = p.notes || '— No notes yet —';
+
+  renderChart(p.snapshots || [], p.initial_capital_cents, p.currency);
+  renderHoldings(p.holdings || []);
+}
+
+function renderChart(snapshots, initialCents, currency) {
+  const svg = document.getElementById('dChart');
+  if (snapshots.length === 0) {
+    svg.innerHTML = '<text x="400" y="160" text-anchor="middle" fill="#6B7A93" font-family="Inter" font-size="14">No snapshots yet — click Refresh</text>';
+    return;
+  }
+  const w = 800, h = 320, pad = { top: 20, right: 20, bottom: 40, left: 60 };
+  const values = snapshots.map(s => s.total_value_cents);
+  const minV = Math.min(initialCents, ...values) * 0.98;
+  const maxV = Math.max(initialCents, ...values) * 1.02;
+  const xScale = i => pad.left + (i / Math.max(snapshots.length - 1, 1)) * (w - pad.left - pad.right);
+  const yScale = v => h - pad.bottom - ((v - minV) / (maxV - minV || 1)) * (h - pad.top - pad.bottom);
+
+  // Grid lines
+  let grid = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * (h - pad.top - pad.bottom);
+    const val = maxV - (i / 4) * (maxV - minV);
+    grid += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="rgba(255,255,255,.06)"/>`;
+    grid += `<text x="${pad.left - 8}" y="${y + 4}" text-anchor="end" font-family="IBM Plex Mono" font-size="10" fill="#6B7A93">${(CURR_SYMBOL[currency] || '$') + Math.round(val/100).toLocaleString()}</text>`;
+  }
+
+  // Initial capital line
+  const yInit = yScale(initialCents);
+  const initLine = `<line x1="${pad.left}" y1="${yInit}" x2="${w - pad.right}" y2="${yInit}" stroke="#8E9AAF" stroke-dasharray="4 4" opacity=".55"/>`;
+  const initLbl = `<text x="${w - pad.right - 4}" y="${yInit - 6}" text-anchor="end" font-family="IBM Plex Mono" font-size="9" fill="#8E9AAF" letter-spacing=".08em">INITIAL</text>`;
+
+  // Portfolio value path
+  const path = snapshots.map((s, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(s.total_value_cents).toFixed(1)}`).join(' ');
+  const areaPath = path + ` L${xScale(snapshots.length - 1).toFixed(1)},${h - pad.bottom} L${pad.left},${h - pad.bottom} Z`;
+
+  // End marker
+  const endX = xScale(snapshots.length - 1);
+  const endY = yScale(snapshots[snapshots.length - 1].total_value_cents);
+
+  // Time axis: first, middle, last dates
+  const dates = [0, Math.floor(snapshots.length / 2), snapshots.length - 1].map(i => ({
+    i, x: xScale(i), label: snapshots[i].snapshot_date
+  }));
+  const axis = dates.map(d => `<text x="${d.x}" y="${h - pad.bottom + 20}" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="#6B7A93">${d.label}</text>`).join('');
+
+  svg.innerHTML = `
+    <defs><linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#D4AF37" stop-opacity=".35"/><stop offset="1" stop-color="#D4AF37" stop-opacity="0"/></linearGradient></defs>
+    ${grid}
+    ${initLine}${initLbl}
+    <path d="${areaPath}" fill="url(#chartGrad)"/>
+    <path d="${path}" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${endX}" cy="${endY}" r="5" fill="#D4AF37"/>
+    <circle cx="${endX}" cy="${endY}" r="10" fill="#D4AF37" opacity=".2"/>
+    ${axis}
+  `;
+}
+
+function renderHoldings(holdings) {
+  const tbody = document.querySelector('#dHoldings tbody');
+  if (!holdings.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem">No holdings yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = holdings.map(h => `
+    <tr>
+      <td>
+        <div class="asset-class">${escapeHtml(h.asset_class)}</div>
+        <div>${escapeHtml(h.asset_name)}</div>
+      </td>
+      <td class="alloc">${h.allocation_pct.toFixed(1)}%</td>
+      <td><button class="del-btn" onclick="deleteHolding('${h.id}')" title="Remove holding">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+async function refreshPortfolio() {
+  if (!CURRENT) return;
+  toast('Refreshing snapshots…');
+  try {
+    await apiSend('/api/finance/portfolios/' + CURRENT.id + '/refresh', 'POST');
+    await openDetail(CURRENT.id);
+    toast('Snapshots updated');
+  } catch (e) { toast('Refresh failed: ' + e.message, true); }
+}
+
+/* ═══════════════════════ HOLDINGS ═══════════════════════ */
+
+function openAddHoldingModal() {
+  document.querySelectorAll('#holdingModal input').forEach(el => el.value = '');
+  document.getElementById('holdingModal').classList.add('open');
+}
+function closeHoldingModal() { document.getElementById('holdingModal').classList.remove('open'); }
+
+async function submitHolding(e) {
+  e.preventDefault();
+  if (!CURRENT) return;
+  try {
+    await apiSend(`/api/finance/portfolios/${CURRENT.id}/holdings`, 'POST', {
+      asset_class: document.getElementById('hClass').value.trim(),
+      asset_name:  document.getElementById('hName').value.trim(),
+      allocation_pct: parseFloat(document.getElementById('hAlloc').value),
+      notes: document.getElementById('hNotes').value.trim(),
+    });
+    toast('Holding added');
+    closeHoldingModal();
+    await openDetail(CURRENT.id);
+  } catch (err) { toast('Failed: ' + err.message, true); }
+}
+
+async function deleteHolding(hid) {
+  if (!confirm('Remove this holding?')) return;
+  try {
+    await apiSend('/api/finance/holdings/' + hid, 'DELETE');
+    toast('Holding removed');
+    await openDetail(CURRENT.id);
+  } catch (e) { toast('Failed: ' + e.message, true); }
+}
+
+/* ═══════════════════════ UTIL ═══════════════════════ */
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+// Escape closes modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+});
+
+/* Kick off */
+(async () => {
+  await loadRiskProfiles();
+  await loadPortfolios();
+})();
+</script>
+</body>
+</html>
