@@ -1345,6 +1345,103 @@ def _blog_media_url(media_id: str) -> str:
     return f"/media/blog/{media_id}"
 
 
+# ── CAMPAIGN MEDIA (cover + profile photo) ────────────────────────────────────
+CAMPAIGN_MEDIA_DIR = os.environ.get(
+    "CAMPAIGN_MEDIA_DIR",
+    os.path.join(os.path.dirname(__file__), "campaign_media")
+)
+try:
+    os.makedirs(CAMPAIGN_MEDIA_DIR, exist_ok=True)
+except Exception as _e:
+    import sys
+    print(f"[campaign] failed to create media dir: {_e}", file=sys.stderr, flush=True)
+
+
+def _save_campaign_media_file(file_storage, media_id: str, ext: str) -> str:
+    """Persist an uploaded campaign image; return storage_path relative to
+    CAMPAIGN_MEDIA_DIR. Organised YYYY/MM. Swap this body for S3 later."""
+    from datetime import datetime as _dt
+    now     = _dt.utcnow()
+    rel_dir = f"{now.year:04d}/{now.month:02d}"
+    abs_dir = os.path.join(CAMPAIGN_MEDIA_DIR, rel_dir)
+    os.makedirs(abs_dir, exist_ok=True)
+    filename = f"{media_id}.{ext}"
+    file_storage.save(os.path.join(abs_dir, filename))
+    return f"{rel_dir}/{filename}"
+
+
+@app.route("/media/campaign/<media_id>")
+def serve_campaign_media(media_id):
+    """Public — serves a stored campaign image."""
+    row = fetchone("SELECT storage_path, mime_type FROM campaign_media WHERE id=?", (media_id,))
+    if not row:
+        return ("", 404)
+    row  = dict(row)
+    full = os.path.join(CAMPAIGN_MEDIA_DIR, row["storage_path"])
+    if not os.path.exists(full):
+        return ("", 404)
+    from flask import send_file
+    return send_file(full, mimetype=row["mime_type"], max_age=86400)
+
+
+@app.route("/api/campaigns/<campaign_id>/media", methods=["POST"])
+@auth.login_required
+def api_campaign_media_upload(campaign_id):
+    """Creator-only: upload a cover or profile photo for a campaign.
+    Body: multipart/form-data with `file` and `kind` in {cover, avatar}."""
+    c = fetchone("SELECT creator_id FROM campaigns WHERE id=?", (campaign_id,))
+    if not c:
+        return jsonify({"error": "Campaign not found."}), 404
+    if dict(c)["creator_id"] != session.get("user_id"):
+        return jsonify({"error": "Only the campaign creator can do this."}), 403
+
+    kind = (request.form.get("kind") or "cover").lower()
+    if kind not in ("cover", "avatar"):
+        kind = "cover"
+
+    upload = request.files.get("file")
+    if not upload or not upload.filename:
+        return jsonify({"error": "No image selected."}), 400
+
+    orig = upload.filename
+    ext  = orig.rsplit(".", 1)[-1].lower() if "." in orig else ""
+    if ext == "jpg":
+        ext = "jpeg"
+    if ext not in ALLOWED_BLOG_MEDIA_EXTS:
+        return jsonify({"error": "Unsupported format. Use JPG, PNG, WEBP or GIF."}), 400
+
+    upload.seek(0, 2); size = upload.tell(); upload.seek(0)
+    if size == 0:
+        return jsonify({"error": "File is empty."}), 400
+    if size > MAX_BLOG_MEDIA_BYTES:
+        return jsonify({"error": f"File too large — max {MAX_BLOG_MEDIA_BYTES // 1024 // 1024} MB."}), 400
+
+    media_id = str(uuid.uuid4())
+    mime     = upload.mimetype or f"image/{ext}"
+    try:
+        storage_path = _save_campaign_media_file(upload, media_id, ext)
+    except Exception as e:
+        import sys
+        print(f"[campaign media upload] {e}", file=sys.stderr, flush=True)
+        return jsonify({"error": "Upload failed. Please try again."}), 500
+
+    with get_db() as db:
+        db.execute(
+            """INSERT INTO campaign_media
+               (id, campaign_id, kind, original_name, file_ext, file_size,
+                mime_type, uploaded_by, storage_path)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (media_id, campaign_id, kind, orig, ext, size, mime,
+             session.get("user_id"), storage_path)
+        )
+        col = "cover_media_id" if kind == "cover" else "avatar_media_id"
+        db.execute(f"UPDATE campaigns SET {col}=?, updated_at=datetime('now') WHERE id=?",
+                   (media_id, campaign_id))
+
+    return jsonify({"ok": True, "media_id": media_id, "kind": kind,
+                    "url": f"/media/campaign/{media_id}"})
+
+
 def _render_blog_body(md: str) -> str:
     """
     Minimal safe Markdown renderer with SOHANA-specific extensions.

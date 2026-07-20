@@ -524,6 +524,21 @@ def init_db():
     # SQLite raises an error which we silently swallow. This is the correct
     # pattern for evolving an existing SQLite schema without data loss.
     safe_migrations = [
+        # ── Campaign media: cover + profile photo (v8.3) ──
+        "ALTER TABLE campaigns ADD COLUMN cover_media_id  TEXT",
+        "ALTER TABLE campaigns ADD COLUMN avatar_media_id TEXT",
+        """CREATE TABLE IF NOT EXISTS campaign_media (
+            id            TEXT PRIMARY KEY,
+            campaign_id   TEXT REFERENCES campaigns(id),
+            kind          TEXT NOT NULL DEFAULT 'cover',
+            original_name TEXT,
+            file_ext      TEXT,
+            file_size     INTEGER,
+            mime_type     TEXT,
+            uploaded_by   TEXT,
+            storage_path  TEXT NOT NULL,
+            uploaded_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
         # Freeze controls (v4.9)
         "ALTER TABLE users ADD COLUMN freeze_deposits    INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE users ADD COLUMN freeze_withdrawals INTEGER NOT NULL DEFAULT 0",
