@@ -331,7 +331,21 @@
 
   <main class="page">{% block content %}{% endblock %}</main>
 </div>
-{% else %}{% block unauth_content %}{% endblock %}{% endif %}
+{% else %}{% block unauth_content %}
+<div class="pub-shell" style="width:100%;min-height:100vh;display:flex;flex-direction:column;">
+  <header style="height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:100;">
+    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
+      <span style="width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px;letter-spacing:-0.02em;">S</span>
+      <span style="color:var(--ink);font-weight:600;letter-spacing:-.01em;">SOHANA</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:.4rem;">
+      <a href="/campaigns" style="color:var(--ink-2);text-decoration:none;font-size:.85rem;font-weight:500;padding:.5rem .85rem;border-radius:99px;">Fundraising</a>
+      <a href="/auth" style="background:var(--accent);color:var(--accent-ink);text-decoration:none;font-size:.85rem;font-weight:600;padding:.5rem 1.1rem;border-radius:99px;">Sign in</a>
+    </div>
+  </header>
+  <main class="page" style="max-width:1180px;width:100%;margin:0 auto;">{{ self.content() }}</main>
+</div>
+{% endblock %}{% endif %}
 </div>
 
 <div class="toast" id="_toast"></div>
