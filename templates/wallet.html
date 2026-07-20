@@ -2,143 +2,232 @@
 {% block title %}Wallet — SOHANA{% endblock %}
 {% block topbar_title %}Wallet{% endblock %}
 {% block content %}
+
+<style>
+/* ── Wallet v3 — native dark forest/mint, mirrors dashboard dcard/reveal system ── */
+.w-eyebrow{font-family:'Geist Mono',monospace;font-size:.66rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);}
+.w-ser{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--accent);}
+.mono{font-family:'Geist Mono',monospace;font-variant-numeric:tabular-nums;}
+
+.w-frozen{display:flex;gap:.8rem;align-items:flex-start;background:var(--red-lt);border:1px solid rgba(255,106,85,.35);border-radius:var(--radius);padding:1rem 1.15rem;margin-bottom:1.25rem;}
+.w-frozen .rtag{font-family:'Geist Mono',monospace;font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--danger);border:1px solid rgba(255,106,85,.4);border-radius:99px;padding:.15rem .5rem;flex-shrink:0;margin-top:.1rem;}
+.w-frozen .ft{font-weight:600;color:var(--ink);margin-bottom:.25rem;font-size:.9rem;}
+.w-frozen .fb{font-size:.82rem;color:var(--ink-2);line-height:1.5;}
+.w-frozen a{color:var(--accent);font-weight:500;}
+
+.w-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1.1rem;}
+.w-head h1{font-family:'Geist',sans-serif;font-size:1.7rem;font-weight:600;letter-spacing:-.02em;color:var(--ink);margin:.15rem 0 0;}
+.w-sub{margin:.3rem 0 0;color:var(--ink-3);font-size:.86rem;}
+.w-head-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
+
+.w-abtn{font-family:'Geist',sans-serif;font-size:.82rem;font-weight:600;border:1px solid var(--line-2);background:transparent;color:var(--ink-2);border-radius:99px;padding:.5rem 1rem;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:all .15s;}
+.w-abtn:hover{color:var(--ink);border-color:var(--accent);}
+.w-abtn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.w-abtn.primary:hover{background:var(--accent-2);}
+.w-abtn.accent2{background:var(--accent-2);color:var(--accent-ink);border-color:var(--accent-2);}
+.w-abtn.sm{padding:.38rem .8rem;font-size:.76rem;}
+
+.wcard{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;transition:transform .25s cubic-bezier(.2,.7,.2,1),border-color .25s;}
+.wcard:hover{transform:translateY(-2px);border-color:var(--line-2);}
+.wcard-pad{padding:1.2rem 1.3rem;}
+
+.w-hero{display:grid;grid-template-columns:1.6fr 1fr;gap:1rem;margin-bottom:1rem;}
+.w-bal-top{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;}
+.w-bal{font-family:'Geist Mono',monospace;font-size:2.7rem;font-weight:500;line-height:1;letter-spacing:-.02em;color:var(--ink);margin:.5rem 0 .15rem;font-variant-numeric:tabular-nums;}
+.w-bal .cur{color:var(--ink-3);font-size:1.4rem;margin-right:.12rem;}
+.w-bal-meta{font-size:.78rem;color:var(--ink-3);}
+.w-bal-meta .mono,.w-bal-meta #w-total-eur{color:var(--ink-2);}
+.w-code-chip{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line);border-radius:99px;padding:.25rem .6rem;flex-shrink:0;}
+.w-spark{height:92px;margin:1rem 0 .4rem;}
+.w-spark-svg{width:100%;height:92px;display:block;}
+.w-spark-line{stroke-dasharray:100;stroke-dashoffset:100;animation:wdraw 1.2s cubic-bezier(.2,.7,.2,1) forwards;}
+.w-spark-empty,.w-donut-empty{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);display:flex;align-items:center;justify-content:center;height:92px;text-align:center;}
+.w-bal-actions{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.5rem;}
+
+.w-donut-wrap{display:flex;align-items:center;gap:1.1rem;margin-top:.7rem;}
+.w-donut{flex-shrink:0;}
+.w-donut-c1{fill:var(--ink);font-family:'Geist Mono',monospace;font-size:14px;font-weight:500;}
+.w-donut-c2{fill:var(--ink-3);font-family:'Geist Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;}
+.w-legend{display:flex;flex-direction:column;gap:.4rem;min-width:0;}
+.w-leg{display:flex;align-items:center;gap:.5rem;font-size:.78rem;}
+.w-leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.w-leg-c{font-family:'Geist Mono',monospace;color:var(--ink-2);}
+.w-leg-p{font-family:'Geist Mono',monospace;color:var(--ink-3);margin-left:auto;}
+
+.w-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;}
+.w-chip{display:flex;flex-direction:column;gap:.1rem;padding:.5rem .85rem;border-radius:12px;border:1px solid var(--line);background:var(--bg-2);text-decoration:none;transition:all .15s;cursor:pointer;}
+.w-chip:hover{border-color:var(--line-2);}
+.w-chip.on{border-color:var(--accent);background:var(--accent-lt,rgba(158,228,147,.10));}
+.w-chip-code{font-family:'Geist Mono',monospace;font-size:.7rem;font-weight:600;color:var(--ink-3);letter-spacing:.04em;}
+.w-chip.on .w-chip-code{color:var(--accent);}
+.w-chip-bal{font-family:'Geist Mono',monospace;font-size:.85rem;font-weight:500;color:var(--ink);}
+.w-chip.add{color:var(--ink-3);border-style:dashed;font-family:'Geist Mono',monospace;font-size:.76rem;align-items:center;justify-content:center;}
+.w-chip.add:hover{color:var(--accent);border-color:var(--accent);}
+
+.w-grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:.75rem;}
+.w-limit{font-family:'Geist Mono',monospace;font-size:1.25rem;font-weight:500;color:var(--ink);margin-top:.45rem;}
+.w-limit-sub{font-size:.7rem;color:var(--ink-3);margin-top:.25rem;}
+.w-fees{margin-bottom:0;}
+.w-fees-row{display:flex;flex-wrap:wrap;gap:.35rem .9rem;margin-top:.55rem;font-family:'Geist Mono',monospace;font-size:.76rem;color:var(--ink-3);}
+.w-fees-row b{color:var(--ink-2);font-weight:500;}
+
+.w-tx-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:1.1rem 1.3rem;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.w-tx-title{font-family:'Geist',sans-serif;font-size:1rem;font-weight:600;color:var(--ink);}
+.w-tx-tools{display:flex;gap:.5rem;align-items:center;}
+.w-select{font-family:'Geist',sans-serif;font-size:.78rem;color:var(--ink-2);background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:.4rem .7rem;cursor:pointer;}
+.w-tx{display:flex;align-items:center;gap:.9rem;padding:.8rem 1.3rem;border-bottom:1px solid var(--line);}
+.w-tx:last-child{border-bottom:0;}
+.w-tx-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-family:'Geist Mono',monospace;font-size:1rem;flex-shrink:0;}
+.w-tx-ic.up{background:rgba(158,228,147,.14);color:var(--accent);}
+.w-tx-ic.down{background:var(--bg-3);color:var(--ink-3);}
+.w-tx-main{flex:1;min-width:0;}
+.w-tx-desc{font-size:.9rem;color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.w-tx-sub{font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);margin-top:.15rem;}
+.w-tx-amt{font-family:'Geist Mono',monospace;font-size:.92rem;font-weight:500;flex-shrink:0;}
+.w-tx-amt.pos{color:var(--accent);}
+.w-tx-amt.neg{color:var(--ink);}
+.w-empty{padding:3rem;text-align:center;color:var(--ink-3);font-size:.85rem;}
+
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s cubic-bezier(.2,.7,.2,1);}
+.reveal.in{opacity:1;transform:none;}
+@keyframes wdraw{to{stroke-dashoffset:0;}}
+@media (prefers-reduced-motion: reduce){
+  .reveal{opacity:1;transform:none;transition:none;}
+  .w-spark-line{animation:none;stroke-dashoffset:0;}
+  .wcard:hover{transform:none;}
+}
+@media (max-width:900px){
+  .w-hero{grid-template-columns:1fr;}
+  .w-grid3{grid-template-columns:1fr;}
+}
+</style>
+
 {% if user.get('freeze_deposits') or user.get('freeze_withdrawals') %}
-<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;gap:.875rem;align-items:start;">
-  <span style="font-size:1.3rem;flex-shrink:0;">🔒</span>
+<div class="w-frozen">
+  <span class="rtag">Restricted</span>
   <div>
-    <div style="font-weight:700;color:#b91c1c;margin-bottom:.3rem;">
-      {% if user.get('freeze_deposits') and user.get('freeze_withdrawals') %}
-        Your deposits and withdrawals are currently restricted
-      {% elif user.get('freeze_deposits') %}
-        Your deposits are currently restricted
-      {% else %}
-        Your withdrawals and payments are currently restricted
-      {% endif %}
+    <div class="ft">
+      {% if user.get('freeze_deposits') and user.get('freeze_withdrawals') %}Your deposits and withdrawals are currently restricted
+      {% elif user.get('freeze_deposits') %}Your deposits are currently restricted
+      {% else %}Your withdrawals and payments are currently restricted{% endif %}
     </div>
-    <div style="font-size:.875rem;color:#7f1d1d;line-height:1.5;">
-      To resolve this, please contact our customer service team at
-      <strong>support@sohana.app</strong> or visit the
-      <a href="/blog" style="color:#b91c1c;font-weight:600;">Help Centre</a>.
-      Please reference your account phone number when you contact us.
+    <div class="fb">To resolve this, contact <strong>support@sohana.app</strong> or visit the <a href="/blog">Help Centre</a>. Please reference your account phone number.</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="w-head">
+  <div>
+    <span class="w-eyebrow">Wallet</span>
+    <h1>My <span class="w-ser">wallet</span></h1>
+    <p class="w-sub">Balances across EUR, GBP, USD, CAD, XAF, GHC, NGN and ZAR.</p>
+  </div>
+  <div class="w-head-actions">
+    <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="w-abtn ghost">Statement</a>
+    <button class="w-abtn ghost" onclick="openModal('withdraw-modal')">Withdraw</button>
+    <button class="w-abtn primary" onclick="openModal('deposit-modal')">Deposit</button>
+    <button class="w-abtn accent2" onclick="openModal('pay-modal')">Pay</button>
+  </div>
+</div>
+
+{% if active_wallet %}
+{% set cur = currencies.get(active_wallet.currency, {}) %}
+<div class="w-hero">
+  <div class="wcard wcard-pad reveal">
+    <div class="w-bal-top">
+      <div>
+        <span class="w-eyebrow">{{ cur.get('name', active_wallet.currency) }} balance</span>
+        <div class="w-bal"><span class="cur">{{ cur.get('symbol','') }}</span><span id="w-active-num" data-count="{{ '%.2f'|format(active_wallet.balance/100) }}">0.00</span></div>
+        <div class="w-bal-meta">&#8776; <span id="w-total-eur">&#8212;</span> total across <span class="mono">{{ wallets|length }}</span> {{ 'balance' if wallets|length==1 else 'balances' }}</div>
+      </div>
+      <span class="w-code-chip">{{ active_wallet.currency }}</span>
+    </div>
+    <div class="w-spark" id="w-spark"></div>
+    <div class="w-bal-actions">
+      <button class="w-abtn primary sm" onclick="openModal('deposit-modal')">Deposit</button>
+      <button class="w-abtn ghost sm" onclick="openModal('withdraw-modal')">Withdraw</button>
+      <button class="w-abtn ghost sm" onclick="openModal('pay-modal')">Pay</button>
+      {% if wallets|length > 1 %}<button class="w-abtn ghost sm" onclick="openModal('convert-modal')">Convert</button>{% endif %}
+    </div>
+  </div>
+
+  <div class="wcard wcard-pad reveal">
+    <span class="w-eyebrow">Allocation</span>
+    <div class="w-donut-wrap">
+      <div class="w-donut" id="w-donut"></div>
+      <div class="w-legend" id="w-legend"></div>
     </div>
   </div>
 </div>
 {% endif %}
 
-<div class="page-header">
-  <div><h1 class="page-title">My Wallet</h1><p class="page-subtitle">Multi-currency wallet — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR</p></div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-    <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">⬇ Statement</a>
-    <button class="btn btn-outline" onclick="openModal('withdraw-modal')">⬆ Withdraw</button>
-    <button class="btn btn-primary" onclick="openModal('deposit-modal')">⬇ Deposit</button>
-    <button class="btn btn-orange" onclick="openModal('pay-modal')">⚡ Pay</button>
-  </div>
-</div>
-
-<!-- Currency tabs (Wise-style) -->
-<div style="margin-bottom:1.25rem;">
-  <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.75rem;">
-    {% for w in wallets %}
-    {% set cur = currencies.get(w.currency, {}) %}
-    <a href="/wallet?currency={{ w.currency }}"
-      style="display:flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px solid {{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--border)' }};background:{{ 'var(--blue-lt)' if w.currency==active_wallet.currency else 'var(--white)' }};text-decoration:none;transition:all .15s;">
-      <span style="font-size:1rem;">{{ cur.get('flag','') }}</span>
-      <div>
-        <div style="font-size:.78rem;font-weight:600;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--gray-700)' }};">{{ w.currency }}</div>
-        <div style="font-size:.82rem;font-weight:700;color:{{ 'var(--blue)' if w.currency==active_wallet.currency else 'var(--navy)' }};">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(w.balance / 100).replace(',', ' ') }}</div>
-      </div>
-    </a>
-    {% endfor %}
-    {% if available_to_open %}
-    <button onclick="openModal('open-currency-modal')" style="display:flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:var(--radius-lg);border:1.5px dashed var(--border);background:none;color:var(--text-muted);cursor:pointer;font-size:.82rem;font-weight:500;">
-      + Open balance
-    </button>
-    {% endif %}
-  </div>
-
-  <!-- Active balance card -->
-  {% if active_wallet %}
-  {% set cur = currencies.get(active_wallet.currency, {}) %}
-  <div class="stat-card wallet-card" style="flex-direction:column;align-items:flex-start;gap:.4rem;max-width:380px;">
-    <div style="display:flex;align-items:center;gap:.5rem;width:100%;">
-      <span style="font-size:1.4rem;">{{ cur.get('flag','') }}</span>
-      <div style="flex:1;">
-        <div style="font-size:.72rem;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.05em;">{{ cur.get('name',active_wallet.currency) }}</div>
-        <div style="font-size:2rem;font-weight:800;color:#fff;line-height:1.1;">{{ cur.get('symbol','') }}{{ '{:,.2f}'.format(active_wallet.balance / 100).replace(',', ' ') }}</div>
-      </div>
-    </div>
-    <div class="wallet-actions">
-      <button class="wallet-btn primary-w" onclick="openModal('withdraw-modal')">Withdraw</button>
-      <button class="wallet-btn" onclick="openModal('deposit-modal')">Deposit</button>
-      <button class="wallet-btn" onclick="openModal('pay-modal')" style="background:rgba(234,88,12,.8);">Pay</button>
-      {% if wallets|length > 1 %}
-      <button class="wallet-btn" onclick="openModal('convert-modal')" style="background:rgba(124,58,237,.7);">Convert</button>
-      {% endif %}
-    </div>
-  </div>
+<div class="w-chips reveal">
+  {% for w in wallets %}
+  {% set c = currencies.get(w.currency, {}) %}
+  <a href="/wallet?currency={{ w.currency }}" class="w-chip {{ 'on' if active_wallet and w.currency==active_wallet.currency }}">
+    <span class="w-chip-code">{{ w.currency }}</span>
+    <span class="w-chip-bal">{{ c.get('symbol','') }}{{ '{:,.2f}'.format(w.balance/100).replace(',', ' ') }}</span>
+  </a>
+  {% endfor %}
+  {% if available_to_open %}
+  <button class="w-chip add" onclick="openModal('open-currency-modal')">+ Open balance</button>
   {% endif %}
 </div>
 
-<!-- Fees + Limits notice -->
-<div class="card card-pad" style="background:var(--blue-lt);border-color:#bfdbfe;margin-bottom:.75rem;font-size:.82rem;">
-  <strong>Fees:</strong>&nbsp;
-  Conversion: <strong>0.7%</strong> &nbsp;·&nbsp;
-  SEPA: <strong>1%</strong> &nbsp;·&nbsp;
-  UK: <strong>1.5%</strong> &nbsp;·&nbsp;
-  US ACH: <strong>2%</strong> &nbsp;·&nbsp;
-  SWIFT: <strong>3.5%</strong> &nbsp;·&nbsp;
-  Mobile Money: <strong>1.5%</strong> &nbsp;·&nbsp;
-  Pay under €&#8239;5&#160;000: <strong>Free</strong> &nbsp;·&nbsp;
-  Pay over €&#8239;5&#160;000: <strong>2%</strong>
-</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem;">
-  <div class="card card-pad" style="border-left:3px solid var(--blue);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily deposit limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
+<div class="w-grid3 reveal">
+  <div class="wcard wcard-pad">
+    <span class="w-eyebrow">Daily deposit</span>
+    <div class="w-limit">&#8364;&#160;10&#160;000</div>
+    <div class="w-limit-sub">Resets 00:00 UTC</div>
   </div>
-  <div class="card card-pad" style="border-left:3px solid var(--orange);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Daily withdrawal limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;3&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets at midnight UTC</div>
+  <div class="wcard wcard-pad">
+    <span class="w-eyebrow">Daily withdrawal</span>
+    <div class="w-limit">&#8364;&#160;3&#160;000</div>
+    <div class="w-limit-sub">Resets 00:00 UTC</div>
   </div>
-  <div class="card card-pad" style="border-left:3px solid var(--purple);padding:.75rem 1rem;">
-    <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.3rem;">Monthly withdrawal limit</div>
-    <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">€&#160;10&#160;000</div>
-    <div style="font-size:.7rem;color:var(--text-muted);margin-top:.2rem;">Resets 1st of month</div>
+  <div class="wcard wcard-pad">
+    <span class="w-eyebrow">Monthly withdrawal</span>
+    <div class="w-limit">&#8364;&#160;10&#160;000</div>
+    <div class="w-limit-sub">Resets 1st of month</div>
   </div>
 </div>
 
-<!-- Transaction history -->
-<div class="card">
-  <div class="card-header">
-    <span class="card-title">{{ currencies.get(active_wallet.currency,{}).get('flag','') }} {{ active_wallet.currency if active_wallet else 'EUR' }} Transactions</span>
-    <div style="display:flex;gap:.5rem;">
-      <select class="filter-select" id="tx-filter" onchange="filterTx()">
+<div class="wcard wcard-pad w-fees reveal">
+  <span class="w-eyebrow">Fees</span>
+  <div class="w-fees-row">
+    <span>Conversion <b>0.7%</b></span><span>SEPA <b>1%</b></span><span>UK <b>1.5%</b></span><span>US ACH <b>2%</b></span><span>SWIFT <b>3.5%</b></span><span>Mobile money <b>1.5%</b></span><span>Pay &lt; &#8364;5&#160;000 <b>Free</b></span><span>Pay &gt; &#8364;5&#160;000 <b>2%</b></span>
+  </div>
+</div>
+
+<div class="wcard reveal" style="margin-top:1rem;">
+  <div class="w-tx-head">
+    <span class="w-tx-title">{{ active_wallet.currency if active_wallet else 'EUR' }} transactions</span>
+    <div class="w-tx-tools">
+      <select class="w-select" id="tx-filter" onchange="filterTx()">
         <option value="all">All</option><option value="credit">Credits</option><option value="debit">Debits</option>
       </select>
-      <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="btn btn-outline btn-sm">CSV ↓</a>
+      <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="w-abtn ghost sm">CSV</a>
     </div>
   </div>
   {% if transactions %}
-  <div class="table-wrap">
-    <table><thead><tr><th>Description</th><th>Type</th><th>Amount</th><th>Balance</th><th>Date</th></tr></thead>
-    <tbody id="tx-table">
-      {% for tx in transactions %}
-      <tr class="tx-row {{ 'credit' if tx.amount_cents>0 else 'debit' }}">
-        <td><div class="td-bold">{{ tx.description }}</div></td>
-        <td><span class="pill {{ 'pill-green' if tx.amount_cents>0 else 'pill-red' }} pill-no-dot" style="font-size:.7rem;">{{ (tx.tx_type or '').replace('_',' ').title() }}</span></td>
-        <td style="font-weight:600;color:{{ 'var(--green)' if tx.amount_cents>0 else 'var(--red)' }};">{{ '+' if tx.amount_cents>0 else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.amount_cents|abs/100).replace(',', '\u00a0') }}</td>
-        <td class="text-muted">{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format(tx.balance_after/100).replace(',', '\u00a0') }}</td>
-        <td class="text-muted text-xs">{{ tx.created_at[:16].replace('T',' ') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody></table>
+  <div id="tx-table">
+    {% for tx in transactions %}
+    {% set credit = tx.amount_cents > 0 %}
+    <div class="tx-row w-tx {{ 'credit' if credit else 'debit' }}">
+      <div class="w-tx-ic {{ 'up' if credit else 'down' }}">{{ '+' if credit else '\u2013' }}</div>
+      <div class="w-tx-main">
+        <div class="w-tx-desc">{{ tx.description }}</div>
+        <div class="w-tx-sub">{{ (tx.tx_type or '').replace('_',' ').title() }} &#183; {{ tx.created_at[:16].replace('T',' ') }}</div>
+      </div>
+      <div class="w-tx-amt {{ 'pos' if credit else 'neg' }}">{{ '+' if credit else '' }}{{ currencies.get(active_wallet.currency,{}).get('symbol','') }}{{ '{:,.2f}'.format((tx.amount_cents|abs)/100).replace(',', ' ') }}</div>
+    </div>
+    {% endfor %}
   </div>
   {% else %}
-  <div class="empty-state" style="padding:3rem;"><p>No {{ active_wallet.currency if active_wallet else '' }} transactions yet.</p></div>
+  <div class="w-empty">No {{ active_wallet.currency if active_wallet else '' }} transactions yet.</div>
   {% endif %}
 </div>
+
 {% endblock %}
 
 {% block modals %}
@@ -418,5 +507,63 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clean the URL so refreshing doesn't re-open the modal
   if (action) history.replaceState({}, '', '/wallet');
 });
+</script>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var ALLOC = [{% for w in wallets %}{c:"{{ w.currency }}",b:{{ w.balance }}}{{ "," if not loop.last }}{% endfor %}];
+  var HIST  = [{% for tx in transactions|reverse %}{{ (tx.balance_after if tx.balance_after is not none else 0) }}{{ "," if not loop.last }}{% endfor %}];
+  var RATE  = (typeof RATES !== 'undefined') ? RATES : {};
+  var COLORS = ['#9EE493','#76E0A1','#67E8F9','#F4C06A','#C084FC','#FF8A50','#B7BAB4','#FF6A55'];
+  function eur(cents,cur){ var r=RATE[cur]||1; return (cents/100)/r; }
+  function money(n){ return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  var totalEur = ALLOC.reduce(function(s,a){return s+eur(a.b,a.c);},0);
+  var te=document.getElementById('w-total-eur'); if(te) te.textContent='\u20AC'+money(totalEur);
+
+  var el=document.getElementById('w-active-num');
+  if(el){ var target=parseFloat(el.getAttribute('data-count'))||0;
+    if(reduce||target===0){ el.textContent=money(target); }
+    else{ var t0=null; function step(ts){ if(!t0)t0=ts; var p=Math.min((ts-t0)/900,1); var e=1-Math.pow(1-p,3); el.textContent=money(target*e); if(p<1)requestAnimationFrame(step);} requestAnimationFrame(step);} }
+
+  (function(){
+    var host=document.getElementById('w-donut'), leg=document.getElementById('w-legend'); if(!host)return;
+    var segs=ALLOC.map(function(a,i){return {c:a.c,v:eur(a.b,a.c),color:COLORS[i%COLORS.length]};}).filter(function(s){return s.v>0;});
+    var tot=segs.reduce(function(s,x){return s+x.v;},0);
+    if(tot<=0){ host.innerHTML='<div class="w-donut-empty">No funds yet</div>'; if(leg)leg.innerHTML=''; return; }
+    var R=52,C=2*Math.PI*R,off=0;
+    var svg='<svg viewBox="0 0 120 120" width="120" height="120">';
+    svg+='<circle cx="60" cy="60" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="14"/>';
+    segs.forEach(function(s){ var len=(s.v/tot)*C;
+      svg+='<circle cx="60" cy="60" r="'+R+'" fill="none" stroke="'+s.color+'" stroke-width="14" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)"/>';
+      off+=len; });
+    svg+='<text x="60" y="58" text-anchor="middle" class="w-donut-c1">\u20AC'+Math.round(totalEur).toLocaleString()+'</text>';
+    svg+='<text x="60" y="72" text-anchor="middle" class="w-donut-c2">total</text></svg>';
+    host.innerHTML=svg;
+    if(leg) leg.innerHTML=segs.map(function(s){ return '<div class="w-leg"><span class="w-leg-dot" style="background:'+s.color+'"></span><span class="w-leg-c">'+s.c+'</span><span class="w-leg-p">'+(s.v/tot*100).toFixed(0)+'%</span></div>';}).join('');
+  })();
+
+  (function(){
+    var host=document.getElementById('w-spark'); if(!host)return;
+    if(HIST.length<2){ host.innerHTML='<div class="w-spark-empty">Balance trend appears once you have activity</div>'; return; }
+    var vals=HIST.map(function(v){return v/100;});
+    var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals), rng=(mx-mn)||1;
+    var W=560,H=90,pad=6,n=vals.length;
+    function X(i){ return pad+(i/(n-1))*(W-2*pad); }
+    function Y(v){ return H-pad-((v-mn)/rng)*(H-2*pad); }
+    var d='M'+X(0).toFixed(1)+' '+Y(vals[0]).toFixed(1);
+    for(var i=1;i<n;i++){ d+=' L'+X(i).toFixed(1)+' '+Y(vals[i]).toFixed(1); }
+    var area=d+' L'+X(n-1).toFixed(1)+' '+H+' L'+X(0).toFixed(1)+' '+H+' Z';
+    host.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" class="w-spark-svg">'
+      +'<defs><linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".22"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'
+      +'<path d="'+area+'" fill="url(#wg)"/>'
+      +'<path d="'+d+'" pathLength="100" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" class="w-spark-line"/></svg>';
+  })();
+
+  var cards=[].slice.call(document.querySelectorAll('.reveal'));
+  if(reduce){ cards.forEach(function(c){c.classList.add('in');}); }
+  else{ cards.forEach(function(c,i){ setTimeout(function(){c.classList.add('in');},70+i*70); }); }
+})();
 </script>
 {% endblock %}
