@@ -297,6 +297,27 @@ h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: .5rem; letter-spacing:
 .reveal-d1 { transition-delay: .1s } .reveal-d2 { transition-delay: .2s }
 .reveal-d3 { transition-delay: .3s } .reveal-d4 { transition-delay: .4s }
 </style>
+<style>/* SOHANA mobile responsiveness hardening (v8.4) */
+
+/* ============================================================
+   SOHANA — Global mobile responsiveness hardening (v8.4)
+   Stops horizontal overflow (content drifting to the edge) and
+   makes fixed-width / grid / table layouts fit small screens.
+   ============================================================ */
+html, body { max-width: 100%; overflow-x: hidden; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+img, video, iframe, canvas { max-width: 100%; height: auto; }
+
+@media (max-width: 768px) {
+  * { min-width: 0; }
+  svg { max-width: 100%; }
+  body { overflow-wrap: break-word; word-break: break-word; }
+  [style*="width:"]:not([style*="max-width"]) { max-width: 100% !important; }
+  [style*="min-width:"]             { min-width: 0 !important; }
+  [style*="grid-template-columns"]  { grid-template-columns: 1fr !important; }
+  table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+</style>
 </head>
 <body>
 
