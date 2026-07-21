@@ -1618,7 +1618,7 @@ def _promo_clean_url(u):
 @app.route("/admin/promos")
 @any_admin_required
 def admin_promos():
-    user   = get_current_user()
+    user   = auth.get_current_user()
     slides = [dict(r) for r in fetchall(
         "SELECT * FROM promo_slides ORDER BY display_order ASC, created_at ASC")]
     return render_template("admin_promos.html", user=user, slides=slides,
