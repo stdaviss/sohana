@@ -972,6 +972,22 @@ def _run_safe_migrations():
         )""",
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_pi_idem ON payment_intents(sender_id, idempotency_key) WHERE idempotency_key IS NOT NULL",
         "CREATE INDEX IF NOT EXISTS idx_pi_sender ON payment_intents(sender_id, status, created_at DESC)",
+
+        # ── PROMO / ANNOUNCEMENT CAROUSEL ─────────────────────────────────────
+        # Mobile-only slideshow on /dashboard and /wallet. Admin-curated.
+        """CREATE TABLE IF NOT EXISTS promo_slides (
+            id            TEXT PRIMARY KEY,
+            title         TEXT NOT NULL,
+            body          TEXT,
+            link_url      TEXT,
+            image_url     TEXT,
+            display_order INTEGER NOT NULL DEFAULT 0,
+            is_active     INTEGER NOT NULL DEFAULT 1,
+            created_by    TEXT,
+            created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at    TEXT
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
     ]
     for sql in migrations:
         try:
@@ -1345,103 +1361,6 @@ def _blog_media_url(media_id: str) -> str:
     return f"/media/blog/{media_id}"
 
 
-# ── CAMPAIGN MEDIA (cover + profile photo) ────────────────────────────────────
-CAMPAIGN_MEDIA_DIR = os.environ.get(
-    "CAMPAIGN_MEDIA_DIR",
-    os.path.join(os.path.dirname(__file__), "campaign_media")
-)
-try:
-    os.makedirs(CAMPAIGN_MEDIA_DIR, exist_ok=True)
-except Exception as _e:
-    import sys
-    print(f"[campaign] failed to create media dir: {_e}", file=sys.stderr, flush=True)
-
-
-def _save_campaign_media_file(file_storage, media_id: str, ext: str) -> str:
-    """Persist an uploaded campaign image; return storage_path relative to
-    CAMPAIGN_MEDIA_DIR. Organised YYYY/MM. Swap this body for S3 later."""
-    from datetime import datetime as _dt
-    now     = _dt.utcnow()
-    rel_dir = f"{now.year:04d}/{now.month:02d}"
-    abs_dir = os.path.join(CAMPAIGN_MEDIA_DIR, rel_dir)
-    os.makedirs(abs_dir, exist_ok=True)
-    filename = f"{media_id}.{ext}"
-    file_storage.save(os.path.join(abs_dir, filename))
-    return f"{rel_dir}/{filename}"
-
-
-@app.route("/media/campaign/<media_id>")
-def serve_campaign_media(media_id):
-    """Public — serves a stored campaign image."""
-    row = fetchone("SELECT storage_path, mime_type FROM campaign_media WHERE id=?", (media_id,))
-    if not row:
-        return ("", 404)
-    row  = dict(row)
-    full = os.path.join(CAMPAIGN_MEDIA_DIR, row["storage_path"])
-    if not os.path.exists(full):
-        return ("", 404)
-    from flask import send_file
-    return send_file(full, mimetype=row["mime_type"], max_age=86400)
-
-
-@app.route("/api/campaigns/<campaign_id>/media", methods=["POST"])
-@auth.login_required
-def api_campaign_media_upload(campaign_id):
-    """Creator-only: upload a cover or profile photo for a campaign.
-    Body: multipart/form-data with `file` and `kind` in {cover, avatar}."""
-    c = fetchone("SELECT creator_id FROM campaigns WHERE id=?", (campaign_id,))
-    if not c:
-        return jsonify({"error": "Campaign not found."}), 404
-    if dict(c)["creator_id"] != session.get("user_id"):
-        return jsonify({"error": "Only the campaign creator can do this."}), 403
-
-    kind = (request.form.get("kind") or "cover").lower()
-    if kind not in ("cover", "avatar"):
-        kind = "cover"
-
-    upload = request.files.get("file")
-    if not upload or not upload.filename:
-        return jsonify({"error": "No image selected."}), 400
-
-    orig = upload.filename
-    ext  = orig.rsplit(".", 1)[-1].lower() if "." in orig else ""
-    if ext == "jpg":
-        ext = "jpeg"
-    if ext not in ALLOWED_BLOG_MEDIA_EXTS:
-        return jsonify({"error": "Unsupported format. Use JPG, PNG, WEBP or GIF."}), 400
-
-    upload.seek(0, 2); size = upload.tell(); upload.seek(0)
-    if size == 0:
-        return jsonify({"error": "File is empty."}), 400
-    if size > MAX_BLOG_MEDIA_BYTES:
-        return jsonify({"error": f"File too large — max {MAX_BLOG_MEDIA_BYTES // 1024 // 1024} MB."}), 400
-
-    media_id = str(uuid.uuid4())
-    mime     = upload.mimetype or f"image/{ext}"
-    try:
-        storage_path = _save_campaign_media_file(upload, media_id, ext)
-    except Exception as e:
-        import sys
-        print(f"[campaign media upload] {e}", file=sys.stderr, flush=True)
-        return jsonify({"error": "Upload failed. Please try again."}), 500
-
-    with get_db() as db:
-        db.execute(
-            """INSERT INTO campaign_media
-               (id, campaign_id, kind, original_name, file_ext, file_size,
-                mime_type, uploaded_by, storage_path)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (media_id, campaign_id, kind, orig, ext, size, mime,
-             session.get("user_id"), storage_path)
-        )
-        col = "cover_media_id" if kind == "cover" else "avatar_media_id"
-        db.execute(f"UPDATE campaigns SET {col}=?, updated_at=datetime('now') WHERE id=?",
-                   (media_id, campaign_id))
-
-    return jsonify({"ok": True, "media_id": media_id, "kind": kind,
-                    "url": f"/media/campaign/{media_id}"})
-
-
 def _render_blog_body(md: str) -> str:
     """
     Minimal safe Markdown renderer with SOHANA-specific extensions.
@@ -1657,6 +1576,124 @@ def api_admin_blog_media_delete(media_id):
     with get_db() as db:
         db.execute("DELETE FROM blog_media WHERE id=?", (media_id,))
     log_admin_action("blog_media_deleted", "blog_media", media_id)
+    return jsonify({"ok": True})
+
+
+# ── PROMO / ANNOUNCEMENT CAROUSEL ─────────────────────────────────────────────
+# Mobile-only slideshow shown on /dashboard and /wallet. Admins attach a short
+# headline + body, an optional link to any page, and an optional side graphic
+# (reuses the blog-media uploader, or an external image URL). Capped at
+# PROMO_MAX_SLIDES. Slides are injected into every template via a context
+# processor so the carousel partial can be included without touching routes.
+PROMO_MAX_SLIDES = 6
+PROMO_TITLE_MAX  = 42
+PROMO_BODY_MAX   = 90
+
+@app.context_processor
+def _inject_promo_slides():
+    try:
+        rows = fetchall(
+            "SELECT id,title,body,link_url,image_url FROM promo_slides "
+            "WHERE is_active=1 ORDER BY display_order ASC, created_at ASC LIMIT ?",
+            (PROMO_MAX_SLIDES,)
+        )
+        return {"promo_slides": [dict(r) for r in rows]}
+    except Exception:
+        return {"promo_slides": []}
+
+def _promo_clean(s, limit):
+    s = (s or "").strip()
+    s = s.replace("<", "").replace(">", "")                 # no HTML injection
+    s = "".join(ch for ch in s if ch >= " ")               # strip control chars
+    return s[:limit]
+
+def _promo_clean_url(u):
+    u = (u or "").strip()
+    if not u:
+        return None
+    if u.startswith("/") or u.startswith("http://") or u.startswith("https://"):
+        return u[:500]
+    return None   # reject anything that isn't an internal path or http(s) link
+
+@app.route("/admin/promos")
+@any_admin_required
+def admin_promos():
+    user   = get_current_user()
+    slides = [dict(r) for r in fetchall(
+        "SELECT * FROM promo_slides ORDER BY display_order ASC, created_at ASC")]
+    return render_template("admin_promos.html", user=user, slides=slides,
+                           max_slides=PROMO_MAX_SLIDES,
+                           title_max=PROMO_TITLE_MAX, body_max=PROMO_BODY_MAX)
+
+@app.route("/api/admin/promos", methods=["GET"])
+@any_admin_required
+def api_admin_promos_list():
+    slides = [dict(r) for r in fetchall(
+        "SELECT * FROM promo_slides ORDER BY display_order ASC, created_at ASC")]
+    return jsonify({"ok": True, "slides": slides, "max": PROMO_MAX_SLIDES})
+
+@app.route("/api/admin/promos", methods=["POST"])
+@any_admin_required
+def api_admin_promos_create():
+    d = request.json or {}
+    title = _promo_clean(d.get("title"), PROMO_TITLE_MAX)
+    if not title:
+        return jsonify({"error": "A headline is required."}), 400
+    cnt = fetchone("SELECT COUNT(*) AS c FROM promo_slides")
+    if cnt and cnt["c"] >= PROMO_MAX_SLIDES:
+        return jsonify({"error": f"You can have at most {PROMO_MAX_SLIDES} slides. Delete one first."}), 400
+    body      = _promo_clean(d.get("body"), PROMO_BODY_MAX)
+    link_url  = _promo_clean_url(d.get("link_url"))
+    image_url = _promo_clean_url(d.get("image_url"))
+    is_active = 1 if d.get("is_active", True) else 0
+    orow      = fetchone("SELECT COALESCE(MAX(display_order),-1)+1 AS n FROM promo_slides")
+    order     = orow["n"] if orow else 0
+    pid = str(uuid.uuid4())
+    with get_db() as db:
+        db.execute(
+            "INSERT INTO promo_slides(id,title,body,link_url,image_url,display_order,is_active,created_by) "
+            "VALUES(?,?,?,?,?,?,?,?)",
+            (pid, title, body or None, link_url, image_url, order, is_active, session.get("user_id")))
+    log_admin_action("promo_created", "promo_slides", pid, new_data={"title": title})
+    return jsonify({"ok": True, "id": pid})
+
+@app.route("/api/admin/promos/<pid>", methods=["PUT"])
+@any_admin_required
+def api_admin_promos_update(pid):
+    if not fetchone("SELECT id FROM promo_slides WHERE id=?", (pid,)):
+        return jsonify({"error": "Not found"}), 404
+    d = request.json or {}
+    title = _promo_clean(d.get("title"), PROMO_TITLE_MAX)
+    if not title:
+        return jsonify({"error": "A headline is required."}), 400
+    body      = _promo_clean(d.get("body"), PROMO_BODY_MAX)
+    link_url  = _promo_clean_url(d.get("link_url"))
+    image_url = _promo_clean_url(d.get("image_url"))
+    is_active = 1 if d.get("is_active", True) else 0
+    with get_db() as db:
+        db.execute(
+            "UPDATE promo_slides SET title=?,body=?,link_url=?,image_url=?,is_active=?,updated_at=datetime('now') WHERE id=?",
+            (title, body or None, link_url, image_url, is_active, pid))
+    log_admin_action("promo_updated", "promo_slides", pid, new_data={"title": title})
+    return jsonify({"ok": True})
+
+@app.route("/api/admin/promos/<pid>", methods=["DELETE"])
+@any_admin_required
+def api_admin_promos_delete(pid):
+    with get_db() as db:
+        db.execute("DELETE FROM promo_slides WHERE id=?", (pid,))
+    log_admin_action("promo_deleted", "promo_slides", pid)
+    return jsonify({"ok": True})
+
+@app.route("/api/admin/promos/reorder", methods=["POST"])
+@any_admin_required
+def api_admin_promos_reorder():
+    d   = request.json or {}
+    ids = d.get("ids") or []
+    with get_db() as db:
+        for i, pid in enumerate(ids):
+            db.execute("UPDATE promo_slides SET display_order=? WHERE id=?", (i, pid))
+    log_admin_action("promo_reordered", "promo_slides", "reorder", new_data={"order": ids})
     return jsonify({"ok": True})
 
 

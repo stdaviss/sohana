@@ -1,0 +1,74 @@
+{# Mobile-only announcement carousel. Included on /dashboard and /wallet.
+   `promo_slides` is injected globally by the _inject_promo_slides context
+   processor in app.py. Renders nothing when there are no active slides. #}
+{% if promo_slides %}
+<div class="promo-carousel" id="promoCarousel" aria-label="Announcements">
+  <style>
+    .promo-carousel{margin:0 0 1.25rem;}
+    /* Mobile only — hidden once the app leaves its stacked layout (>920px). */
+    @media (min-width:921px){ .promo-carousel{display:none !important;} }
+    .promo-track{display:flex;gap:.75rem;overflow-x:auto;scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px;}
+    .promo-track::-webkit-scrollbar{display:none;}
+    .promo-slide{flex:0 0 100%;box-sizing:border-box;scroll-snap-align:center;
+      display:flex;align-items:center;gap:.9rem;text-decoration:none;color:inherit;
+      background:var(--bg-2,#161B17);border:1px solid var(--line,rgba(244,242,236,.12));
+      border-radius:16px;padding:1rem 1.1rem;min-height:96px;}
+    .promo-slide:active{transform:scale(.99);}
+    .promo-txt{flex:1;min-width:0;}
+    .promo-title{font-size:.98rem;font-weight:650;color:var(--ink,#F4F2EC);
+      line-height:1.25;margin:0 0 .25rem;}
+    .promo-body{font-size:.82rem;color:var(--ink-2,#B7BAB4);line-height:1.4;margin:0;}
+    .promo-cta{display:inline-block;margin-top:.5rem;font-size:.78rem;font-weight:600;
+      color:var(--accent,#9EE493);}
+    .promo-graphic{flex:0 0 auto;width:84px;height:84px;border-radius:12px;
+      object-fit:cover;background:var(--bg-3,#1C231D);}
+    .promo-dots{display:flex;justify-content:center;gap:.4rem;margin-top:.6rem;}
+    .promo-dot{width:6px;height:6px;border-radius:99px;
+      background:var(--line-2,rgba(244,242,236,.25));transition:width .25s,background .25s;}
+    .promo-dot.on{width:18px;background:var(--accent,#9EE493);}
+  </style>
+
+  <div class="promo-track" id="promoTrack">
+    {% for s in promo_slides %}
+      {% if s.link_url %}<a class="promo-slide" href="{{ s.link_url }}">{% else %}<div class="promo-slide">{% endif %}
+        <div class="promo-txt">
+          <p class="promo-title">{{ s.title }}</p>
+          {% if s.body %}<p class="promo-body">{{ s.body }}</p>{% endif %}
+          {% if s.link_url %}<span class="promo-cta">Learn more &rarr;</span>{% endif %}
+        </div>
+        {% if s.image_url %}<img class="promo-graphic" src="{{ s.image_url }}" alt="" loading="lazy">{% endif %}
+      {% if s.link_url %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </div>
+
+  {% if promo_slides|length > 1 %}
+  <div class="promo-dots" id="promoDots">
+    {% for s in promo_slides %}<span class="promo-dot {{ 'on' if loop.first }}"></span>{% endfor %}
+  </div>
+  {% endif %}
+
+  <script>
+  (function(){
+    var root=document.getElementById('promoCarousel');
+    if(!root||root.dataset.init) return; root.dataset.init='1';
+    var track=root.querySelector('#promoTrack');
+    var dots=root.querySelectorAll('.promo-dot');
+    if(!track) return;
+    function current(){ return track.clientWidth ? Math.round(track.scrollLeft/track.clientWidth) : 0; }
+    function paint(){ var i=current(); dots.forEach(function(d,k){ d.classList.toggle('on',k===i); }); }
+    track.addEventListener('scroll', function(){ window.requestAnimationFrame(paint); }, {passive:true});
+    var n=dots.length;
+    var reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if(n>1 && !reduce){
+      var timer=setInterval(function(){
+        if(document.hidden) return;
+        var i=(current()+1)%n;
+        track.scrollTo({left:i*track.clientWidth, behavior:'smooth'});
+      }, 5500);
+      track.addEventListener('touchstart', function(){ clearInterval(timer); }, {passive:true});
+    }
+  })();
+  </script>
+</div>
+{% endif %}

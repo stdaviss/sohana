@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}Announcements — SOHANA Admin{% endblock %}
+{% block topbar_title %}Announcements{% endblock %}
+
+{% block head %}
+<style>
+  .pm{max-width:1180px;margin:0 auto;padding:.25rem .25rem 3rem;}
+  .pm-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+  .pm-head h1{font-size:1.5rem;margin:0 0 .2rem;}
+  .pm-head p{margin:0;color:var(--ink-2);font-size:.9rem;}
+  .pm-count{font-family:'Geist Mono',monospace;font-size:.8rem;color:var(--ink-3);}
+  .btn-mint{background:var(--accent);color:var(--accent-ink,#0E120F);border:none;border-radius:99px;
+    padding:.6rem 1.15rem;font-weight:650;font-size:.88rem;cursor:pointer;}
+  .btn-mint:disabled{opacity:.4;cursor:not-allowed;}
+  .pm-grid{display:grid;grid-template-columns:1fr 360px;gap:1.5rem;align-items:start;}
+  @media(max-width:920px){ .pm-grid{grid-template-columns:1fr;} }
+
+  .pm-list{display:flex;flex-direction:column;gap:.7rem;}
+  .pm-row{display:flex;align-items:center;gap:.9rem;background:var(--bg-2);border:1px solid var(--line);
+    border-radius:14px;padding:.8rem .9rem;}
+  .pm-row.off{opacity:.55;}
+  .pm-ord{display:flex;flex-direction:column;gap:.2rem;}
+  .pm-ord button{background:var(--bg-3);border:1px solid var(--line);color:var(--ink-2);border-radius:7px;
+    width:26px;height:22px;cursor:pointer;font-size:.7rem;line-height:1;}
+  .pm-ord button:disabled{opacity:.3;cursor:not-allowed;}
+  .pm-thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--bg-3);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:1.1rem;}
+  .pm-main{flex:1;min-width:0;}
+  .pm-main .t{font-weight:600;color:var(--ink);font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pm-main .b{color:var(--ink-2);font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pm-main .l{color:var(--accent);font-size:.75rem;font-family:'Geist Mono',monospace;margin-top:.15rem;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pm-acts{display:flex;align-items:center;gap:.5rem;flex:0 0 auto;}
+  .pm-acts button{background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:8px;
+    padding:.35rem .6rem;font-size:.78rem;cursor:pointer;}
+  .pm-acts button.del:hover{border-color:var(--danger);color:var(--danger);}
+  .sw{position:relative;width:40px;height:22px;flex:0 0 auto;}
+  .sw input{opacity:0;width:0;height:0;position:absolute;}
+  .sw label{position:absolute;inset:0;background:rgba(244,242,236,.15);border-radius:99px;cursor:pointer;transition:.2s;}
+  .sw label::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;
+    background:#fff;transition:.2s;}
+  .sw input:checked + label{background:var(--accent);}
+  .sw input:checked + label::after{transform:translateX(18px);}
+  .pm-empty{border:1px dashed var(--line-2);border-radius:14px;padding:2.5rem 1rem;text-align:center;color:var(--ink-3);}
+
+  /* Phone preview */
+  .pv-wrap{position:sticky;top:1rem;}
+  .pv-label{font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);text-transform:uppercase;
+    letter-spacing:.08em;margin-bottom:.6rem;}
+  .phone{width:320px;max-width:100%;margin:0 auto;background:var(--bg);border:8px solid #000;border-radius:34px;
+    padding:1rem .8rem;min-height:420px;box-shadow:0 20px 50px rgba(0,0,0,.4);}
+  .pv-track{display:flex;gap:.6rem;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px;}
+  .pv-track::-webkit-scrollbar{display:none;}
+  .pv-slide{flex:0 0 100%;box-sizing:border-box;scroll-snap-align:center;display:flex;align-items:center;gap:.8rem;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;min-height:92px;}
+  .pv-slide .t{font-size:.95rem;font-weight:650;color:var(--ink);line-height:1.25;margin:0 0 .2rem;}
+  .pv-slide .b{font-size:.8rem;color:var(--ink-2);line-height:1.4;margin:0;}
+  .pv-slide .cta{display:inline-block;margin-top:.4rem;font-size:.75rem;font-weight:600;color:var(--accent);}
+  .pv-slide img{width:78px;height:78px;border-radius:12px;object-fit:cover;background:var(--bg-3);flex:0 0 auto;}
+  .pv-dots{display:flex;justify-content:center;gap:.35rem;margin-top:.5rem;}
+  .pv-dot{width:6px;height:6px;border-radius:99px;background:rgba(244,242,236,.25);}
+  .pv-dot.on{width:16px;background:var(--accent);}
+
+  /* Editor modal */
+  .mbk{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;
+    z-index:1000;padding:1rem;}
+  .mbk.show{display:flex;}
+  .mbx{background:var(--bg-2);border:1px solid var(--line-2);border-radius:18px;padding:1.5rem;width:480px;
+    max-width:100%;max-height:92vh;overflow:auto;}
+  .mbx h3{margin:0 0 1rem;font-size:1.15rem;}
+  .fg{margin-bottom:1rem;}
+  .fg label{display:block;font-size:.82rem;color:var(--ink-2);margin-bottom:.35rem;}
+  .fg input[type=text],.fg textarea{width:100%;box-sizing:border-box;background:var(--bg-3);border:1px solid var(--line-2);
+    border-radius:8px;padding:.6rem .7rem;color:var(--ink);font-family:inherit;font-size:.9rem;}
+  .fg textarea{min-height:60px;resize:vertical;}
+  .cc{float:right;font-family:'Geist Mono',monospace;font-size:.72rem;color:var(--ink-3);}
+  .cc.over{color:var(--danger);}
+  .img-row{display:flex;gap:.6rem;align-items:center;}
+  .img-prev{width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--bg-3);flex:0 0 auto;}
+  .lnk{background:none;border:1px solid var(--line-2);color:var(--ink);border-radius:8px;padding:.5rem .8rem;
+    font-size:.82rem;cursor:pointer;}
+  .m-acts{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem;}
+  .m-acts .cancel{background:none;border:1px solid var(--line-2);color:var(--ink-2);border-radius:99px;padding:.55rem 1rem;cursor:pointer;}
+  .msg{font-size:.82rem;margin-top:.5rem;min-height:1rem;}
+  .msg.err{color:var(--danger);} .msg.ok{color:var(--accent);}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pm">
+  <div class="pm-head">
+    <div>
+      <h1>Announcements <span class="serif" style="color:var(--accent);">carousel</span></h1>
+      <p>Shown as a swipeable card on mobile <b>Dashboard</b> and <b>Wallet</b>. Up to {{ max_slides }} slides.</p>
+    </div>
+    <div style="text-align:right;">
+      <div class="pm-count" id="pm-count"></div>
+      <button class="btn-mint" id="btn-new" onclick="openEditor()" style="margin-top:.4rem;">+ New announcement</button>
+    </div>
+  </div>
+
+  <div class="pm-grid">
+    <div>
+      <div class="pm-list" id="pm-list"></div>
+      <div class="pm-empty" id="pm-empty" style="display:none;">
+        No announcements yet. Create one and it appears on mobile Dashboard &amp; Wallet.
+      </div>
+    </div>
+
+    <div class="pv-wrap">
+      <div class="pv-label">Mobile preview (active slides)</div>
+      <div class="phone">
+        <div class="pv-track" id="pv-track"></div>
+        <div class="pv-dots" id="pv-dots"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Editor modal -->
+<div class="mbk" id="editor">
+  <div class="mbx">
+    <h3 id="ed-title">New announcement</h3>
+    <input type="hidden" id="ed-id">
+    <div class="fg">
+      <label>Headline <span class="cc" id="cc-t">0/{{ title_max }}</span></label>
+      <input type="text" id="ed-headline" maxlength="{{ title_max }}" oninput="cc()">
+    </div>
+    <div class="fg">
+      <label>Body <span class="cc" id="cc-b">0/{{ body_max }}</span></label>
+      <textarea id="ed-body" maxlength="{{ body_max }}" oninput="cc()"></textarea>
+    </div>
+    <div class="fg">
+      <label>Link (optional — internal path like <code>/ncs</code> or full https:// URL)</label>
+      <input type="text" id="ed-link" placeholder="/ncs">
+    </div>
+    <div class="fg">
+      <label>Side graphic (optional)</label>
+      <div class="img-row">
+        <img class="img-prev" id="ed-imgprev" alt="" style="display:none;">
+        <button type="button" class="lnk" onclick="document.getElementById('ed-file').click()">Upload image</button>
+        <input type="text" id="ed-image" placeholder="or paste image URL" style="flex:1;background:var(--bg-3);border:1px solid var(--line-2);border-radius:8px;padding:.5rem .7rem;color:var(--ink);" oninput="syncImgPrev()">
+        <input type="file" id="ed-file" accept="image/*" style="display:none;" onchange="uploadImg(this)">
+      </div>
+    </div>
+    <div class="fg">
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;">
+        <span class="sw"><input type="checkbox" id="ed-active" checked><label for="ed-active"></label></span>
+        Active (visible to users)
+      </label>
+    </div>
+    <div class="msg" id="ed-msg"></div>
+    <div class="m-acts">
+      <button class="cancel" onclick="closeEditor()">Cancel</button>
+      <button class="btn-mint" id="ed-save" onclick="save()">Save</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MAX = {{ max_slides }};
+const TMAX = {{ title_max }}, BMAX = {{ body_max }};
+let SLIDES = {{ slides|tojson }};
+
+// ---- tiny helpers (self-contained, no external deps) ----
+async function jreq(method, url, body){
+  const opt={method, headers:{}};
+  if(body){ opt.headers['Content-Type']='application/json'; opt.body=JSON.stringify(body); }
+  const r=await fetch(url, opt);
+  try{ return await r.json(); }catch(e){ return {error:'Server error'}; }
+}
+function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function render(){
+  const list=document.getElementById('pm-list'), empty=document.getElementById('pm-empty');
+  document.getElementById('pm-count').textContent = SLIDES.length+' / '+MAX+' slides';
+  document.getElementById('btn-new').disabled = SLIDES.length>=MAX;
+  list.innerHTML='';
+  empty.style.display = SLIDES.length? 'none':'block';
+  SLIDES.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='pm-row'+(s.is_active? '':' off');
+    row.innerHTML=`
+      <div class="pm-ord">
+        <button ${i===0?'disabled':''} onclick="move(${i},-1)">&#9650;</button>
+        <button ${i===SLIDES.length-1?'disabled':''} onclick="move(${i},1)">&#9660;</button>
+      </div>
+      ${s.image_url? `<img class="pm-thumb" src="${esc(s.image_url)}" alt="">` : `<div class="pm-thumb">&#9634;</div>`}
+      <div class="pm-main">
+        <div class="t">${esc(s.title)}</div>
+        <div class="b">${esc(s.body||'')}</div>
+        ${s.link_url? `<div class="l">${esc(s.link_url)}</div>`:''}
+      </div>
+      <div class="pm-acts">
+        <span class="sw"><input type="checkbox" id="a${i}" ${s.is_active?'checked':''} onchange="toggle(${i})"><label for="a${i}"></label></span>
+        <button onclick="openEditor('${s.id}')">Edit</button>
+        <button class="del" onclick="del('${s.id}')">Delete</button>
+      </div>`;
+    list.appendChild(row);
+  });
+  renderPreview();
+}
+
+function renderPreview(){
+  const act=SLIDES.filter(s=>s.is_active);
+  const track=document.getElementById('pv-track'), dots=document.getElementById('pv-dots');
+  track.innerHTML=''; dots.innerHTML='';
+  if(!act.length){ track.innerHTML='<div style="color:var(--ink-3);font-size:.82rem;padding:1rem;text-align:center;width:100%;">No active slides</div>'; return; }
+  act.forEach((s,i)=>{
+    const el=document.createElement('div'); el.className='pv-slide';
+    el.innerHTML=`<div style="flex:1;min-width:0;">
+        <p class="t">${esc(s.title)}</p>${s.body?`<p class="b">${esc(s.body)}</p>`:''}
+        ${s.link_url?`<span class="cta">Learn more &rarr;</span>`:''}
+      </div>${s.image_url?`<img src="${esc(s.image_url)}" alt="">`:''}`;
+    track.appendChild(el);
+    const d=document.createElement('span'); d.className='pv-dot'+(i===0?' on':''); dots.appendChild(d);
+  });
+  if(act.length<2) dots.innerHTML='';
+}
+document.getElementById('pv-track')?.addEventListener('scroll',function(){
+  const t=this, dots=document.querySelectorAll('#pv-dots .pv-dot');
+  const i=t.clientWidth?Math.round(t.scrollLeft/t.clientWidth):0;
+  dots.forEach((d,k)=>d.classList.toggle('on',k===i));
+},{passive:true});
+
+// ---- reorder / toggle / delete ----
+async function move(i,dir){
+  const j=i+dir; if(j<0||j>=SLIDES.length) return;
+  const t=SLIDES[i]; SLIDES[i]=SLIDES[j]; SLIDES[j]=t;
+  render();
+  await jreq('POST','/api/admin/promos/reorder',{ids:SLIDES.map(s=>s.id)});
+}
+async function toggle(i){
+  const s=SLIDES[i]; s.is_active = s.is_active?0:1;
+  render();
+  await jreq('PUT','/api/admin/promos/'+s.id,{title:s.title,body:s.body,link_url:s.link_url,image_url:s.image_url,is_active:!!s.is_active});
+}
+async function del(id){
+  if(!confirm('Delete this announcement?')) return;
+  const d=await jreq('DELETE','/api/admin/promos/'+id);
+  if(d.error){ alert(d.error); return; }
+  await load();
+}
+
+// ---- editor ----
+function cc(){
+  const t=document.getElementById('ed-headline').value.length;
+  const b=document.getElementById('ed-body').value.length;
+  const et=document.getElementById('cc-t'), eb=document.getElementById('cc-b');
+  et.textContent=t+'/'+TMAX; eb.textContent=b+'/'+BMAX;
+  et.classList.toggle('over',t>=TMAX); eb.classList.toggle('over',b>=BMAX);
+}
+function syncImgPrev(){
+  const u=document.getElementById('ed-image').value.trim();
+  const p=document.getElementById('ed-imgprev');
+  if(u){ p.src=u; p.style.display=''; } else { p.style.display='none'; }
+}
+function openEditor(id){
+  const msg=document.getElementById('ed-msg'); msg.textContent=''; msg.className='msg';
+  if(id){
+    const s=SLIDES.find(x=>x.id===id);
+    document.getElementById('ed-title').textContent='Edit announcement';
+    document.getElementById('ed-id').value=s.id;
+    document.getElementById('ed-headline').value=s.title||'';
+    document.getElementById('ed-body').value=s.body||'';
+    document.getElementById('ed-link').value=s.link_url||'';
+    document.getElementById('ed-image').value=s.image_url||'';
+    document.getElementById('ed-active').checked=!!s.is_active;
+  } else {
+    document.getElementById('ed-title').textContent='New announcement';
+    ['ed-id','ed-headline','ed-body','ed-link','ed-image'].forEach(k=>document.getElementById(k).value='');
+    document.getElementById('ed-active').checked=true;
+  }
+  cc(); syncImgPrev();
+  document.getElementById('editor').classList.add('show');
+}
+function closeEditor(){ document.getElementById('editor').classList.remove('show'); }
+
+async function uploadImg(inp){
+  const f=inp.files[0]; if(!f) return;
+  const msg=document.getElementById('ed-msg'); msg.className='msg'; msg.textContent='Uploading image…';
+  const fd=new FormData(); fd.append('image', f);
+  const r=await fetch('/api/admin/blog/media',{method:'POST',body:fd});
+  const d=await r.json().catch(()=>({error:'Upload failed'}));
+  if(d.error){ msg.className='msg err'; msg.textContent=d.error; inp.value=''; return; }
+  document.getElementById('ed-image').value=d.url; syncImgPrev();
+  msg.className='msg ok'; msg.textContent='Image attached.'; inp.value='';
+}
+
+async function save(){
+  const msg=document.getElementById('ed-msg');
+  const id=document.getElementById('ed-id').value;
+  const payload={
+    title: document.getElementById('ed-headline').value.trim(),
+    body:  document.getElementById('ed-body').value.trim(),
+    link_url: document.getElementById('ed-link').value.trim(),
+    image_url: document.getElementById('ed-image').value.trim(),
+    is_active: document.getElementById('ed-active').checked
+  };
+  if(!payload.title){ msg.className='msg err'; msg.textContent='A headline is required.'; return; }
+  const btn=document.getElementById('ed-save'); btn.disabled=true;
+  const d = id ? await jreq('PUT','/api/admin/promos/'+id,payload)
+              : await jreq('POST','/api/admin/promos',payload);
+  btn.disabled=false;
+  if(d.error){ msg.className='msg err'; msg.textContent=d.error; return; }
+  closeEditor(); await load();
+}
+
+async function load(){
+  const d=await jreq('GET','/api/admin/promos');
+  if(d && d.slides){ SLIDES=d.slides; render(); }
+}
+
+document.getElementById('editor').addEventListener('click',function(e){ if(e.target===this) closeEditor(); });
+render();
+</script>
+{% endblock %}

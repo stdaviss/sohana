@@ -161,6 +161,8 @@
 </div>
 {% endif %}
 
+{% include "_promo_carousel.html" %}
+
 <div class="w-chips reveal">
   {% for w in wallets %}
   {% set c = currencies.get(w.currency, {}) %}
