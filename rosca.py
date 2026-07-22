@@ -10,7 +10,27 @@ def create_rosca(organiser_id, name, description, contribution_cents,
     tier = user["ncs_tier"] if user else "probation"
     creation_fee = ROSCA_CREATION_FEES.get(tier, 500)
     rid = str(uuid.uuid4())
-    with get_db() as db:
+    # Charge the creation fee AND create the circle in one write-locked
+    # transaction. If the organiser can't cover the fee, nothing is created —
+    # a zero balance no longer gets a free circle.
+    with get_db(immediate=True) as db:
+        if creation_fee > 0:
+            w = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'",
+                           (organiser_id,)).fetchone()
+            if not w:
+                w = db.execute("SELECT id FROM wallets WHERE user_id=? AND is_default=1",
+                               (organiser_id,)).fetchone()
+            if not w:
+                raise ValueError("No EUR wallet available to charge the creation fee.")
+            balrow = db.execute("SELECT balance_after FROM wallet_transactions "
+                                "WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
+                                (w["id"],)).fetchone()
+            bal = balrow["balance_after"] if balrow else 0
+            if bal < creation_fee:
+                raise ValueError(f"You need €{creation_fee/100:.2f} to create a circle. "
+                                 f"Please top up your EUR wallet first.")
+            post_transaction(w["id"], -creation_fee, f"Circle creation fee: {name}",
+                             tx_type="fee", _db=db)
         db.execute("""INSERT INTO roscas(id,name,description,organiser_id,rosca_type,
                       contribution_cents,currency,frequency_days,max_members,ncs_min_score,
                       is_public,total_cycles,creation_fee_cents)

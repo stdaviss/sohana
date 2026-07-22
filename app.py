@@ -492,7 +492,7 @@ def wallet_page():
     balance    = def_wallet["balance"] if def_wallet else 0
     active_cur = request.args.get("currency", def_wallet["currency"] if def_wallet else "EUR")
     active_wallet = next((w for w in wallets if w["currency"] == active_cur), def_wallet)
-    all_tx = fetchall("SELECT * FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 100",
+    all_tx = fetchall("SELECT * FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 100",
                       (active_wallet["id"],)) if active_wallet else []
     tier = ncs_engine.get_tier(user["ncs_score"])
     open_currencies = {w["currency"] for w in wallets}
@@ -3468,7 +3468,7 @@ def api_pay_confirm():
                            (str(uuid.uuid4()), intent["recipient_id"], currency))
                 rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?", (intent["recipient_id"], currency)).fetchone()
 
-            balrow = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 1", (sw["id"],)).fetchone()
+            balrow = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1", (sw["id"],)).fetchone()
             bal = balrow["balance_after"] if balrow else 0
             if total_debit > bal:
                 db.execute("UPDATE payment_intents SET status='failed' WHERE id=?", (iid,))
@@ -3640,11 +3640,11 @@ def api_create_rosca():
             max_members=int(d.get("max_members",8)),
             frequency_days=int(d.get("frequency_days",30)),
             ncs_min=int(d.get("ncs_min",300)), is_public=bool(d.get("is_public",True)))
-        if fee > 0:
-            wallet = get_default_wallet(session["user_id"])
-            if wallet and wallet_balance(wallet["id"]) >= fee:
-                post_transaction(wallet["id"], -fee, f"ROSCA creation fee: {d.get('name','')}", tx_type="fee")
+        # Fee is charged atomically inside create_rosca(); the circle is not
+        # created unless it clears. No post-hoc conditional charge.
         return jsonify({"ok": True, "rosca_id": rid, "creation_fee_cents": fee})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -3962,11 +3962,11 @@ def api_create_pool():
             ncs_min=int(d.get("ncs_min", 300)),
             is_public=bool(d.get("is_public", False)),
         )
-        if fee > 0:
-            w = _get_wallet(session["user_id"], "EUR")
-            if w and wallet_balance(w["id"]) >= fee:
-                post_transaction(w["id"], -fee, f"Pool creation fee: {d.get('name','')}", tx_type="fee")
+        # Fee is charged atomically inside create_pool(); the pool is not
+        # created unless it clears. No post-hoc conditional charge.
         return jsonify({"ok": True, "pool_id": pid, "fee_cents": fee})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -5684,7 +5684,7 @@ def _seed_all():
                        (wid,real_uid,"EUR"))
             rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'",(real_uid,)).fetchone()
             real_wid = rw["id"] if rw else wid
-            bal = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 1",(real_wid,)).fetchone()
+            bal = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",(real_wid,)).fetchone()
             if not bal:
                 post_transaction(real_wid, 50000, "Welcome deposit", tx_type="deposit", _db=db)
         if not is_admin:

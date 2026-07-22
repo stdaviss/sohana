@@ -524,21 +524,6 @@ def init_db():
     # SQLite raises an error which we silently swallow. This is the correct
     # pattern for evolving an existing SQLite schema without data loss.
     safe_migrations = [
-        # ── Campaign media: cover + profile photo (v8.3) ──
-        "ALTER TABLE campaigns ADD COLUMN cover_media_id  TEXT",
-        "ALTER TABLE campaigns ADD COLUMN avatar_media_id TEXT",
-        """CREATE TABLE IF NOT EXISTS campaign_media (
-            id            TEXT PRIMARY KEY,
-            campaign_id   TEXT REFERENCES campaigns(id),
-            kind          TEXT NOT NULL DEFAULT 'cover',
-            original_name TEXT,
-            file_ext      TEXT,
-            file_size     INTEGER,
-            mime_type     TEXT,
-            uploaded_by   TEXT,
-            storage_path  TEXT NOT NULL,
-            uploaded_at   TEXT NOT NULL DEFAULT (datetime('now'))
-        )""",
         # Freeze controls (v4.9)
         "ALTER TABLE users ADD COLUMN freeze_deposits    INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE users ADD COLUMN freeze_withdrawals INTEGER NOT NULL DEFAULT 0",
@@ -782,7 +767,7 @@ def fetchall(sql, params=()):
 
 def wallet_balance(wallet_id):
     row = fetchone(
-        "SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 1",
+        "SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
         (wallet_id,)
     )
     return row["balance_after"] if row else 0
@@ -808,7 +793,7 @@ def get_default_wallet(user_id):
 def post_transaction(wallet_id, amount_cents, description, ref_type=None, ref_id=None, tx_type="other", _db=None):
     def _do(db):
         row = db.execute(
-            "SELECT balance_after, currency FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT 1",
+            "SELECT balance_after, currency FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
             (wallet_id,)
         ).fetchone()
         cur_info = db.execute("SELECT currency FROM wallets WHERE id=?", (wallet_id,)).fetchone()
