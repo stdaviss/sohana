@@ -3598,6 +3598,49 @@ def api_lookup_hanatag():
     if not u: return jsonify({"error": "Not found"}), 404
     return jsonify({"ok": True, "user": dict(u)})
 
+
+# ── HANATAG QR + PUBLIC PAY LANDING ──────────────────────────────────────────
+
+@app.route("/qr/<handle>")
+def hanatag_qr(handle):
+    """Real, scannable QR PNG for a hanatag. Encodes the public pay link
+    ({APP_BASE_URL}/pay/@handle) so scanning it opens the payment page —
+    not the old decorative grid."""
+    import qrcode
+    h = handle.strip()
+    if not h.startswith("@"):
+        h = "@" + h
+    base    = os.environ.get("APP_BASE_URL", "https://sohana.app").rstrip("/")
+    pay_url = f"{base}/pay/{h}"
+    img = qrcode.make(pay_url, box_size=10, border=2)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    resp = Response(buf.getvalue(), mimetype="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
+
+@app.route("/pay/<handle>")
+def pay_page(handle):
+    """Public payment landing page reached by scanning a hanatag QR.
+    Resolves the handle, shows the recipient, and for a signed-in payer runs
+    the two-phase pay flow (enter amount → verify → confirm) via the existing
+    /api/wallet/pay/initiate + /confirm endpoints."""
+    h = handle.strip()
+    if not h.startswith("@"):
+        h = "@" + h
+    recipient = fetchone("SELECT id, full_name, hanatag, ncs_tier FROM users WHERE hanatag=?", (h,))
+    viewer    = auth.get_current_user()
+    is_self   = bool(viewer and recipient and viewer["id"] == recipient["id"])
+    currencies = []
+    if viewer:
+        currencies = [r["currency"] for r in fetchall(
+            "SELECT currency FROM wallets WHERE user_id=? ORDER BY is_default DESC", (viewer["id"],))]
+    return render_template("pay.html",
+                           handle=h,
+                           recipient=dict(recipient) if recipient else None,
+                           viewer=viewer, is_self=is_self,
+                           currencies=currencies or ["EUR"])
+
 @app.route("/api/profile/payment-method", methods=["POST"])
 @auth.login_required
 def api_add_payment_method():
@@ -5184,6 +5227,30 @@ def admin_contact_export():
 
 
 # ── PWA / TWA ROUTES ─────────────────────────────────────────────────────────
+
+@app.route('/favicon.ico')
+def favicon():
+    """Serve the favicon from the site root.
+
+    Browsers automatically request /favicon.ico at the root, but Flask only
+    serves static assets under /static/, so without this route that request
+    404s and no icon appears anywhere — even though the file exists at
+    static/favicon.ico. This covers every page (including the standalone
+    admin templates that have no rel=icon tag), plus bookmarks and crawlers.
+
+    Falls back to the PWA PNG if favicon.ico is missing, so the site is never
+    left with a broken icon.
+    """
+    static_dir = os.path.join(app.root_path, 'static')
+    ico_path   = os.path.join(static_dir, 'favicon.ico')
+    if os.path.exists(ico_path):
+        response = send_from_directory(static_dir, 'favicon.ico',
+                                       mimetype='image/vnd.microsoft.icon')
+    else:
+        response = send_from_directory(os.path.join(static_dir, 'icons'),
+                                       'icon-192.png', mimetype='image/png')
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 @app.route('/sw.js')
 def service_worker():

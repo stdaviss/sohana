@@ -534,9 +534,18 @@ function saveMarketingConsent(consent) {
     </div>
     <div class="card card-pad" style="text-align:center;">
       <div class="card-title mb-3">Your Hana QR Code</div>
-      <canvas id="qr-canvas" width="180" height="180" style="margin:0 auto .875rem;border-radius:var(--radius);border:1px solid var(--border);"></canvas>
-      <p class="text-xs text-muted mb-3">Others can scan this to pay you instantly.</p>
-      <button class="btn btn-outline btn-sm" onclick="downloadQR()">Download QR</button>
+      {% if user.get('hanatag') %}
+      <img id="qr-img" src="/qr/{{ user.hanatag }}" alt="Scan to pay {{ user.hanatag }}"
+           width="180" height="180"
+           style="margin:0 auto .875rem;border-radius:var(--radius);background:#fff;padding:8px;display:block;">
+      <p class="text-xs text-muted mb-3">Scan to pay {{ user.hanatag }} instantly.</p>
+      <div style="display:flex;gap:.5rem;">
+        <button class="btn btn-outline btn-sm" style="flex:1;" onclick="copyPayLink()">Copy link</button>
+        <a class="btn btn-outline btn-sm" style="flex:1;" href="/qr/{{ user.hanatag }}" download="sohana-qr.png">Download</a>
+      </div>
+      {% else %}
+      <p class="text-sm text-muted">Set a hanatag first to get your pay QR code.</p>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -606,36 +615,12 @@ function saveMarketingConsent(consent) {
 
 {% block scripts %}
 <script>
-// Draw QR code (simple canvas-based grid representing hanatag)
-function drawQR() {
-  const canvas = document.getElementById('qr-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const tag = '{{ user.get("hanatag","@sohana") }}';
-  const size = 180; const cells = 21; const cell = size/cells;
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
-  ctx.fillStyle = '#1a2b4a';
-  // Simple deterministic grid from tag string
-  for (let r=0; r<cells; r++) for (let c=0; c<cells; c++) {
-    const idx = (r*cells+c) % tag.length;
-    const filled = (tag.charCodeAt(idx) + r*7 + c*11) % 3 === 0;
-    if (filled) ctx.fillRect(c*cell,r*cell,cell-1,cell-1);
-  }
-  // Corner squares
-  [[0,0],[0,cells-7],[cells-7,0]].forEach(([cr,cc]) => {
-    ctx.strokeStyle='#1a2b4a'; ctx.lineWidth=2;
-    ctx.strokeRect(cc*cell+1,cr*cell+1,(7*cell)-2,(7*cell)-2);
-    ctx.fillRect(cc*cell+2*cell,cr*cell+2*cell,3*cell,3*cell);
-  });
-}
-drawQR();
-
-function downloadQR() {
-  const canvas = document.getElementById('qr-canvas');
-  const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'sohana-qr.png';
-  a.click();
+// Real QR is served by /qr/<handle> (a scannable PNG pointing at the pay page).
+function copyPayLink(){
+  const tag = '{{ user.get("hanatag","") }}';
+  if(!tag) return;
+  navigator.clipboard.writeText(location.origin + '/pay/' + tag)
+    .then(()=>{ if(window.toast) toast('Pay link copied','success'); else alert('Pay link copied'); });
 }
 
 function switchProfileTab(tab) {

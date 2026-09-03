@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pay {{ handle }} — SOHANA</title>
+<link rel="icon" href="/static/favicon.ico?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/sohana.css') }}?v=5.2">
+<style>
+  body{background:var(--bg);color:var(--ink);font-family:'Geist',system-ui,sans-serif;min-height:100vh;
+    display:flex;align-items:center;justify-content:center;padding:1.25rem;margin:0;}
+  .pay-wrap{width:100%;max-width:400px;}
+  .brand{display:flex;align-items:center;gap:.55rem;justify-content:center;margin-bottom:1rem;}
+  .brand .mk{width:28px;height:28px;border-radius:8px;background:var(--accent);color:#0E120F;display:grid;place-items:center;font-weight:700;font-size:14px;}
+  .brand .nm{font-weight:700;letter-spacing:.02em;}
+  .pay-card{background:var(--bg-2,#161B17);border:1px solid var(--line,rgba(244,242,236,.12));border-radius:18px;padding:1.5rem 1.35rem;}
+  .rcpt{text-align:center;margin-bottom:1.25rem;}
+  .rcpt .av{width:60px;height:60px;border-radius:50%;background:var(--accent);color:#0E120F;font-weight:700;font-size:1.5rem;
+    display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;}
+  .rcpt .rname{font-size:1.15rem;font-weight:650;}
+  .rcpt .rtag{font-family:'Geist Mono',monospace;color:var(--accent);font-size:.85rem;margin-top:.15rem;}
+  .sub{color:var(--ink-2);font-size:.88rem;text-align:center;margin:0 0 1rem;line-height:1.5;}
+  .amt-row{display:flex;align-items:center;gap:.5rem;background:var(--bg-3,#1C231D);border:1px solid var(--line-2,rgba(244,242,236,.18));
+    border-radius:12px;padding:.6rem .9rem;margin-bottom:.7rem;}
+  .amt-row .cur{font-family:'Geist Mono',monospace;font-size:1.4rem;color:var(--ink-2);}
+  .amt-row input{flex:1;background:none;border:none;outline:none;color:var(--ink);font-family:'Geist Mono',monospace;
+    font-size:1.7rem;font-weight:600;width:100%;}
+  .field{margin-bottom:.7rem;}
+  .otp{display:flex;gap:.4rem;justify-content:center;margin:1rem 0;}
+  .otp input{width:44px;height:52px;text-align:center;font-family:'Geist Mono',monospace;font-size:1.3rem;
+    background:var(--bg-3,#1C231D);border:1px solid var(--line-2,rgba(244,242,236,.18));border-radius:10px;color:var(--ink);}
+  .otp input:focus{outline:none;border-color:var(--accent);}
+  .selfqr{width:200px;height:200px;background:#fff;padding:10px;border-radius:14px;display:block;margin:0 auto 1rem;}
+  .done .check{width:64px;height:64px;border-radius:50%;background:rgba(158,228,147,.15);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1rem;}
+  .done{text-align:center;}
+  .secure{text-align:center;color:var(--ink-3);font-size:.72rem;margin-top:1rem;line-height:1.4;}
+  .msg{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--bg-2);border:1px solid var(--line-2);border-radius:10px;padding:.6rem 1rem;font-size:.85rem;transition:.25s;pointer-events:none;z-index:50;}
+  .msg.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .msg.err{border-color:var(--danger,#FF6A55);color:var(--danger,#FF6A55);}
+  .msg.ok{border-color:var(--accent);color:var(--accent);}
+  .notfound{text-align:center;color:var(--ink-2);padding:1.5rem 0;}
+  select.form-input{appearance:none;}
+</style>
+</head>
+<body>
+<div class="pay-wrap">
+  <div class="brand"><span class="mk">S</span><span class="nm">SOHANA</span></div>
+  <div class="pay-card">
+    {% if not recipient %}
+      <div class="notfound">We couldn't find <strong>{{ handle }}</strong>.<br>Double-check the handle and try again.</div>
+    {% else %}
+      <div class="rcpt">
+        <div class="av">{{ recipient.full_name[0]|upper }}</div>
+        <div class="rname">{{ recipient.full_name }}</div>
+        <div class="rtag">{{ recipient.hanatag }}</div>
+      </div>
+
+      {% if not viewer %}
+        <p class="sub">Sign in to your SOHANA account to send money to {{ recipient.hanatag }}.</p>
+        <a class="btn btn-primary btn-full" href="/auth?next=/pay/{{ handle }}">Sign in to pay</a>
+
+      {% elif is_self %}
+        <p class="sub">This is your own pay code. Show it or share the link to get paid.</p>
+        <img class="selfqr" src="/qr/{{ handle }}" alt="Your SOHANA pay QR">
+        <button class="btn btn-outline btn-full" onclick="copyLink()">Copy pay link</button>
+
+      {% else %}
+        <!-- step 1 -->
+        <div id="step1">
+          <div class="amt-row"><span class="cur" id="cur-sym">€</span><input id="amt" type="number" inputmode="decimal" placeholder="0.00" min="1" step="0.01" autofocus></div>
+          {% if currencies|length > 1 %}
+          <div class="field"><select id="cur" class="form-input" onchange="setCur()">{% for c in currencies %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select></div>
+          {% else %}<input type="hidden" id="cur" value="{{ currencies[0] }}">{% endif %}
+          <div class="field"><input id="note" class="form-input" maxlength="140" placeholder="Add a note (optional)"></div>
+          <button class="btn btn-primary btn-full" id="btn-cont" onclick="cont()">Continue</button>
+        </div>
+        <!-- step 2 -->
+        <div id="step2" style="display:none;">
+          <p class="sub" id="chal-cap"></p>
+          <div class="otp">{% for i in range(6) %}<input id="otp{{ i }}" maxlength="1" inputmode="numeric" oninput="otpN({{ i }},this)">{% endfor %}</div>
+          <button class="btn btn-primary btn-full" id="btn-conf" onclick="confirmPay()">Confirm payment</button>
+          <button class="btn btn-outline btn-full" style="margin-top:.5rem;" onclick="back()">Back</button>
+        </div>
+        <!-- success -->
+        <div id="done" class="done" style="display:none;">
+          <div class="check">✓</div>
+          <p style="font-weight:600;margin:.2rem 0 .3rem;">Payment sent</p>
+          <p class="sub" id="done-sub">Your payment to {{ recipient.full_name }} is complete.</p>
+          <a class="btn btn-primary btn-full" href="/wallet">Back to wallet</a>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="secure">Secured by SOHANA — funds only move after you confirm with your code.</div>
+</div>
+<div id="msg" class="msg"></div>
+
+<script>
+const HANDLE = {{ handle|tojson }};
+const SYM = {EUR:'€',GBP:'£',USD:'$',CAD:'C$',XAF:'Fr',GHC:'₵',NGN:'₦',ZAR:'R'};
+let intentId=null, challenge=null;
+function msg(t,ok){ const m=document.getElementById('msg'); m.textContent=t; m.className='msg show '+(ok?'ok':'err'); setTimeout(()=>m.className='msg',3200); }
+function setCur(){ const c=document.getElementById('cur').value; const s=document.getElementById('cur-sym'); if(s) s.textContent=SYM[c]||c; }
+function otpN(i,el){ el.value=el.value.replace(/\D/g,''); if(el.value&&i<5) document.getElementById('otp'+(i+1)).focus(); }
+function copyLink(){ navigator.clipboard.writeText(location.origin+'/pay/'+HANDLE).then(()=>msg('Pay link copied',true)); }
+async function post(url,body){ try{ const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); return await r.json(); }catch(e){ return {error:'Network error'}; } }
+async function cont(){
+  const amt=parseFloat(document.getElementById('amt').value);
+  if(!amt||amt<1){ msg('Enter a valid amount','err'); return; }
+  const cur=document.getElementById('cur').value;
+  const note=document.getElementById('note').value;
+  const btn=document.getElementById('btn-cont'); btn.disabled=true; btn.textContent='Please wait…';
+  const key=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():(String(Date.now())+Math.random());
+  const d=await post('/api/wallet/pay/initiate',{hanatag:HANDLE,amount:amt,currency:cur,note:note,idempotency_key:key});
+  btn.disabled=false; btn.textContent='Continue';
+  if(d.error){ msg(d.error,'err'); return; }
+  intentId=d.intent_id; challenge=d.challenge;
+  document.getElementById('chal-cap').textContent = challenge==='email_otp'
+    ? 'Enter the 6-digit code sent to '+(d.masked_target||'your email')
+    : 'Enter the 6-digit code from your authenticator app';
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='';
+  document.getElementById('otp0').focus();
+}
+async function confirmPay(){
+  const code=[0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');
+  if(code.length<6){ msg('Enter the 6-digit code','err'); return; }
+  const btn=document.getElementById('btn-conf'); btn.disabled=true; btn.textContent='Confirming…';
+  const d=await post('/api/wallet/pay/confirm',{intent_id:intentId,code:code});
+  btn.disabled=false; btn.textContent='Confirm payment';
+  if(d.error){ msg(d.error,'err'); if(d.restart) back(); return; }
+  document.getElementById('step2').style.display='none';
+  document.getElementById('done').style.display='';
+}
+function back(){ document.getElementById('step2').style.display='none'; document.getElementById('step1').style.display=''; intentId=null; [0,1,2,3,4,5].forEach(i=>{const e=document.getElementById('otp'+i); if(e)e.value='';}); }
+setCur();
+</script>
+</body>
+</html>
