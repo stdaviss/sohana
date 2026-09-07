@@ -3513,6 +3513,41 @@ def api_pay_confirm():
     return jsonify({"ok": True, "ref": ref, "recipient_name": intent["recipient_name"],
                     "fee_cents": intent["fee_cents"]})
 
+@app.route("/api/wallet/transactions")
+@auth.login_required
+def api_wallet_transactions():
+    """Returns a JSON list of recent transactions for the user's wallets."""
+    user_id = session["user_id"]
+    currency = request.args.get("currency")
+    
+    # 1. Get the user's wallets
+    if currency:
+        wallets = fetchall("SELECT id, currency FROM wallets WHERE user_id=? AND currency=?", (user_id, currency.upper()))
+    else:
+        wallets = fetchall("SELECT id, currency FROM wallets WHERE user_id=?", (user_id,))
+        
+    if not wallets:
+        return jsonify({"transactions": []})
+        
+    wallet_ids = [w["id"] for w in wallets]
+    wallet_map = {w["id"]: w["currency"] for w in wallets}
+    
+    # 2. Fetch transactions (limit to 100 for mobile performance)
+    placeholders = ",".join(["?"] * len(wallet_ids))
+    txs = fetchall(
+        f"SELECT * FROM wallet_transactions WHERE wallet_id IN ({placeholders}) ORDER BY created_at DESC LIMIT 100",
+        tuple(wallet_ids)
+    )
+    
+    # 3. Enrich and format
+    result = []
+    for tx in txs:
+        tx_dict = dict(tx) # Convert sqlite3.Row to dict
+        tx_dict["currency"] = wallet_map.get(tx_dict["wallet_id"], "EUR")
+        result.append(tx_dict)
+        
+    return jsonify({"transactions": result})
+
 @app.route("/api/wallet/statement")
 @auth.login_required
 def api_statement():
