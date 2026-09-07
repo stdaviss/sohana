@@ -3671,33 +3671,6 @@ def api_mark_read():
 
 # ── ROSCA API ─────────────────────────────────────────────────────────────────
 
-@app.route("/api/rosca/my-circles")
-@auth.login_required
-def api_my_circles():
-    """Returns the authenticated user's joined circles."""
-    user = auth.get_current_user()
-    # get_user_roscas returns a list of sqlite3.Row objects
-    my_roscas = rosca.get_user_roscas(user["id"])
-    
-    # Convert to dicts and ensure safe defaults for mobile
-    safe_roscas = []
-    for r in my_roscas:
-        r_dict = dict(r)
-        safe_roscas.append({
-            "id": r_dict.get("id"),
-            "name": r_dict.get("name", "Untitled Circle"),
-            "status": r_dict.get("status", "active"),
-            "contribution_cents": r_dict.get("contribution_cents", 0),
-            "frequency_days": r_dict.get("frequency_days", 30),
-            "current_cycle": r_dict.get("current_cycle", 1),
-            "total_cycles": r_dict.get("total_cycles", 1),
-            "member_count": r_dict.get("member_count", 0),
-            "max_members": r_dict.get("max_members", 8),
-            "currency": r_dict.get("currency", "EUR")
-        })
-        
-    return jsonify({"roscas": safe_roscas})
-
 @app.route("/api/rosca/create", methods=["POST"])
 @auth.login_required
 def api_create_rosca():
@@ -3874,14 +3847,32 @@ def api_marketplace():
 @auth.login_required
 def api_my_circles():
     """The signed-in user's OWN circles — for the Home carousel and the
-    My ROSCAs tab. Distinct from /api/rosca/marketplace, which returns only
-    PUBLIC discoverable circles. Each item includes status, member_count, slot,
-    and the user's membership status. Optional ?status=active|forming|completed."""
-    items  = [dict(r) for r in rosca.get_user_roscas(session["user_id"])]
+    My ROSCAs tab. Distinct from /api/rosca/marketplace (public discovery).
+    Returns a mobile-safe, curated field set per circle, with optional
+    ?status=active|forming|completed filtering."""
+    rows   = rosca.get_user_roscas(session["user_id"])
     status = request.args.get("status")
-    if status:
-        items = [r for r in items if r.get("status") == status]
-    return jsonify({"roscas": items})
+    out = []
+    for r in rows:
+        d = dict(r)
+        if status and d.get("status") != status:
+            continue
+        out.append({
+            "id":                 d.get("id"),
+            "name":               d.get("name", "Untitled Circle"),
+            "status":             d.get("status", "active"),
+            "contribution_cents": d.get("contribution_cents", 0),
+            "currency":           d.get("currency", "EUR"),
+            "frequency_days":     d.get("frequency_days", 30),
+            "current_cycle":      d.get("current_cycle", 0),
+            "total_cycles":       d.get("total_cycles", 0),
+            "member_count":       d.get("member_count", 0),
+            "max_members":        d.get("max_members", 0),
+            "slot":               d.get("slot"),
+            "mem_status":         d.get("mem_status"),
+            "organiser_id":       d.get("organiser_id"),
+        })
+    return jsonify({"roscas": out})
 
 # ── NCS API ───────────────────────────────────────────────────────────────────
 
