@@ -3843,6 +3843,19 @@ def api_marketplace():
     items = rosca.get_marketplace(search=request.args.get("q"))
     return jsonify({"roscas": [dict(r) for r in items]})
 
+@app.route("/api/rosca/my-circles")
+@auth.login_required
+def api_my_circles():
+    """The signed-in user's OWN circles — for the Home carousel and the
+    My ROSCAs tab. Distinct from /api/rosca/marketplace, which returns only
+    PUBLIC discoverable circles. Each item includes status, member_count, slot,
+    and the user's membership status. Optional ?status=active|forming|completed."""
+    items  = [dict(r) for r in rosca.get_user_roscas(session["user_id"])]
+    status = request.args.get("status")
+    if status:
+        items = [r for r in items if r.get("status") == status]
+    return jsonify({"roscas": items})
+
 # ── NCS API ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/ncs/score")
@@ -3851,6 +3864,25 @@ def api_ncs_score():
     user = auth.get_current_user()
     tier = ncs_engine.get_tier(user["ncs_score"])
     return jsonify({"score": user["ncs_score"], "tier": tier["name"], "tier_label": tier["label"]})
+
+@app.route("/api/ncs/components")
+@auth.login_required
+def api_ncs_components():
+    """Read-only NCS breakdown for the mobile/web score screen.
+
+    Unlike /api/ncs/recalculate, this DOES NOT mutate the score — it only reads
+    the current score/tier and computes the per-component breakdown for display.
+    Use this to render the factor bars; use /api/ncs/score for just the number.
+    Returns each component with {value (0-1), pct, weight, pts}."""
+    uid  = session["user_id"]
+    user = auth.get_current_user()
+    tier = ncs_engine.get_tier(user["ncs_score"])
+    return jsonify({
+        "score":      user["ncs_score"],
+        "tier":       tier["name"],
+        "tier_label": tier["label"],
+        "components": ncs_engine.get_component_breakdown(uid),
+    })
 
 @app.route("/api/ncs/recalculate", methods=["POST"])
 @auth.login_required
