@@ -3171,7 +3171,14 @@ def admin_complaints_export():
 @auth.login_required
 def api_wallet_balances():
     wallets = get_user_wallets(session["user_id"])
-    return jsonify({"wallets": wallets})
+    default = next((w for w in wallets if w.get("is_default")), wallets[0] if wallets else None)
+    return jsonify({
+        "wallets": wallets,
+        "default_currency":    default["currency"]        if default else "EUR",
+        "total_balance_cents": default["balance"]         if default else 0,
+        "balance_display":     default["balance_display"] if default else 0.0,
+        "symbol":              default["symbol"]          if default else "€",
+    })
 
 @app.route("/api/wallet/open-currency", methods=["POST"])
 @auth.login_required
