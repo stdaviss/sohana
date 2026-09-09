@@ -3559,6 +3559,12 @@ def api_rosca_detail(rosca_id):
 
     r = dict(r)
     _ensure_circle_tables()   # REQUIRED: activity/announcements tables are created lazily
+    _tc = fetchone(
+        "SELECT COALESCE(SUM(amount_cents),0) AS t FROM contributions "
+        "WHERE rosca_id=? AND status IN ('paid','late')",
+        (rosca_id,)
+    )
+    r["total_contributed_cents"] = _tc["t"] if _tc else 0
 
     # Get members with user data
     raw_members = rosca.get_rosca_members(rosca_id)
@@ -6469,6 +6475,7 @@ def _build_passport_context(user_row):
     recent_events = []
     for r in events_rows:
         r = dict(r)
+        
         recent_events.append({
             "label": _event_labels.get(r.get("event_type"), r.get("event_type", "Event")),
             "delta": int(r.get("delta") or 0),
