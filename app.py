@@ -3666,6 +3666,29 @@ def api_preview_conversion():
 # ── PROFILE API ───────────────────────────────────────────────────────────────
 
 @app.route("/api/profile/update", methods=["POST"])
+
+@app.route("/api/profile")
+@auth.login_required
+def api_get_profile():
+    """Returns the authenticated user's full profile data for the mobile app."""
+    user = auth.get_current_user()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Ensure passport_id exists (lazy generation)
+    if not user.get("passport_id"):
+        # _get_or_create_passport_id is defined further down in your file
+        user["passport_id"] = _get_or_create_passport_id(user["id"])
+
+    # Convert sqlite3.Row to dict and sanitize
+    user_dict = dict(user)
+    
+    # Remove sensitive fields before sending to mobile
+    user_dict.pop("password_hash", None)
+    user_dict.pop("totp_secret", None)
+    
+    return jsonify({"user": user_dict})
+
 @auth.login_required
 def api_profile_update():
     d = request.json or {}
