@@ -3548,6 +3548,69 @@ def api_wallet_transactions():
         
     return jsonify({"transactions": result})
 
+@app.route("/api/rosca/<rosca_id>")
+@auth.login_required
+def api_rosca_detail(rosca_id):
+    """Returns full circle detail as JSON for the mobile app."""
+    user = auth.get_current_user()
+    r = rosca.get_rosca(rosca_id)
+    if not r:
+        return jsonify({"error": "Circle not found"}), 404
+
+    r = dict(r)
+    _ensure_circle_tables()   # REQUIRED: activity/announcements tables are created lazily
+
+    # Get members with user data
+    raw_members = rosca.get_rosca_members(rosca_id)
+    members = []
+    for m in raw_members:
+        m_dict = dict(m)
+        u = fetchone("SELECT full_name, hanatag, ncs_score, ncs_tier FROM users WHERE id=?", (m_dict["user_id"],))
+        if u:
+            u_dict = dict(u)
+            m_dict.update(u_dict)
+        members.append(m_dict)
+
+    # Get cycle info
+    cycle_info = rosca.get_cycle_status(rosca_id)
+
+    # Get recent activity
+    activity = fetchall(
+        """SELECT ca.*, u.full_name, u.hanatag
+           FROM circle_activity ca LEFT JOIN users u ON u.id=ca.actor_id
+           WHERE ca.rosca_id=? ORDER BY ca.created_at DESC LIMIT 20""",
+        (rosca_id,)
+    )
+
+    # Get announcements
+    announcements = fetchall(
+        """SELECT ca.*, u.full_name
+           FROM circle_announcements ca JOIN users u ON u.id=ca.author_id
+           WHERE ca.rosca_id=? ORDER BY ca.is_pinned DESC, ca.created_at DESC LIMIT 10""",
+        (rosca_id,)
+    )
+
+    # Check membership
+    is_member = any(m["user_id"] == user["id"] for m in members)
+    is_organiser = r["organiser_id"] == user["id"]
+
+    # Calculate pool stats
+    total_members = len(members)
+    contribution_cents = r.get("contribution_cents", 0)
+    pool_total = contribution_cents * total_members
+
+    return jsonify({
+        "circle": r,
+        "members": members,
+        "cycle": dict(cycle_info) if cycle_info else None,
+        "activity": [dict(a) for a in activity],
+        "announcements": [dict(a) for a in announcements],
+        "is_member": is_member,
+        "is_organiser": is_organiser,
+        "pool_total_cents": pool_total,
+        "total_members": total_members,
+    })
+
 @app.route("/api/wallet/statement")
 @auth.login_required
 def api_statement():
