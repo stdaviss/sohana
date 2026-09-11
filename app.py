@@ -15,6 +15,13 @@ import status as status_module
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
+
+# ── MEDIA STORAGE DIRECTORY ───────────────────────────────────────────────────
+_MEDIA_DIR = os.path.join(os.path.dirname(__file__), "user_media")
+try:
+    os.makedirs(_MEDIA_DIR, exist_ok=True)
+except Exception as _media_err:
+    print(f"[media] failed to create dir: {_media_err}", file=__import__('sys').stderr, flush=True)
 app.config["SESSION_COOKIE_SAMESITE"]  = "Lax"
 app.config["SESSION_COOKIE_SECURE"]    = True   # only send over HTTPS
 app.config["SESSION_COOKIE_HTTPONLY"]  = True   # not accessible from JS
@@ -988,6 +995,78 @@ def _run_safe_migrations():
             updated_at    TEXT
         )""",
         "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
+
+        # ── MOBILE APP MIGRATIONS (v8.1) ─────────────────────────────────────
+        "ALTER TABLE users  ADD COLUMN avatar_url  TEXT",
+        "ALTER TABLE users  ADD COLUMN cover_url   TEXT",
+        "ALTER TABLE roscas ADD COLUMN avatar_url   TEXT",
+        "ALTER TABLE roscas ADD COLUMN cover_url    TEXT",
+
+        """CREATE TABLE IF NOT EXISTS user_media (
+            id              TEXT PRIMARY KEY,
+            user_id         TEXT NOT NULL,
+            context         TEXT NOT NULL,
+            entity_id       TEXT NOT NULL,
+            filename        TEXT NOT NULL,
+            mime_type       TEXT NOT NULL,
+            file_size_bytes INTEGER,
+            storage_path    TEXT NOT NULL,
+            url             TEXT NOT NULL,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_user_media_ctx ON user_media(context, entity_id)",
+
+        """CREATE TABLE IF NOT EXISTS autopay_rules (
+            id              TEXT PRIMARY KEY,
+            user_id         TEXT NOT NULL,
+            circle_id       TEXT NOT NULL,
+            amount_cents    INTEGER NOT NULL,
+            currency        TEXT NOT NULL DEFAULT 'EUR',
+            frequency       TEXT NOT NULL DEFAULT 'monthly',
+            day_of_week     INTEGER,
+            day_of_month    INTEGER DEFAULT 1,
+            time_utc        TEXT NOT NULL DEFAULT '08:00',
+            status          TEXT NOT NULL DEFAULT 'active',
+            runs_remaining  INTEGER,
+            total_runs      INTEGER NOT NULL DEFAULT 0,
+            successful_runs INTEGER NOT NULL DEFAULT 0,
+            next_run_date   TEXT,
+            last_run_at     TEXT,
+            last_run_status TEXT,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_autopay_user ON autopay_rules(user_id, status)",
+
+        """CREATE TABLE IF NOT EXISTS autopay_runs (
+            id          TEXT PRIMARY KEY,
+            rule_id     TEXT NOT NULL,
+            status      TEXT NOT NULL,
+            error       TEXT,
+            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+
+        """CREATE TABLE IF NOT EXISTS circle_loans (
+            id                    TEXT PRIMARY KEY,
+            circle_id             TEXT NOT NULL,
+            lender_id             TEXT NOT NULL,
+            borrower_id           TEXT NOT NULL,
+            original_amount_cents INTEGER NOT NULL,
+            repaid_cents          INTEGER NOT NULL DEFAULT 0,
+            currency              TEXT NOT NULL DEFAULT 'EUR',
+            cycle_number          INTEGER,
+            status                TEXT NOT NULL DEFAULT 'outstanding',
+            created_at            TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at            TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_circle_loans_lender ON circle_loans(lender_id, status)",
+        "CREATE INDEX IF NOT EXISTS idx_circle_loans_borrower ON circle_loans(borrower_id, status)",
+
+        """CREATE TABLE IF NOT EXISTS circle_loan_repayments (
+            id           TEXT PRIMARY KEY,
+            loan_id      TEXT NOT NULL,
+            amount_cents INTEGER NOT NULL,
+            created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
     ]
     for sql in migrations:
         try:
@@ -7381,6 +7460,537 @@ def api_admin_refresh_rates():
         "updated_at": EXCHANGE_RATES_META.get("updated_at"),
         "error":  EXCHANGE_RATES_META.get("error"),
     }), (200 if ok else 502)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MOBILE APP API — v8.1
+# Media uploads, ROSCA members/cycles, cover-for-member, circle loans,
+# autopay, notification helpers, pool mobile aliases.
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# ── MEDIA UPLOAD API ─────────────────────────────────────────────────────────
+
+@app.route("/api/media/upload", methods=["POST"])
+@auth.login_required
+def api_media_upload():
+    """Upload a photo (avatar/cover) for user, circle, pool, or campaign."""
+    uid = session["user_id"]
+    upload = request.files.get("file")
+    ctx = request.form.get("context", "")
+    entity_id = request.form.get("entity_id", uid)
+
+    if not upload or not upload.filename:
+        return jsonify({"ok": False, "error": "No file provided"}), 400
+
+    allowed = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    mime = upload.content_type or ""
+    if mime not in allowed:
+        return jsonify({"ok": False, "error": f"Unsupported format: {mime}"}), 400
+
+    data = upload.read()
+    if len(data) > 8 * 1024 * 1024:
+        return jsonify({"ok": False, "error": "File too large. Maximum 8 MB."}), 400
+
+    ext = {"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/gif":"gif"}.get(mime, "jpg")
+    media_id = str(uuid.uuid4())
+    filename = f"{media_id}.{ext}"
+
+    context_dir = os.path.join(_MEDIA_DIR, ctx, entity_id)
+    os.makedirs(context_dir, exist_ok=True)
+    filepath = os.path.join(context_dir, filename)
+    with open(filepath, "wb") as f:
+        f.write(data)
+
+    storage_path = os.path.join(ctx, entity_id, filename)
+    public_url = f"/api/media/serve/{storage_path}"
+
+    with get_db(immediate=True) as db:
+        db.execute("""INSERT INTO user_media (id,user_id,context,entity_id,filename,
+                      mime_type,file_size_bytes,storage_path,url)
+                      VALUES (?,?,?,?,?,?,?,?,?)""",
+                   (media_id,uid,ctx,entity_id,upload.filename,mime,len(data),storage_path,public_url))
+        if ctx == "user_avatar":
+            db.execute("UPDATE users SET avatar_url=?, picture_url=? WHERE id=?", (public_url, public_url, uid))
+        elif ctx == "user_cover":
+            db.execute("UPDATE users SET cover_url=? WHERE id=?", (public_url, uid))
+        elif ctx in ("circle_avatar", "circle_cover"):
+            col = "avatar_url" if "avatar" in ctx else "cover_url"
+            db.execute(f"UPDATE roscas SET {col}=? WHERE id=?", (public_url, entity_id))
+
+    return jsonify({"ok": True, "url": public_url, "media_id": media_id})
+
+
+@app.route("/api/media/serve/<path:storage_path>")
+def api_media_serve(storage_path):
+    """Serve uploaded media. Public — no auth required."""
+    safe_path = os.path.normpath(storage_path)
+    if ".." in safe_path:
+        return "Not found", 404
+    full_path = os.path.join(_MEDIA_DIR, safe_path)
+    if not os.path.isfile(full_path):
+        return "Not found", 404
+    mime = "image/jpeg"
+    if full_path.endswith(".png"): mime = "image/png"
+    elif full_path.endswith(".webp"): mime = "image/webp"
+    elif full_path.endswith(".gif"): mime = "image/gif"
+    return send_from_directory(os.path.dirname(full_path), os.path.basename(full_path), mimetype=mime)
+
+
+@app.route("/api/media/<media_id>", methods=["DELETE"])
+@auth.login_required
+def api_media_delete(media_id):
+    """Delete a media item (uploader only)."""
+    row = fetchone("SELECT * FROM user_media WHERE id=? AND user_id=?", (media_id, session["user_id"]))
+    if not row: return jsonify({"error": "Not found"}), 404
+    try:
+        fp = os.path.join(_MEDIA_DIR, row["storage_path"])
+        if os.path.isfile(fp): os.remove(fp)
+    except Exception: pass
+    with get_db(immediate=True) as db:
+        db.execute("DELETE FROM user_media WHERE id=?", (media_id,))
+    return jsonify({"ok": True})
+
+
+# ── ROSCA MEMBERS + CYCLES (mobile) ─────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/members")
+@auth.login_required
+def api_rosca_members(rosca_id):
+    """Member list with NCS, payout position, and cycle contribution status."""
+    r = rosca.get_rosca(rosca_id)
+    if not r: return jsonify({"error": "Circle not found"}), 404
+
+    members_raw = fetchall("""
+        SELECT rm.user_id, u.full_name, u.hanatag, rm.payout_position,
+               rm.status, rm.joined_at, u.ncs_score, u.ncs_tier
+        FROM rosca_members rm JOIN users u ON u.id = rm.user_id
+        WHERE rm.rosca_id = ? ORDER BY rm.payout_position ASC
+    """, (rosca_id,))
+
+    current_cycle = fetchone(
+        "SELECT id FROM rosca_cycles WHERE rosca_id=? AND status='active' ORDER BY cycle_number DESC LIMIT 1",
+        (rosca_id,))
+
+    members = []
+    for m in members_raw:
+        md = dict(m)
+        md["is_organiser"] = (m["user_id"] == r["organiser_id"])
+        md["ncs_score"] = md.get("ncs_score") or 300
+        md["ncs_tier"] = md.get("ncs_tier") or "Probation"
+        if current_cycle:
+            contrib = fetchone(
+                "SELECT id FROM rosca_contributions WHERE cycle_id=? AND user_id=? AND status='paid'",
+                (current_cycle["id"], m["user_id"]))
+            loan = fetchone(
+                "SELECT lender_id FROM circle_loans WHERE circle_id=? AND borrower_id=? AND cycle_number=?",
+                (rosca_id, m["user_id"], r.get("current_cycle", 0)))
+            if contrib:
+                md["cycle_status"] = "paid"
+            elif loan:
+                lender = fetchone("SELECT hanatag FROM users WHERE id=?", (loan["lender_id"],))
+                md["cycle_status"] = "covered"
+                md["covered_by"] = lender["hanatag"] if lender else ""
+            else:
+                md["cycle_status"] = "pending"
+        else:
+            md["cycle_status"] = "pending"
+        members.append(md)
+    return jsonify({"members": members})
+
+
+@app.route("/api/rosca/<rosca_id>/cycles")
+@auth.login_required
+def api_rosca_cycles(rosca_id):
+    """Cycle/payout schedule."""
+    r = rosca.get_rosca(rosca_id)
+    if not r: return jsonify({"error": "Circle not found"}), 404
+    cycles_raw = fetchall("""
+        SELECT rc.id, rc.cycle_number, rc.status, rc.due_date, rc.payout_amount_cents,
+               rc.recipient_id, u.full_name as recipient_name, u.hanatag as recipient_hanatag,
+               (SELECT COUNT(*) FROM rosca_contributions WHERE cycle_id=rc.id AND status='paid') as contributions_received
+        FROM rosca_cycles rc LEFT JOIN users u ON u.id = rc.recipient_id
+        WHERE rc.rosca_id = ? ORDER BY rc.cycle_number ASC
+    """, (rosca_id,))
+    mc = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
+    expected = mc["c"] if mc else 0
+    cycles = []
+    for c in cycles_raw:
+        cd = dict(c)
+        cd["contributions_expected"] = expected
+        cd["payout_cents"] = cd.get("payout_amount_cents") or r["contribution_cents"] * expected
+        cycles.append(cd)
+    return jsonify({"cycles": cycles})
+
+
+# ── COVER MEMBER (pay on behalf) ─────────────────────────────────────────────
+
+@app.route("/api/rosca/<rosca_id>/cover-member", methods=["POST"])
+@auth.login_required
+def api_cover_member(rosca_id):
+    """Pay another member's contribution. Creates a circle_loan tracking the debt."""
+    d = request.json or {}
+    target_user_id = d.get("on_behalf_of", "")
+    totp_code = d.get("totp_code", "")
+    payer_id = session["user_id"]
+
+    if not target_user_id: return jsonify({"error": "on_behalf_of is required"}), 400
+    if target_user_id == payer_id: return jsonify({"error": "You cannot cover yourself"}), 400
+
+    _2fa = _require_totp(payer_id, totp_code)
+    if _2fa: return _2fa
+
+    r = rosca.get_rosca(rosca_id)
+    if not r: return jsonify({"error": "Circle not found"}), 404
+
+    payer_mem = fetchone("SELECT * FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'",
+                         (rosca_id, payer_id))
+    target_mem = fetchone("SELECT * FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'",
+                          (rosca_id, target_user_id))
+    if not payer_mem or not target_mem:
+        return jsonify({"error": "Both users must be active circle members"}), 400
+
+    amount_cents = r["contribution_cents"]
+    currency = r["currency"]
+
+    try:
+        cycle = rosca.get_or_create_active_cycle(rosca_id)
+        # Deduct from payer's wallet, credit the target member's obligation
+        post_transaction(payer_id, -amount_cents, currency, "rosca_cover",
+                         f"Covered a member's contribution")
+        rosca.pay_contribution(target_user_id, cycle["id"])
+
+        loan_id = str(uuid.uuid4())
+        with get_db(immediate=True) as db:
+            db.execute("""INSERT INTO circle_loans
+                (id,circle_id,lender_id,borrower_id,original_amount_cents,currency,cycle_number,status)
+                VALUES (?,?,?,?,?,?,?,?)""",
+                (loan_id, rosca_id, payer_id, target_user_id, amount_cents, currency,
+                 r.get("current_cycle", 0), "outstanding"))
+
+        try: ncs_engine.record_event(payer_id, "contribution_covered", {"amount_cents": amount_cents})
+        except Exception: pass
+
+        payer_u = fetchone("SELECT full_name FROM users WHERE id=?", (payer_id,))
+        target_u = fetchone("SELECT full_name FROM users WHERE id=?", (target_user_id,))
+        pn = payer_u["full_name"] if payer_u else "A member"
+        tn = target_u["full_name"] if target_u else "a member"
+
+        _log_circle_activity(rosca_id, payer_id, "cover",
+            f"{pn} covered {tn}'s contribution",
+            {"amount_cents": amount_cents, "target_user_id": target_user_id})
+        push_notification(target_user_id, "Contribution Covered",
+            f"{pn} covered your contribution of {currency} {amount_cents/100:.2f}. A loan has been created.")
+
+        return jsonify({"ok": True, "message": f"Covered {tn}'s contribution.", "loan_id": loan_id, "ncs_delta": 5})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
+# ── CIRCLE LOANS API ─────────────────────────────────────────────────────────
+
+@app.route("/api/loans/my-debts")
+@auth.login_required
+def api_loans_my_debts():
+    uid = session["user_id"]
+    loans = fetchall("""
+        SELECT cl.*, r.name as circle_name,
+               lu.full_name as lender_name, lu.hanatag as lender_hanatag,
+               bu.full_name as borrower_name, bu.hanatag as borrower_hanatag
+        FROM circle_loans cl JOIN roscas r ON r.id=cl.circle_id
+        JOIN users lu ON lu.id=cl.lender_id JOIN users bu ON bu.id=cl.borrower_id
+        WHERE cl.borrower_id=? ORDER BY cl.created_at DESC
+    """, (uid,))
+    result = []
+    for l in loans:
+        ld = dict(l); ld["remaining_cents"] = ld["original_amount_cents"] - ld["repaid_cents"]
+        result.append(ld)
+    return jsonify({"loans": result})
+
+
+@app.route("/api/loans/my-credits")
+@auth.login_required
+def api_loans_my_credits():
+    uid = session["user_id"]
+    loans = fetchall("""
+        SELECT cl.*, r.name as circle_name,
+               lu.full_name as lender_name, lu.hanatag as lender_hanatag,
+               bu.full_name as borrower_name, bu.hanatag as borrower_hanatag
+        FROM circle_loans cl JOIN roscas r ON r.id=cl.circle_id
+        JOIN users lu ON lu.id=cl.lender_id JOIN users bu ON bu.id=cl.borrower_id
+        WHERE cl.lender_id=? ORDER BY cl.created_at DESC
+    """, (uid,))
+    result = []
+    for l in loans:
+        ld = dict(l); ld["remaining_cents"] = ld["original_amount_cents"] - ld["repaid_cents"]
+        result.append(ld)
+    return jsonify({"loans": result})
+
+
+@app.route("/api/loans/circle/<circle_id>")
+@auth.login_required
+def api_loans_by_circle(circle_id):
+    loans = fetchall("""
+        SELECT cl.*, lu.full_name as lender_name, lu.hanatag as lender_hanatag,
+               bu.full_name as borrower_name, bu.hanatag as borrower_hanatag
+        FROM circle_loans cl JOIN users lu ON lu.id=cl.lender_id
+        JOIN users bu ON bu.id=cl.borrower_id
+        WHERE cl.circle_id=? ORDER BY cl.created_at DESC
+    """, (circle_id,))
+    result = []
+    for l in loans:
+        ld = dict(l); ld["remaining_cents"] = ld["original_amount_cents"] - ld["repaid_cents"]
+        result.append(ld)
+    return jsonify({"loans": result})
+
+
+@app.route("/api/loans/<loan_id>/repay", methods=["POST"])
+@auth.login_required
+def api_loan_repay(loan_id):
+    uid = session["user_id"]
+    d = request.json or {}
+    amount_cents = int(d.get("amount_cents", 0))
+
+    loan = fetchone("SELECT * FROM circle_loans WHERE id=?", (loan_id,))
+    if not loan: return jsonify({"error": "Loan not found"}), 404
+    if loan["borrower_id"] != uid: return jsonify({"error": "Only the borrower can repay"}), 403
+
+    remaining = loan["original_amount_cents"] - loan["repaid_cents"]
+    if amount_cents <= 0 or amount_cents > remaining:
+        return jsonify({"error": f"Amount must be between 1 and {remaining} cents"}), 400
+
+    new_repaid = loan["repaid_cents"] + amount_cents
+    new_status = "fully_repaid" if new_repaid >= loan["original_amount_cents"] else "partially_repaid"
+
+    with get_db(immediate=True) as db:
+        db.execute("INSERT INTO circle_loan_repayments (id,loan_id,amount_cents) VALUES (?,?,?)",
+                   (str(uuid.uuid4()), loan_id, amount_cents))
+        db.execute("UPDATE circle_loans SET repaid_cents=?,status=?,updated_at=datetime('now') WHERE id=?",
+                   (new_repaid, new_status, loan_id))
+
+    # Transfer funds: borrower → lender
+    post_transaction(uid, -amount_cents, loan["currency"], "loan_repayment",
+                     f"Loan repayment")
+    post_transaction(loan["lender_id"], amount_cents, loan["currency"], "loan_repayment_received",
+                     f"Loan repayment received")
+
+    push_notification(loan["lender_id"], "Loan Repayment",
+        f"Received repayment of {loan['currency']} {amount_cents/100:.2f}")
+
+    return jsonify({"ok":True, "repaid_cents":new_repaid,
+                    "remaining_cents":loan["original_amount_cents"]-new_repaid, "status":new_status})
+
+
+@app.route("/api/loans/<loan_id>/repayments")
+@auth.login_required
+def api_loan_repayments(loan_id):
+    reps = fetchall("SELECT * FROM circle_loan_repayments WHERE loan_id=? ORDER BY created_at DESC", (loan_id,))
+    return jsonify({"repayments": [dict(r) for r in reps]})
+
+
+# ── AUTOPAY API ──────────────────────────────────────────────────────────────
+
+@app.route("/api/autopay/my-rules")
+@auth.login_required
+def api_autopay_rules():
+    uid = session["user_id"]
+    rules = fetchall("""
+        SELECT ar.*, r.name as circle_name, r.currency
+        FROM autopay_rules ar JOIN roscas r ON r.id=ar.circle_id
+        WHERE ar.user_id=? ORDER BY ar.created_at DESC
+    """, (uid,))
+    return jsonify({"rules": [dict(r) for r in rules]})
+
+
+@app.route("/api/autopay/create", methods=["POST"])
+@auth.login_required
+def api_autopay_create():
+    uid = session["user_id"]
+    d = request.json or {}
+    circle_id = d.get("circle_id", "")
+    frequency = d.get("frequency", "monthly")
+    day_of_month = int(d.get("day_of_month", 1))
+    time_utc = d.get("time_utc", "08:00")
+    runs_count = d.get("runs_count")
+
+    if not circle_id: return jsonify({"error": "circle_id is required"}), 400
+    r = rosca.get_rosca(circle_id)
+    if not r: return jsonify({"error": "Circle not found"}), 404
+    mem = fetchone("SELECT * FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'",
+                   (circle_id, uid))
+    if not mem: return jsonify({"error": "You must be an active member"}), 400
+    existing = fetchone("SELECT id FROM autopay_rules WHERE user_id=? AND circle_id=? AND status='active'",
+                        (uid, circle_id))
+    if existing: return jsonify({"error": "Autopay already active for this circle"}), 400
+
+    rule_id = str(uuid.uuid4())
+    from datetime import timedelta
+    now = datetime.utcnow()
+    if frequency == "monthly":
+        td = min(day_of_month, 28)
+        if now.day >= td:
+            if now.month == 12: next_run = now.replace(year=now.year+1, month=1, day=td)
+            else: next_run = now.replace(month=now.month+1, day=td)
+        else: next_run = now.replace(day=td)
+    elif frequency == "weekly":
+        da = 7 - now.weekday()
+        next_run = now + timedelta(days=da if da > 0 else 7)
+    else:
+        next_run = now + timedelta(days=14)
+
+    next_run_str = next_run.strftime("%Y-%m-%d") + f" {time_utc}:00"
+
+    with get_db(immediate=True) as db:
+        db.execute("""INSERT INTO autopay_rules
+            (id,user_id,circle_id,amount_cents,currency,frequency,day_of_month,time_utc,
+             status,runs_remaining,next_run_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (rule_id,uid,circle_id,r["contribution_cents"],r["currency"],
+             frequency,day_of_month,time_utc,"active",runs_count,next_run_str))
+    return jsonify({"ok":True, "rule_id":rule_id, "next_run_date":next_run_str})
+
+
+@app.route("/api/autopay/<rule_id>/pause", methods=["POST"])
+@auth.login_required
+def api_autopay_pause(rule_id):
+    with get_db(immediate=True) as db:
+        db.execute("UPDATE autopay_rules SET status='paused' WHERE id=? AND user_id=?",
+                   (rule_id, session["user_id"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/autopay/<rule_id>/resume", methods=["POST"])
+@auth.login_required
+def api_autopay_resume(rule_id):
+    with get_db(immediate=True) as db:
+        db.execute("UPDATE autopay_rules SET status='active' WHERE id=? AND user_id=?",
+                   (rule_id, session["user_id"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/autopay/<rule_id>", methods=["DELETE"])
+@auth.login_required
+def api_autopay_cancel(rule_id):
+    with get_db(immediate=True) as db:
+        db.execute("DELETE FROM autopay_rules WHERE id=? AND user_id=?",
+                   (rule_id, session["user_id"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/autopay/<rule_id>/history")
+@auth.login_required
+def api_autopay_history(rule_id):
+    runs = fetchall("SELECT * FROM autopay_runs WHERE rule_id=? ORDER BY created_at DESC LIMIT 50",
+                    (rule_id,))
+    return jsonify({"runs": [dict(r) for r in runs]})
+
+
+# ── NOTIFICATION HELPERS (mobile) ────────────────────────────────────────────
+
+@app.route("/api/notifications/<notif_id>/read", methods=["POST"])
+@auth.login_required
+def api_notification_mark_read_single(notif_id):
+    with get_db(immediate=True) as db:
+        db.execute("UPDATE notifications SET is_read=1 WHERE id=? AND user_id=?",
+                   (notif_id, session["user_id"]))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/notifications/mark-all-read", methods=["POST"])
+@auth.login_required
+def api_notification_mark_all_read():
+    with get_db(immediate=True) as db:
+        db.execute("UPDATE notifications SET is_read=1 WHERE user_id=? AND is_read=0",
+                   (session["user_id"],))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/notifications/unread-count")
+@auth.login_required
+def api_notification_unread_count():
+    row = fetchone("SELECT COUNT(*) as c FROM notifications WHERE user_id=? AND is_read=0",
+                   (session["user_id"],))
+    return jsonify({"count": row["c"] if row else 0})
+
+
+# ── POOL MOBILE ALIASES ─────────────────────────────────────────────────────
+# Existing routes use /api/pools/ (with s). Mobile calls /api/pool/ (no s).
+
+@app.route("/api/pool/my-pools")
+@auth.login_required
+def api_pool_my_pools():
+    uid = session["user_id"]
+    pools = fetchall("""
+        SELECT p.*, u.full_name as creator_name,
+               (SELECT COUNT(*) FROM pool_members WHERE pool_id=p.id AND status='active') as member_count
+        FROM pools p JOIN users u ON u.id=p.creator_id
+        JOIN pool_members pm ON pm.pool_id=p.id AND pm.user_id=?
+        WHERE pm.status IN ('active','admin')
+        ORDER BY p.created_at DESC
+    """, (uid,))
+    return jsonify({"pools": [dict(p) for p in pools]})
+
+
+@app.route("/api/pool/marketplace")
+@auth.login_required
+def api_pool_marketplace():
+    pools = fetchall("""
+        SELECT p.*, u.full_name as creator_name,
+               (SELECT COUNT(*) FROM pool_members WHERE pool_id=p.id AND status='active') as member_count
+        FROM pools p JOIN users u ON u.id=p.creator_id
+        WHERE p.is_public=1 AND p.status IN ('active','forming')
+        ORDER BY p.created_at DESC LIMIT 50
+    """)
+    return jsonify({"pools": [dict(p) for p in pools]})
+
+
+@app.route("/api/pool/<pool_id>/members")
+@auth.login_required
+def api_pool_members(pool_id):
+    members = fetchall("""
+        SELECT pm.user_id, u.full_name, u.hanatag, pm.role, pm.status, pm.joined_at,
+               COALESCE((SELECT SUM(amount_cents) FROM pool_contributions
+                         WHERE pool_id=? AND user_id=pm.user_id),0) as contributed_cents,
+               COALESCE((SELECT COUNT(*) FROM pool_contributions
+                         WHERE pool_id=? AND user_id=pm.user_id),0) as contribution_count
+        FROM pool_members pm JOIN users u ON u.id=pm.user_id
+        WHERE pm.pool_id=? ORDER BY contributed_cents DESC
+    """, (pool_id, pool_id, pool_id))
+    return jsonify({"members": [dict(m) for m in members]})
+
+
+@app.route("/api/pool/<pool_id>/contributions")
+@auth.login_required
+def api_pool_contributions(pool_id):
+    contribs = fetchall("""
+        SELECT pc.id, pc.user_id, u.full_name as user_name, u.hanatag as user_hanatag,
+               pc.amount_cents, pc.created_at
+        FROM pool_contributions pc JOIN users u ON u.id=pc.user_id
+        WHERE pc.pool_id=? ORDER BY pc.created_at DESC LIMIT 50
+    """, (pool_id,))
+    return jsonify({"contributions": [dict(c) for c in contribs]})
+
+
+@app.route("/api/pool/<pool_id>/reminder-preference", methods=["POST"])
+@auth.login_required
+def api_pool_reminder_pref(pool_id):
+    return jsonify({"ok": True})
+
+
+@app.route("/api/pool/<pool_id>/send-reminder", methods=["POST"])
+@auth.login_required
+def api_pool_send_reminder(pool_id):
+    p = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
+    if not p or p["creator_id"] != session["user_id"]:
+        return jsonify({"error": "Only the pool creator can send reminders"}), 403
+    members = fetchall("SELECT user_id FROM pool_members WHERE pool_id=? AND status='active'", (pool_id,))
+    sent = 0
+    for m in members:
+        if m["user_id"] != session["user_id"]:
+            push_notification(m["user_id"], "Pool Reminder",
+                f"Time to contribute to {p['name']}! Stay on track with your savings goal.")
+            sent += 1
+    return jsonify({"ok": True, "reminders_sent": sent})
 
 
 # ── SCHEDULED HEALTH CHECKS ────────────────────────────────────────────────────
