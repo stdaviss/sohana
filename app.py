@@ -3744,6 +3744,59 @@ def api_rosca_detail(rosca_id):
         "total_members": total_members,
     })
 
+
+# ── MOBILE: JSON wallet transactions (the CSV /statement endpoint is for web export only) ──
+
+@app.route("/api/wallet/transactions")
+@auth.login_required
+def api_wallet_transactions_json():
+    """Return wallet transactions as JSON for the mobile app.
+    Accepts optional ?currency=EUR query param to filter by wallet.
+    Returns all wallets' transactions if no currency specified."""
+    uid = session["user_id"]
+    currency = request.args.get("currency")
+    limit = min(int(request.args.get("limit", 100)), 500)
+
+    if currency:
+        wallet = _get_wallet(uid, currency)
+        if not wallet:
+            return jsonify({"transactions": []})
+        txs = fetchall(
+            "SELECT * FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC LIMIT ?",
+            (wallet["id"], limit)
+        )
+    else:
+        # All wallets for this user
+        user_wallets = fetchall("SELECT id, currency FROM wallets WHERE user_id=?", (uid,))
+        if not user_wallets:
+            return jsonify({"transactions": []})
+        wallet_ids = [w["id"] for w in user_wallets]
+        wallet_currency_map = {w["id"]: w["currency"] for w in user_wallets}
+        placeholders = ",".join(["?"] * len(wallet_ids))
+        txs = fetchall(
+            f"SELECT * FROM wallet_transactions WHERE wallet_id IN ({placeholders}) ORDER BY created_at DESC LIMIT ?",
+            (*wallet_ids, limit)
+        )
+
+    result = []
+    for tx in txs:
+        row = dict(tx)
+        # Ensure currency is present (it may not be a column on wallet_transactions)
+        if "currency" not in row or not row.get("currency"):
+            if currency:
+                row["currency"] = currency
+            elif not currency and "wallet_id" in row:
+                # Look up from wallet
+                w = fetchone("SELECT currency FROM wallets WHERE id=?", (row["wallet_id"],))
+                row["currency"] = w["currency"] if w else "EUR"
+        # Rename 'type' to 'tx_type' if needed for mobile compatibility
+        if "tx_type" not in row and "type" in row:
+            row["tx_type"] = row.pop("type")
+        result.append(row)
+
+    return jsonify({"transactions": result})
+
+
 @app.route("/api/wallet/statement")
 @auth.login_required
 def api_statement():
