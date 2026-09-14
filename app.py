@@ -798,6 +798,55 @@ def _run_safe_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_blog_media_uploaded ON blog_media(uploaded_at DESC)",
 
+        POOL_TABLE_MIGRATIONS = [
+    """CREATE TABLE IF NOT EXISTS pools (
+        id                      TEXT PRIMARY KEY,
+        name                    TEXT NOT NULL,
+        slug                    TEXT,
+        description             TEXT DEFAULT '',
+        creator_id              TEXT NOT NULL,
+        currency                TEXT NOT NULL DEFAULT 'EUR',
+        target_cents            INTEGER NOT NULL DEFAULT 0,
+        deadline                TEXT,
+        reminder_frequency_days INTEGER NOT NULL DEFAULT 7,
+        max_members             INTEGER NOT NULL DEFAULT 20,
+        member_count            INTEGER NOT NULL DEFAULT 0,
+        status                  TEXT NOT NULL DEFAULT 'active',
+        is_public               INTEGER NOT NULL DEFAULT 1,
+        avatar_url              TEXT,
+        cover_url               TEXT,
+        created_at              TEXT NOT NULL DEFAULT (datetime('now'))
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_pools_creator ON pools(creator_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pools_public ON pools(is_public, status)",
+ 
+    """CREATE TABLE IF NOT EXISTS pool_members (
+        id        TEXT PRIMARY KEY,
+        pool_id   TEXT NOT NULL,
+        user_id   TEXT NOT NULL,
+        role      TEXT NOT NULL DEFAULT 'member',
+        status    TEXT NOT NULL DEFAULT 'active',
+        joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(pool_id, user_id)
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_pool_members_pool ON pool_members(pool_id, status)",
+    "CREATE INDEX IF NOT EXISTS idx_pool_members_user ON pool_members(user_id)",
+ 
+    """CREATE TABLE IF NOT EXISTS pool_contributions (
+        id          TEXT PRIMARY KEY,
+        pool_id     TEXT NOT NULL,
+        user_id     TEXT NOT NULL,
+        amount_cents INTEGER NOT NULL,
+        created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_pool_contribs ON pool_contributions(pool_id, user_id)",
+]
+ 
+# Call this from ensure_db or _run_safe_migrations:
+# for stmt in POOL_TABLE_MIGRATIONS:
+#     try: db.execute(stmt)
+#     except: pass
+
         # ── FINANCE SUITE PORTFOLIOS (v8.0) ───────────────────────────────────
         # Portfolio management for advisors. Financial advisors and CFO/CEO can
         # create simulated client portfolios, track them over time, and record
@@ -7915,6 +7964,190 @@ def api_notification_unread_count():
 
 # ── POOL MOBILE ALIASES ─────────────────────────────────────────────────────
 # Existing routes use /api/pools/ (with s). Mobile calls /api/pool/ (no s).
+
+# ── ROUTE: POST /api/pool/create ─NEW Mobile Additions────────────────────────────────────────────
+ 
+@app.route("/api/pool/create", methods=["POST"])
+@auth.login_required
+def api_pool_create():
+    """
+    Create a new contribution pool.
+    Required: name, target_cents, currency
+    Optional: description, deadline, reminder_frequency_days, max_members, is_public
+    """
+    uid = session["user_id"]
+    d = request.json or {}
+ 
+    name = (d.get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "Pool name is required"}), 400
+ 
+    target_cents = int(d.get("target_cents", 0))
+    if target_cents < 1000:  # minimum €10
+        return jsonify({"error": "Target must be at least €10"}), 400
+ 
+    currency = d.get("currency", "EUR")
+    description = (d.get("description") or "").strip()
+    deadline = d.get("deadline") or None
+    reminder_freq = int(d.get("reminder_frequency_days", 7))
+    max_members = int(d.get("max_members", 20))
+    is_public = 1 if d.get("is_public", True) else 0
+ 
+    pool_id = str(uuid.uuid4())
+    slug = name.lower().replace(" ", "-")[:50]
+ 
+    with get_db(immediate=True) as db:
+        # Create the pool
+        db.execute("""INSERT INTO pools
+            (id, name, slug, description, creator_id, currency, target_cents,
+             deadline, reminder_frequency_days, max_members, member_count,
+             status, is_public, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'))""",
+            (pool_id, name, slug, description, uid, currency, target_cents,
+             deadline, reminder_freq, max_members, 1,  # creator counts as member
+             "active", is_public))
+ 
+        # Add creator as first member with 'admin' role
+        db.execute("""INSERT INTO pool_members (id, pool_id, user_id, role, status)
+            VALUES (?,?,?,?,?)""",
+            (str(uuid.uuid4()), pool_id, uid, "admin", "active"))
+ 
+    return jsonify({"ok": True, "pool_id": pool_id, "name": name}), 201
+ 
+ 
+# ── ROUTE: POST /api/pool/<id>/join ──────────────────────────────────────────
+ 
+@app.route("/api/pool/<pool_id>/join", methods=["POST"])
+@auth.login_required
+def api_pool_join(pool_id):
+    """Join a pool. If auto-approve, joins immediately. Otherwise, status='pending'."""
+    uid = session["user_id"]
+ 
+    pool = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
+    if not pool:
+        return jsonify({"error": "Pool not found"}), 404
+ 
+    # Check if already a member
+    existing = fetchone("SELECT id FROM pool_members WHERE pool_id=? AND user_id=?", (pool_id, uid))
+    if existing:
+        return jsonify({"error": "You're already a member of this pool"}), 400
+ 
+    # Check capacity
+    count = fetchone("SELECT COUNT(*) as c FROM pool_members WHERE pool_id=? AND status='active'", (pool_id,))
+    if count and count["c"] >= pool["max_members"]:
+        return jsonify({"error": "This pool is full"}), 400
+ 
+    status = "active"  # pools auto-approve by default
+ 
+    with get_db(immediate=True) as db:
+        db.execute("INSERT INTO pool_members (id, pool_id, user_id, role, status) VALUES (?,?,?,?,?)",
+                   (str(uuid.uuid4()), pool_id, uid, "member", status))
+        db.execute("UPDATE pools SET member_count = member_count + 1 WHERE id=?", (pool_id,))
+ 
+    return jsonify({"ok": True, "status": status})
+ 
+ 
+# ── ROUTE: POST /api/pool/<id>/contribute ────────────────────────────────────
+ 
+@app.route("/api/pool/<pool_id>/contribute", methods=["POST"])
+@auth.login_required
+def api_pool_contribute(pool_id):
+    """Contribute any amount to a pool."""
+    uid = session["user_id"]
+    d = request.json or {}
+    amount_cents = int(d.get("amount_cents", 0))
+ 
+    if amount_cents < 100:
+        return jsonify({"error": "Minimum contribution is €1"}), 400
+ 
+    pool = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
+    if not pool:
+        return jsonify({"error": "Pool not found"}), 404
+ 
+    member = fetchone("SELECT * FROM pool_members WHERE pool_id=? AND user_id=? AND status='active'",
+                      (pool_id, uid))
+    if not member:
+        return jsonify({"error": "You must be a member to contribute"}), 403
+ 
+    with get_db(immediate=True) as db:
+        db.execute("INSERT INTO pool_contributions (id, pool_id, user_id, amount_cents) VALUES (?,?,?,?)",
+                   (str(uuid.uuid4()), pool_id, uid, amount_cents))
+ 
+    # NCS event
+    try:
+        ncs_engine.record_event(uid, "pool_contribution", {"amount_cents": amount_cents, "pool_id": pool_id})
+    except Exception:
+        pass
+ 
+    return jsonify({"ok": True, "amount_cents": amount_cents})
+ 
+ 
+# ── ROUTE: GET /api/pool/<id> ────────────────────────────────────────────────
+ 
+@app.route("/api/pool/<pool_id>")
+@auth.login_required
+def api_pool_detail(pool_id):
+    """Get pool details."""
+    pool = fetchone("""
+        SELECT p.*, u.full_name as creator_name,
+               (SELECT COUNT(*) FROM pool_members WHERE pool_id=p.id AND status='active') as member_count,
+               (SELECT COALESCE(SUM(amount_cents),0) FROM pool_contributions WHERE pool_id=p.id) as total_contributed_cents
+        FROM pools p
+        JOIN users u ON u.id = p.creator_id
+        WHERE p.id = ?
+    """, (pool_id,))
+ 
+    if not pool:
+        return jsonify({"error": "Pool not found"}), 404
+ 
+    return jsonify(dict(pool))
+ 
+ 
+# ── ROUTE: POST /api/pool/<id>/approve-member ────────────────────────────────
+ 
+@app.route("/api/pool/<pool_id>/approve-member", methods=["POST"])
+@auth.login_required
+def api_pool_approve_member(pool_id):
+    """Approve a pending member (organiser only)."""
+    uid = session["user_id"]
+    d = request.json or {}
+    target_uid = d.get("user_id", "")
+ 
+    pool = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
+    if not pool or pool["creator_id"] != uid:
+        return jsonify({"error": "Only the pool creator can approve members"}), 403
+ 
+    with get_db(immediate=True) as db:
+        db.execute("UPDATE pool_members SET status='active' WHERE pool_id=? AND user_id=?",
+                   (pool_id, target_uid))
+        db.execute("UPDATE pools SET member_count = (SELECT COUNT(*) FROM pool_members WHERE pool_id=? AND status='active') WHERE id=?",
+                   (pool_id, pool_id))
+ 
+    return jsonify({"ok": True})
+ 
+ 
+# ── ROUTE: POST /api/pool/<id>/remove-member ─────────────────────────────────
+ 
+@app.route("/api/pool/<pool_id>/remove-member", methods=["POST"])
+@auth.login_required
+def api_pool_remove_member(pool_id):
+    """Remove a member (organiser only)."""
+    uid = session["user_id"]
+    d = request.json or {}
+    target_uid = d.get("user_id", "")
+ 
+    pool = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
+    if not pool or pool["creator_id"] != uid:
+        return jsonify({"error": "Only the pool creator can remove members"}), 403
+ 
+    with get_db(immediate=True) as db:
+        db.execute("DELETE FROM pool_members WHERE pool_id=? AND user_id=?", (pool_id, target_uid))
+        db.execute("UPDATE pools SET member_count = (SELECT COUNT(*) FROM pool_members WHERE pool_id=? AND status='active') WHERE id=?",
+                   (pool_id, pool_id))
+ 
+    return jsonify({"ok": True})
+ 
+
 
 @app.route("/api/pool/my-pools")
 @auth.login_required
