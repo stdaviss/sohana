@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sohana-dev-secret-change-in-prod")
 
 # ── MEDIA STORAGE DIRECTORY ───────────────────────────────────────────────────
-_MEDIA_DIR = os.path.join(os.path.dirname(__file__), "user_media")
+_MEDIA_DIR = os.environ.get("MEDIA_DIR", os.path.join(os.path.dirname(__file__), "user_media"))
 try:
     os.makedirs(_MEDIA_DIR, exist_ok=True)
 except Exception as _media_err:
@@ -838,6 +838,27 @@ def _run_safe_migrations():
             created_at   TEXT NOT NULL DEFAULT (datetime('now'))
         )""",
         "CREATE INDEX IF NOT EXISTS idx_pool_contribs ON pool_contributions(pool_id, user_id)",
+
+        # ── CIRCLE SOCIAL FEED (Facebook Groups style) ────────────────────────
+        """CREATE TABLE IF NOT EXISTS circle_posts (
+            id              TEXT PRIMARY KEY,
+            circle_id       TEXT NOT NULL,
+            author_id       TEXT NOT NULL,
+            content         TEXT NOT NULL DEFAULT '',
+            media_url       TEXT,
+            is_announcement INTEGER NOT NULL DEFAULT 0,
+            is_pinned       INTEGER NOT NULL DEFAULT 0,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_circle_posts ON circle_posts(circle_id, created_at DESC)",
+        """CREATE TABLE IF NOT EXISTS circle_post_comments (
+            id         TEXT PRIMARY KEY,
+            post_id    TEXT NOT NULL,
+            author_id  TEXT NOT NULL,
+            content    TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_post_comments ON circle_post_comments(post_id, created_at)",
 
         # ── FINANCE SUITE PORTFOLIOS (v8.0) ───────────────────────────────────
         # Portfolio management for advisors. Financial advisors and CFO/CEO can
@@ -3902,6 +3923,149 @@ def api_lookup_hanatag():
     u = fetchone("SELECT id, full_name, ncs_score, ncs_tier FROM users WHERE hanatag=?", (tag,))
     if not u: return jsonify({"error": "Not found"}), 404
     return jsonify({"ok": True, "user": dict(u)})
+
+
+# ── CIRCLE SOCIAL FEED (Facebook Groups style posts + comments) ──────────────
+
+@app.route("/api/rosca/<rosca_id>/posts")
+@auth.login_required
+def api_circle_posts(rosca_id):
+    """Get feed posts for a circle, newest first. Includes author info and comment count."""
+    limit = min(int(request.args.get("limit", 30)), 100)
+    rows = fetchall("""
+        SELECT cp.*,
+               u.full_name as author_name, u.hanatag as author_hanatag,
+               u.avatar_url as author_avatar,
+               (SELECT COUNT(*) FROM circle_post_comments WHERE post_id=cp.id) as comment_count
+        FROM circle_posts cp
+        JOIN users u ON u.id = cp.author_id
+        WHERE cp.circle_id = ?
+        ORDER BY cp.is_pinned DESC, cp.created_at DESC
+        LIMIT ?
+    """, (rosca_id, limit))
+    return jsonify({"posts": [dict(r) for r in rows]})
+
+
+@app.route("/api/rosca/<rosca_id>/posts", methods=["POST"])
+@auth.login_required
+def api_circle_create_post(rosca_id):
+    """Create a feed post in a circle. Any member can post. Organiser can pin/announce."""
+    uid = session["user_id"]
+    d = request.json or {}
+    content = (d.get("content") or "").strip()
+    if not content:
+        return jsonify({"error": "Post cannot be empty"}), 400
+
+    # Verify membership
+    member = fetchone("""SELECT rm.user_id, r.organiser_id FROM rosca_members rm
+                         JOIN roscas r ON r.id = rm.rosca_id
+                         WHERE rm.rosca_id=? AND rm.user_id=?""", (rosca_id, uid))
+    if not member:
+        return jsonify({"error": "You must be a member to post"}), 403
+
+    is_org = (member["organiser_id"] == uid)
+    is_announcement = 1 if d.get("is_announcement") and is_org else 0
+    is_pinned = 1 if d.get("is_pinned") and is_org else 0
+    media_url = d.get("media_url")
+
+    post_id = str(uuid.uuid4())
+    with get_db(immediate=True) as db:
+        db.execute("""INSERT INTO circle_posts (id, circle_id, author_id, content, media_url,
+                      is_announcement, is_pinned) VALUES (?,?,?,?,?,?,?)""",
+                   (post_id, rosca_id, uid, content, media_url, is_announcement, is_pinned))
+
+    # Send notification to circle members
+    try:
+        user_row = fetchone("SELECT full_name FROM users WHERE id=?", (uid,))
+        sender_name = user_row["full_name"].split()[0] if user_row else "Someone"
+        members = fetchall("SELECT user_id FROM rosca_members WHERE rosca_id=? AND user_id!=?", (rosca_id, uid))
+        circle_row = fetchone("SELECT name FROM roscas WHERE id=?", (rosca_id,))
+        circle_name = circle_row["name"] if circle_row else "Circle"
+        for m in members:
+            push_notification(m["user_id"],
+                "circle_post" if not is_announcement else "announcement",
+                f"New {'announcement' if is_announcement else 'post'} in {circle_name}",
+                f"{sender_name}: {content[:80]}...")
+    except Exception:
+        pass
+
+    return jsonify({"ok": True, "post_id": post_id}), 201
+
+
+@app.route("/api/rosca/<rosca_id>/posts/<post_id>/comments")
+@auth.login_required
+def api_circle_post_comments(rosca_id, post_id):
+    """Get comments for a specific post."""
+    rows = fetchall("""
+        SELECT c.*, u.full_name as author_name, u.hanatag as author_hanatag,
+               u.avatar_url as author_avatar
+        FROM circle_post_comments c
+        JOIN users u ON u.id = c.author_id
+        WHERE c.post_id = ?
+        ORDER BY c.created_at ASC
+    """, (post_id,))
+    return jsonify({"comments": [dict(r) for r in rows]})
+
+
+@app.route("/api/rosca/<rosca_id>/posts/<post_id>/comments", methods=["POST"])
+@auth.login_required
+def api_circle_add_comment(rosca_id, post_id):
+    """Add a comment to a circle post."""
+    uid = session["user_id"]
+    content = (request.json or {}).get("content", "").strip()
+    if not content:
+        return jsonify({"error": "Comment cannot be empty"}), 400
+
+    comment_id = str(uuid.uuid4())
+    with get_db(immediate=True) as db:
+        db.execute("INSERT INTO circle_post_comments (id, post_id, author_id, content) VALUES (?,?,?,?)",
+                   (comment_id, post_id, uid, content))
+
+    return jsonify({"ok": True, "comment_id": comment_id}), 201
+
+
+@app.route("/api/rosca/<rosca_id>/posts/<post_id>", methods=["DELETE"])
+@auth.login_required
+def api_circle_delete_post(rosca_id, post_id):
+    """Delete a post (author or organiser only)."""
+    uid = session["user_id"]
+    post = fetchone("SELECT * FROM circle_posts WHERE id=? AND circle_id=?", (post_id, rosca_id))
+    if not post:
+        return jsonify({"error": "Post not found"}), 404
+    circle = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
+    if post["author_id"] != uid and (not circle or circle["organiser_id"] != uid):
+        return jsonify({"error": "Not authorized"}), 403
+    with get_db(immediate=True) as db:
+        db.execute("DELETE FROM circle_post_comments WHERE post_id=?", (post_id,))
+        db.execute("DELETE FROM circle_posts WHERE id=?", (post_id,))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/rosca/<rosca_id>/join", methods=["POST"])
+@auth.login_required
+def api_rosca_join(rosca_id):
+    """Join a circle. Returns immediately for auto-approve circles, or sets status='pending'."""
+    uid = session["user_id"]
+    circle = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
+    if not circle:
+        return jsonify({"error": "Circle not found"}), 404
+    existing = fetchone("SELECT id FROM rosca_members WHERE rosca_id=? AND user_id=?", (rosca_id, uid))
+    if existing:
+        return jsonify({"error": "Already a member"}), 400
+    c = dict(circle)
+    count = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
+    if count and count["c"] >= c.get("max_members", 999):
+        return jsonify({"error": "Circle is full"}), 400
+
+    status = "active" if c.get("is_auto_approve") else "pending"
+    with get_db(immediate=True) as db:
+        db.execute("INSERT INTO rosca_members (id, rosca_id, user_id, payout_position, status) VALUES (?,?,?,?,?)",
+                   (str(uuid.uuid4()), rosca_id, uid, 0, status))
+        if status == "active":
+            db.execute("UPDATE roscas SET member_count = (SELECT COUNT(*) FROM rosca_members WHERE rosca_id=? AND status='active') WHERE id=?",
+                       (rosca_id, rosca_id))
+
+    return jsonify({"ok": True, "status": status})
 
 
 # ── HANATAG QR + PUBLIC PAY LANDING ──────────────────────────────────────────
