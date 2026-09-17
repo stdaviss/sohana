@@ -7741,10 +7741,17 @@ def api_media_upload():
 
     allowed = {"image/jpeg", "image/png", "image/webp", "image/gif"}
     mime = upload.content_type or ""
+    # React Native sometimes sends "image/jpg" instead of "image/jpeg"
+    if mime == "image/jpg":
+        mime = "image/jpeg"
     if mime not in allowed:
         return jsonify({"ok": False, "error": f"Unsupported format: {mime}"}), 400
 
-    data = upload.read()
+    try:
+        data = upload.read()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not read file: {str(e)}"}), 400
+
     if len(data) > 8 * 1024 * 1024:
         return jsonify({"ok": False, "error": "File too large. Maximum 8 MB."}), 400
 
@@ -7752,30 +7759,39 @@ def api_media_upload():
     media_id = str(uuid.uuid4())
     filename = f"{media_id}.{ext}"
 
-    context_dir = os.path.join(_MEDIA_DIR, ctx, entity_id)
-    os.makedirs(context_dir, exist_ok=True)
-    filepath = os.path.join(context_dir, filename)
-    with open(filepath, "wb") as f:
-        f.write(data)
+    # Build storage path and ensure directory exists
+    try:
+        context_dir = os.path.join(_MEDIA_DIR, ctx, entity_id)
+        os.makedirs(context_dir, exist_ok=True)
+        filepath = os.path.join(context_dir, filename)
+        with open(filepath, "wb") as f:
+            f.write(data)
+    except OSError as e:
+        app.logger.error(f"Media upload file write error: {e} (MEDIA_DIR={_MEDIA_DIR})")
+        return jsonify({"ok": False, "error": f"Storage error: {str(e)}"}), 500
 
     storage_path = os.path.join(ctx, entity_id, filename)
     public_url = f"/api/media/serve/{storage_path}"
 
-    with get_db(immediate=True) as db:
-        db.execute("""INSERT INTO user_media (id,user_id,context,entity_id,filename,
-                      mime_type,file_size_bytes,storage_path,url)
-                      VALUES (?,?,?,?,?,?,?,?,?)""",
-                   (media_id,uid,ctx,entity_id,upload.filename,mime,len(data),storage_path,public_url))
-        if ctx == "user_avatar":
-            db.execute("UPDATE users SET avatar_url=?, picture_url=? WHERE id=?", (public_url, public_url, uid))
-        elif ctx == "user_cover":
-            db.execute("UPDATE users SET cover_url=? WHERE id=?", (public_url, uid))
-        elif ctx in ("circle_avatar", "circle_cover"):
-            col = "avatar_url" if "avatar" in ctx else "cover_url"
-            db.execute(f"UPDATE roscas SET {col}=? WHERE id=?", (public_url, entity_id))
-        elif ctx in ("pool_avatar", "pool_cover"):
-            col = "avatar_url" if "avatar" in ctx else "cover_url"
-            db.execute(f"UPDATE pools SET {col}=? WHERE id=?", (public_url, entity_id))
+    try:
+        with get_db(immediate=True) as db:
+            db.execute("""INSERT INTO user_media (id,user_id,context,entity_id,filename,
+                          mime_type,file_size_bytes,storage_path,url)
+                          VALUES (?,?,?,?,?,?,?,?,?)""",
+                       (media_id,uid,ctx,entity_id,upload.filename or filename,mime,len(data),storage_path,public_url))
+            if ctx == "user_avatar":
+                db.execute("UPDATE users SET avatar_url=?, picture_url=? WHERE id=?", (public_url, public_url, uid))
+            elif ctx == "user_cover":
+                db.execute("UPDATE users SET cover_url=? WHERE id=?", (public_url, uid))
+            elif ctx in ("circle_avatar", "circle_cover"):
+                col = "avatar_url" if "avatar" in ctx else "cover_url"
+                db.execute(f"UPDATE roscas SET {col}=? WHERE id=?", (public_url, entity_id))
+            elif ctx in ("pool_avatar", "pool_cover"):
+                col = "avatar_url" if "avatar" in ctx else "cover_url"
+                db.execute(f"UPDATE pools SET {col}=? WHERE id=?", (public_url, entity_id))
+    except Exception as e:
+        app.logger.error(f"Media upload DB error: {e}")
+        return jsonify({"ok": False, "error": f"Database error: {str(e)}"}), 500
 
     return jsonify({"ok": True, "url": public_url, "media_id": media_id})
 
