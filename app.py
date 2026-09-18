@@ -819,6 +819,14 @@ def _run_safe_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_pools_creator ON pools(creator_id)",
         "CREATE INDEX IF NOT EXISTS idx_pools_public ON pools(is_public, status)",
+        # Safe column additions for pre-existing pools table from web app
+        "ALTER TABLE pools ADD COLUMN target_cents            INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE pools ADD COLUMN deadline                TEXT",
+        "ALTER TABLE pools ADD COLUMN reminder_frequency_days INTEGER NOT NULL DEFAULT 7",
+        "ALTER TABLE pools ADD COLUMN avatar_url              TEXT",
+        "ALTER TABLE pools ADD COLUMN cover_url               TEXT",
+        "ALTER TABLE pools ADD COLUMN member_count            INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE pools ADD COLUMN slug                    TEXT",
         """CREATE TABLE IF NOT EXISTS pool_members (
             id        TEXT PRIMARY KEY,
             pool_id   TEXT NOT NULL,
@@ -838,6 +846,9 @@ def _run_safe_migrations():
             created_at   TEXT NOT NULL DEFAULT (datetime('now'))
         )""",
         "CREATE INDEX IF NOT EXISTS idx_pool_contribs ON pool_contributions(pool_id, user_id)",
+        # Safe additions for pre-existing pool_contributions from web app (uses member_id not user_id)
+        "ALTER TABLE pool_contributions ADD COLUMN user_id TEXT",
+        "ALTER TABLE pool_contributions ADD COLUMN status TEXT NOT NULL DEFAULT 'paid'",
 
         # ── PUSH NOTIFICATION DEVICES (Expo Push) ──────────────────────────────
         """CREATE TABLE IF NOT EXISTS user_devices (
