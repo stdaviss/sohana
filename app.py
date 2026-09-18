@@ -3714,16 +3714,49 @@ def api_rosca_detail(rosca_id):
     )
     r["total_contributed_cents"] = _tc["t"] if _tc else 0
 
+    # Compute member_count from the actual table (not the stale roscas column)
+    mc = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
+    actual_member_count = mc["c"] if mc else 0
+
+    # Get organiser's name
+    org_user = fetchone("SELECT full_name, hanatag FROM users WHERE id=?", (r.get("organiser_id", ""),))
+    r["organiser_name"] = org_user["full_name"] if org_user else "Unknown"
+    r["organiser_hanatag"] = org_user["hanatag"] if org_user else ""
+
+    # Include organiser in count even if not in rosca_members table
+    organiser_in_members = fetchone("SELECT id FROM rosca_members WHERE rosca_id=? AND user_id=?",
+                                     (rosca_id, r.get("organiser_id", "")))
+    if not organiser_in_members and r.get("organiser_id"):
+        actual_member_count += 1  # Count the organiser
+
+    r["member_count"] = actual_member_count
+
+    # Completed cycles count
+    completed_cycles = fetchone("SELECT COUNT(*) as c FROM cycles WHERE rosca_id=? AND status='completed'", (rosca_id,))
+    r["completed_cycles"] = completed_cycles["c"] if completed_cycles else 0
+
     # Get members with user data
     raw_members = rosca.get_rosca_members(rosca_id)
     members = []
+    member_ids = set()
     for m in raw_members:
         m_dict = dict(m)
-        u = fetchone("SELECT full_name, hanatag, ncs_score, ncs_tier FROM users WHERE id=?", (m_dict["user_id"],))
+        u = fetchone("SELECT full_name, hanatag, ncs_score, ncs_tier, avatar_url FROM users WHERE id=?", (m_dict["user_id"],))
         if u:
             u_dict = dict(u)
             m_dict.update(u_dict)
+        member_ids.add(m_dict["user_id"])
         members.append(m_dict)
+
+    # Add organiser to members list if not already there
+    if r.get("organiser_id") and r["organiser_id"] not in member_ids:
+        org = fetchone("SELECT id as user_id, full_name, hanatag, ncs_score, ncs_tier, avatar_url FROM users WHERE id=?", (r["organiser_id"],))
+        if org:
+            od = dict(org)
+            od["payout_position"] = 0
+            od["status"] = "active"
+            od["joined_at"] = r.get("created_at", "")
+            members.insert(0, od)
 
     # Get cycle info
     cycle_info = rosca.get_cycle_status(rosca_id)
@@ -4144,31 +4177,33 @@ def api_mark_read():
 @auth.login_required
 def api_create_rosca():
     d = request.json or {}
+    uid = session["user_id"]
     try:
         rid, fee = rosca.create_rosca(
-            organiser_id=session["user_id"], name=d.get("name","").strip(),
+            organiser_id=uid, name=d.get("name","").strip(),
             description=d.get("description",""),
             contribution_cents=int(float(d.get("contribution",50))*100),
             max_members=int(d.get("max_members",8)),
             frequency_days=int(d.get("frequency_days",30)),
             ncs_min=int(d.get("ncs_min",300)), is_public=bool(d.get("is_public",True)))
-        # Fee is charged atomically inside create_rosca(); the circle is not
-        # created unless it clears. No post-hoc conditional charge.
+
+        # Ensure organiser is in rosca_members (some versions of rosca.py don't do this)
+        existing = fetchone("SELECT id FROM rosca_members WHERE rosca_id=? AND user_id=?", (rid, uid))
+        if not existing:
+            with get_db(immediate=True) as db:
+                db.execute("INSERT INTO rosca_members (id, rosca_id, user_id, payout_position, status) VALUES (?,?,?,?,?)",
+                           (str(uuid.uuid4()), rid, uid, 1, "active"))
+                db.execute("UPDATE roscas SET member_count = (SELECT COUNT(*) FROM rosca_members WHERE rosca_id=? AND status='active') WHERE id=?",
+                           (rid, rid))
+
         return jsonify({"ok": True, "rosca_id": rid, "creation_fee_cents": fee})
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route("/api/rosca/<rosca_id>/join", methods=["POST"])
-@auth.login_required
-def api_join_rosca(rosca_id):
-    """Request to join — creates pending membership for organiser approval."""
-    try:
-        rosca.request_to_join(rosca_id, session["user_id"])
-        return jsonify({"ok": True, "status": "pending"})
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+# NOTE: /api/rosca/<id>/join is defined above (api_rosca_join) with auto-approve support.
+# The old api_join_rosca duplicate has been removed.
 
 @app.route("/api/rosca/<rosca_id>/pending")
 @auth.login_required
@@ -7835,37 +7870,58 @@ def api_rosca_members(rosca_id):
     """Member list with NCS, payout position, and cycle contribution status."""
     r = rosca.get_rosca(rosca_id)
     if not r: return jsonify({"error": "Circle not found"}), 404
+    r_dict = dict(r)
 
     members_raw = fetchall("""
-        SELECT rm.user_id, u.full_name, u.hanatag, rm.payout_position,
-               rm.status, rm.joined_at, u.ncs_score, u.ncs_tier
+        SELECT rm.user_id, u.full_name, u.hanatag, u.avatar_url,
+               rm.payout_position, rm.status, rm.joined_at,
+               u.ncs_score, u.ncs_tier
         FROM rosca_members rm JOIN users u ON u.id = rm.user_id
-        WHERE rm.rosca_id = ? ORDER BY rm.payout_position ASC
+        WHERE rm.rosca_id = ? AND rm.status = 'active'
+        ORDER BY rm.payout_position ASC
     """, (rosca_id,))
 
+    # Also include the organiser even if they're not in rosca_members
+    organiser_id = r_dict.get("organiser_id")
+    member_ids = {m["user_id"] for m in members_raw}
+
+    if organiser_id and organiser_id not in member_ids:
+        org_user = fetchone("SELECT id as user_id, full_name, hanatag, avatar_url, ncs_score, ncs_tier FROM users WHERE id=?", (organiser_id,))
+        if org_user:
+            org_dict = dict(org_user)
+            org_dict["payout_position"] = 0
+            org_dict["status"] = "active"
+            org_dict["joined_at"] = r_dict.get("created_at", "")
+            members_raw = [org_dict] + list(members_raw)
+
+    # Get current active cycle (table is called 'cycles', not 'rosca_cycles')
     current_cycle = fetchone(
-        "SELECT id FROM rosca_cycles WHERE rosca_id=? AND status='active' ORDER BY cycle_number DESC LIMIT 1",
+        "SELECT id, cycle_number FROM cycles WHERE rosca_id=? AND status='active' ORDER BY cycle_number DESC LIMIT 1",
         (rosca_id,))
 
     members = []
     for m in members_raw:
         md = dict(m)
-        md["is_organiser"] = (m["user_id"] == r["organiser_id"])
+        md["is_organiser"] = (md["user_id"] == organiser_id)
         md["ncs_score"] = md.get("ncs_score") or 300
         md["ncs_tier"] = md.get("ncs_tier") or "Probation"
+        md["avatar_url"] = md.get("avatar_url") or None
         if current_cycle:
+            # Table is 'contributions', not 'rosca_contributions'
             contrib = fetchone(
-                "SELECT id FROM rosca_contributions WHERE cycle_id=? AND user_id=? AND status='paid'",
-                (current_cycle["id"], m["user_id"]))
-            loan = fetchone(
-                "SELECT lender_id FROM circle_loans WHERE circle_id=? AND borrower_id=? AND cycle_number=?",
-                (rosca_id, m["user_id"], r.get("current_cycle", 0)))
+                "SELECT id FROM contributions WHERE cycle_id=? AND member_id=? AND status='paid'",
+                (current_cycle["id"], md["user_id"]))
+            loan = None
+            try:
+                loan = fetchone(
+                    "SELECT lender_id FROM circle_loans WHERE circle_id=? AND borrower_id=? AND cycle_number=?",
+                    (rosca_id, md["user_id"], current_cycle.get("cycle_number", 0)))
+            except Exception:
+                pass
             if contrib:
                 md["cycle_status"] = "paid"
             elif loan:
-                lender = fetchone("SELECT hanatag FROM users WHERE id=?", (loan["lender_id"],))
                 md["cycle_status"] = "covered"
-                md["covered_by"] = lender["hanatag"] if lender else ""
             else:
                 md["cycle_status"] = "pending"
         else:
