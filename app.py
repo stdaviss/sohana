@@ -839,6 +839,20 @@ def _run_safe_migrations():
         )""",
         "CREATE INDEX IF NOT EXISTS idx_pool_contribs ON pool_contributions(pool_id, user_id)",
 
+        # ── PUSH NOTIFICATION DEVICES (Expo Push) ──────────────────────────────
+        """CREATE TABLE IF NOT EXISTS user_devices (
+            id              TEXT PRIMARY KEY,
+            user_id         TEXT NOT NULL,
+            expo_push_token TEXT NOT NULL,
+            platform        TEXT NOT NULL DEFAULT 'ios',
+            device_id       TEXT,
+            active          INTEGER NOT NULL DEFAULT 1,
+            created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+            UNIQUE(user_id, expo_push_token)
+        )""",
+        "CREATE INDEX IF NOT EXISTS idx_user_devices_user ON user_devices(user_id, active)",
+
         # ── CIRCLE SOCIAL FEED (Facebook Groups style) ────────────────────────
         """CREATE TABLE IF NOT EXISTS circle_posts (
             id              TEXT PRIMARY KEY,
@@ -2267,10 +2281,17 @@ def _notify_user(user_id: str, subject: str, message: str,
                  template_key: str = "notification",
                  template_data: dict = None):
     """
-    Send both in-app notification AND email (if user has email_notifs enabled).
-    Wraps the existing push_notification() and adds email delivery.
+    Send in-app notification + email + Expo push notification.
+    Wraps push_notification() (in-app) and adds email + real push delivery.
     """
     push_notification(user_id, subject, message, "info")
+
+    # Real push notification to phone via Expo
+    try:
+        send_expo_push(user_id, subject, message, template_data)
+    except Exception:
+        pass
+
     try:
         row = fetchone("SELECT full_name, email, email_notifs FROM users WHERE id=?",
                        (user_id,))
@@ -4170,6 +4191,112 @@ def api_mark_read():
     with get_db() as db:
         db.execute("UPDATE notifications SET is_read=1 WHERE user_id=?", (session["user_id"],))
     return jsonify({"ok": True})
+
+
+# ── PUSH NOTIFICATIONS (Expo) ─────────────────────────────────────────────────
+
+def send_expo_push(user_id: str, title: str, body: str, data: dict = None):
+    """Send a real push notification to all of a user's registered devices via Expo Push API.
+    Non-blocking: failures are logged but never raise to the caller."""
+    try:
+        devices = fetchall(
+            "SELECT expo_push_token FROM user_devices WHERE user_id=? AND active=1",
+            (user_id,))
+        if not devices:
+            return
+
+        messages = []
+        for dev in devices:
+            msg = {
+                "to": dev["expo_push_token"],
+                "sound": "default",
+                "title": title,
+                "body": body,
+            }
+            if data:
+                msg["data"] = data
+            messages.append(msg)
+
+        # Expo accepts batches of up to 100 messages
+        import requests as req
+        resp = req.post(
+            "https://exp.host/--/api/v2/push/send",
+            json=messages,
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            timeout=10,
+        )
+
+        if resp.status_code != 200:
+            app.logger.error(f"Expo push error: {resp.status_code} {resp.text[:200]}")
+        else:
+            # Check for individual ticket errors and deactivate invalid tokens
+            result = resp.json()
+            tickets = result.get("data", [])
+            for i, ticket in enumerate(tickets):
+                if ticket.get("status") == "error":
+                    detail = ticket.get("details", {})
+                    if detail.get("error") == "DeviceNotRegistered":
+                        # Token is invalid — deactivate it
+                        bad_token = messages[i]["to"]
+                        try:
+                            with get_db(immediate=True) as db:
+                                db.execute("UPDATE user_devices SET active=0 WHERE expo_push_token=?",
+                                           (bad_token,))
+                        except Exception:
+                            pass
+    except Exception as e:
+        app.logger.error(f"Expo push send error: {e}")
+
+
+@app.route("/api/devices/register", methods=["POST"])
+@auth.login_required
+def api_register_device():
+    """Register or update an Expo push token for the current user's device."""
+    uid = session["user_id"]
+    d = request.json or {}
+    token = (d.get("expo_push_token") or "").strip()
+    platform = d.get("platform", "ios")
+    device_id = d.get("device_id", "")
+
+    if not token or not token.startswith("ExponentPushToken["):
+        return jsonify({"error": "Invalid Expo push token"}), 400
+
+    if platform not in ("ios", "android"):
+        platform = "ios"
+
+    with get_db(immediate=True) as db:
+        # Upsert: if this user+token combo exists, just update. Otherwise insert.
+        existing = fetchone(
+            "SELECT id FROM user_devices WHERE user_id=? AND expo_push_token=?",
+            (uid, token))
+        if existing:
+            db.execute("""UPDATE user_devices SET active=1, platform=?, device_id=?,
+                          updated_at=datetime('now') WHERE id=?""",
+                       (platform, device_id, existing["id"]))
+        else:
+            db.execute("""INSERT INTO user_devices
+                          (id, user_id, expo_push_token, platform, device_id, active)
+                          VALUES (?,?,?,?,?,1)""",
+                       (str(uuid.uuid4()), uid, token, platform, device_id))
+
+    return jsonify({"ok": True})
+
+
+@app.route("/api/devices/unregister", methods=["POST"])
+@auth.login_required
+def api_unregister_device():
+    """Deactivate a push token (e.g. on logout)."""
+    uid = session["user_id"]
+    token = (request.json or {}).get("expo_push_token", "")
+    if token:
+        with get_db(immediate=True) as db:
+            db.execute("UPDATE user_devices SET active=0 WHERE user_id=? AND expo_push_token=?",
+                       (uid, token))
+    return jsonify({"ok": True})
+
 
 # ── ROSCA API ─────────────────────────────────────────────────────────────────
 
