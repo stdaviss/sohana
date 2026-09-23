@@ -1082,6 +1082,8 @@ def _run_safe_migrations():
             updated_at    TEXT
         )""",
         "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
+        "ALTER TABLE users ADD COLUMN public_profile_enabled INTEGER NOT NULL DEFAULT 1",
+        "CREATE TABLE IF NOT EXISTS trust_reports (id TEXT PRIMARY KEY, reporter_id TEXT NOT NULL, target_type TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT, status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL DEFAULT (datetime('now')))",
 
         # ── MOBILE APP MIGRATIONS (v8.1) ─────────────────────────────────────
         "ALTER TABLE users  ADD COLUMN avatar_url  TEXT",
@@ -4574,6 +4576,133 @@ def api_endorse():
                    (str(uuid.uuid4()), session["user_id"], to_id, rosca_id))
     ncs_engine.apply_event(to_id, "peer_endorsement", ref_type="endorsement")
     return jsonify({"ok": True, "action": "endorsed"})
+
+
+# ── PUBLIC TRUST PROFILE (user + pool) ────────────────────────────────────────
+def _trust_range(n):
+    n = n or 0
+    if n <= 0: return "0"
+    if n < 5:  return str(n)
+    if n < 10: return "5+"
+    if n < 25: return "10+"
+    if n < 50: return "25+"
+    return "50+"
+
+def _tenure_band(created_at):
+    try:
+        from datetime import datetime
+        days = (datetime.utcnow() - datetime.strptime(str(created_at)[:10], "%Y-%m-%d")).days
+    except Exception:
+        return "new"
+    if days >= 1095: return "3+ years"
+    if days >= 730:  return "2+ years"
+    if days >= 365:  return "1+ year"
+    if days >= 180:  return "6+ months"
+    return "new"
+
+@app.route("/api/u/<hanatag>")
+def api_public_user(hanatag):
+    """Public-safe trust profile for a hanatag. No PII, no exact money, ranges only."""
+    h = hanatag if hanatag.startswith("@") else "@" + hanatag
+    row = fetchone("SELECT * FROM users WHERE hanatag=?", (h,))
+    if not row: return jsonify({"error": "Not found"}), 404
+    u = dict(row)
+    if not u.get("public_profile_enabled", 1):
+        return jsonify({"error": "This profile is private"}), 404
+    uid = u["id"]
+    tier = ncs_engine.get_tier(u["ncs_score"])
+    vt = ("full" if u.get("kyc_level") == "full" else "id") if u.get("kyc_status") == "verified" else None
+    circles_done = fetchone("SELECT COUNT(*) c FROM rosca_members rm JOIN roscas r ON r.id=rm.rosca_id WHERE rm.user_id=? AND r.status='completed'", (uid,))["c"]
+    pools_joined = fetchone("SELECT COUNT(*) c FROM pool_members WHERE user_id=? AND status='active'", (uid,))["c"]
+    endorsements = fetchone("SELECT COUNT(*) c FROM endorsements WHERE to_id=?", (uid,))["c"]
+    is_supporter = fetchone("SELECT 1 FROM campaign_donations WHERE donor_id=? LIMIT 1", (uid,)) is not None
+    ot = fetchone("SELECT COUNT(*) tot, COALESCE(SUM(CASE WHEN status='paid' AND late_days=0 THEN 1 ELSE 0 END),0) ontime FROM contributions WHERE user_id=? AND status IN ('paid','late','missed')", (uid,))
+    on_time_pct = round(100 * ot["ontime"] / ot["tot"]) if ot and ot["tot"] else None
+    badges = [{"key": b["badge_type"],
+               "label": ncs_engine.BADGE_DEFINITIONS.get(b["badge_type"], {}).get("label", b["badge_type"]),
+               "icon":  ncs_engine.BADGE_DEFINITIONS.get(b["badge_type"], {}).get("icon", "")}
+              for b in fetchall("SELECT badge_type FROM badges WHERE user_id=? ORDER BY earned_at DESC", (uid,))]
+    band = _tenure_band(u.get("created_at"))
+    milestones = []
+    if circles_done >= 1: milestones.append({"label": "Completed a full circle"})
+    if band != "new": milestones.append({"label": "Member " + band})
+    if on_time_pct is not None and on_time_pct >= 95 and (ot["tot"] or 0) >= 3:
+        milestones.append({"label": "Zero-default record" if on_time_pct == 100 else "Strong on-time record"})
+    return jsonify({
+        "name": u.get("full_name"), "hanatag": u.get("hanatag"),
+        "avatar_url": u.get("avatar_url") or u.get("picture_url"), "cover_url": u.get("cover_url"),
+        "verified_tier": vt,
+        "ncs": {"score": u["ncs_score"], "tier": tier["name"], "tier_label": tier["label"]},
+        "member_since_band": band, "circles_range": _trust_range(circles_done),
+        "pools_range": _trust_range(pools_joined), "on_time_pct": on_time_pct,
+        "endorsements": endorsements, "badges": badges, "milestones": milestones,
+        "is_supporter": is_supporter, "reviews": {"pct_would_again": None, "count": 0},
+    })
+
+@app.route("/api/pools/<pool_id>")
+@auth.login_required
+def api_public_pool(pool_id):
+    """Public-safe pool trust profile (built against the live pools schema: creator_id/target_cents)."""
+    p = fetchone("""SELECT p.*, u.full_name AS creator_name,
+                           (SELECT COUNT(*) FROM pool_members WHERE pool_id=p.id AND status='active') AS active_members
+                    FROM pools p JOIN users u ON u.id=p.creator_id WHERE p.id=?""", (pool_id,))
+    if not p: return jsonify({"error": "Pool not found"}), 404
+    p = dict(p)
+    members = fetchall("""SELECT pm.role, u.full_name, u.hanatag, u.ncs_tier
+                          FROM pool_members pm JOIN users u ON u.id=pm.user_id
+                          WHERE pm.pool_id=? AND pm.status='active'
+                          ORDER BY pm.role DESC, pm.joined_at""", (pool_id,))
+    uid = session["user_id"]
+    is_member = fetchone("SELECT 1 FROM pool_members WHERE pool_id=? AND user_id=? AND status='active'", (pool_id, uid)) is not None
+    is_admin  = (p.get("creator_id") == uid) or (fetchone("SELECT 1 FROM pool_members WHERE pool_id=? AND user_id=? AND role IN ('admin','creator')", (pool_id, uid)) is not None)
+    return jsonify({
+        "pool": {
+            "id": p.get("id"), "name": p.get("name"), "purpose": p.get("description"),
+            "status": p.get("status"), "currency": p.get("currency"),
+            "organiser_name": p.get("creator_name"),
+            "target_cents": p.get("target_cents", 0),
+            "member_count": p.get("active_members", p.get("member_count", 0)),
+            "avatar_url": p.get("avatar_url"), "cover_url": p.get("cover_url"),
+            "is_public": bool(p.get("is_public")),
+        },
+        "members": [{"full_name": m["full_name"], "hanatag": m["hanatag"],
+                     "ncs_tier": m["ncs_tier"], "role": m["role"]} for m in members],
+        "total_members": p.get("active_members", 0),
+        "governance": "Multi-admin approval",
+        "is_member": is_member, "is_admin": is_admin,
+    })
+
+@app.route("/api/u/<hanatag>/endorse", methods=["POST"])
+@auth.login_required
+def api_endorse_by_hanatag(hanatag):
+    """Endorse a user by hanatag (one per endorser). Reuses the endorsement model."""
+    h = hanatag if hanatag.startswith("@") else "@" + hanatag
+    u = fetchone("SELECT id FROM users WHERE hanatag=?", (h,))
+    if not u: return jsonify({"error": "User not found"}), 404
+    to_id = u["id"]
+    if to_id == session["user_id"]: return jsonify({"error": "Cannot endorse yourself"}), 400
+    if fetchone("SELECT id FROM endorsements WHERE from_id=? AND to_id=? AND rosca_id IS NULL", (session["user_id"], to_id)):
+        return jsonify({"error": "Already endorsed"}), 400
+    with get_db() as db:
+        db.execute("INSERT INTO endorsements(id,from_id,to_id,rosca_id) VALUES(?,?,?,NULL)",
+                   (str(uuid.uuid4()), session["user_id"], to_id))
+    ncs_engine.apply_event(to_id, "peer_endorsement", ref_type="endorsement")
+    return jsonify({"ok": True, "action": "endorsed"})
+
+@app.route("/api/report", methods=["POST"])
+@auth.login_required
+def api_report():
+    """File a report against a user/circle/pool. Stored for admin review — never public."""
+    d = request.json or {}
+    ttype  = d.get("target_type")
+    tid    = (d.get("target_id") or "").strip()
+    reason = (d.get("reason") or "").strip()[:1000]
+    if ttype not in ("user", "circle", "pool") or not tid:
+        return jsonify({"error": "Invalid report"}), 400
+    with get_db() as db:
+        db.execute("INSERT INTO trust_reports(id,reporter_id,target_type,target_id,reason) VALUES(?,?,?,?,?)",
+                   (str(uuid.uuid4()), session["user_id"], ttype, tid, reason))
+    return jsonify({"ok": True})
 
 # ── ADMIN API ─────────────────────────────────────────────────────────────────
 
