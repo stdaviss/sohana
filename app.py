@@ -1,4 +1,4 @@
-import os, uuid, json, io, csv, random
+import os, uuid, json, io, csv, random, sqlite3
 from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from flask import (Flask, render_template, request, session, jsonify,
@@ -75,6 +75,32 @@ except Exception as _rl_err:
             def _dec(f): return f
             return _dec
     limiter = _NoOpLimiter()
+
+# ── GLOBAL ERROR HANDLING ────────────────────────────────────────────────────
+# Every uncaught exception is logged with a full traceback (visible in Railway
+# logs) and tagged with a short reference the user/app can quote. API routes
+# always get JSON back — never an HTML error page the mobile app can't parse.
+from werkzeug.exceptions import HTTPException as _HTTPException
+
+@app.errorhandler(Exception)
+def _handle_any_error(e):
+    if isinstance(e, _HTTPException):
+        # 404 / 405 / 415 etc. — keep the status, but answer JSON on API routes.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": e.description or e.name}), e.code
+        return e
+    ref = uuid.uuid4().hex[:8]
+    app.logger.exception("Unhandled error [ref %s] on %s %s", ref, request.method, request.path)
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Something went wrong on our side. Please try again.",
+                        "ref": ref}), 500
+    try:
+        return render_template("error.html",
+                               message=f"Something went wrong (ref {ref}). Please try again.",
+                               back_url="/dashboard"), 500
+    except Exception:
+        return f"Something went wrong (ref {ref}). Please try again.", 500
+
 
 @app.before_request
 def ensure_db():
@@ -183,7 +209,7 @@ def api_kyc_submit():
         notes          = request.form.get("notes") or None
         upload         = request.files.get("document")
     else:
-        d = request.json or {}
+        d = request.get_json(silent=True) or {}
         level = d.get("level", "")
         doc_type_id    = d.get("doc_type_id") or None
         doc_type_addr  = d.get("doc_type_addr") or None
@@ -341,7 +367,7 @@ def api_admin_kyc_reject(submission_id):
     actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
     if not actor or actor["admin_role"] not in KYC_APPROVE_ROLES:
         return jsonify({"error": "Only CEO, CCO, or CFO can reject KYC submissions."}), 403
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     note = d.get("note", "").strip()
     if not note:
         return jsonify({"error": "A rejection reason is required."}), 400
@@ -370,7 +396,7 @@ def api_admin_kyc_manual_approve():
     actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
     if not actor or actor["admin_role"] not in KYC_APPROVE_ROLES:
         return jsonify({"error": "Only CEO, CCO, or CFO can manually approve KYC."}), 403
-    d         = request.json or {}
+    d         = request.get_json(silent=True) or {}
     target_id = d.get("user_id", "").strip()
     kyc_level = d.get("kyc_level", "id_verified")
     if kyc_level not in ("id_verified", "full"):
@@ -1082,6 +1108,8 @@ def _run_safe_migrations():
             updated_at    TEXT
         )""",
         "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
+        "ALTER TABLE rosca_members ADD COLUMN payout_position INTEGER",
+        "ALTER TABLE roscas ADD COLUMN member_count INTEGER NOT NULL DEFAULT 0",
 
         # ── MOBILE APP MIGRATIONS (v8.1) ─────────────────────────────────────
         "ALTER TABLE users  ADD COLUMN avatar_url  TEXT",
@@ -1801,7 +1829,7 @@ def api_admin_promos_list():
 @app.route("/api/admin/promos", methods=["POST"])
 @any_admin_required
 def api_admin_promos_create():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     title = _promo_clean(d.get("title"), PROMO_TITLE_MAX)
     if not title:
         return jsonify({"error": "A headline is required."}), 400
@@ -1828,7 +1856,7 @@ def api_admin_promos_create():
 def api_admin_promos_update(pid):
     if not fetchone("SELECT id FROM promo_slides WHERE id=?", (pid,)):
         return jsonify({"error": "Not found"}), 404
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     title = _promo_clean(d.get("title"), PROMO_TITLE_MAX)
     if not title:
         return jsonify({"error": "A headline is required."}), 400
@@ -1854,7 +1882,7 @@ def api_admin_promos_delete(pid):
 @app.route("/api/admin/promos/reorder", methods=["POST"])
 @any_admin_required
 def api_admin_promos_reorder():
-    d   = request.json or {}
+    d   = request.get_json(silent=True) or {}
     ids = d.get("ids") or []
     with get_db() as db:
         for i, pid in enumerate(ids):
@@ -1885,7 +1913,7 @@ def api_admin_blog_get(post_id):
 @app.route("/api/admin/blog/<post_id>", methods=["PUT"])
 @any_admin_required
 def api_admin_blog_update(post_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     existing = fetchone("SELECT id, slug FROM blog_posts WHERE id=?", (post_id,))
     if not existing: return jsonify({"error": "Not found"}), 404
     existing = dict(existing)
@@ -1957,7 +1985,7 @@ def api_forgot_password():
     """Initiate a password reset request.
     Phase 1 (no email): logs the request, returns support instructions.
     Phase 2 (with email): will send a reset link automatically."""
-    d     = request.json or {}
+    d     = request.get_json(silent=True) or {}
     phone = d.get("phone", "").strip()
     if not phone:
         return jsonify({"error": "Phone number is required."}), 400
@@ -2009,7 +2037,7 @@ def api_admin_reset_password(user_id):
     actor = fetchone("SELECT admin_role FROM users WHERE id=?", (session["user_id"],))
     if not actor or actor["admin_role"] not in {"ceo", "cco", "operations"}:
         return jsonify({"error": "Only CEO, CCO, or Operations can reset passwords."}), 403
-    d        = request.json or {}
+    d        = request.get_json(silent=True) or {}
     new_pw   = d.get("password", "").strip()
     if not new_pw or len(new_pw) < 8:
         return jsonify({"error": "Password must be at least 8 characters."}), 400
@@ -2026,6 +2054,7 @@ def api_admin_reset_password(user_id):
                          reason=d.get("reason", "Admin-initiated password reset"))
         return jsonify({"ok": True, "message": f"Password reset for {target['full_name']}"})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2034,7 +2063,7 @@ def api_admin_reset_password(user_id):
 @auth.login_required
 def api_change_password():
     """Any authenticated user can change their own password."""
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     old_pw = d.get("current_password", "")
     new_pw = d.get("new_password", "")
     if not old_pw or not new_pw:
@@ -2052,6 +2081,7 @@ def api_change_password():
     except ValueError:
         return jsonify({"error": "Current password is incorrect."}), 401
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2059,7 +2089,7 @@ def api_change_password():
 @admin_required
 def api_admin_reset_own_password():
     """Admin resets their own password (requires current password verification)."""
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     old_pw  = d.get("current_password", "")
     new_pw  = d.get("new_password", "")
     if not old_pw or not new_pw:
@@ -2079,6 +2109,7 @@ def api_admin_reset_own_password():
     except ValueError:
         return jsonify({"error": "Current password is incorrect."}), 401
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2148,6 +2179,7 @@ def api_totp_setup():
         return jsonify({"ok": True, "secret": secret,
                         "qr": f"data:image/png;base64,{qr_b64}"})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2158,7 +2190,7 @@ def api_totp_confirm():
     """Verify the user has scanned the QR and can produce a valid code."""
     try:
         import pyotp
-        code = (request.json or {}).get("code", "").strip()
+        code = (request.get_json(silent=True) or {}).get("code", "").strip()
         user = auth.get_current_user()
         secret = fetchone("SELECT totp_secret FROM users WHERE id=?", (user["id"],))
         if not secret or not secret["totp_secret"]:
@@ -2170,6 +2202,7 @@ def api_totp_confirm():
             return jsonify({"ok": True, "message": "2FA enabled successfully."})
         return jsonify({"error": "Invalid code. Please try again."}), 400
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2180,7 +2213,7 @@ def api_totp_disable():
     """Disable TOTP — requires current TOTP code to confirm."""
     try:
         import pyotp
-        code = (request.json or {}).get("code", "").strip()
+        code = (request.get_json(silent=True) or {}).get("code", "").strip()
         user = auth.get_current_user()
         row  = fetchone("SELECT totp_secret, totp_enabled FROM users WHERE id=?",
                         (user["id"],))
@@ -2194,6 +2227,7 @@ def api_totp_disable():
                        (user["id"],))
         return jsonify({"ok": True, "message": "2FA disabled."})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2232,7 +2266,7 @@ def _require_totp(user_id: str, code: str):
 @limiter.limit("10 per minute")
 def api_login_step2():
     """Phase-2 login: validate TOTP code and grant session."""
-    d     = request.json or {}
+    d     = request.get_json(silent=True) or {}
     token = d.get("pending_token", "").strip()
     code  = d.get("totp_code", "").strip()
     if not token or not code:
@@ -2267,6 +2301,7 @@ def api_login_step2():
                         "is_admin":   bool(user_d.get("is_admin", 0)),
                         "admin_role": user_d.get("admin_role")})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2278,13 +2313,14 @@ def api_login_step2():
 @auth.login_required
 def api_notification_prefs():
     """Toggle email notification preference for current user."""
-    enabled = bool((request.json or {}).get("email_notifs", True))
+    enabled = bool((request.get_json(silent=True) or {}).get("email_notifs", True))
     try:
         with get_db() as db:
             db.execute("UPDATE users SET email_notifs=? WHERE id=?",
                        (int(enabled), session["user_id"]))
         return jsonify({"ok": True, "email_notifs": enabled})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2344,7 +2380,7 @@ def reset_password_page(token):
 @limiter.limit("5 per minute")
 def api_reset_password():
     """Consume a reset token and set the new password."""
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     token   = d.get("token", "").strip()
     new_pw  = d.get("password", "").strip()
     if not token or not new_pw:
@@ -2366,6 +2402,7 @@ def api_reset_password():
                        (token,))
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -2521,7 +2558,7 @@ def google_oauth_callback():
 @limiter.limit("5 per minute")
 def api_register():
     _platform_check("new_registrations_enabled", "New registrations are temporarily paused. Please check back later.")
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     # Support both full_name (legacy) and first_name+last_name (new spec)
     first = d.get("first_name", "").strip()
     last  = d.get("last_name", "").strip()
@@ -2576,7 +2613,7 @@ def api_register():
 @limiter.limit("10 per minute")
 def api_login():
     """Main login endpoint — handles both regular and 2FA flows."""
-    d  = request.json or {}
+    d  = request.get_json(silent=True) or {}
     ph = (d.get("phone") or d.get("email_or_phone") or d.get("email") or "").strip()
     pw = (d.get("password") or d.get("pw") or "").strip()
     if not ph or not pw:
@@ -2628,7 +2665,7 @@ def api_login():
 
 @app.route("/api/auth/admin-login", methods=["POST"])
 def api_admin_login():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     # Generic error message — never reveal whether the account exists or the role is wrong
     GENERIC_ERROR = "Invalid credentials."
     try:
@@ -2676,7 +2713,7 @@ def logout():
 @app.route("/api/waitlist", methods=["POST"])
 def api_waitlist():
     """Capture waitlist signups from the landing page."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     email = d.get("email", "").strip().lower()
     name  = d.get("name", "").strip()
     if not email or "@" not in email:
@@ -2730,7 +2767,7 @@ def admin_waitlist_export():
 @app.route("/api/careers/apply", methods=["POST"])
 def api_careers_apply():
     """Capture career application submissions from the careers page."""
-    d         = request.json or {}
+    d         = request.get_json(silent=True) or {}
     name      = d.get("name", "").strip()
     email     = d.get("email", "").strip().lower()
     phone     = d.get("phone", "").strip()
@@ -2801,7 +2838,7 @@ def admin_careers():
 @admin_required
 def api_admin_careers_status(app_id):
     """Update application status (new / reviewed / shortlisted / rejected)."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     new_status = d.get("status", "").strip()
     notes      = d.get("notes", "").strip() or None
     if new_status not in ("new", "reviewed", "shortlisted", "rejected"):
@@ -2816,6 +2853,7 @@ def api_admin_careers_status(app_id):
             )
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": "Update failed."}), 500
 
 
@@ -2918,7 +2956,7 @@ def press_page():
 def api_press_inquiry():
     """Capture press inquiry submissions."""
     _ensure_press_tables()
-    d         = request.json or {}
+    d         = request.get_json(silent=True) or {}
     name      = d.get("name", "").strip()
     org       = d.get("org", "").strip()
     email     = d.get("email", "").strip().lower()
@@ -2991,7 +3029,7 @@ def admin_press():
 def api_admin_press_mention_create():
     """Create a press mention."""
     _ensure_press_tables()
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     title  = d.get("title", "").strip()
     source = d.get("source", "").strip()
     url    = d.get("url", "").strip()
@@ -3011,6 +3049,7 @@ def api_admin_press_mention_create():
             )
         return jsonify({"ok": True, "id": mid})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": "Create failed."}), 500
 
 
@@ -3041,7 +3080,7 @@ def api_admin_press_mention_toggle(mid):
 def api_admin_press_ig_create():
     """Create an Instagram post entry."""
     _ensure_press_tables()
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     url       = d.get("url", "").strip()
     image_url = d.get("image_url", "").strip()
     if not url or not image_url:
@@ -3088,7 +3127,7 @@ def api_admin_press_ig_toggle(pid):
 @admin_required
 def api_admin_press_inquiry_status(iid):
     """Update inquiry status: new / reviewed / responded / archived."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     new_status = d.get("status", "").strip()
     notes      = d.get("notes", "").strip() or None
     if new_status not in ("new", "reviewed", "responded", "archived"):
@@ -3182,7 +3221,7 @@ def complaints_page():
 def api_complaints_submit():
     """Capture complaint submissions from the public page."""
     _ensure_complaints_table()
-    d           = request.json or {}
+    d           = request.get_json(silent=True) or {}
     name        = d.get("name", "").strip()
     email       = d.get("email", "").strip().lower()
     phone       = d.get("phone", "").strip()
@@ -3276,7 +3315,7 @@ def admin_complaints():
 @admin_required
 def api_admin_complaints_update(cid):
     """Update complaint status, priority, or resolution."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     status     = d.get("status", "").strip()
     priority   = d.get("priority", "").strip()
     resolution = d.get("resolution", "").strip()
@@ -3307,6 +3346,7 @@ def api_admin_complaints_update(cid):
             db.execute(f"UPDATE complaints SET {', '.join(sets)} WHERE id=?", params)
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": "Update failed."}), 500
 
 
@@ -3356,7 +3396,7 @@ def api_wallet_balances():
 @app.route("/api/wallet/open-currency", methods=["POST"])
 @auth.login_required
 def api_open_currency():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     currency = d.get("currency","").upper()
     if currency not in CURRENCIES:
         return jsonify({"error": "Unsupported currency"}), 400
@@ -3372,7 +3412,7 @@ def api_open_currency():
 @auth.login_required
 def api_convert():
     _platform_check("transfers_enabled", "Transfers are temporarily paused.")
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     from_cur = d.get("from_currency","EUR")
     to_cur   = d.get("to_currency","GBP")
     amount   = int(float(d.get("amount", 0)) * 100)
@@ -3394,7 +3434,7 @@ def api_convert():
 @auth.login_required
 def api_deposit():
     _platform_check("deposits_enabled", "Deposits are temporarily paused. Please check back shortly.")
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     cents    = int(float(d.get("amount", 0)) * 100)
     currency = d.get("currency", "EUR")
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
@@ -3420,7 +3460,7 @@ def api_deposit():
 @auth.login_required
 def api_withdraw():
     _platform_check("withdrawals_enabled", "Withdrawals are temporarily paused. Please contact support@sohana.app.")
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     cents    = int(float(d.get("amount", 0)) * 100)
     method   = d.get("method", "bank_eu")
     currency = d.get("currency", "EUR")
@@ -3505,7 +3545,7 @@ def _mask_email(e):
 def api_pay_initiate():
     """Phase 1: validate, resolve payee, lock amount + fee, create a pending
     intent, and (for non-TOTP users) send a one-time code bound to that intent."""
-    d   = request.json or {}
+    d   = request.get_json(silent=True) or {}
     uid = session["user_id"]
 
     cents = _parse_amount_to_cents(d.get("amount"))
@@ -3572,7 +3612,7 @@ def api_pay_initiate():
 @auth.login_required
 def api_pay_confirm():
     """Phase 2: verify the code against this intent, then move money atomically."""
-    d    = request.json or {}
+    d    = request.get_json(silent=True) or {}
     uid  = session["user_id"]
     iid  = (d.get("intent_id") or "").strip()
     code = str(d.get("code", "")).strip()
@@ -3955,7 +3995,7 @@ def api_get_profile():
 @app.route("/api/profile/update", methods=["POST"])
 @auth.login_required
 def api_profile_update():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     uid = session["user_id"]
     fields, params = [], []
     for f in ["full_name","email","bio","language","base_currency","notif_email","notif_push","notif_sms"]:
@@ -3969,7 +4009,7 @@ def api_profile_update():
 @app.route("/api/profile/hanatag", methods=["POST"])
 @auth.login_required
 def api_set_hanatag():
-    d   = request.json or {}
+    d   = request.get_json(silent=True) or {}
     tag = d.get("hanatag","").strip().lstrip("@").lower()
     if not tag or len(tag) < 3: return jsonify({"error": "Min 3 characters"}), 400
     tag = f"@{tag}"
@@ -4016,7 +4056,7 @@ def api_circle_posts(rosca_id):
 def api_circle_create_post(rosca_id):
     """Create a feed post in a circle. Any member can post. Organiser can pin/announce."""
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     content = (d.get("content") or "").strip()
     if not content:
         return jsonify({"error": "Post cannot be empty"}), 400
@@ -4077,7 +4117,7 @@ def api_circle_post_comments(rosca_id, post_id):
 def api_circle_add_comment(rosca_id, post_id):
     """Add a comment to a circle post."""
     uid = session["user_id"]
-    content = (request.json or {}).get("content", "").strip()
+    content = (request.get_json(silent=True) or {}).get("content", "").strip()
     if not content:
         return jsonify({"error": "Comment cannot be empty"}), 400
 
@@ -4109,28 +4149,62 @@ def api_circle_delete_post(rosca_id, post_id):
 @app.route("/api/rosca/<rosca_id>/join", methods=["POST"])
 @auth.login_required
 def api_rosca_join(rosca_id):
-    """Join a circle. Returns immediately for auto-approve circles, or sets status='pending'."""
+    """Request to join a circle. Idempotent: tapping twice returns the current
+    status instead of an error. Auto-approve circles join immediately."""
     uid = session["user_id"]
     circle = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
     if not circle:
         return jsonify({"error": "Circle not found"}), 404
-    existing = fetchone("SELECT id FROM rosca_members WHERE rosca_id=? AND user_id=?", (rosca_id, uid))
-    if existing:
-        return jsonify({"error": "Already a member"}), 400
     c = dict(circle)
-    count = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
-    if count and count["c"] >= c.get("max_members", 999):
-        return jsonify({"error": "Circle is full"}), 400
+
+    existing = fetchone("SELECT id, status FROM rosca_members WHERE rosca_id=? AND user_id=?", (rosca_id, uid))
+    if existing:
+        st = existing["status"]
+        if st == "active":
+            return jsonify({"ok": True, "status": "member"})
+        if st == "pending":
+            return jsonify({"ok": True, "status": "pending"})
+        if st == "defaulted":
+            return jsonify({"error": "You can't rejoin this circle while a missed contribution is unresolved."}), 409
+        # 'left' / 'rejected' / anything else → allowed to ask again (below)
+
+    if c.get("status") not in (None, "forming", "active"):
+        return jsonify({"error": "This circle is not accepting new members"}), 409
+    me = fetchone("SELECT ncs_score FROM users WHERE id=?", (uid,))
+    min_ncs = c.get("ncs_min_score") or 0
+    if me and min_ncs and (me["ncs_score"] or 0) < min_ncs:
+        return jsonify({"error": f"This circle requires an NCS score of at least {min_ncs}."}), 403
+    active = fetchone("SELECT COUNT(*) AS c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))["c"]
+    if active >= (c.get("max_members") or 999):
+        return jsonify({"error": "Circle is full"}), 409
 
     status = "active" if c.get("is_auto_approve") else "pending"
-    with get_db(immediate=True) as db:
-        db.execute("INSERT INTO rosca_members (id, rosca_id, user_id, payout_position, status) VALUES (?,?,?,?,?)",
-                   (str(uuid.uuid4()), rosca_id, uid, 0, status))
-        if status == "active":
-            db.execute("UPDATE roscas SET member_count = (SELECT COUNT(*) FROM rosca_members WHERE rosca_id=? AND status='active') WHERE id=?",
-                       (rosca_id, rosca_id))
+    position = active + 1 if status == "active" else None
+    try:
+        with get_db(immediate=True) as db:
+            if existing:   # re-request after leaving: reuse the row (UNIQUE rosca_id,user_id)
+                db.execute("UPDATE rosca_members SET status=?, slot=?, payout_position=?, joined_at=datetime('now') WHERE id=?",
+                           (status, position, position, existing["id"]))
+            else:
+                db.execute("INSERT INTO rosca_members (id, rosca_id, user_id, slot, payout_position, status) VALUES (?,?,?,?,?,?)",
+                           (str(uuid.uuid4()), rosca_id, uid, position, position, status))
+            if status == "active":
+                db.execute("UPDATE roscas SET member_count=(SELECT COUNT(*) FROM rosca_members WHERE rosca_id=? AND status='active') WHERE id=?",
+                           (rosca_id, rosca_id))
+    except sqlite3.IntegrityError:
+        # Double-tap race: the other request already created the row. Report its status.
+        row = fetchone("SELECT status FROM rosca_members WHERE rosca_id=? AND user_id=?", (rosca_id, uid))
+        st = row["status"] if row else "pending"
+        return jsonify({"ok": True, "status": "member" if st == "active" else st})
 
-    return jsonify({"ok": True, "status": status})
+    if status == "pending":
+        try:   # a notification failure must never fail the join itself
+            push_notification(c["organiser_id"], "New join request",
+                              f"Someone wants to join '{c.get('name','your circle')}'. Review it in your circle.",
+                              "info", f"/circles/{rosca_id}")
+        except Exception:
+            app.logger.exception("join notification failed for rosca %s", rosca_id)
+    return jsonify({"ok": True, "status": "member" if status == "active" else "pending"})
 
 
 # ── HANATAG QR + PUBLIC PAY LANDING ──────────────────────────────────────────
@@ -4178,7 +4252,7 @@ def pay_page(handle):
 @app.route("/api/profile/payment-method", methods=["POST"])
 @auth.login_required
 def api_add_payment_method():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     with get_db() as db:
         if d.get("is_default"):
             db.execute("UPDATE payment_methods SET is_default=0 WHERE user_id=?", (session["user_id"],))
@@ -4267,7 +4341,7 @@ def send_expo_push(user_id: str, title: str, body: str, data: dict = None):
 def api_register_device():
     """Register or update an Expo push token for the current user's device."""
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     token = (d.get("expo_push_token") or "").strip()
     platform = d.get("platform", "ios")
     device_id = d.get("device_id", "")
@@ -4301,7 +4375,7 @@ def api_register_device():
 def api_unregister_device():
     """Deactivate a push token (e.g. on logout)."""
     uid = session["user_id"]
-    token = (request.json or {}).get("expo_push_token", "")
+    token = (request.get_json(silent=True) or {}).get("expo_push_token", "")
     if token:
         with get_db(immediate=True) as db:
             db.execute("UPDATE user_devices SET active=0 WHERE user_id=? AND expo_push_token=?",
@@ -4314,7 +4388,7 @@ def api_unregister_device():
 @app.route("/api/rosca/create", methods=["POST"])
 @auth.login_required
 def api_create_rosca():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     uid = session["user_id"]
     try:
         rid, fee = rosca.create_rosca(
@@ -4371,10 +4445,31 @@ def api_reject_member(rosca_id, user_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route("/api/rosca/<rosca_id>/reject-member", methods=["POST"])
+@auth.login_required
+def api_reject_member_body(rosca_id):
+    """Decline a pending join request: body {user_id}. Never touches approved members."""
+    d = request.get_json(silent=True) or {}
+    target = (d.get("user_id") or "").strip()
+    if not target:
+        return jsonify({"error": "user_id is required"}), 400
+    r = rosca.get_rosca(rosca_id)
+    if not r:
+        return jsonify({"error": "Circle not found"}), 404
+    if r["organiser_id"] != session["user_id"]:
+        return jsonify({"error": "Only the organiser can decline requests"}), 403
+    if not fetchone("SELECT 1 FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='pending'", (rosca_id, target)):
+        return jsonify({"error": "No pending request found"}), 404
+    try:
+        rosca.reject_member(rosca_id, target, session["user_id"])
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"ok": True})
+
 @app.route("/api/rosca/<rosca_id>/remove/<user_id>", methods=["POST"])
 @auth.login_required
 def api_remove_member(rosca_id, user_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         rosca.remove_member(rosca_id, user_id, session["user_id"], reason=d.get("reason",""))
         return jsonify({"ok": True})
@@ -4385,7 +4480,7 @@ def api_remove_member(rosca_id, user_id):
 @auth.login_required
 def api_add_member_direct(rosca_id):
     """Organiser directly adds a member by hanatag or phone."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     identifier = d.get("identifier","").strip()
     # Look up by hanatag or phone
     user = None
@@ -4440,7 +4535,7 @@ def api_rosca_report_csv(rosca_id):
 @auth.login_required
 def api_contribute(rosca_id):
     # 2FA check for ROSCA contributions
-    d_contrib = request.json or {}
+    d_contrib = request.get_json(silent=True) or {}
     totp_c    = d_contrib.get("totp_code", "")
     _2fa_c    = _require_totp(session.get("user_id",""), totp_c)
     if _2fa_c: return _2fa_c
@@ -4555,7 +4650,7 @@ def api_ncs_recalculate():
 @app.route("/api/endorsement", methods=["POST"])
 @auth.login_required
 def api_endorse():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     to_id    = d.get("user_id")
     rosca_id = d.get("rosca_id")
     action   = d.get("action","endorse")
@@ -4580,14 +4675,14 @@ def api_endorse():
 @app.route("/api/admin/invite", methods=["POST"])
 @any_admin_required
 def api_admin_invite():
-    email = (request.json or {}).get("email","").strip()
+    email = (request.get_json(silent=True) or {}).get("email","").strip()
     if not email: return jsonify({"error": "Email required"}), 400
     return jsonify({"ok": True, "message": f"Invite sent to {email}"})
 
 @app.route("/api/admin/blog", methods=["POST"])
 @any_admin_required
 def api_create_blog():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     title = (d.get("title") or "").strip()
     if not title:
         return jsonify({"error": "Title required"}), 400
@@ -4682,7 +4777,7 @@ def pool_manage(pool_id):
 @app.route("/api/pools/create", methods=["POST"])
 @auth.login_required
 def api_create_pool():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         annual = int(float(d.get("annual_amount", 600)) * 100)
         pid, fee = pool.create_pool(
@@ -4708,7 +4803,7 @@ def api_create_pool():
 @app.route("/api/pools/<pool_id>/join", methods=["POST"])
 @auth.login_required
 def api_join_pool(pool_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         pool.request_to_join_pool(pool_id, session["user_id"],
                                   d.get("payment_schedule", "monthly"))
@@ -4737,7 +4832,7 @@ def api_reject_pool_member(pool_id, user_id):
 @app.route("/api/pools/<pool_id>/remove/<user_id>", methods=["POST"])
 @auth.login_required
 def api_remove_pool_member(pool_id, user_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         pool.remove_pool_member(pool_id, user_id, session["user_id"], d.get("reason",""))
         return jsonify({"ok": True})
@@ -4756,7 +4851,7 @@ def api_promote_pool_admin(pool_id, user_id):
 @app.route("/api/pools/<pool_id>/schedule", methods=["POST"])
 @auth.login_required
 def api_update_pool_schedule(pool_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         pool.update_payment_schedule(pool_id, session["user_id"], d.get("schedule","monthly"))
         return jsonify({"ok": True})
@@ -4766,7 +4861,7 @@ def api_update_pool_schedule(pool_id):
 @app.route("/api/pools/<pool_id>/contribute", methods=["POST"])
 @auth.login_required
 def api_pool_contribute(pool_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     beneficiary_id = d.get("beneficiary_id", session["user_id"])
     months         = int(d.get("months", 1))
     if months not in [1, 3, 6, 12]:
@@ -4781,7 +4876,7 @@ def api_pool_contribute(pool_id):
 @app.route("/api/pools/<pool_id>/disburse", methods=["POST"])
 @auth.login_required
 def api_request_disbursement(pool_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         did = pool.request_disbursement(
             pool_id, session["user_id"],
@@ -4805,7 +4900,7 @@ def api_approve_disbursement(pool_id, disbursement_id):
 @app.route("/api/pools/<pool_id>/disburse/<disbursement_id>/reject", methods=["POST"])
 @auth.login_required
 def api_reject_disbursement(pool_id, disbursement_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         pool.reject_disbursement(pool_id, disbursement_id, session["user_id"], d.get("note",""))
         return jsonify({"ok": True})
@@ -4849,7 +4944,7 @@ def api_admin_freeze():
     Authorized roles: CEO, CCO, CFO.
     Only CEO can freeze another admin.
     """
-    d          = request.json or {}
+    d          = request.get_json(silent=True) or {}
     target_id  = d.get("user_id","").strip()
     freeze_dep = bool(d.get("freeze_deposits", False))
     freeze_wd  = bool(d.get("freeze_withdrawals", False))
@@ -4912,7 +5007,7 @@ def api_admin_freeze():
 @admin_required
 def api_admin_unfreeze():
     """Lift deposits and/or withdrawals freeze for a user."""
-    d          = request.json or {}
+    d          = request.get_json(silent=True) or {}
     target_id  = d.get("user_id","").strip()
     unfreeze_dep = bool(d.get("unfreeze_deposits", False))
     unfreeze_wd  = bool(d.get("unfreeze_withdrawals", False))
@@ -5082,7 +5177,7 @@ def my_campaigns():
 @app.route("/api/campaigns/create", methods=["POST"])
 @auth.login_required
 def api_create_campaign():
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         goal = int(float(d.get("goal", 0)) * 100)
         cid, slug = campaign.create_campaign(
@@ -5104,7 +5199,7 @@ def api_create_campaign():
 @app.route("/api/campaigns/<campaign_id>/donate", methods=["POST"])
 @auth.login_required
 def api_donate(campaign_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     cents = int(float(d.get("amount", 0)) * 100)
     try:
         did, net, fee = campaign.donate(
@@ -5122,7 +5217,7 @@ def api_donate(campaign_id):
 @app.route("/api/campaigns/<campaign_id>/withdraw", methods=["POST"])
 @auth.login_required
 def api_campaign_withdraw(campaign_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     cents = int(float(d.get("amount", 0)) * 100)
     try:
         ref = campaign.withdraw_funds(campaign_id, session["user_id"], cents)
@@ -5134,7 +5229,7 @@ def api_campaign_withdraw(campaign_id):
 @app.route("/api/campaigns/<campaign_id>/update", methods=["POST"])
 @auth.login_required
 def api_update_campaign(campaign_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         campaign.update_campaign(campaign_id, session["user_id"],
                                  title=d.get("title"),
@@ -5174,7 +5269,7 @@ def admin_campaigns_page():
 @app.route("/api/admin/campaigns/<campaign_id>/flag", methods=["POST"])
 @admin_required
 def api_admin_flag_campaign(campaign_id):
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     try:
         campaign.admin_flag_campaign(campaign_id, session["user_id"], d.get("reason","Policy violation"))
         return jsonify({"ok": True})
@@ -5212,7 +5307,7 @@ def api_platform_controls_set():
     if not actor or actor["admin_role"] != "ceo":
         return jsonify({"error": "Only the CEO can modify platform-wide controls."}), 403
 
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     flag   = d.get("flag", "").strip()
     value  = int(bool(d.get("value", True)))
     reason = d.get("reason", "").strip()
@@ -5241,6 +5336,7 @@ def api_platform_controls_set():
         )
         return jsonify({"ok": True, "flag": flag, "value": value})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -5253,7 +5349,7 @@ def api_admin_user_action(user_id):
     Unified user action endpoint.
     action: suspend | unsuspend | force_kyc | add_note | set_risk_level | view
     """
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     action  = d.get("action", "").strip()
     reason  = d.get("reason", "").strip()
     note    = d.get("note", "").strip()
@@ -5290,6 +5386,7 @@ def api_admin_user_action(user_id):
                              new_data={"is_suspended": bool(new_val)}, reason=reason)
             return jsonify({"ok": True, "action": action, "user": target["full_name"]})
         except Exception as e:
+            app.logger.exception("Handled 500 on %s %s", request.method, request.path)
             return jsonify({"error": str(e)}), 500
 
     # ── FORCE KYC REVIEW ──
@@ -5303,6 +5400,7 @@ def api_admin_user_action(user_id):
                              reason=reason or "Manual KYC review requested by admin")
             return jsonify({"ok": True, "message": f"{target['full_name']} moved to KYC review queue."})
         except Exception as e:
+            app.logger.exception("Handled 500 on %s %s", request.method, request.path)
             return jsonify({"error": str(e)}), 500
 
     # ── ADD NOTE ──
@@ -5317,6 +5415,7 @@ def api_admin_user_action(user_id):
             log_admin_action("admin_note_added", "user", user_id, new_data={"note": note[:100]})
             return jsonify({"ok": True})
         except Exception as e:
+            app.logger.exception("Handled 500 on %s %s", request.method, request.path)
             return jsonify({"error": str(e)}), 500
 
     # ── SET RISK LEVEL ──
@@ -5335,6 +5434,7 @@ def api_admin_user_action(user_id):
                              new_data={"risk_level": level}, reason=reason)
             return jsonify({"ok": True})
         except Exception as e:
+            app.logger.exception("Handled 500 on %s %s", request.method, request.path)
             return jsonify({"error": str(e)}), 500
 
     else:
@@ -5359,7 +5459,7 @@ def api_admin_notes_get(entity_type, entity_id):
 @admin_required
 def api_admin_notes_post(entity_type, entity_id):
     _ensure_admin_notes()
-    note = (request.json or {}).get("note", "").strip()
+    note = (request.get_json(silent=True) or {}).get("note", "").strip()
     if not note:
         return jsonify({"error": "Note text is required."}), 400
     try:
@@ -5368,6 +5468,7 @@ def api_admin_notes_post(entity_type, entity_id):
                        (str(uuid.uuid4()), session["user_id"], entity_type, entity_id, note))
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -5465,7 +5566,7 @@ def admin_system_health():
 @app.route("/api/admin/transactions/<tx_id>/flag", methods=["POST"])
 @admin_required
 def api_admin_flag_transaction(tx_id):
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     reason = d.get("reason", "").strip()
     if not reason:
         return jsonify({"error": "Reason required to flag a transaction."}), 400
@@ -5479,6 +5580,7 @@ def api_admin_flag_transaction(tx_id):
         log_admin_action("transaction_flagged", "transaction", tx_id, reason=reason)
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -5489,7 +5591,7 @@ def api_admin_reverse_transaction(tx_id):
     if not actor or actor["admin_role"] not in {"ceo", "cfo", "operations"}:
         return jsonify({"error": "Only CEO, CFO, or Operations can reverse transactions."}), 403
 
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     reason = d.get("reason", "").strip()
     if not reason:
         return jsonify({"error": "Reason required to reverse a transaction."}), 400
@@ -5511,6 +5613,7 @@ def api_admin_reverse_transaction(tx_id):
                          new_data={"status": "reversed"}, reason=reason)
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -5642,7 +5745,7 @@ def api_circle_messages(rosca_id):
 @auth.login_required
 def api_circle_send_message(rosca_id):
     _ensure_circle_tables()
-    message = (request.json or {}).get("message", "").strip()
+    message = (request.get_json(silent=True) or {}).get("message", "").strip()
     if not message or len(message) > 2000:
         return jsonify({"error": "Message must be 1–2000 characters."}), 400
     r = fetchone("SELECT id FROM roscas WHERE id=?", (rosca_id,))
@@ -5678,7 +5781,7 @@ def api_circle_post_announcement(rosca_id):
     r = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
     if not r or r["organiser_id"] != session["user_id"]:
         return jsonify({"error": "Only the organiser can post announcements."}), 403
-    d        = request.json or {}
+    d        = request.get_json(silent=True) or {}
     title    = d.get("title", "").strip()
     body     = d.get("body", "").strip()
     priority = d.get("priority", "normal").strip()
@@ -5715,7 +5818,7 @@ def api_circle_votes(rosca_id):
 @auth.login_required
 def api_circle_create_vote(rosca_id):
     _ensure_circle_tables()
-    d         = request.json or {}
+    d         = request.get_json(silent=True) or {}
     question  = d.get("question", "").strip()
     vote_type = d.get("type", "simple_majority").strip()
     expires   = d.get("expires_at")
@@ -5734,7 +5837,7 @@ def api_circle_create_vote(rosca_id):
 @auth.login_required
 def api_circle_vote_respond(vote_id):
     _ensure_circle_tables()
-    response = (request.json or {}).get("response", "").strip()
+    response = (request.get_json(silent=True) or {}).get("response", "").strip()
     if response not in ("yes", "no", "abstain"):
         return jsonify({"error": "Response must be yes, no, or abstain."}), 400
     existing = fetchone("SELECT id FROM circle_vote_responses WHERE vote_id=? AND user_id=?",
@@ -5790,7 +5893,7 @@ def _gen_contact_ref():
 def api_contact_submit():
     """Capture contact form submissions from the public contact page."""
     _ensure_contact_table()
-    d        = request.json or {}
+    d        = request.get_json(silent=True) or {}
     name     = d.get("name", "").strip()
     email    = d.get("email", "").strip().lower()
     phone    = d.get("phone", "").strip()
@@ -5854,7 +5957,7 @@ def admin_contact():
 @app.route("/api/admin/contact/<inquiry_id>/status", methods=["POST"])
 @admin_required
 def api_admin_contact_status(inquiry_id):
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     status = d.get("status", "").strip()
     if status not in ("new", "open", "replied", "closed"):
         return jsonify({"error": "Invalid status"}), 400
@@ -5863,18 +5966,20 @@ def api_admin_contact_status(inquiry_id):
             db.execute("UPDATE contact_inquiries SET status=? WHERE id=?", (status, inquiry_id))
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/admin/contact/<inquiry_id>/notes", methods=["POST"])
 @admin_required
 def api_admin_contact_notes(inquiry_id):
-    notes = (request.json or {}).get("notes", "").strip()
+    notes = (request.get_json(silent=True) or {}).get("notes", "").strip()
     try:
         with get_db() as db:
             db.execute("UPDATE contact_inquiries SET admin_notes=? WHERE id=?", (notes, inquiry_id))
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -5882,7 +5987,7 @@ def api_admin_contact_notes(inquiry_id):
 @admin_required
 def api_admin_contact_reply(inquiry_id):
     """Log that a reply was sent and mark inquiry as replied."""
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     subject = d.get("subject", "").strip()
     body    = d.get("body", "").strip()
     if not body:
@@ -5896,6 +6001,7 @@ def api_admin_contact_reply(inquiry_id):
             )
         return jsonify({"ok": True})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -6055,7 +6161,7 @@ def api_test_email():
     role = session.get("admin_role", "")
     if role not in ("ceo", "cto"):
         return jsonify({"error": "CEO/CTO only"}), 403
-    d        = request.json or {}
+    d        = request.get_json(silent=True) or {}
     to_email = d.get("email", "").strip()
     to_name  = d.get("name", "SOHANA Test")
     if not to_email:
@@ -6078,6 +6184,7 @@ def api_test_email():
         return jsonify({"ok": result, "to": to_email,
                         "message": "Email sent — check your inbox" if result else "Send failed — check Railway logs for SendGrid errors"})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -6088,7 +6195,7 @@ def api_test_reset_email():
     role = session.get("admin_role", "")
     if role not in ("ceo", "cto"):
         return jsonify({"error": "CEO/CTO only"}), 403
-    d     = request.json or {}
+    d     = request.get_json(silent=True) or {}
     phone = d.get("phone", "").strip()
     user  = fetchone("SELECT id, full_name, email FROM users WHERE phone=? OR email=?",
                      (phone, phone))
@@ -6116,6 +6223,7 @@ def api_test_reset_email():
                         "reset_link": reset_link,
                         "message": "Reset email sent — check inbox" if result else "Failed — check logs"})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -6126,7 +6234,7 @@ def api_test_totp():
     role = session.get("admin_role", "")
     if role not in ("ceo", "cto"):
         return jsonify({"error": "CEO/CTO only"}), 403
-    d      = request.json or {}
+    d      = request.get_json(silent=True) or {}
     phone  = d.get("phone", "").strip()
     target = fetchone("SELECT id, full_name, phone FROM users WHERE phone=? OR email=?",
                       (phone, phone))
@@ -6150,6 +6258,7 @@ def api_test_totp():
                         "qr": f"data:image/png;base64,{qr_b64}",
                         "note": "Ask the user to scan this QR in Google Authenticator. Then call /api/auth/totp/confirm to activate."})
     except Exception as e:
+        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
         return jsonify({"error": str(e)}), 500
 
 
@@ -6314,6 +6423,10 @@ def market_page(country):
 @app.route("/<path:slug>")
 def public_page(slug):
     """Serve any public content page by slug."""
+    # Unknown /api/* paths must answer JSON, not the landing page — otherwise a
+    # mobile client calling a mistyped/missing endpoint gets HTML it can't parse.
+    if slug.startswith("api/"):
+        return jsonify({"error": "Endpoint not found", "path": "/" + slug}), 404
     if slug in PUBLIC_PAGES:
         template, title = PUBLIC_PAGES[slug]
         return render_template(template)
@@ -6587,7 +6700,7 @@ def unsubscribe_page(token):
 @app.route("/api/unsubscribe/resubscribe", methods=["POST"])
 def api_resubscribe():
     """One-click re-subscribe from the unsubscribe confirmation page."""
-    d     = request.json or {}
+    d     = request.get_json(silent=True) or {}
     token = d.get("token", "")
     if not token or len(token) < 20:
         return jsonify({"error": "Invalid token"}), 400
@@ -6616,7 +6729,7 @@ def api_resubscribe():
 @auth.login_required
 def api_set_marketing_consent():
     """Toggle marketing consent from the profile page."""
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     consent = bool(d.get("consent", False))
     uid     = session["user_id"]
     with get_db() as db:
@@ -6727,7 +6840,7 @@ def api_send_consent_capture():
     if role not in ("ceo", "cto"):
         return jsonify({"error": "CEO/CTO only."}), 403
 
-    d       = request.json or {}
+    d       = request.get_json(silent=True) or {}
     dry_run = bool(d.get("dry_run", False))
 
     # Build the audience
@@ -7474,7 +7587,7 @@ def api_finance_portfolios_list():
 def api_finance_portfolios_create():
     """Create a new client portfolio. Auto-generates default holdings + backfills
     snapshot history so the curve is populated from day one."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     client_name = (d.get("client_name") or "").strip()
     if not client_name:
         return jsonify({"error": "client_name required"}), 400
@@ -7582,7 +7695,7 @@ def api_finance_portfolios_update(pid):
     if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
         return jsonify({"error": "Not authorised"}), 403
 
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     updates, params = [], []
     for field in ("client_name", "client_email", "notes"):
         if field in d:
@@ -7653,7 +7766,7 @@ def api_finance_portfolios_add_holding(pid):
     if role not in ("ceo", "cfo") and p["advisor_id"] != session.get("user_id"):
         return jsonify({"error": "Not authorised"}), 403
 
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     asset_class = (d.get("asset_class") or "").strip()
     asset_name  = (d.get("asset_name") or "").strip()
     try:
@@ -8012,12 +8125,13 @@ def api_rosca_members(rosca_id):
 
     members_raw = fetchall("""
         SELECT rm.user_id, u.full_name, u.hanatag, u.avatar_url,
-               rm.payout_position, rm.status, rm.joined_at,
-               u.ncs_score, u.ncs_tier
+               CASE WHEN rm.payout_position IS NULL OR rm.payout_position = 0
+                    THEN COALESCE(rm.slot, 0) ELSE rm.payout_position END AS payout_position,
+               rm.status, rm.joined_at, u.ncs_score, u.ncs_tier
         FROM rosca_members rm JOIN users u ON u.id = rm.user_id
-        WHERE rm.rosca_id = ? AND rm.status = 'active'
-        ORDER BY rm.payout_position ASC
-    """, (rosca_id,))
+        WHERE rm.rosca_id = ? AND (rm.status = 'active' OR (rm.status = 'pending' AND ? = 1))
+        ORDER BY CASE rm.status WHEN 'active' THEN 0 ELSE 1 END, payout_position ASC, rm.joined_at ASC
+    """, (rosca_id, 1 if r_dict.get("organiser_id") == session["user_id"] else 0))
 
     # Also include the organiser even if they're not in rosca_members
     organiser_id = r_dict.get("organiser_id")
@@ -8034,7 +8148,7 @@ def api_rosca_members(rosca_id):
 
     # Get current active cycle (table is called 'cycles', not 'rosca_cycles')
     current_cycle = fetchone(
-        "SELECT id, cycle_number FROM cycles WHERE rosca_id=? AND status='active' ORDER BY cycle_number DESC LIMIT 1",
+        "SELECT id, cycle_number FROM cycles WHERE rosca_id=? AND status IN ('collecting','active','open') ORDER BY cycle_number DESC LIMIT 1",
         (rosca_id,))
 
     members = []
@@ -8044,10 +8158,12 @@ def api_rosca_members(rosca_id):
         md["ncs_score"] = md.get("ncs_score") or 300
         md["ncs_tier"] = md.get("ncs_tier") or "Probation"
         md["avatar_url"] = md.get("avatar_url") or None
-        if current_cycle:
+        if md.get("status") == "pending":
+            md["cycle_status"] = None
+        elif current_cycle:
             # Table is 'contributions', not 'rosca_contributions'
             contrib = fetchone(
-                "SELECT id FROM contributions WHERE cycle_id=? AND member_id=? AND status='paid'",
+                "SELECT id FROM contributions WHERE cycle_id=? AND user_id=? AND status IN ('paid','late')",
                 (current_cycle["id"], md["user_id"]))
             loan = None
             try:
@@ -8098,7 +8214,7 @@ def api_rosca_cycles(rosca_id):
 @auth.login_required
 def api_cover_member(rosca_id):
     """Pay another member's contribution. Creates a circle_loan tracking the debt."""
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     target_user_id = d.get("on_behalf_of", "")
     totp_code = d.get("totp_code", "")
     payer_id = session["user_id"]
@@ -8230,7 +8346,7 @@ def api_loans_by_circle(circle_id):
 @auth.login_required
 def api_loan_repay(loan_id):
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     amount_cents = int(d.get("amount_cents", 0))
 
     loan = fetchone("SELECT * FROM circle_loans WHERE id=?", (loan_id,))
@@ -8288,7 +8404,7 @@ def api_autopay_rules():
 @auth.login_required
 def api_autopay_create():
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     circle_id = d.get("circle_id", "")
     frequency = d.get("frequency", "monthly")
     day_of_month = int(d.get("day_of_month", 1))
@@ -8409,7 +8525,7 @@ def api_pool_create():
     Optional: description, deadline, reminder_frequency_days, max_members, is_public
     """
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
  
     name = (d.get("name") or "").strip()
     if not name:
@@ -8487,7 +8603,7 @@ def api_pool_join(pool_id):
 def api_mobile_pool_contribute(pool_id):
     """Mobile: contribute any amount to a pool."""
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     amount_cents = int(d.get("amount_cents", 0))
 
     if amount_cents < 100:
@@ -8542,7 +8658,7 @@ def api_pool_detail(pool_id):
 def api_pool_approve_member(pool_id):
     """Approve a pending member (organiser only)."""
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     target_uid = d.get("user_id", "")
  
     pool_row = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
@@ -8565,7 +8681,7 @@ def api_pool_approve_member(pool_id):
 def api_pool_remove_member(pool_id):
     """Remove a member (organiser only)."""
     uid = session["user_id"]
-    d = request.json or {}
+    d = request.get_json(silent=True) or {}
     target_uid = d.get("user_id", "")
  
     pool_row = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
