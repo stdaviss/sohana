@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join the Sohana waitlist</title>
+<meta name="description" content="Save together, borrow with trust. Join the Sohana waitlist, reserve your @hanatag and move up the line by bringing your circle.">
+<meta property="og:title" content="Join me on the Sohana waitlist">
+<meta property="og:description" content="Savings circles, reimagined. Reserve your @hanatag before launch.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg-2:#141915;--line:rgba(244,242,236,.1);--line-2:rgba(244,242,236,.18);--ink:#F4F2EC;--ink-2:rgba(244,242,236,.72);--ink-3:rgba(244,242,236,.48);--mint:#9EE493;--mint-dim:rgba(158,228,147,.12);--red:#FF8A7A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:Geist,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+a{color:var(--mint)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.logo{font-weight:700;letter-spacing:.14em;font-size:15px;color:var(--ink);text-decoration:none}
+.nav-link{color:var(--ink-2);font-size:14px;text-decoration:none}
+.banner{border:1px solid var(--line-2);background:var(--mint-dim);border-radius:14px;padding:12px 16px;font-size:14px;color:var(--ink);margin:6px 0 0}
+.banner b{color:var(--mint);font-weight:600}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;padding:48px 0 64px;align-items:start}
+.eyebrow{font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mint)}
+h1{font-size:clamp(40px,6vw,64px);line-height:1.02;letter-spacing:-.03em;font-weight:600;margin:16px 0 18px}
+h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--mint)}
+.lede{font-size:18px;color:var(--ink-2);max-width:520px}
+.counter{display:flex;align-items:baseline;gap:10px;margin-top:28px;font-family:'Geist Mono',monospace}
+.counter b{font-size:28px;color:var(--ink);font-weight:500}
+.counter span{color:var(--ink-3);font-size:13px}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:20px;padding:28px}
+.card h2{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.card p.sub{color:var(--ink-3);font-size:14px;margin-bottom:20px}
+label{display:block;font-size:13px;color:var(--ink-2);margin:14px 0 6px}
+label .opt{color:var(--ink-3)}
+input[type=text],input[type=email],select{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;color:var(--ink);font:inherit;font-size:16px;padding:12px 14px;outline:none}
+input:focus,select:focus{border-color:var(--mint)}
+.handle{position:relative}
+.handle .at{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-family:'Geist Mono',monospace}
+.handle input{padding-left:30px;font-family:'Geist Mono',monospace}
+.hint{font-size:12px;margin-top:6px;min-height:16px;color:var(--ink-3)}
+.hint.ok{color:var(--mint)}.hint.bad{color:var(--red)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-2);margin:18px 0 4px;cursor:pointer}
+.check input{margin-top:3px;accent-color:var(--mint);width:16px;height:16px;flex:none}
+button{width:100%;margin-top:18px;background:var(--mint);color:var(--bg);border:0;border-radius:999px;font:inherit;font-weight:600;font-size:16px;padding:14px;cursor:pointer}
+button:disabled{opacity:.6;cursor:default}
+.err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px}
+.fine{font-size:12px;color:var(--ink-3);margin-top:12px}
+.done{display:none;text-align:center;padding:16px 0}
+.done h2{margin-bottom:8px}
+.done p{color:var(--ink-2);font-size:15px}
+section.how{border-top:1px solid var(--line);padding:56px 0}
+section.how h3{font-size:28px;letter-spacing:-.02em;font-weight:600;margin-bottom:28px}
+section.how h3 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--mint)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{border:1px solid var(--line);border-radius:16px;padding:22px}
+.step .n{font-family:'Geist Mono',monospace;color:var(--mint);font-size:12px}
+.step h4{font-size:17px;font-weight:600;margin:10px 0 6px}
+.step p{color:var(--ink-2);font-size:14px}
+footer{border-top:1px solid var(--line);padding:28px 0 40px;color:var(--ink-3);font-size:12px}
+footer a{color:var(--ink-2)}
+@media(max-width:860px){.hero{grid-template-columns:1fr;gap:32px;padding-top:28px}.steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/">SOHANA</a>
+    <a class="nav-link" href="/">About Sohana</a>
+  </header>
+
+  {% if src == 'afts' %}
+  <div class="banner"><b>Welcome from AFTS 2026.</b> Thanks for stopping by our booth. Join below and you'll hear from us first.</div>
+  {% elif src == 'alphaexpo' %}
+  <div class="banner"><b>Welcome from the Alpha Expo.</b> Thanks for listening to our pitch. Join below and you'll hear from us first.</div>
+  {% endif %}
+  {% if referrer_first_name %}
+  <div class="banner"><b>{{ referrer_first_name }}</b> invited you to Sohana. Join and you both move up the line once you confirm your email.</div>
+  {% endif %}
+  {% if request.args.get('invalid') %}
+  <div class="banner">That link has expired or isn't valid. Enter your email below and we'll send you a fresh one.</div>
+  {% endif %}
+
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Early access</div>
+      <h1>Save together.<br>Borrow with <em>trust.</em></h1>
+      <p class="lede">Sohana brings the savings circles you already run (tontines, njangi, ikimina, susu) into one app, with a trust score built from how reliably you show up for your circle.</p>
+      <div class="counter"><b id="wl-total">{{ "{:,}".format(total) }}</b><span>people on the waitlist</span></div>
+    </div>
+
+    <div class="card" id="form-card">
+      <form id="wl-form" novalidate>
+        <h2>Get your place in line</h2>
+        <p class="sub">Free to join. Nothing is charged and no money moves.</p>
+
+        <label for="name">First name</label>
+        <input id="name" type="text" autocomplete="given-name" maxlength="80">
+
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" required maxlength="254">
+
+        <label for="handle">Reserve your @hanatag <span class="opt">(optional)</span></label>
+        <div class="handle"><span class="at">@</span><input id="handle" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" maxlength="20" placeholder="yourname"></div>
+        <div class="hint" id="handle-hint">Your handle for receiving money and joining circles.</div>
+
+        <label for="country">Where are you based? <span class="opt">(optional)</span></label>
+        <select id="country">
+          <option value="">Choose a country</option>
+          <option>Rwanda</option><option>Cameroon</option><option>France</option><option>United Kingdom</option>
+          <option>Belgium</option><option>Canada</option><option>Kenya</option><option>Nigeria</option>
+          <option>Ghana</option><option>Uganda</option><option>United States</option><option>Other</option>
+        </select>
+
+        <label class="check"><input id="consent" type="checkbox"> <span>Send me occasional Sohana news and launch updates. You can unsubscribe at any time.</span></label>
+
+        <button id="submit" type="submit">Join the waitlist</button>
+        <div class="err" id="err"></div>
+        <p class="fine">We'll email you a link to confirm your place. See our <a href="/privacy">privacy notice</a>.</p>
+      </form>
+      <div class="done" id="done">
+        <h2>Check your inbox</h2>
+        <p id="done-msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <section class="how">
+    <h3>Move up the line by <em>bringing your circle.</em></h3>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h4>Join and confirm</h4><p>Confirm your email to lock in your place and reserve your @hanatag before anyone else can take it.</p></div>
+      <div class="step"><div class="n">02</div><h4>Share your link</h4><p>Every friend who joins with your link and confirms moves you up {{ boost }} places.</p></div>
+      <div class="step"><div class="n">03</div><h4>Start your circle</h4><p>Bring 3 people and jump a further {{ bonus }} places. Bring 5 and you're a Founding Member.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Sohana is a company registered in Rwanda and is pursuing regulatory authorisation. Joining the waitlist is free, creates no account and moves no money. Places in line and rewards are non-financial.
+    <br><a href="/privacy">Privacy</a> · <a href="/">sohana.app</a>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var REF = {{ ref|tojson }}, SRC = {{ src|tojson }};
+  var form = document.getElementById('wl-form'), btn = document.getElementById('submit'), err = document.getElementById('err');
+  var handle = document.getElementById('handle'), hint = document.getElementById('handle-hint');
+  var handleOk = true, timer = null;
+
+  handle.addEventListener('input', function(){
+    var v = handle.value.trim().replace(/^@/, '').toLowerCase();
+    if (handle.value !== v) handle.value = v;
+    clearTimeout(timer);
+    if (!v) { handleOk = true; hint.className = 'hint'; hint.textContent = 'Your handle for receiving money and joining circles.'; return; }
+    hint.className = 'hint'; hint.textContent = 'Checking…';
+    timer = setTimeout(function(){
+      fetch('/api/waitlist/handle-available?h=' + encodeURIComponent(v))
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (handle.value.trim() !== v) return;
+          handleOk = !!d.available;
+          hint.className = 'hint ' + (d.available ? 'ok' : 'bad');
+          hint.textContent = d.available ? '@' + v + ' is available' : (d.reason || 'Not available');
+        }).catch(function(){ hint.className = 'hint'; hint.textContent = ''; handleOk = true; });
+    }, 350);
+  });
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    err.textContent = '';
+    var email = document.getElementById('email').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = 'Please enter a valid email address.'; return; }
+    if (!handleOk) { err.textContent = 'Choose another @hanatag, or leave it empty for now.'; return; }
+    btn.disabled = true; btn.textContent = 'Joining…';
+    fetch('/api/waitlist', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: email,
+        name: document.getElementById('name').value.trim(),
+        hanatag: handle.value.trim(),
+        country: document.getElementById('country').value,
+        marketing_consent: document.getElementById('consent').checked,
+        ref: REF, src: SRC
+      })
+    }).then(function(r){ return r.json().then(function(d){ return {status: r.status, d: d}; }); })
+      .then(function(res){
+        var d = res.d;
+        if (d.status === 'joined' && d.status_url) { window.location.href = d.status_url; return; }
+        if (d.ok) {
+          form.style.display = 'none';
+          document.getElementById('done').style.display = 'block';
+          document.getElementById('done-msg').textContent = d.message || "We've emailed you your personal link.";
+          return;
+        }
+        err.textContent = d.error || 'Something went wrong. Please try again.';
+        btn.disabled = false; btn.textContent = 'Join the waitlist';
+      }).catch(function(){
+        err.textContent = 'Network problem. Please try again.';
+        btn.disabled = false; btn.textContent = 'Join the waitlist';
+      });
+  });
+})();
+</script>
+</body>
+</html>

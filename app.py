@@ -1110,6 +1110,21 @@ def _run_safe_migrations():
         "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
         "ALTER TABLE rosca_members ADD COLUMN payout_position INTEGER",
         "ALTER TABLE roscas ADD COLUMN member_count INTEGER NOT NULL DEFAULT 0",
+        # v9.4 waitlist v2: place in line, referrals, @hanatag reservation
+        "ALTER TABLE waitlist ADD COLUMN referral_code    TEXT",
+        "ALTER TABLE waitlist ADD COLUMN access_token     TEXT",
+        "ALTER TABLE waitlist ADD COLUMN confirm_token    TEXT",
+        "ALTER TABLE waitlist ADD COLUMN confirmed_at     TEXT",
+        "ALTER TABLE waitlist ADD COLUMN referred_by      TEXT",
+        "ALTER TABLE waitlist ADD COLUMN source           TEXT",
+        "ALTER TABLE waitlist ADD COLUMN reserved_hanatag TEXT",
+        "ALTER TABLE waitlist ADD COLUMN country          TEXT",
+        "ALTER TABLE waitlist ADD COLUMN claimed_user_id  TEXT",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_refcode ON waitlist(referral_code)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_access  ON waitlist(access_token)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_confirm ON waitlist(confirm_token)",
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_waitlist_handle  ON waitlist(reserved_hanatag)",
+        "CREATE INDEX IF NOT EXISTS idx_waitlist_referred_by ON waitlist(referred_by)",
 
         # ── MOBILE APP MIGRATIONS (v8.1) ─────────────────────────────────────
         "ALTER TABLE users  ADD COLUMN avatar_url  TEXT",
@@ -2710,55 +2725,367 @@ def logout():
     session.clear()
     return redirect(url_for("index"))
 
+# ── WAITLIST v2: place in line, referrals, @hanatag reservation ──────────────
+# Robinhood-style waitlist. Everyone gets a place in line at signup; each
+# referral moves the referrer up, but only once the referred person confirms
+# their email (stops people inflating their place with fake addresses).
+# Rewards are deliberately non-financial: earlier access, a reserved @hanatag
+# and a Founding Member badge — no cash or credit incentives pre-authorisation.
+import re as _wl_re
+import time as _wl_time
+
+WAITLIST_REFERRAL_BOOST = 10      # places gained per confirmed referral
+WAITLIST_CIRCLE_BONUS   = 50      # one-off extra jump at 3 confirmed referrals
+WAITLIST_TIERS = [
+    (1, "Early access",    "You're in the first wave of invitations."),
+    (3, "Circle starter",  "You jump a further 50 places in line."),
+    (5, "Founding member", "A Founding Member badge on your profile at launch."),
+]
+_WL_HANDLE_RE = _wl_re.compile(r"^[a-z0-9][a-z0-9.]{2,19}$")
+_WL_RESERVED = {
+    "sohana", "admin", "administrator", "support", "help", "root", "api", "official",
+    "team", "staff", "security", "billing", "payments", "pay", "wallet", "ncs", "info",
+    "contact", "press", "invest", "investors", "hanapay", "hanatag", "system", "null",
+}
+_WL_STATS_CACHE = {"at": 0.0, "total": 0}
+
+
+def _wl_base_url():
+    return os.environ.get("APP_BASE_URL", "https://sohana.app").rstrip("/")
+
+
+def _wl_clean_src(value):
+    v = (value or "").strip().lower()[:32]
+    return v if _wl_re.fullmatch(r"[a-z0-9_-]{1,32}", v) else None
+
+
+def _wl_norm_handle(value):
+    return (value or "").strip().lstrip("@").lower()
+
+
+def _wl_handle_status(handle, email=None):
+    """(available, reason). `handle` is normalised, without '@'. A handle the
+    same email already reserved counts as available to that email."""
+    if not _WL_HANDLE_RE.fullmatch(handle or "") or ".." in handle or handle.endswith("."):
+        return False, "Use 3-20 letters, numbers or dots, starting with a letter or number."
+    if handle in _WL_RESERVED:
+        return False, "That handle is reserved."
+    tag = "@" + handle
+    if fetchone("SELECT 1 FROM users WHERE hanatag=?", (tag,)):
+        return False, "That handle is already taken."
+    held = fetchone("SELECT email FROM waitlist WHERE reserved_hanatag=?", (tag,))
+    if held and (email is None or held["email"] != email):
+        return False, "That handle is already reserved."
+    return True, None
+
+
+def _wl_new_ref_code():
+    import secrets
+    alphabet = "abcdefghjkmnpqrstuvwxyz23456789"   # no look-alike characters
+    for _ in range(12):
+        code = "".join(secrets.choice(alphabet) for _ in range(7))
+        if not fetchone("SELECT 1 FROM waitlist WHERE referral_code=?", (code,)):
+            return code
+    return secrets.token_hex(6)
+
+
+def _wl_ensure_codes(row):
+    """Signups from before v2 have no codes. Issue them the first time they're needed.
+    referral_code is public (shared); access_token is private (opens the status page)."""
+    import secrets
+    d = dict(row)
+    if d.get("referral_code") and d.get("access_token") and (d.get("confirmed_at") or d.get("confirm_token")):
+        return d
+    with get_db() as db:
+        db.execute("""UPDATE waitlist SET referral_code=COALESCE(referral_code, ?),
+                                          access_token=COALESCE(access_token, ?),
+                                          confirm_token=COALESCE(confirm_token, ?)
+                      WHERE id=?""",
+                   (_wl_new_ref_code(), secrets.token_urlsafe(18), secrets.token_urlsafe(18), d["id"]))
+    return dict(fetchone("SELECT * FROM waitlist WHERE id=?", (d["id"],)))
+
+
+def _wl_score_sql():
+    refs = ("(SELECT COUNT(*) FROM waitlist r WHERE r.referred_by = w.referral_code "
+            "AND r.confirmed_at IS NOT NULL)")
+    return f"(w.rowid - ? * {refs} - CASE WHEN {refs} >= 3 THEN ? ELSE 0 END)"
+
+
+def _wl_standing(row):
+    d = dict(row)
+    rid = fetchone("SELECT rowid AS r FROM waitlist WHERE id=?", (d["id"],))["r"]
+    code = d.get("referral_code")
+    confirmed = fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE referred_by=? AND confirmed_at IS NOT NULL", (code,))["c"] if code else 0
+    waiting   = fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE referred_by=? AND confirmed_at IS NULL", (code,))["c"] if code else 0
+    score = rid - WAITLIST_REFERRAL_BOOST * confirmed - (WAITLIST_CIRCLE_BONUS if confirmed >= 3 else 0)
+    ahead = fetchone(
+        f"SELECT COUNT(*) AS c FROM (SELECT w.rowid AS rid, {_wl_score_sql()} AS s FROM waitlist w) "
+        "WHERE s < ? OR (s = ? AND rid < ?)",
+        (WAITLIST_REFERRAL_BOOST, WAITLIST_CIRCLE_BONUS, score, score, rid))["c"]
+    total = fetchone("SELECT COUNT(*) AS c FROM waitlist")["c"]
+    position = ahead + 1
+    tiers = [{"min": n, "label": lbl, "perk": perk, "unlocked": confirmed >= n} for n, lbl, perk in WAITLIST_TIERS]
+    nxt = next((t for t in tiers if not t["unlocked"]), None)
+    return {
+        "position": position, "total": total, "behind": max(total - position, 0),
+        "confirmed_referrals": confirmed, "waiting_referrals": waiting,
+        "tiers": tiers, "next_tier": nxt,
+        "to_next": (nxt["min"] - confirmed) if nxt else 0,
+    }
+
+
+def _wl_total():
+    now = _wl_time.time()
+    if now - _WL_STATS_CACHE["at"] > 60:
+        try:
+            _WL_STATS_CACHE["total"] = fetchone("SELECT COUNT(*) AS c FROM waitlist")["c"]
+            _WL_STATS_CACHE["at"] = now
+        except Exception:
+            app.logger.exception("waitlist count failed")
+    return _WL_STATS_CACHE["total"]
+
+
+def _wl_send_link_email(row):
+    """Confirmation email if unconfirmed, otherwise the personal status link.
+    Never raises: a failed email must not fail the signup."""
+    try:
+        import comms, html as _html
+        d = dict(row)
+        base = _wl_base_url()
+        if not d.get("confirmed_at"):
+            url, label = f"{base}/waitlist/confirm/{d['confirm_token']}", "Confirm my place"
+            msg = ("Thanks for joining the Sohana waitlist. Confirm your email to lock in your "
+                   "place in line. It's also what makes your referrals count.")
+        else:
+            url, label = f"{base}/waitlist/me/{d['access_token']}", "See my place in line"
+            msg = "Here is your personal waitlist link. It shows your place in line and your referral link."
+        st = _wl_standing(d)
+        return comms.send_email(
+            to_email=d["email"], to_name=_html.escape(d.get("name") or "there"),
+            template_key="waitlist_link",
+            template_data={
+                "subject_line": "Your place on the Sohana waitlist",
+                "message_body": msg,
+                "highlight_label": "Your place in line",
+                "highlight_value": f"#{st['position']:,}",
+                "cta_url": url, "cta_label": label,
+            })
+    except Exception:
+        app.logger.exception("waitlist email failed")
+        return False
+
+
+@app.route("/waitlist")
+def waitlist_page():
+    ref = (request.args.get("ref") or "").strip().lower()[:16]
+    referrer = fetchone("SELECT name FROM waitlist WHERE referral_code=?", (ref,)) if ref else None
+    first = ((referrer["name"] or "").split() or [""])[0] if referrer else ""
+    return render_template("waitlist.html",
+                           total=_wl_total(),
+                           ref=ref if referrer else "",
+                           referrer_first_name=first,
+                           src=_wl_clean_src(request.args.get("src")) or "",
+                           boost=WAITLIST_REFERRAL_BOOST, bonus=WAITLIST_CIRCLE_BONUS)
+
+
 @app.route("/api/waitlist", methods=["POST"])
+@limiter.limit("10 per minute")
 def api_waitlist():
-    """Capture waitlist signups from the landing page."""
+    """Join the waitlist. Backward compatible: the landing page's {email} form still gets {ok: true}."""
+    import secrets
     d = request.get_json(silent=True) or {}
-    email = d.get("email", "").strip().lower()
-    name  = d.get("name", "").strip()
-    if not email or "@" not in email:
-        return jsonify({"error": "Invalid email"}), 400
-    # Store in waitlist table (created if not exists)
+    email = (d.get("email") or "").strip().lower()
+    name = (d.get("name") or "").strip()[:80]
+    if len(email) > 254 or not _wl_re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return jsonify({"error": "Please enter a valid email address."}), 400
+
+    existing = fetchone("SELECT * FROM waitlist WHERE email=?", (email,))
+    if existing:
+        # Don't reveal anyone's status to whoever typed their email; mail the link instead.
+        sent = _wl_send_link_email(_wl_ensure_codes(existing))
+        return jsonify({"ok": True, "status": "existing", "email_sent": bool(sent),
+                        "message": "You're already on the list. We've emailed you your personal link."})
+
+    tag = None
+    handle = _wl_norm_handle(d.get("hanatag"))
+    if handle:
+        ok, reason = _wl_handle_status(handle)
+        if not ok:
+            return jsonify({"error": reason, "field": "hanatag"}), 400
+        tag = "@" + handle
+
+    ref = (d.get("ref") or "").strip().lower()[:16]
+    referrer = fetchone("SELECT referral_code FROM waitlist WHERE referral_code=?", (ref,)) if ref else None
+    src = _wl_clean_src(d.get("src")) or ("referral" if referrer else "website")
+    country = (d.get("country") or "").strip()[:56] or None
+    consent = 1 if d.get("marketing_consent") is True else 0   # GDPR: opt-in only
+
+    wid = str(uuid.uuid4())
     try:
         with get_db() as db:
-            db.execute("""CREATE TABLE IF NOT EXISTS waitlist (
-                id TEXT PRIMARY KEY,
-                email TEXT UNIQUE NOT NULL,
-                name TEXT,
-                created_at TEXT DEFAULT (datetime('now'))
-            )""")
-            db.execute("INSERT OR IGNORE INTO waitlist(id, email, name) VALUES(?,?,?)",
-                       (str(uuid.uuid4()), email, name))
-        return jsonify({"ok": True})
-    except Exception as e:
-        return jsonify({"ok": True})  # Always return OK - don't expose DB errors
+            db.execute(
+                """INSERT INTO waitlist (id, email, name, referral_code, access_token, confirm_token,
+                                         referred_by, source, reserved_hanatag, country,
+                                         marketing_consent, marketing_consent_at, marketing_consent_source)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?, CASE WHEN ?=1 THEN datetime('now') END,
+                           CASE WHEN ?=1 THEN 'waitlist_signup' END)""",
+                (wid, email, name or None, _wl_new_ref_code(), secrets.token_urlsafe(18),
+                 secrets.token_urlsafe(18), referrer["referral_code"] if referrer else None,
+                 src, tag, country, consent, consent, consent))
+    except sqlite3.IntegrityError:
+        if fetchone("SELECT 1 FROM waitlist WHERE email=?", (email,)):   # double submit
+            return jsonify({"ok": True, "status": "existing",
+                            "message": "You're already on the list. We've emailed you your personal link."})
+        return jsonify({"error": "That handle was just reserved by someone else. Try another.",
+                        "field": "hanatag"}), 409
+
+    _WL_STATS_CACHE["at"] = 0.0
+    row = fetchone("SELECT * FROM waitlist WHERE id=?", (wid,))
+    sent = _wl_send_link_email(row)
+    st = _wl_standing(row)
+    return jsonify({"ok": True, "status": "joined", "email_sent": bool(sent),
+                    "status_url": f"/waitlist/me/{row['access_token']}",
+                    "position": st["position"], "total": st["total"]})
+
+
+@app.route("/api/waitlist/stats")
+def api_waitlist_stats():
+    """Public live counter for the homepage."""
+    return jsonify({"total": _wl_total()})
+
+
+@app.route("/api/waitlist/handle-available")
+@limiter.limit("40 per minute")
+def api_waitlist_handle_available():
+    h = _wl_norm_handle(request.args.get("h"))
+    ok, reason = _wl_handle_status(h)
+    return jsonify({"available": ok, "hanatag": ("@" + h) if h else None, "reason": reason})
+
+
+@app.route("/api/waitlist/handle", methods=["POST"])
+@limiter.limit("10 per minute")
+def api_waitlist_set_handle():
+    """Reserve or change the @hanatag on a waitlist entry. Authorised by the private access token."""
+    d = request.get_json(silent=True) or {}
+    token = (d.get("token") or "").strip()
+    row = fetchone("SELECT * FROM waitlist WHERE access_token=?", (token,)) if token else None
+    if not row:
+        return jsonify({"error": "Waitlist entry not found"}), 404
+    if row["claimed_user_id"]:
+        return jsonify({"error": "This handle has already been claimed by an account."}), 409
+    h = _wl_norm_handle(d.get("hanatag"))
+    ok, reason = _wl_handle_status(h, email=row["email"])
+    if not ok:
+        return jsonify({"error": reason}), 400
+    try:
+        with get_db() as db:
+            db.execute("UPDATE waitlist SET reserved_hanatag=? WHERE id=?", ("@" + h, row["id"]))
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "That handle was just reserved by someone else. Try another."}), 409
+    return jsonify({"ok": True, "hanatag": "@" + h})
+
+
+@app.route("/waitlist/confirm/<token>")
+def waitlist_confirm(token):
+    row = fetchone("SELECT * FROM waitlist WHERE confirm_token=?", (token,))
+    if not row:
+        return redirect("/waitlist?invalid=1")
+    if not row["confirmed_at"]:
+        with get_db() as db:
+            db.execute("UPDATE waitlist SET confirmed_at=datetime('now') WHERE id=?", (row["id"],))
+    row = _wl_ensure_codes(fetchone("SELECT * FROM waitlist WHERE id=?", (row["id"],)))
+    return redirect(f"/waitlist/me/{row['access_token']}?confirmed=1")
+
+
+@app.route("/waitlist/me/<token>")
+def waitlist_status_page(token):
+    row = fetchone("SELECT * FROM waitlist WHERE access_token=?", (token,))
+    if not row:
+        return redirect("/waitlist?invalid=1")
+    d = dict(row)
+    st = _wl_standing(d)
+    local, _, domain = d["email"].partition("@")
+    return render_template("waitlist_status.html",
+                           entry=d, st=st,
+                           masked_email=(local[:1] + "***@" + domain),
+                           share_url=f"{_wl_base_url()}/waitlist?ref={d['referral_code']}",
+                           just_confirmed=request.args.get("confirmed") == "1",
+                           need_signin=request.args.get("signin") == "1",
+                           signed_in="user_id" in session,
+                           boost=WAITLIST_REFERRAL_BOOST, bonus=WAITLIST_CIRCLE_BONUS)
+
+
+@app.route("/waitlist/claim/<token>")
+def waitlist_claim_handle(token):
+    """Move a reserved @hanatag onto a signed-in account. Only the person who received
+    this private link (the email owner) can open it, so a reserved handle can't be
+    taken by someone registering with another person's email address."""
+    row = fetchone("SELECT * FROM waitlist WHERE access_token=?", (token,))
+    if not row or not row["reserved_hanatag"]:
+        return redirect("/waitlist?invalid=1")
+    if "user_id" not in session:
+        return redirect(f"/waitlist/me/{token}?signin=1")
+    uid = session["user_id"]
+    tag = row["reserved_hanatag"]
+    owner = fetchone("SELECT id FROM users WHERE hanatag=?", (tag,))
+    if owner and owner["id"] != uid:
+        return render_template("error.html", message=f"{tag} is already in use by another account.",
+                               back_url="/profile"), 409
+    with get_db() as db:
+        db.execute("UPDATE users SET hanatag=? WHERE id=?", (tag, uid))
+        db.execute("UPDATE waitlist SET claimed_user_id=? WHERE id=?", (uid, row["id"]))
+    return redirect("/profile?claimed=1")
+
 
 @app.route("/admin/waitlist")
 @admin_required
 def admin_waitlist():
-    """Admin view of waitlist signups."""
+    """Waitlist dashboard: totals, sources (e.g. AFTS QR), top referrers, latest signups."""
     user = auth.get_current_user()
-    try:
-        signups = fetchall("SELECT email, name, created_at FROM waitlist ORDER BY created_at DESC")
-    except Exception:
-        signups = []
-    return render_template("admin_waitlist.html", user=user, signups=signups)
+    refs = ("(SELECT COUNT(*) FROM waitlist r WHERE r.referred_by=w.referral_code "
+            "AND r.confirmed_at IS NOT NULL)")
+    signups = [dict(r) for r in fetchall(
+        f"""SELECT w.email, w.name, w.created_at, w.source, w.country, w.reserved_hanatag,
+                   w.confirmed_at, w.marketing_consent, {refs} AS referrals
+            FROM waitlist w ORDER BY w.created_at DESC LIMIT 500""")]
+    stats = {
+        "total":     fetchone("SELECT COUNT(*) AS c FROM waitlist")["c"],
+        "confirmed": fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE confirmed_at IS NOT NULL")["c"],
+        "handles":   fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE reserved_hanatag IS NOT NULL")["c"],
+        "referred":  fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE referred_by IS NOT NULL")["c"],
+        "today":     fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE date(created_at)=date('now')")["c"],
+        "consented": fetchone("SELECT COUNT(*) AS c FROM waitlist WHERE marketing_consent=1")["c"],
+    }
+    by_source = [dict(r) for r in fetchall(
+        "SELECT COALESCE(source,'website') AS source, COUNT(*) AS n FROM waitlist GROUP BY 1 ORDER BY n DESC")]
+    top_referrers = [dict(r) for r in fetchall(
+        f"""SELECT w.name, w.email, w.reserved_hanatag, {refs} AS referrals
+            FROM waitlist w WHERE {refs} > 0 ORDER BY referrals DESC LIMIT 10""")]
+    return render_template("admin_waitlist.html", user=user, signups=signups, stats=stats,
+                           by_source=by_source, top_referrers=top_referrers)
+
 
 @app.route("/admin/waitlist/export")
 @admin_required
 def admin_waitlist_export():
     import io, csv
-    try:
-        signups = fetchall("SELECT email, name, created_at FROM waitlist ORDER BY created_at DESC")
-    except Exception:
-        signups = []
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Email", "Name", "Signed Up"])
-    for s in signups:
-        writer.writerow([s["email"], s["name"] or "", s["created_at"][:16]])
-    output.seek(0)
-    return Response(output.getvalue(), mimetype="text/csv",
+    refs = ("(SELECT COUNT(*) FROM waitlist r WHERE r.referred_by=w.referral_code "
+            "AND r.confirmed_at IS NOT NULL)")
+    rows = fetchall(f"""SELECT w.email, w.name, w.created_at, w.source, w.country, w.reserved_hanatag,
+                               w.confirmed_at, w.marketing_consent, w.referral_code, w.referred_by,
+                               {refs} AS referrals
+                        FROM waitlist w ORDER BY w.created_at DESC""")
+    out = io.StringIO()
+    wr = csv.writer(out)
+    wr.writerow(["Email", "Name", "Signed up", "Source", "Country", "Reserved handle", "Confirmed",
+                 "Marketing consent", "Referral code", "Referred by", "Confirmed referrals"])
+    for r in rows:
+        wr.writerow([r["email"], r["name"] or "", (r["created_at"] or "")[:16], r["source"] or "website",
+                     r["country"] or "", r["reserved_hanatag"] or "", "yes" if r["confirmed_at"] else "no",
+                     "yes" if r["marketing_consent"] else "no", r["referral_code"] or "",
+                     r["referred_by"] or "", r["referrals"]])
+    out.seek(0)
+    return Response(out.getvalue(), mimetype="text/csv",
                     headers={"Content-Disposition": "attachment; filename=sohana-waitlist.csv"})
 
 
@@ -4012,10 +4339,18 @@ def api_set_hanatag():
     d   = request.get_json(silent=True) or {}
     tag = d.get("hanatag","").strip().lstrip("@").lower()
     if not tag or len(tag) < 3: return jsonify({"error": "Min 3 characters"}), 400
+    if not _WL_HANDLE_RE.fullmatch(tag) or ".." in tag or tag.endswith("."):
+        return jsonify({"error": "Use 3-20 letters, numbers or dots, starting with a letter or number."}), 400
+    if tag in _WL_RESERVED:
+        return jsonify({"error": "That handle is reserved."}), 400
     tag = f"@{tag}"
     existing = fetchone("SELECT id FROM users WHERE hanatag=?", (tag,))
     if existing and existing["id"] != session["user_id"]:
         return jsonify({"error": "Already taken"}), 400
+    # Handles reserved on the waitlist belong to that waitlist member until they claim them.
+    held = fetchone("SELECT claimed_user_id FROM waitlist WHERE reserved_hanatag=?", (tag,))
+    if held and held["claimed_user_id"] != session["user_id"]:
+        return jsonify({"error": "That handle is reserved by a waitlist member."}), 400
     with get_db() as db:
         db.execute("UPDATE users SET hanatag=? WHERE id=?", (tag, session["user_id"]))
     return jsonify({"ok": True, "hanatag": tag})

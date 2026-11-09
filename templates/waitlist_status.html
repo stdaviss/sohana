@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your place in line · Sohana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg-2:#141915;--line:rgba(244,242,236,.1);--line-2:rgba(244,242,236,.18);--ink:#F4F2EC;--ink-2:rgba(244,242,236,.72);--ink-3:rgba(244,242,236,.48);--mint:#9EE493;--mint-dim:rgba(158,228,147,.12);--red:#FF8A7A;--amber:#F0C674}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:Geist,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--mint)}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 48px}
+header{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.logo{font-weight:700;letter-spacing:.14em;font-size:15px;color:var(--ink);text-decoration:none}
+.who{font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink-3)}
+.notice{border-radius:14px;padding:14px 16px;font-size:14px;margin-bottom:16px;border:1px solid var(--line-2)}
+.notice.ok{background:var(--mint-dim)}
+.notice.warn{background:rgba(240,198,116,.1);border-color:rgba(240,198,116,.35)}
+.notice b{font-weight:600}
+.notice button{margin-top:10px;background:transparent;border:1px solid var(--line-2);color:var(--ink);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;cursor:pointer}
+.place{text-align:center;padding:28px 0 32px}
+.place .label{font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mint)}
+.place .num{font-size:clamp(64px,18vw,104px);font-weight:600;letter-spacing:-.04em;line-height:1;margin:12px 0}
+.place .num span{color:var(--ink-3);font-weight:400}
+.place p{color:var(--ink-2)}
+.place p em{font-family:'Instrument Serif',serif;font-size:1.15em;color:var(--ink)}
+.card{background:var(--bg-2);border:1px solid var(--line);border-radius:20px;padding:24px;margin-bottom:16px}
+.card h2{font-size:18px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.card p.sub{color:var(--ink-3);font-size:14px;margin-bottom:16px}
+.link{display:flex;gap:8px}
+.link input{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;color:var(--ink);font-family:'Geist Mono',monospace;font-size:13px;padding:12px}
+.btn{background:var(--mint);color:var(--bg);border:0;border-radius:999px;font:inherit;font-weight:600;font-size:14px;padding:12px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line-2)}
+.share{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px}
+.stat b{font-size:26px;font-weight:600;display:block}
+.stat span{color:var(--ink-3);font-size:13px}
+.tiers{list-style:none;margin-top:6px}
+.tiers li{display:flex;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.tiers li:first-child{border-top:0}
+.dot{flex:none;width:28px;height:28px;border-radius:50%;border:1px solid var(--line-2);display:flex;align-items:center;justify-content:center;font-family:'Geist Mono',monospace;font-size:12px;color:var(--ink-3)}
+.tiers li.on .dot{background:var(--mint);border-color:var(--mint);color:var(--bg)}
+.tiers h4{font-size:15px;font-weight:600}
+.tiers p{font-size:13px;color:var(--ink-2)}
+.progress{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin:12px 0 4px}
+.progress div{height:100%;background:var(--mint)}
+.handle-row{display:flex;gap:8px}
+.handle-field{position:relative;flex:1}
+.handle-field .at{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-family:'Geist Mono',monospace}
+.handle-field input{width:100%;background:var(--bg);border:1px solid var(--line-2);border-radius:12px;color:var(--ink);font-family:'Geist Mono',monospace;font-size:16px;padding:11px 12px 11px 28px;outline:none}
+.handle-field input:focus{border-color:var(--mint)}
+.tag{font-family:'Geist Mono',monospace;font-size:22px;color:var(--mint)}
+.hint{font-size:12px;margin-top:8px;min-height:16px;color:var(--ink-3)}
+.hint.ok{color:var(--mint)}.hint.bad{color:var(--red)}
+footer{color:var(--ink-3);font-size:12px;margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="logo" href="/">SOHANA</a>
+    <span class="who">{{ masked_email }}</span>
+  </header>
+
+  {% if just_confirmed %}
+  <div class="notice ok"><b>Email confirmed.</b> Your place is locked in, and your referrals now count.</div>
+  {% elif not entry.confirmed_at %}
+  <div class="notice warn">
+    <b>Confirm your email to lock in your place.</b> We sent you a link. Until you confirm, your @hanatag reservation is provisional and you can't be credited for referrals.
+    <br><button type="button" id="resend">Resend the email</button> <span id="resend-msg" style="font-size:13px;color:var(--ink-3)"></span>
+  </div>
+  {% endif %}
+  {% if need_signin %}
+  <div class="notice warn"><b>Sign in first.</b> To move {{ entry.reserved_hanatag }} onto your Sohana account, <a href="/auth">sign in</a>, then open your claim link again.</div>
+  {% endif %}
+
+  <div class="place">
+    <div class="label">Your place in line</div>
+    <div class="num"><span>#</span>{{ "{:,}".format(st.position) }}</div>
+    <p>{% if st.behind %}<em>{{ "{:,}".format(st.behind) }}</em> people behind you · {% endif %}{{ "{:,}".format(st.total) }} on the waitlist</p>
+  </div>
+
+  <div class="card">
+    <h2>Move up the line</h2>
+    <p class="sub">Each friend who joins with your link and confirms their email moves you up {{ boost }} places.</p>
+    <div class="link">
+      <input id="share-url" type="text" readonly value="{{ share_url }}">
+      <button class="btn" type="button" id="copy">Copy</button>
+    </div>
+    <div class="share">
+      <a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('I just joined the Sohana waitlist, the app for savings circles. Join with my link and we both move up the line: ' ~ share_url)|urlencode }}">WhatsApp</a>
+      <a class="btn ghost" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text={{ ('Savings circles, reimagined. I just joined the Sohana waitlist:')|urlencode }}&url={{ share_url|urlencode }}">X</a>
+      <a class="btn ghost" href="mailto:?subject={{ 'Join me on Sohana'|urlencode }}&body={{ ('I just joined the Sohana waitlist, the app for savings circles. Join with my link and we both move up the line: ' ~ share_url)|urlencode }}">Email</a>
+    </div>
+    <div class="stats" style="margin-top:16px">
+      <div class="stat"><b>{{ st.confirmed_referrals }}</b><span>friends confirmed</span></div>
+      <div class="stat"><b>{{ st.waiting_referrals }}</b><span>waiting to confirm</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Bring your circle</h2>
+    {% if st.next_tier %}
+    <p class="sub">{{ st.to_next }} more confirmed {{ 'friend' if st.to_next == 1 else 'friends' }} to unlock <b style="color:var(--ink)">{{ st.next_tier.label }}</b>.</p>
+    {% set top = st.tiers[-1].min %}
+    <div class="progress"><div style="width:{{ [100, (st.confirmed_referrals * 100 // top)]|min }}%"></div></div>
+    {% else %}
+    <p class="sub">You've unlocked every reward. Thank you for bringing your circle.</p>
+    {% endif %}
+    <ul class="tiers">
+      {% for t in st.tiers %}
+      <li class="{{ 'on' if t.unlocked }}"><div class="dot">{{ t.min }}</div><div><h4>{{ t.label }}</h4><p>{{ t.perk }}</p></div></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Your @hanatag</h2>
+    {% if entry.claimed_user_id %}
+    <p class="sub">Claimed on your Sohana account.</p>
+    <div class="tag">{{ entry.reserved_hanatag }}</div>
+    {% else %}
+    {% if entry.reserved_hanatag %}
+    <p class="sub">Reserved for you until launch. You can change it below.</p>
+    <div class="tag" id="current-tag">{{ entry.reserved_hanatag }}</div>
+    {% else %}
+    <p class="sub">The handle people will use to pay you and invite you to circles. Reserve it before someone else does.</p>
+    <div class="tag" id="current-tag"></div>
+    {% endif %}
+    <div class="handle-row" style="margin-top:12px">
+      <div class="handle-field"><span class="at">@</span><input id="handle" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" maxlength="20" placeholder="yourname"></div>
+      <button class="btn" type="button" id="save-handle">Reserve</button>
+    </div>
+    <div class="hint" id="handle-hint"></div>
+    {% if entry.reserved_hanatag %}
+    <p class="sub" style="margin:14px 0 0">Already have a Sohana account? <a href="/waitlist/claim/{{ entry.access_token }}">Move {{ entry.reserved_hanatag }} onto it</a>.</p>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  <footer>
+    Keep this page private: it's your personal link. Bookmark it to check your place.
+    <br><br>Sohana is a company registered in Rwanda and is pursuing regulatory authorisation. Joining the waitlist is free, creates no account and moves no money. Places in line and rewards are non-financial.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var TOKEN = {{ entry.access_token|tojson }}, EMAIL = {{ entry.email|tojson }};
+  var copy = document.getElementById('copy'), url = document.getElementById('share-url');
+  copy.addEventListener('click', function(){
+    function done(){ copy.textContent = 'Copied'; setTimeout(function(){ copy.textContent = 'Copy'; }, 1800); }
+    if (navigator.clipboard) navigator.clipboard.writeText(url.value).then(done, function(){ url.select(); document.execCommand('copy'); done(); });
+    else { url.select(); document.execCommand('copy'); done(); }
+  });
+
+  var resend = document.getElementById('resend');
+  if (resend) resend.addEventListener('click', function(){
+    resend.disabled = true;
+    fetch('/api/waitlist', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email: EMAIL})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){ document.getElementById('resend-msg').textContent = d.email_sent ? 'Sent. Check your inbox and spam folder.' : 'We could not send the email just now. Please try again later.'; })
+      .catch(function(){ document.getElementById('resend-msg').textContent = 'Network problem. Please try again.'; resend.disabled = false; });
+  });
+
+  var input = document.getElementById('handle'), hint = document.getElementById('handle-hint'), save = document.getElementById('save-handle');
+  if (!input) return;
+  var timer = null;
+  input.addEventListener('input', function(){
+    var v = input.value.trim().replace(/^@/, '').toLowerCase();
+    if (input.value !== v) input.value = v;
+    clearTimeout(timer);
+    if (!v) { hint.className = 'hint'; hint.textContent = ''; return; }
+    timer = setTimeout(function(){
+      fetch('/api/waitlist/handle-available?h=' + encodeURIComponent(v)).then(function(r){ return r.json(); }).then(function(d){
+        if (input.value.trim() !== v) return;
+        var mine = document.getElementById('current-tag').textContent === '@' + v;
+        hint.className = 'hint ' + ((d.available || mine) ? 'ok' : 'bad');
+        hint.textContent = mine ? 'That is already your handle.' : (d.available ? '@' + v + ' is available' : (d.reason || 'Not available'));
+      }).catch(function(){});
+    }, 350);
+  });
+  save.addEventListener('click', function(){
+    var v = input.value.trim();
+    if (!v) { hint.className = 'hint bad'; hint.textContent = 'Type a handle first.'; return; }
+    save.disabled = true;
+    fetch('/api/waitlist/handle', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: TOKEN, hanatag: v})})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        save.disabled = false;
+        if (d.ok) { document.getElementById('current-tag').textContent = d.hanatag; input.value = ''; hint.className = 'hint ok'; hint.textContent = d.hanatag + ' is reserved for you.'; }
+        else { hint.className = 'hint bad'; hint.textContent = d.error || 'Could not reserve that handle.'; }
+      }).catch(function(){ save.disabled = false; hint.className = 'hint bad'; hint.textContent = 'Network problem. Please try again.'; });
+  });
+})();
+</script>
+</body>
+</html>

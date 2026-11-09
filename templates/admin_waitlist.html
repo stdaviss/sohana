@@ -1,57 +1,75 @@
-{% extends "admin_base.html" %}
-{% block title %}Waitlist — SOHANA{% endblock %}
-{% block sidebar_role %}Admin{% endblock %}
-{% block topbar_title %}Waitlist Signups{% endblock %}
-{% block topbar_sub %}People waiting for the full platform launch{% endblock %}
-{% block sidebar_nav %}
-<div style="padding:.5rem 0;">
-  <ul class="admin-nav">
-    <li><a href="/admin">← Back to Dashboard</a></li>
-    <li><a href="/admin/waitlist" class="active">◈ Waitlist</a></li>
-  </ul>
-</div>
-{% endblock %}
+{% extends "base.html" %}
+{% block title %}Waitlist — SOHANA Admin{% endblock %}
+{% block topbar_title %}Waitlist{% endblock %}
 {% block content %}
-<div class="astats-grid astats-3" style="margin-bottom:1.5rem;">
-  <div class="astat">
-    <div class="astat-label">Total Signups</div>
-    <div class="astat-value">{{ signups | length }}</div>
+<style>
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.wl-stat{background:var(--surface,#141915);border:1px solid var(--line,rgba(244,242,236,.1));border-radius:14px;padding:16px}
+.wl-stat .k{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.wl-stat .v{font-size:26px;font-weight:600;margin-top:4px;color:var(--ink)}
+.wl-stat .s{font-size:12px;color:var(--ink-3)}
+.wl-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.wl-card{background:var(--surface,#141915);border:1px solid var(--line,rgba(244,242,236,.1));border-radius:14px;padding:18px;overflow-x:auto}
+.wl-card h3{font-size:15px;font-weight:600;margin-bottom:10px;color:var(--ink)}
+.wl-table{width:100%;border-collapse:collapse;font-size:13px}
+.wl-table th{text-align:left;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line,rgba(244,242,236,.1))}
+.wl-table td{padding:8px 10px;border-bottom:1px solid var(--line,rgba(244,242,236,.06));color:var(--ink-2);white-space:nowrap}
+.wl-pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--line-2,rgba(244,242,236,.18))}
+.wl-pill.on{color:#0E120F;background:var(--accent,#9EE493);border-color:transparent}
+.wl-bar{height:6px;border-radius:99px;background:var(--accent,#9EE493)}
+.wl-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.wl-head p{color:var(--ink-3);font-size:13px}
+.wl-btn{padding:.55rem 1.1rem;background:var(--accent,#9EE493);color:#0E120F;border-radius:99px;font-weight:600;text-decoration:none;font-size:.85rem}
+@media(max-width:800px){.wl-row{grid-template-columns:1fr}}
+</style>
+
+<div class="wl-head">
+  <p>Signups from the website, referral links and event QR codes (source column). Public signup page: <a href="/waitlist" style="color:var(--accent)">/waitlist</a></p>
+  <a class="wl-btn" href="/admin/waitlist/export">Download CSV</a>
+</div>
+
+<div class="wl-grid">
+  <div class="wl-stat"><div class="k">Total</div><div class="v">{{ "{:,}".format(stats.total) }}</div><div class="s">{{ stats.today }} today</div></div>
+  <div class="wl-stat"><div class="k">Confirmed email</div><div class="v">{{ "{:,}".format(stats.confirmed) }}</div><div class="s">{{ ((stats.confirmed * 100 / stats.total)|round|int) if stats.total else 0 }}% of total</div></div>
+  <div class="wl-stat"><div class="k">Came via referral</div><div class="v">{{ "{:,}".format(stats.referred) }}</div></div>
+  <div class="wl-stat"><div class="k">Handles reserved</div><div class="v">{{ "{:,}".format(stats.handles) }}</div></div>
+  <div class="wl-stat"><div class="k">Marketing opt-in</div><div class="v">{{ "{:,}".format(stats.consented) }}</div></div>
+</div>
+
+<div class="wl-row">
+  <div class="wl-card">
+    <h3>By source</h3>
+    {% set maxn = (by_source[0].n if by_source else 1) %}
+    <table class="wl-table">
+      {% for s in by_source %}
+      <tr><td style="width:30%">{{ s.source }}</td><td><div class="wl-bar" style="width:{{ (s.n * 100 / maxn)|round|int }}%"></div></td><td style="text-align:right">{{ s.n }}</td></tr>
+      {% else %}<tr><td>No signups yet.</td></tr>{% endfor %}
+    </table>
   </div>
-  <div class="astat">
-    <div class="astat-label">This Week</div>
-    <div class="astat-value">{{ signups | selectattr('created_at', 'ge', '') | list | length }}</div>
-  </div>
-  <div class="astat">
-    <div class="astat-label">Export</div>
-    <div style="margin-top:.5rem;">
-      <a href="/admin/waitlist/export" class="apill apill-blue" style="font-size:.8rem;padding:.4rem .875rem;border-radius:20px;text-decoration:none;">Download CSV</a>
-    </div>
+  <div class="wl-card">
+    <h3>Top referrers</h3>
+    <table class="wl-table">
+      <tr><th>Name</th><th>Handle</th><th style="text-align:right">Confirmed referrals</th></tr>
+      {% for r in top_referrers %}
+      <tr><td>{{ r.name or r.email }}</td><td>{{ r.reserved_hanatag or '' }}</td><td style="text-align:right">{{ r.referrals }}</td></tr>
+      {% else %}<tr><td colspan="3">No confirmed referrals yet.</td></tr>{% endfor %}
+    </table>
   </div>
 </div>
 
-<div class="acard">
-  <div class="acard-header">
-    <span class="acard-title">Waitlist ({{ signups | length }} people)</span>
-  </div>
-  {% if signups %}
-  <table class="atable">
-    <thead><tr><th>#</th><th>Email</th><th>Name</th><th>Signed up</th></tr></thead>
-    <tbody>
-      {% for s in signups %}
-      <tr>
-        <td style="color:var(--admin-muted);">{{ loop.index }}</td>
-        <td style="color:#F4F2EC;font-weight:500;">{{ s.email }}</td>
-        <td style="color:var(--admin-muted);">{{ s.name or '—' }}</td>
-        <td style="color:var(--admin-muted);font-size:.8rem;">{{ s.created_at[:16].replace('T',' ') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
+<div class="wl-card">
+  <h3>Latest signups <span style="color:var(--ink-3);font-weight:400;font-size:12px">(newest 500; the CSV has everyone)</span></h3>
+  <table class="wl-table">
+    <tr><th>Signed up</th><th>Email</th><th>Name</th><th>Source</th><th>Country</th><th>Handle</th><th>Confirmed</th><th>Opt-in</th><th style="text-align:right">Referrals</th></tr>
+    {% for s in signups %}
+    <tr>
+      <td>{{ (s.created_at or '')[:16] }}</td><td>{{ s.email }}</td><td>{{ s.name or '' }}</td>
+      <td>{{ s.source or 'website' }}</td><td>{{ s.country or '' }}</td><td>{{ s.reserved_hanatag or '' }}</td>
+      <td><span class="wl-pill {{ 'on' if s.confirmed_at }}">{{ 'yes' if s.confirmed_at else 'no' }}</span></td>
+      <td>{{ 'yes' if s.marketing_consent else 'no' }}</td>
+      <td style="text-align:right">{{ s.referrals }}</td>
+    </tr>
+    {% else %}<tr><td colspan="9">No signups yet.</td></tr>{% endfor %}
   </table>
-  {% else %}
-  <div style="padding:3rem;text-align:center;color:var(--admin-muted);">
-    <div style="font-size:2rem;margin-bottom:.5rem;">◈</div>
-    <p>No waitlist signups yet. Share your landing page to start collecting emails.</p>
-  </div>
-  {% endif %}
 </div>
 {% endblock %}
