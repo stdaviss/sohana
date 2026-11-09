@@ -685,6 +685,27 @@ button:focus-visible,a:focus-visible,input:focus-visible{
 [data-theme="light"] .ticker-wrap{background:rgba(20,19,15,.92)}
 [data-theme="light"] .ticker-wrap::before{background:linear-gradient(to right,rgba(20,19,15,.92),transparent)}
 [data-theme="light"] .ticker-wrap::after{background:linear-gradient(to left,rgba(20,19,15,.92),transparent)}
+
+/* ── AFTS 2026 banner + section (driven by the server date; hidden when afts is None) ── */
+.afts-bar{background:var(--accent);color:var(--accent-ink);font-size:13px;position:relative;z-index:101}
+.afts-bar .container{display:flex;align-items:center;justify-content:center;gap:14px;min-height:40px;padding-top:8px;padding-bottom:8px;text-align:center;flex-wrap:wrap}
+.afts-bar b{font-weight:600}
+.afts-bar a{color:var(--accent-ink);font-weight:600;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.afts-bar .live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent-ink);margin-right:8px;vertical-align:1px;animation:aftsPulse 1.6s ease-in-out infinite}
+@keyframes aftsPulse{50%{opacity:.25}}
+.afts{padding:72px 0 24px}
+.afts-card{border:1px solid var(--line-2);border-radius:28px;background:var(--bg-2);padding:48px;display:grid;grid-template-columns:1.25fr 1fr;gap:48px;align-items:center;position:relative;overflow:hidden}
+.afts-card::after{content:"";position:absolute;right:-120px;top:-120px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,color-mix(in oklch,var(--accent) 22%,transparent),transparent 70%);pointer-events:none}
+.afts-card h2{font-size:clamp(30px,4vw,46px);line-height:1.05;letter-spacing:-.025em;font-weight:600;margin:18px 0 14px}
+.afts-card h2 .ital{color:var(--accent)}
+.afts-card p.lead{color:var(--ink-2);font-size:17px;line-height:1.55;max-width:520px}
+.afts-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.afts-facts{display:grid;gap:10px;position:relative;z-index:1}
+.afts-fact{border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;justify-content:space-between;gap:16px;align-items:baseline;background:rgba(244,242,236,.02)}
+.afts-fact .k{font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.afts-fact .v{font-size:15px;font-weight:500;text-align:right}
+.afts-fact .v.big{font-size:28px;font-weight:600;letter-spacing:-.02em;color:var(--accent)}
+@media(max-width:880px){.afts-card{grid-template-columns:1fr;padding:28px;gap:28px}.afts{padding:48px 0 8px}}
 </style>
 <style>/* SOHANA mobile responsiveness hardening (v8.4) */
 
@@ -713,6 +734,24 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
 <!-- ════════════════════════════════════════════════════════
      NAV
 ════════════════════════════════════════════════════════ -->
+{% set wl = wl_total if (wl_total is defined and wl_total) else 0 %}
+{% if afts is not defined %}{% set afts = none %}{% endif %}
+{% if afts %}
+<div class="afts-bar" role="region" aria-label="AFTS 2026">
+  <div class="container">
+    {% if afts.phase == 'before' %}
+    <span><b>Meet Sohana at AFTS 2026</b> · Kigali · 18–20 November · Visit our booth and catch our pitch at the Alpha Expo.</span>
+    <a href="#afts">Details</a>
+    {% elif afts.phase == 'during' %}
+    <span><span class="live"></span><b>We're at AFTS 2026 in Kigali now.</b>{% if afts.booth %} Find us at booth {{ afts.booth }}.{% else %} Come and find our booth.{% endif %}</span>
+    <a href="{{ afts.meeting_url }}"{% if afts.meeting_url.startswith('http') %} target="_blank" rel="noopener"{% endif %}>Book a meeting</a>
+    {% else %}
+    <span><b>Thank you, Kigali.</b> Great to meet so many of you at AFTS 2026.</span>
+    <a href="/waitlist?src=afts">Join the waitlist</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 <nav class="nav">
   <div class="container nav-row">
     <a href="/" class="brand">
@@ -782,7 +821,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
         <span class="icon-moon">🌙</span><span class="icon-sun" style="display:none">☀️</span>
       </button>
       <a href="/auth" class="btn btn-ghost btn-sm">Sign in</a>
-      <a href="/auth" class="btn btn-primary btn-sm">Join waitlist</a>
+      <a href="/waitlist" class="btn btn-primary btn-sm">Join waitlist</a>
       <button class="nav-burger" onclick="openDrawer()" aria-label="Menu">
         <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="1.8" fill="none">
           <path d="M3 6h18M3 12h18M3 18h18"/>
@@ -819,7 +858,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
         <button id="dlang-fr" onclick="setLang('FR')">FR</button>
       </div>
       <a href="/auth" class="btn btn-ghost" style="justify-content:center">Sign in</a>
-      <a href="/auth" class="btn btn-primary" style="justify-content:center">Join waitlist →</a>
+      <a href="/waitlist" class="btn btn-primary" style="justify-content:center">Join waitlist →</a>
     </div>
   </div>
 </div>
@@ -830,7 +869,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
 <header class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="pill"><span class="dot"></span>Pursuing authorisation · launching Q3 2026 · #12,438 in line</span>
+      <span class="pill"><span class="dot"></span>Pursuing authorisation · early access opening soon{% if wl %} · {{ "{:,}".format(wl) }} in line{% endif %}</span>
       <!-- ANIMATED HEADLINE ROTATOR -->
       <div class="hero-rotator" id="hero-rotator" style="min-height:clamp(210px,22vw,310px);margin:22px 0 0;">
 
@@ -932,7 +971,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
         <button class="hero-dot" onclick="heroGoTo(7)"></button>
       </div>
       <div class="hero-cta">
-        <a href="/auth" class="btn btn-primary">
+        <a href="/waitlist" class="btn btn-primary">
           Join the waitlist
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
         </a>
@@ -944,7 +983,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
           <span></span><span></span><span></span><span></span>
         </div>
         <div>
-          <div class="wc-num">12,438+ <span class="wc-lbl mono" style="margin-left:6px;color:var(--ink-3);font-size:13px">already in line</span></div>
+          <div class="wc-num">{{ "{:,}".format(wl) if wl else "Join" }} <span class="wc-lbl mono" style="margin-left:6px;color:var(--ink-3);font-size:13px">already in line</span></div>
           <div class="wc-lbl">from 14 countries · France, UK, Canada, Cameroon, Nigeria, Ghana, Rwanda</div>
         </div>
       </div>
@@ -953,7 +992,7 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
       <div class="news-slide-wrap">
         <div class="news-slides" id="news-slides">
           <div class="news-slide active"><span class="news-tag">Award</span><span class="news-text"><b>SOHANA wins TEF 2026</b> — Selected among winning projects at the Tony Elumelu Foundation Entrepreneurship Award, Cohort 2026.</span></div>
-          <div class="news-slide"><span class="news-tag">Beta</span><span class="news-text"><b>Q3 2026 launch</b> — Waitlist members get priority Hanatag handles and free outbound transfers for the first 12 months.</span></div>
+          <div class="news-slide"><span class="news-tag">Beta</span><span class="news-text"><b>Early access</b> — Waitlist members get priority Hanatag handles and free outbound transfers for the first 12 months.</span></div>
           <div class="news-slide"><span class="news-tag">Research</span><span class="news-text"><b>Gold standard exchange live</b> — Sohana Labs launches the first intra-African currency model anchored to gold, not the dollar.</span></div>
           <div class="news-slide"><span class="news-tag">Pilot</span><span class="news-text"><b>+13.2% completion rate</b> — Our closed pilot across France and Cameroon shows SOHANA circles outperform informal groups significantly.</span></div>
           <div class="news-slide"><span class="news-tag">Platform</span><span class="news-text"><b>8 currencies now live</b> — EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR — send money across corridors in seconds via Hanatag.</span></div>
@@ -1007,6 +1046,41 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
     </div>
   </div>
 </header>
+
+{% if afts %}
+<!-- ════════════════════════════════════════════════════════
+     AFTS 2026 — booth + Alpha Expo pitch
+════════════════════════════════════════════════════════ -->
+<section class="afts" id="afts">
+  <div class="container">
+    <div class="afts-card">
+      <div style="position:relative;z-index:1">
+        <span class="eyebrow">AFTS 2026 · Kigali{% if afts.phase == 'during' %} · Happening now{% endif %}</span>
+        {% if afts.phase == 'after' %}
+        <h2>Thank you for a great <span class="ital">AFTS 2026.</span></h2>
+        <p class="lead">We met founders, investors, partners and future circle members in Kigali. If we spoke at the booth or after our Alpha Expo pitch, now is the time to keep the conversation going.</p>
+        {% else %}
+        <h2>Sohana is exhibiting at <span class="ital">AFTS 2026.</span></h2>
+        <p class="lead">Come to our booth to see how Sohana brings savings circles into one app and builds a trust score from how reliably members show up. We're also pitching at the Alpha Expo. Investors, partners and future members: let's meet.</p>
+        {% endif %}
+        <div class="afts-cta">
+          <a href="/waitlist?src=afts" class="btn btn-primary">Join the waitlist <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+          <a href="{{ afts.meeting_url }}" class="btn btn-ghost"{% if afts.meeting_url.startswith('http') %} target="_blank" rel="noopener"{% endif %}>{{ 'Book a follow-up call' if afts.phase == 'after' else 'Book a meeting at the summit' }}</a>
+        </div>
+      </div>
+      <div class="afts-facts">
+        {% if afts.phase == 'before' %}
+        <div class="afts-fact"><span class="k">Starts in</span><span class="v big">{{ afts.days_to_go }} {{ 'day' if afts.days_to_go == 1 else 'days' }}</span></div>
+        {% endif %}
+        <div class="afts-fact"><span class="k">Dates</span><span class="v">18–20 November 2026</span></div>
+        <div class="afts-fact"><span class="k">City</span><span class="v">Kigali, Rwanda</span></div>
+        <div class="afts-fact"><span class="k">Booth</span><span class="v">{{ afts.booth or 'Number announced soon' }}</span></div>
+        <div class="afts-fact"><span class="k">Pitch</span><span class="v">Alpha Expo{% if afts.pitch %} · {{ afts.pitch }}{% endif %}</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
 
 <!-- ════════════════════════════════════════════════════════
      FINANCIAL TICKER — African currencies & stock indices
@@ -1302,9 +1376,9 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
       <div>
         <span class="eyebrow" style="margin-bottom:16px">06 · Sohana on iOS &amp; Android</span>
         <h2 style="margin-top:16px">Built for the phone in your pocket.</h2>
-        <p class="sub-lead" style="margin-top:16px">Send to a Hanatag in seconds. Run the family tontine on the bus. Track your NCS climb. We start invite-only on iOS and Android in Q3 2026.</p>
+        <p class="sub-lead" style="margin-top:16px">Send to a Hanatag in seconds. Run the family tontine on the bus. Track your NCS climb. We start invite-only on iOS and Android, waitlist members first.</p>
         <div style="display:flex;gap:10px;margin-top:28px;flex-wrap:wrap">
-          <a href="/auth" class="btn btn-primary">Join the waitlist <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+          <a href="/waitlist" class="btn btn-primary">Join the waitlist <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
           <a href="/about" class="btn btn-ghost">Read our story</a>
         </div>
       </div>
@@ -1339,9 +1413,9 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
         </form>
         <div id="waitlist-success" style="display:none;margin-top:12px;font-size:14px;font-weight:600">✓ You're on the list. We'll be in touch.</div>
         <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;color:rgba(14,18,15,.7);font-family:'Geist Mono',monospace">
-          <span>● 12,438 in line</span>
+          {% if wl %}<span>● {{ "{:,}".format(wl) }} in line</span>{% endif %}
           <span>● 14 countries</span>
-          <span>● Q3 2026 launch</span>
+          <span>● Early access soon</span>
         </div>
       </div>
     </div>
@@ -1690,10 +1764,18 @@ function updateCalc() {
 function handleWaitlist(e) {
   e.preventDefault();
   const email = document.getElementById('waitlist-email').value;
-  fetch('/api/waitlist', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})})
-    .catch(()=>{});
-  e.target.style.display = 'none';
-  document.getElementById('waitlist-success').style.display = 'block';
+  const form = e.target, ok = document.getElementById('waitlist-success');
+  const btn = form.querySelector('button'); if (btn) btn.disabled = true;
+  fetch('/api/waitlist', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email, src:'homepage'})})
+    .then(r => r.json())
+    .then(d => {
+      if (d.status === 'joined' && d.status_url) { window.location.href = d.status_url; return; }
+      if (d.error) { if (btn) btn.disabled = false; ok.textContent = d.error; ok.style.display = 'block'; return; }
+      form.style.display = 'none';
+      ok.textContent = d.message || "You're on the list. Check your inbox to confirm your place.";
+      ok.style.display = 'block';
+    })
+    .catch(() => { if (btn) btn.disabled = false; ok.textContent = 'Network problem. Please try again.'; ok.style.display = 'block'; });
 }
 
 // ── INIT ──────────────────────────────────────────────────

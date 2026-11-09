@@ -456,7 +456,28 @@ def index():
         check = fetchone("SELECT id FROM users WHERE id=?", (session["user_id"],))
         if check:
             return redirect(url_for("dashboard"))
-    return render_template("landing_new.html")
+    return render_template("landing_new.html", wl_total=_wl_total(), afts=_afts_state())
+
+
+# ── AFTS 2026 (Kigali, 18-20 Nov): homepage banner + section ─────────────────
+# The phase is worked out from the date in Kigali, so the homepage switches from
+# "meet us" to "we're here now" to "thank you" on its own with no deploys during the
+# summit. Booth number, pitch slot and the Calendly link are Railway variables
+# (AFTS_BOOTH, AFTS_PITCH, CALENDLY_URL): set or change them without touching code.
+def _afts_state():
+    from datetime import datetime, timedelta, date
+    today = (datetime.utcnow() + timedelta(hours=2)).date()        # Africa/Kigali, UTC+2
+    start, end, hide_after = date(2026, 11, 18), date(2026, 11, 20), date(2026, 12, 15)
+    if today > hide_after:
+        return None
+    phase = "before" if today < start else ("during" if today <= end else "after")
+    return {
+        "phase": phase,
+        "days_to_go": (start - today).days,
+        "booth": os.environ.get("AFTS_BOOTH", "").strip(),
+        "pitch": os.environ.get("AFTS_PITCH", "").strip(),
+        "meeting_url": os.environ.get("CALENDLY_URL", "").strip() or "/contact",
+    }
 
 @app.route("/auth")
 def auth_page():
