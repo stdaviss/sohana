@@ -340,7 +340,7 @@ def install(app, admin_required):
 
     def _money(cents, cur):
         dp = 0 if cur in ("RWF", "XAF", "NGN") else 2
-        return f"{cur} {cents / 100:,.{dp}f}"
+        return f"{cur} {cents / 100:,.{dp}f}".replace(",", " ")
 
     @app.route("/demo/live")
     def demo_live():
@@ -360,6 +360,9 @@ def install(app, admin_required):
             "contributions": fetchone(
                 f"SELECT COUNT(*) AS c FROM contributions WHERE status IN ('paid','late') AND user_id IN ({visitors})", V
             )["c"],
+            "conversions": fetchone(
+                f"SELECT COUNT(*) AS c FROM currency_conversions WHERE user_id IN ({visitors})", V
+            )["c"],
             "avg_ncs": fetchone(f"SELECT COALESCE(ROUND(AVG(ncs_score)),0) AS c FROM users WHERE id IN ({visitors})", V)["c"],
         }
         vol = fetchall(
@@ -370,45 +373,108 @@ def install(app, admin_required):
         stats["volume"] = [_money(r["s"], r["currency"]) for r in vol]
 
         events = []
-        for r in fetchall(f"SELECT full_name, created_at FROM users WHERE id IN ({visitors}) ORDER BY created_at DESC LIMIT 15", V):
-            events.append({"t": r["created_at"], "kind": "join", "text": f"{_short(r['full_name'])} joined SOHANA"})
-        for r in fetchall(
-            f"""SELECT s.full_name AS a, r.full_name AS b, p.amount_cents, p.currency, COALESCE(p.consumed_at, p.created_at) AS t
-                FROM payment_intents p JOIN users s ON s.id=p.sender_id JOIN users r ON r.id=p.recipient_id
-                WHERE p.status='completed' AND p.sender_id IN ({visitors}) ORDER BY t DESC LIMIT 15""",
-            V,
-        ):
-            events.append({"t": r["t"], "kind": "send",
-                           "text": f"{_short(r['a'])} sent {_money(r['amount_cents'], r['currency'])} to {_short(r['b'])}"})
-        for r in fetchall(
-            f"""SELECT u.full_name, ro.name, ro.created_at AS t FROM roscas ro JOIN users u ON u.id=ro.organiser_id
-                WHERE ro.organiser_id IN ({visitors}) ORDER BY t DESC LIMIT 10""",
-            V,
-        ):
-            events.append({"t": r["t"], "kind": "circle", "text": f"{_short(r['full_name'])} started the circle “{r['name']}”"})
-        for r in fetchall(
-            f"""SELECT u.full_name, ro.name, c.paid_at AS t FROM contributions c JOIN users u ON u.id=c.user_id
-                JOIN roscas ro ON ro.id=c.rosca_id
-                WHERE c.status IN ('paid','late') AND c.paid_at IS NOT NULL AND c.user_id IN ({visitors})
-                ORDER BY t DESC LIMIT 15""",
-            V,
-        ):
-            events.append({"t": r["t"], "kind": "contribution", "text": f"{_short(r['full_name'])} paid into “{r['name']}”"})
-        try:
+
+        def ev(kind, t, text, eid, who=None, other=None, amount=None, extra=None):
+            events.append({"id": f"{kind}:{eid}", "t": (str(t).replace("T", " ")[:19] if t else None),
+                           "kind": kind, "text": text, "who": who, "other": other,
+                           "amount": amount, "extra": extra})
+
+        def safe(label, fn):
+            try:
+                fn()
+            except Exception:
+                app.logger.exception("wall " + label)
+
+        def joins():
+            for r in fetchall(f"SELECT id, full_name, created_at FROM users WHERE id IN ({visitors}) ORDER BY created_at DESC LIMIT 15", V):
+                ev("join", r["created_at"], f"{_short(r['full_name'])} joined SOHANA", r["id"], who=_short(r["full_name"]))
+
+        def sends():
             for r in fetchall(
-                f"""SELECT d.donor_name, d.is_anonymous, d.amount_cents, ca.currency, ca.title, d.created_at AS t
+                f"""SELECT p.id, s.full_name AS a, r.full_name AS b, p.amount_cents, p.currency, COALESCE(p.consumed_at, p.created_at) AS t
+                    FROM payment_intents p JOIN users s ON s.id=p.sender_id JOIN users r ON r.id=p.recipient_id
+                    WHERE p.status='completed' AND p.sender_id IN ({visitors}) ORDER BY t DESC LIMIT 15""", V):
+                ev("send", r["t"], f"{_short(r['a'])} sent money to {_short(r['b'])}", r["id"],
+                   who=_short(r["a"]), other=_short(r["b"]), amount=_money(r["amount_cents"], r["currency"]))
+
+        def circles():
+            for r in fetchall(
+                f"""SELECT ro.id, u.full_name, ro.name, ro.created_at AS t FROM roscas ro JOIN users u ON u.id=ro.organiser_id
+                    WHERE ro.organiser_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
+                ev("circle", r["t"], f"{_short(r['full_name'])} started the circle “{r['name']}”", r["id"],
+                   who=_short(r["full_name"]), extra=r["name"])
+
+        def contributions():
+            for r in fetchall(
+                f"""SELECT c.id, u.full_name, ro.name, c.amount_cents, ro.currency, c.paid_at AS t FROM contributions c
+                    JOIN users u ON u.id=c.user_id JOIN roscas ro ON ro.id=c.rosca_id
+                    WHERE c.status IN ('paid','late') AND c.paid_at IS NOT NULL AND c.user_id IN ({visitors})
+                    ORDER BY t DESC LIMIT 15""", V):
+                ev("contribution", r["t"], f"{_short(r['full_name'])} paid into “{r['name']}”", r["id"],
+                   who=_short(r["full_name"]), amount=_money(r["amount_cents"], r["currency"] or "EUR"), extra=r["name"])
+
+        def payouts():
+            for r in fetchall(
+                f"""SELECT cy.id, u.full_name, ro.name, ro.currency, cy.completed_at AS t,
+                           (SELECT amount_cents FROM wallet_transactions wt WHERE wt.ref_id=cy.id AND wt.tx_type='rosca_payout' LIMIT 1) AS net
+                    FROM cycles cy JOIN users u ON u.id=cy.recipient_id JOIN roscas ro ON ro.id=cy.rosca_id
+                    WHERE cy.status='completed' AND cy.recipient_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
+                ev("payout", r["t"], f"{_short(r['full_name'])} received the pot from “{r['name']}”", r["id"],
+                   who=_short(r["full_name"]), amount=_money(r["net"] or 0, r["currency"] or "EUR"), extra=r["name"])
+
+        def donations():
+            for r in fetchall(
+                f"""SELECT d.id, d.donor_name, d.is_anonymous, d.amount_cents, ca.currency, ca.title, d.created_at AS t
                     FROM campaign_donations d JOIN campaigns ca ON ca.id=d.campaign_id
-                    WHERE d.donor_id IN ({visitors}) ORDER BY t DESC LIMIT 10""",
-                V,
-            ):
+                    WHERE d.donor_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
                 who = "Someone" if r["is_anonymous"] else _short(r["donor_name"])
-                events.append({"t": r["t"], "kind": "donation",
-                               "text": f"{who} backed “{r['title']}” with {_money(r['amount_cents'], r['currency'] or 'EUR')}"})
-        except Exception:
-            app.logger.exception("wall donations")
+                ev("donation", r["t"], f"{who} backed “{r['title']}”", r["id"], who=who,
+                   amount=_money(r["amount_cents"], r["currency"] or "EUR"), extra=r["title"])
+
+        def campaigns():
+            for r in fetchall(
+                f"""SELECT ca.id, u.full_name, ca.title, ca.goal_cents, ca.currency, ca.created_at AS t
+                    FROM campaigns ca JOIN users u ON u.id=ca.creator_id
+                    WHERE ca.creator_id IN ({visitors}) ORDER BY t DESC LIMIT 8""", V):
+                ev("campaign", r["t"], f"{_short(r['full_name'])} launched “{r['title']}”", r["id"],
+                   who=_short(r["full_name"]), amount=_money(r["goal_cents"], r["currency"] or "EUR"), extra=r["title"])
+
+        def conversions():
+            for r in fetchall(
+                f"""SELECT cc.id, u.full_name, cc.from_currency, cc.to_currency, cc.from_amount, cc.to_amount, cc.created_at AS t
+                    FROM currency_conversions cc JOIN users u ON u.id=cc.user_id
+                    WHERE cc.user_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
+                ev("convert", r["t"], f"{_short(r['full_name'])} converted {r['from_currency']} to {r['to_currency']}", r["id"],
+                   who=_short(r["full_name"]), amount=_money(r["to_amount"], r["to_currency"]),
+                   extra={"from": _money(r["from_amount"], r["from_currency"]), "to": _money(r["to_amount"], r["to_currency"]),
+                          "fc": r["from_currency"], "tc": r["to_currency"]})
+
+        def wallet_moves():
+            # withdrawals, and top-ups (deposits / credits from the booth) — not the automatic starting balance
+            for r in fetchall(
+                f"""SELECT wt.id, wt.tx_type, wt.amount_cents, w.currency, u.full_name, wt.created_at AS t, wt.description
+                    FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id JOIN users u ON u.id=w.user_id
+                    WHERE w.user_id IN ({visitors}) AND wt.tx_type IN ('withdrawal','deposit')
+                      AND COALESCE(wt.description,'') != ?
+                    ORDER BY t DESC LIMIT 12""", (*V, START_LABEL)):
+                if r["tx_type"] == "withdrawal":
+                    # the ledger row includes the fee; show what the person actually cashed out
+                    import re as _re
+                    m = _re.search(r"\(fee:? ([\d.]+)\)", r["description"] or "")
+                    fee = int(round(float(m.group(1)) * 100)) if m else 0
+                    ev("withdraw", r["t"], f"{_short(r['full_name'])} cashed out to mobile money or bank", r["id"],
+                       who=_short(r["full_name"]), amount=_money(abs(r["amount_cents"]) - fee, r["currency"]))
+                else:
+                    ev("deposit", r["t"], f"{_short(r['full_name'])} topped up their wallet", r["id"],
+                       who=_short(r["full_name"]), amount=_money(r["amount_cents"], r["currency"]))
+
+        for label, fn in [("joins", joins), ("sends", sends), ("circles", circles), ("contributions", contributions),
+                          ("payouts", payouts), ("donations", donations), ("campaigns", campaigns),
+                          ("conversions", conversions), ("wallet", wallet_moves)]:
+            safe(label, fn)
         events = [e for e in events if e["t"]]
         events.sort(key=lambda e: e["t"], reverse=True)
-        return jsonify({"stats": stats, "events": events[:24],
+        return jsonify({"stats": stats, "events": events[:30],
                         "now": fetchone("SELECT datetime('now') AS n")["n"]})
 
     # ---------------- control room ----------------
