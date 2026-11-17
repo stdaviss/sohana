@@ -106,6 +106,12 @@ def _handle_any_error(e):
 def ensure_db():
     if not hasattr(app, "_db_ready"):
         init_db()
+        # On a brand-new database the import-time migration run happens before the
+        # tables exist, so run it again now that init_db() has created them.
+        try:
+            _run_safe_migrations()
+        except Exception:
+            app.logger.exception("post-init migrations failed")
         _seed_all()
         _ensure_survey_article()   # runs independently of _seed_all guard
         _sync_admin_passwords()    # re-hashes admin passwords from env var every deploy
@@ -657,7 +663,7 @@ def _circle_detail_inner(rosca_id):
             "user_id":         _rm_dict.get("user_id", ""),
             "rosca_id":        _rm_dict.get("rosca_id", rosca_id),
             "status":          _rm_dict.get("status", "active"),
-            "payout_position": _rm_dict.get("payout_position") or 0,
+            "payout_position": _rm_dict.get("payout_position") or _rm_dict.get("slot") or 0,
             "joined_at":       _rm_dict.get("joined_at", ""),
             "full_name":       _ud.get("full_name", "Member"),
             "hanatag":         _ud.get("hanatag", ""),
@@ -1131,6 +1137,7 @@ def _run_safe_migrations():
         "CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_slides(is_active, display_order)",
         "ALTER TABLE rosca_members ADD COLUMN payout_position INTEGER",
         "ALTER TABLE roscas ADD COLUMN member_count INTEGER NOT NULL DEFAULT 0",
+"ALTER TABLE pool_members ADD COLUMN payment_schedule TEXT NOT NULL DEFAULT 'monthly'",
         # v9.4 waitlist v2: place in line, referrals, @hanatag reservation
         "ALTER TABLE waitlist ADD COLUMN referral_code    TEXT",
         "ALTER TABLE waitlist ADD COLUMN access_token     TEXT",
@@ -4838,14 +4845,16 @@ def api_add_member_direct(rosca_id):
     """Organiser directly adds a member by hanatag or phone."""
     d = request.get_json(silent=True) or {}
     identifier = d.get("identifier","").strip()
-    # Look up by hanatag or phone
+    # Look up by hanatag (with or without "@"), email or phone
     user = None
     if identifier.startswith("@"):
-        user = fetchone("SELECT id FROM users WHERE hanatag=?", (identifier,))
+        user = fetchone("SELECT id FROM users WHERE lower(hanatag)=?", (identifier.lower(),))
     else:
-        user = fetchone("SELECT id FROM users WHERE phone=? OR email=?", (identifier, identifier))
+        user = fetchone("SELECT id FROM users WHERE phone=? OR lower(email)=?", (identifier, identifier.lower()))
+        if not user and identifier:
+            user = fetchone("SELECT id FROM users WHERE lower(hanatag)=?", ("@" + identifier.lower(),))
     if not user:
-        return jsonify({"error": "User not found. Check hanatag or phone number."}), 404
+        return jsonify({"error": "User not found. Check the hanatag, email or phone number."}), 404
     try:
         rosca.add_member_direct(rosca_id, user["id"], session["user_id"])
         return jsonify({"ok": True})
@@ -9151,6 +9160,13 @@ except Exception as _e:
     import sys
     print(f"[status scheduler] failed to start: {_e}", file=sys.stderr, flush=True)
 
+
+
+# ── DEMO ENVIRONMENT (AFTS booth) ─────────────────────────────────────────────
+# Only active on the separate demo service (DEMO_MODE=1). See demo_mode.py.
+if os.environ.get("DEMO_MODE") == "1":
+    import demo_mode
+    demo_mode.install(app, admin_required)
 
 
 if __name__ == "__main__":

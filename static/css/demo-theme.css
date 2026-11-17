@@ -1,0 +1,221 @@
+/*
+ * SOHANA demo theme — loaded only on the demo service (DEMO_MODE=1).
+ * Brings the app screens in line with the public site / About page:
+ * dark forest, one mint accent, Geist for numbers, mono only for small labels,
+ * flat cards with hairline borders, no orange, no gradients, app-style chrome.
+ */
+
+:root, [data-theme="dark"] {
+  --bg: #0B0F0C;
+  --bg-2: #131915;
+  --bg-3: #1A221C;
+  --surface: #131915;
+  --line: rgba(244, 242, 236, .08);
+  --line-2: rgba(244, 242, 236, .14);
+  --ink: #F4F2EC;
+  --ink-2: #B9BDB6;
+  --ink-3: #868B84;
+  --accent: #9EE493;
+  --accent-2: #B5EDAC;
+  --accent-ink: #0B0F0C;
+  /* everything that used to be orange / blue / purple becomes the accent family */
+  --orange: #9EE493;
+  --orange-lt: rgba(158, 228, 147, .12);
+  --blue: #9EE493;
+  --purple: #76E0A1;
+  --gold: #9EE493;
+  --dz-radius: 20px;
+  --dz-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+html { -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg) !important;
+  font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  letter-spacing: -.005em;
+}
+::selection { background: rgba(158, 228, 147, .3); }
+
+/* ── page entrance ── */
+.main-area > *:not(.topbar), .page, main { animation: dz-in .38s var(--dz-ease) both; }
+@keyframes dz-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .main-area > *, .page, main { animation: none !important; } }
+
+/* ── headings: tight, confident ── */
+h1, h2, h3, .page-title, .card-title, .modal-title {
+  letter-spacing: -.022em !important;
+  font-weight: 600 !important;
+}
+.page-title { font-size: clamp(1.5rem, 5vw, 2rem) !important; }
+
+/* ── numbers: Geist, tabular — no more terminal-style mono balances ── */
+.w-bal, .wal-bal, .stat-value, .cp-stat .v, .w-limit, .astat-value,
+[class*="-bal"], [class*="amount"], .big-num {
+  font-family: 'Geist', system-ui, sans-serif !important;
+  font-weight: 600 !important;
+  letter-spacing: -.035em !important;
+  font-variant-numeric: tabular-nums;
+}
+.w-bal, .wal-bal { font-size: clamp(2.4rem, 11vw, 3.2rem) !important; line-height: 1 !important; }
+.w-bal .cur, .wal-bal .cur { font-weight: 500; color: var(--ink-3) !important; margin-right: .1em; }
+
+/* ── cards: flat, hairline, consistent radius ── */
+.card, .dcard, .wcard, .stat-card, .cp-card, .cd-panel, .market-card, .rosca-card {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--dz-radius) !important;
+  box-shadow: none !important;
+}
+.card[style*="gradient"], .dcard[style*="gradient"], div[style*="linear-gradient(135deg,var(--navy"] {
+  background: var(--bg-2) !important;
+  color: var(--ink) !important;
+}
+
+/* ── buttons: pills, 44px touch targets, one accent ── */
+.btn, .abtn, .w-abtn, .fp-btn {
+  border-radius: 999px !important;
+  font-weight: 600 !important;
+  min-height: 44px;
+  transition: transform .12s var(--dz-ease), background .2s, border-color .2s !important;
+}
+.btn:active, .abtn:active, .w-abtn:active, .fp-btn:active { transform: scale(.97); }
+.btn-sm, .w-abtn.sm, .fp-btn.sm { min-height: 36px; }
+.btn-primary, .btn-orange, .abtn-primary, .w-abtn.primary, .w-abtn.accent2, .fp-btn.primary {
+  background: var(--accent) !important;
+  color: var(--accent-ink) !important;
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+.btn-outline, .abtn-ghost, .w-abtn.ghost {
+  background: transparent !important;
+  border: 1px solid var(--line-2) !important;
+  color: var(--ink) !important;
+}
+
+/* ── forms ── */
+.form-input, .form-select, input[type="text"], input[type="number"], input[type="email"], select, textarea {
+  border-radius: 14px !important;
+  background: var(--bg) !important;
+  border: 1px solid var(--line-2) !important;
+  color: var(--ink) !important;
+  min-height: 48px;
+  font-size: 16px !important; /* stops iOS zooming into fields */
+}
+.form-input:focus, .form-select:focus, input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(158, 228, 147, .15) !important;
+  outline: none;
+}
+.otp-input, [id^="potp"], [id^="otp"] { min-height: 56px; font-size: 22px !important; text-align: center; }
+
+/* ── pills / chips ── */
+.pill, .wal-chip, .w-chip { border-radius: 999px !important; font-weight: 600 !important; }
+.pill-orange, .pill-amber { background: rgba(244, 192, 106, .12) !important; color: #F4C06A !important; border-color: transparent !important; }
+
+/* ── progress bars: accent only ── */
+.progress-fill, [class*="progress"] > div[style*="background:var(--blue)"] { background: var(--accent) !important; }
+div[style*="linear-gradient(90deg,#dc2626"] { background: var(--line-2) !important; opacity: 1 !important; }
+div[style*="background:var(--blue)"], div[style*="background:#2563eb"], div[style*="background:var(--purple)"] { background: var(--accent) !important; }
+.rep-stars { display: none !important; }
+
+/* ── modals as app sheets ── */
+.modal-backdrop { background: rgba(5, 8, 6, .72) !important; backdrop-filter: blur(6px); }
+.modal { background: var(--bg-2) !important; border: 1px solid var(--line-2) !important; }
+.modal.open, .modal-backdrop.open .modal { animation: dz-sheet .32s var(--dz-ease) both; }
+@keyframes dz-sheet { from { transform: translateY(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+/* ── top bar: quiet, translucent ── */
+.topbar {
+  background: rgba(11, 15, 12, .78) !important;
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
+  border-bottom: 1px solid var(--line) !important;
+}
+.topbar-title { font-size: 1rem !important; font-weight: 600 !important; }
+.theme-toggle { display: none !important; } /* the demo is dark by design */
+.dz-badge {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; vertical-align: middle;
+  font: 600 10px/1 'Geist Mono', monospace; letter-spacing: .08em; text-transform: uppercase;
+  color: #F4C06A; background: rgba(244, 192, 106, .12); border: 1px solid rgba(244, 192, 106, .3);
+  padding: 4px 8px; border-radius: 999px;
+}
+
+/* ── sidebar (laptops) ── */
+.sidebar { background: var(--bg) !important; border-right: 1px solid var(--line) !important; }
+.sidebar-nav a { border-radius: 12px !important; }
+.sidebar-nav a.active { background: rgba(158, 228, 147, .1) !important; color: var(--accent) !important; }
+.nav-icon svg, .bottom-nav-item svg { width: 20px; height: 20px; }
+.nav-icon { display: inline-grid !important; place-items: center; }
+
+/* ── bottom tab bar (phones): glass, active pill ── */
+@media (max-width: 860px) {
+  .bottom-nav {
+    background: rgba(11, 15, 12, .86) !important;
+    backdrop-filter: saturate(150%) blur(18px);
+    -webkit-backdrop-filter: saturate(150%) blur(18px);
+    border-top: 1px solid var(--line) !important;
+    height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav-item { gap: 3px !important; font-size: 10.5px !important; letter-spacing: .02em; text-transform: none !important; }
+  .bottom-nav-item.active { color: var(--accent) !important; }
+  .bottom-nav-item .bn-icon, .bottom-nav-item > span:first-child {
+    display: grid; place-items: center; width: 44px; height: 28px; border-radius: 999px; transition: background .2s;
+  }
+  .bottom-nav-item.active .bn-icon, .bottom-nav-item.active > span:first-child { background: rgba(158, 228, 147, .14) !important; }
+  .main-area { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ── wallet: limits & fees tucked away ── */
+.dz-limits { margin-top: 1rem; border: 1px solid var(--line); border-radius: var(--dz-radius); background: var(--bg-2); }
+.dz-limits > summary {
+  list-style: none; cursor: pointer; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;
+  font-weight: 600; color: var(--ink);
+}
+.dz-limits > summary::-webkit-details-marker { display: none; }
+.dz-limits > summary::after { content: "+"; font: 400 20px/1 'Geist', sans-serif; color: var(--ink-3); transition: transform .2s; }
+.dz-limits[open] > summary::after { transform: rotate(45deg); }
+.dz-limits > .dz-limits-body { padding: 0 1rem 1rem; }
+.dz-limits .wcard, .dz-limits .w-grid3 { background: transparent !important; border: 0 !important; }
+
+/* ── icon slots that used to hold emoji ── */
+.dz-ico { display: inline-flex; width: 1.15em; height: 1.15em; vertical-align: -.18em; color: currentColor; }
+.dz-ico svg { width: 100%; height: 100%; }
+.stat-icon .dz-ico, .ico .dz-ico { width: 22px; height: 22px; color: var(--accent); }
+
+/* ── passport stat tiles: 2 columns on phones instead of 4 squeezed ones ── */
+@media (max-width: 520px) {
+  .pp-stats, [class*="pp-stat"]:not(.pp-stat) { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ── in-app notification banner ── */
+.dz-toast {
+  position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); z-index: 2147483003;
+  transform: translate(-50%, -140%); transition: transform .45s var(--dz-ease);
+  width: min(440px, calc(100vw - 20px));
+  display: flex; gap: 12px; align-items: center;
+  background: rgba(26, 34, 28, .96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--line-2); border-radius: 20px; padding: 12px 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .45); color: var(--ink); cursor: pointer;
+}
+.dz-toast.show { transform: translate(-50%, 0); }
+.dz-toast .dz-t-ico { flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; }
+.dz-toast .dz-t-ico svg { width: 20px; height: 20px; }
+.dz-toast b { display: block; font-size: 14px; font-weight: 600; }
+.dz-toast span { display: block; font-size: 13px; color: var(--ink-2); line-height: 1.35; }
+.dz-toast small { margin-left: auto; align-self: flex-start; font: 500 11px 'Geist Mono', monospace; color: var(--ink-3); }
+
+/* ── empty states and helper text: calmer ── */
+.empty-state { color: var(--ink-3) !important; }
+.text-muted { color: var(--ink-3) !important; }
+
+/* ── campaign page cover placeholder ── */
+.fp-hero { background: linear-gradient(160deg, #142219 0%, #0B0F0C 75%) !important; }
+
+/* wallet: the balance card already carries the actions on phones */
+@media (max-width: 860px) { .w-head-actions { display: none !important; } }
+/* large numbers that templates set in Geist Mono (marked by demo-ui.js) */
+.dz-num { font-family: 'Geist', system-ui, sans-serif !important; font-weight: 600 !important; letter-spacing: -.03em !important; font-variant-numeric: tabular-nums; }
+/* score ring: one accent, tier shown by the label */
+.gauge-arc, #ncs-arc { stroke: var(--accent) !important; }

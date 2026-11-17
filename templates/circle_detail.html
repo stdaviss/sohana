@@ -9,7 +9,7 @@
 {% set total_members = members|length %}
 {% set paid_members = cycle_contribs|selectattr('status','equalto','paid')|list|length if cycle_contribs else 0 %}
 {% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
-{% set my_position = my_member.payout_position if my_member else '—' %}
+{% set my_position = (my_member.payout_position or my_member.slot or '—') if my_member else '—' %}
 {% set contrib_cents = rosca.contribution_cents or 0 %}
 {# cycle_num is now passed directly from the route #}
 {% set total_cycles = rosca.max_members or total_members %}
@@ -54,7 +54,7 @@
 /* ── MAIN GRID ── */
 .cd-body{display:grid;grid-template-columns:1fr 1fr 1fr 280px;gap:1.25rem;padding:1.25rem;align-items:start}
 @media(max-width:1200px){.cd-body{grid-template-columns:1fr 1fr;}}
-@media(max-width:760px){.cd-body{grid-template-columns:1fr}}
+@media(max-width:760px){.cd-body{grid-template-columns:1fr}.cd-body>*{grid-row:auto!important;grid-column:auto!important}}
 
 /* ── PANELS ── */
 .cd-panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}

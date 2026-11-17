@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SOHANA · Live at AFTS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0B0F0C;--bg2:#131915;--bg3:#1A221C;--line:rgba(244,242,236,.08);--line2:rgba(244,242,236,.14);--ink:#F4F2EC;--ink2:#B9BDB6;--ink3:#868B84;--mint:#9EE493;--amber:#F4C06A}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--ink);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+body{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100vh;padding:3.2vh 3.4vw;gap:2.6vh;
+  background:radial-gradient(1200px 600px at 85% -10%,rgba(158,228,147,.10),transparent 60%),var(--bg)}
+header{display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px;font-weight:700;letter-spacing:.14em;font-size:clamp(14px,1.2vw,20px)}
+.brand i{display:grid;place-items:center;width:2.2em;height:2.2em;border-radius:12px;background:var(--mint);color:var(--bg);font:700 1em 'Geist Mono',monospace;font-style:normal;letter-spacing:0}
+.live{display:inline-flex;align-items:center;gap:10px;font:600 clamp(11px,.85vw,15px) 'Geist Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--mint)}
+.live b{width:10px;height:10px;border-radius:50%;background:var(--mint);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.25}}
+main{display:grid;grid-template-columns:1.05fr 1fr;gap:3.4vw;min-height:0}
+main>section:first-child{display:flex;flex-direction:column;min-height:0}
+h1{font-size:clamp(30px,min(4.4vw,8vh),84px);line-height:1.02;letter-spacing:-.035em;font-weight:600}
+h1 em{font-family:'Instrument Serif',serif;font-weight:400;color:var(--mint)}
+.lead{margin-top:1.6vh;font-size:clamp(14px,min(1.3vw,2.4vh),24px);color:var(--ink2);line-height:1.45;max-width:34ch}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2vw;margin-top:auto;padding-top:2.4vh}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:24px;padding:1.9vh 1.6vw}
+.stat .k{font:600 clamp(10px,.8vw,14px) 'Geist Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3)}
+.stat .v{font-size:clamp(28px,min(4.2vw,7vh),80px);font-weight:600;letter-spacing:-.04em;line-height:1.05;margin-top:.6vh;font-variant-numeric:tabular-nums}
+.stat .s{font-size:clamp(12px,.95vw,17px);color:var(--ink3);margin-top:.4vh;min-height:1.3em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.pop .v{animation:pop .6s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{0%{color:var(--mint);transform:scale(1.06)}100%{color:var(--ink);transform:none}}
+.feed{background:var(--bg2);border:1px solid var(--line);border-radius:28px;padding:2.6vh 1.8vw;display:flex;flex-direction:column;min-height:0}
+.feed h2{font:600 clamp(11px,.9vw,15px) 'Geist Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:1.8vh}
+#events{list-style:none;display:flex;flex-direction:column;gap:1.1vh;overflow:hidden;flex:1;-webkit-mask-image:linear-gradient(#000 80%,transparent);mask-image:linear-gradient(#000 80%,transparent)}
+#events li{display:flex;align-items:center;gap:1vw;padding:1.4vh 1vw;border-radius:18px;background:var(--bg3);border:1px solid var(--line);font-size:clamp(14px,1.25vw,23px);line-height:1.25}
+#events li.new{animation:in .7s cubic-bezier(.2,.8,.2,1) both;border-color:rgba(158,228,147,.45)}
+@keyframes in{from{opacity:0;transform:translateY(-14px) scale(.98)}to{opacity:1;transform:none}}
+#events .ico{flex:none;width:2.2em;height:2.2em;border-radius:14px;display:grid;place-items:center;background:rgba(158,228,147,.12);color:var(--mint)}
+#events .ico svg{width:1.15em;height:1.15em}
+#events .txt{flex:1;min-width:0}
+#events time{font:500 .7em 'Geist Mono',monospace;color:var(--ink3);white-space:nowrap}
+.empty{color:var(--ink3);font-size:clamp(14px,1.2vw,22px);padding:2vh 0}
+footer{display:flex;align-items:center;justify-content:space-between;gap:2vw;border-top:1px solid var(--line);padding-top:2.4vh}
+.cta{display:flex;align-items:center;gap:1.6vw}
+.cta svg{width:clamp(80px,min(8.5vw,14vh),160px);height:auto;background:#F4F2EC;border-radius:16px;padding:8px}
+.cta b{display:block;font-size:clamp(20px,2vw,38px);letter-spacing:-.02em}
+.cta span{display:block;color:var(--ink2);font-size:clamp(13px,1.05vw,20px);margin-top:.5vh}
+.cta .url{font:600 clamp(14px,1.3vw,24px) 'Geist Mono',monospace;color:var(--mint);margin-top:.8vh}
+.note{max-width:40ch;text-align:right;font-size:clamp(11px,.85vw,15px);color:var(--ink3);line-height:1.5}
+@media (max-width:900px){html,body{overflow:auto}body{height:auto;display:block}main,footer{margin-top:3vh}main{grid-template-columns:1fr}.note{text-align:left}footer{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><i>S</i>SOHANA</div>
+  <div class="live"><b></b>Live at AFTS 2026 · Kigali</div>
+</header>
+
+<main>
+  <section>
+    <h1>Africa already saves together. <em>Watch it count.</em></h1>
+    <p class="lead">Every visitor gets a real SOHANA account with simulated money. Send to a @hanatag, start a circle, and watch the credit score move.</p>
+    <div class="stats">
+      <div class="stat" id="st-members"><div class="k">Accounts created</div><div class="v">0</div><div class="s">at this booth</div></div>
+      <div class="stat" id="st-transfers"><div class="k">@hanatag transfers</div><div class="v">0</div><div class="s" id="vol">&nbsp;</div></div>
+      <div class="stat" id="st-circles"><div class="k">Circles started</div><div class="v">0</div><div class="s" id="contrib">&nbsp;</div></div>
+      <div class="stat" id="st-ncs"><div class="k">Average credit score</div><div class="v">0</div><div class="s">out of 850, starting at 300</div></div>
+    </div>
+  </section>
+
+  <section class="feed">
+    <h2>Happening now</h2>
+    <ul id="events"><li class="empty">Waiting for the first visitor…</li></ul>
+  </section>
+</main>
+
+<footer>
+  <div class="cta">
+    <svg id="qr" viewBox="-1 -1 27 27" shape-rendering="crispEdges" aria-label="QR code to demo.sohana.app"></svg>
+    <div>
+      <b>Try it on your phone</b>
+      <span>Scan, type your name, and you're in. 30 seconds.</span>
+      <div class="url">demo.sohana.app</div>
+    </div>
+  </div>
+  <p class="note">Demo environment: simulated money, no real transactions. Names are shortened. SOHANA is registered in Rwanda and is pursuing regulatory authorisation.</p>
+</footer>
+
+<script>
+(function(){
+  var ICON={
+    join:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+    send:'<path d="M4 12 20 4l-6.5 16-2.5-6.5z"/><path d="M11 13.5 20 4"/>',
+    circle:'<circle cx="12" cy="12" r="8" stroke-dasharray="2.5 2.5"/><circle cx="12" cy="4" r="2" fill="currentColor"/><circle cx="19" cy="15" r="2"/><circle cx="5" cy="15" r="2"/>',
+    contribution:'<ellipse cx="12" cy="6.5" rx="7" ry="3"/><path d="M5 6.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/><path d="M5 11.5v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/>',
+    donation:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'
+  };
+  function svg(k){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICON[k]||ICON.join)+'</svg>';}
+  var seen={}, first=true, last={}, now=null;
+  function ago(t){
+    if(!now||!t)return '';
+    var d=(new Date(now.replace(' ','T')+'Z')-new Date(t.replace(' ','T')+'Z'))/1000;
+    if(d<45)return 'just now'; if(d<3600)return Math.round(d/60)+' min'; if(d<86400)return Math.round(d/3600)+' h'; return t.slice(5,16);
+  }
+  function count(id,to){
+    var box=document.getElementById(id), el=box.querySelector('.v'), from=last[id]||0;
+    if(from===to){el.textContent=to.toLocaleString('en-GB');return;}
+    last[id]=to; if(!first){box.classList.remove('pop');void box.offsetWidth;box.classList.add('pop');}
+    var t0=performance.now(), dur=900;
+    (function step(t){var k=Math.min(1,(t-t0)/dur), e=1-Math.pow(1-k,3);el.textContent=Math.round(from+(to-from)*e).toLocaleString('en-GB');if(k<1)requestAnimationFrame(step);})(t0);
+  }
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function load(){
+    fetch('/api/demo/wall',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+      now=d.now; var s=d.stats;
+      count('st-members',s.members); count('st-transfers',s.transfers); count('st-circles',s.circles); count('st-ncs',s.avg_ncs);
+      document.getElementById('vol').textContent=s.volume.length?s.volume.slice(0,2).join(' · ')+' sent':' ';
+      document.getElementById('contrib').textContent=s.contributions?s.contributions+' contributions paid':' ';
+      var ul=document.getElementById('events');
+      if(!d.events.length)return;
+      ul.innerHTML=d.events.map(function(e){
+        var key=e.kind+e.t+e.text, isNew=!first&&!seen[key]; seen[key]=1;
+        return '<li class="'+(isNew?'new':'')+'"><span class="ico">'+svg(e.kind)+'</span><span class="txt">'+esc(e.text)+'</span><time>'+ago(e.t)+'</time></li>';
+      }).join('');
+      first=false;
+    }).catch(function(){});
+  }
+  // QR for https://demo.sohana.app
+  fetch('/static/demo-qr.txt').then(function(r){return r.ok?r.text():'';}).then(function(p){
+    if(p)document.getElementById('qr').innerHTML='<path fill="#0B0F0C" d="'+p.trim()+'"/>';
+  });
+  load(); setInterval(load,3000);
+})();
+</script>
+</body>
+</html>

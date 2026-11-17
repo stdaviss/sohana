@@ -318,7 +318,7 @@ tbody tr:hover td{background:var(--line)}
 .admin-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--accent-ink);flex-shrink:0}
 
 /* MODAL */
-.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
 .modal-backdrop.open{display:flex}
 .modal{background:var(--bg-2);border:1px solid var(--line-2);border-radius:var(--radius-xl);padding:1.75rem;width:100%;max-width:460px;box-shadow:var(--shadow-lg);position:relative}
 .modal-title{font-size:1.1rem;font-weight:700;margin-bottom:.3rem;color:var(--ink);letter-spacing:-.02em}
@@ -535,7 +535,7 @@ tbody tr:hover td{background:var(--line)}
     border-radius: 20px 20px 0 0;
     max-width: 100% !important;
     width: 100%;
-    padding: 1.5rem 1.25rem 2rem;
+    padding: 1.5rem 1.25rem calc(2rem + env(safe-area-inset-bottom, 0px));
     max-height: 90vh;
     overflow-y: auto;
   }
@@ -844,3 +844,9 @@ img, video, iframe, canvas { max-width: 100%; height: auto; }
   [style*="grid-template-columns"]  { grid-template-columns: 1fr !important; }
   table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
+
+/* ── Tab bars on phones: tabs keep their width and the bar scrolls sideways
+      (previously the labels squeezed together and overlapped). ── */
+.cd-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cd-tabs::-webkit-scrollbar{display:none}
+.cd-tab,[id^="ptab-"]{flex-shrink:0}

@@ -122,6 +122,10 @@ async function cont(){
   document.getElementById('chal-cap').textContent = challenge==='email_otp'
     ? 'Enter the 6-digit code sent to '+(d.masked_target||'your email')
     : 'Enter the 6-digit code from your authenticator app';
+  if(d.demo_code){
+    document.getElementById('chal-cap').textContent='Demo code (shown on screen in the demo): '+d.demo_code;
+    [0,1,2,3,4,5].forEach(function(i){var el=document.getElementById('otp'+i); if(el) el.value=d.demo_code[i];});
+  }
   document.getElementById('step1').style.display='none';
   document.getElementById('step2').style.display='';
   document.getElementById('otp0').focus();

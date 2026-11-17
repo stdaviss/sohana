@@ -11,14 +11,14 @@
 </div>
 
 <!-- Profile hero card -->
-<div class="card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,var(--navy-dark),var(--navy));border:none;color:#fff;">
+<div class="card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,var(--navy-dark),var(--navy));border:none;color:var(--ink);">
   <div style="padding:1.5rem;display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;">
     <div style="position:relative;">
       <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#60a5fa,#2563eb);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;color:#fff;border:3px solid rgba(255,255,255,.2);">
         {{ profile_user.full_name[0]|upper }}
       </div>
     </div>
-    <div style="flex:1;">
+    <div style="flex:1 1 200px;min-width:0;">
       <div style="font-size:1.4rem;font-weight:800;margin-bottom:.2rem;">{{ profile_user.full_name }}</div>
       {% if profile_user.hanatag %}
       <div style="font-size:.9rem;color:var(--gold);font-weight:600;margin-bottom:.4rem;">{{ profile_user.hanatag }}</div>
@@ -26,7 +26,7 @@
       <button onclick="openModal('hanatag-modal')" style="font-size:.8rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:.2rem .7rem;border-radius:20px;cursor:pointer;margin-bottom:.4rem;">+ Set your @hanatag</button>
       {% endif %}
       {% if profile_user.bio %}<div style="font-size:.85rem;opacity:.75;margin-bottom:.5rem;">{{ profile_user.bio }}</div>{% endif %}
-      <div style="display:flex;gap:1.5rem;font-size:.8rem;opacity:.7;">
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem 1.25rem;font-size:.8rem;opacity:.7;">
         <span>{{ profile_user.country }}</span>
         <span>Member since {{ profile_user.created_at[:10] }}</span>
         <span>{{ roscas_done }} cycles completed</span>

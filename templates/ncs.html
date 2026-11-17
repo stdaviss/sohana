@@ -67,11 +67,11 @@
   <div class="card card-pad">
     <div class="card-title mb-3">Score Breakdown</div>
     {% set labels = {
-      'reliability': ('Contribution Reliability', '#2563eb', '35%'),
-      'completion':  ('Completion Rate',          '#16a34a', '25%'),
-      'default_rec': ('Default & Recovery',       '#7c3aed', '20%'),
-      'social':      ('Social Trust',             '#f59e0b', '10%'),
-      'wallet':      ('Wallet Behaviour',         '#ea580c', '10%'),
+      'reliability': ('Contribution Reliability', '#9EE493', '35%'),
+      'completion':  ('Completion Rate',          '#9EE493', '25%'),
+      'default_rec': ('Default & Recovery',       '#9EE493', '20%'),
+      'social':      ('Social Trust',             '#9EE493', '10%'),
+      'wallet':      ('Wallet Behaviour',         '#9EE493', '10%'),
     } %}
     {% for key, data in components.items() %}
     {% set lbl = labels.get(key, (key, '#888', '?')) %}
@@ -80,7 +80,7 @@
         <span style="font-size:.875rem;font-weight:500;">{{ lbl[0] }}</span>
         <div style="display:flex;align-items:center;gap:.5rem;">
           <span class="text-xs text-muted">weight {{ lbl[2] }}</span>
-          <span style="font-size:.875rem;font-weight:700;color:{{ lbl[1] }};">{{ data.pct|round(0)|int }}%</span>
+          <span style="font-size:.875rem;font-weight:700;color:var(--ink);">{{ data.pct|round(0)|int }}%</span>
         </div>
       </div>
       <div class="progress-track">

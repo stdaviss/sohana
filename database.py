@@ -13,6 +13,7 @@ CURRENCIES = {
     "GHC": {"symbol": "₵",  "name": "Ghanaian Cedi",    "flag": "🇬🇭"},
     "NGN": {"symbol": "₦",  "name": "Nigerian Naira",   "flag": "🇳🇬"},
     "ZAR": {"symbol": "R",  "name": "South African Rand","flag": "🇿🇦"},
+    "RWF": {"symbol": "FRw", "name": "Rwandan Franc",    "flag": "🇷🇼"},
 }
 
 # Demo exchange rates vs EUR (these update from an API in production)
@@ -23,6 +24,7 @@ CURRENCIES = {
 EXCHANGE_RATES = {
     "EUR": 1.0000, "GBP": 0.8560, "USD": 1.0820, "CAD": 1.4710,
     "XAF": 655.96, "GHC": 16.42,  "NGN": 1780.50, "ZAR": 20.15,
+    "RWF": 1600.00,
 }
 
 # Metadata about the last successful refresh — inspected by /admin and /api/rates

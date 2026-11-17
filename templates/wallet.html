@@ -120,7 +120,7 @@
   <div>
     <span class="w-eyebrow">Wallet</span>
     <h1>My <span class="w-ser">wallet</span></h1>
-    <p class="w-sub">Balances across EUR, GBP, USD, CAD, XAF, GHC, NGN and ZAR.</p>
+    <p class="w-sub">Balances in EUR, RWF, XAF, GBP and more.</p>
   </div>
   <div class="w-head-actions">
     <a href="/api/wallet/statement?currency={{ active_wallet.currency if active_wallet else 'EUR' }}" class="w-abtn ghost">Statement</a>
@@ -470,7 +470,8 @@ async function payS2(){
   const cap=document.getElementById('pay-otp-cap');const rs=document.getElementById('pay-resend');
   if(d.challenge==='email_otp'){cap.textContent='Enter the 6-digit code sent to '+(d.masked_target||'your email');rs.style.display='';}
   else{cap.textContent='Enter the 6-digit code from your authenticator app';rs.style.display='none';}
-  [0,1,2,3,4,5].forEach(i=>{document.getElementById('potp'+i).value='';});
+  [0,1,2,3,4,5].forEach(i=>{document.getElementById('potp'+i).value=d.demo_code?d.demo_code[i]:'';});
+  if(d.demo_code){cap.textContent='Demo code (shown on screen in the demo): '+d.demo_code;rs.style.display='none';}
   document.getElementById('pay-s1').style.display='none';
   document.getElementById('pay-s2').style.display='';
   document.getElementById('potp0').focus();

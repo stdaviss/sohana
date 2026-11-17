@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0E120F">
+<title>SOHANA · Live demo</title>
+<link rel="icon" href="/static/favicon.ico?v=2" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg2:#161B17;--bg3:#1C231D;--line:rgba(244,242,236,.1);--line2:rgba(244,242,236,.18);--ink:#F4F2EC;--ink2:#B7BAB4;--ink3:#8A8E87;--mint:#9EE493;--mint2:#76E0A1;--red:#FF6A55}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:Geist,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--mint)}
+.wrap{max-width:560px;margin:0 auto;padding:0 18px 40px}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.12em;font-size:14px;color:var(--ink);text-decoration:none}
+.brand span{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--mint);color:var(--bg);font-family:'Geist Mono',monospace;letter-spacing:0}
+.lang{display:flex;border:1px solid var(--line2);border-radius:999px;padding:3px}
+.lang button{border:0;background:none;color:var(--ink2);font:600 12px 'Geist Mono',monospace;padding:7px 11px;border-radius:999px;cursor:pointer}
+.lang button.on{background:var(--mint);color:var(--bg)}
+.eyebrow{font:600 11px 'Geist Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--mint);margin-top:14px}
+h1{font-size:clamp(34px,10vw,48px);line-height:1.04;letter-spacing:-.03em;font-weight:600;margin:12px 0 14px}
+h1 em{font-family:'Instrument Serif',serif;font-weight:400;color:var(--mint)}
+.lead{color:var(--ink2);font-size:16px;line-height:1.6}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:20px;margin-top:22px}
+label{display:block;font-size:14px;font-weight:600;margin:14px 0 7px}
+label:first-child{margin-top:0}
+input[type=text],input[type=email]{width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:14px;color:var(--ink);font:inherit;font-size:17px;padding:14px 15px;outline:none}
+input:focus{border-color:var(--mint)}
+.hint{font-size:12.5px;color:var(--ink3);margin-top:6px;line-height:1.5}
+.check{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--ink2);margin-top:16px;cursor:pointer}
+.check input{width:18px;height:18px;margin-top:1px;accent-color:var(--mint);flex:none}
+.btn{display:block;width:100%;border:0;border-radius:999px;background:var(--mint);color:var(--bg);font:600 17px Geist,system-ui,sans-serif;padding:16px;margin-top:20px;cursor:pointer;text-align:center;text-decoration:none}
+.btn:disabled{opacity:.6}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line2)}
+.err{color:var(--red);font-size:14px;margin-top:12px;min-height:18px}
+.fine{font-size:12px;color:var(--ink3);margin-top:14px;line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.tile{display:flex;flex-direction:column;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:16px 14px;color:var(--ink);text-decoration:none;min-height:118px}
+.tile:active{border-color:var(--mint)}
+.tile svg{width:28px;height:28px;color:var(--mint)}
+.tile b{font-size:15px;font-weight:600}
+.tile small{font-size:12.5px;color:var(--ink2);line-height:1.4}
+.who{display:flex;align-items:center;gap:12px;margin-top:6px}
+.who .av{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--mint);color:var(--bg);font:600 15px 'Geist Mono',monospace}
+.who p{font-size:13px;color:var(--ink3)}
+.who b{display:block;font-size:17px;color:var(--ink)}
+.tag{font-family:'Geist Mono',monospace;color:var(--mint)}
+.section{font:600 11px 'Geist Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-top:26px}
+footer{margin-top:28px;font-size:12px;color:var(--ink3);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="/demo"><span>S</span>SOHANA</a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-l="en">EN</button><button type="button" data-l="fr">FR</button>
+    </div>
+  </header>
+
+  {% if user %}
+  <p class="eyebrow" data-t="liveDemo">Live demo</p>
+  <div class="who">
+    <div class="av">{{ (user.full_name or '?')[:1] | upper }}</div>
+    <div><p data-t="signedInAs">Signed in as</p><b>{{ user.full_name }}</b><span class="tag">{{ user.hanatag or '' }}</span></div>
+  </div>
+  <a class="btn" href="/dashboard" data-t="openApp">Open my SOHANA</a>
+  {% else %}
+  <p class="eyebrow" data-t="liveDemo">Live demo</p>
+  <h1><span data-t="h1a">Try the real SOHANA</span> <em data-t="h1b">in 30 seconds.</em></h1>
+  <p class="lead" data-t="lead">This is the actual app, running in a separate demo environment with simulated money. You get a real account, a @hanatag and starting balances in EUR and RWF.</p>
+
+  <form class="card" id="f" novalidate>
+    <label for="name" data-t="name">Your name</label>
+    <input id="name" type="text" autocomplete="name" maxlength="60" required>
+    <p class="hint" data-t="nameHint">Shown on your account, so other visitors can send you money or add you to a circle.</p>
+
+    <label for="email" data-t="email">Email (optional)</label>
+    <input id="email" type="email" inputmode="email" autocomplete="email" maxlength="254">
+    <p class="hint" data-t="emailHint">Lets you come back to your demo account, and lets the team add you to a circle by email.</p>
+
+    <label class="check"><input id="consent" type="checkbox"> <span data-t="consent">Send me occasional SOHANA news and launch updates. I can unsubscribe at any time.</span></label>
+
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn" id="go" type="submit" data-t="start">Create my demo account</button>
+    <p class="fine"><span data-t="privacy">We use your email only to run this demo and, if you tick the box, to send news.</span> <a href="https://sohana.app/privacy" target="_blank" rel="noopener" data-t="privacyLink">Privacy notice</a>.</p>
+  </form>
+  {% endif %}
+
+  <p class="section" data-t="explore">What you can do</p>
+  <div class="grid">
+    <a class="tile" href="/wallet"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16 L27 6 L20 27 L15 18 Z"/><path d="M15 18 L27 6"/></svg><b data-t="t1">Send to a @hanatag</b><small data-t="s1">Pay another visitor instantly</small></a>
+    <a class="tile" href="/circles"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="16" cy="16" r="10" stroke-dasharray="3 3"/><circle cx="16" cy="6" r="2.6" fill="currentColor"/><circle cx="25.5" cy="19" r="2.6"/><circle cx="6.5" cy="19" r="2.6"/></svg><b data-t="t2">Savings circles</b><small data-t="s2">Start one, add members, contribute</small></a>
+    <a class="tile" href="/ncs"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 21 a11 11 0 0 1 22 0"/><path d="M16 21 L22 13" stroke-width="2.2"/></svg><b data-t="t3">Njangi Credit Score</b><small data-t="s3">Watch it move as you pay</small></a>
+    <a class="tile" href="/passport"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="4" width="18" height="24" rx="3"/><circle cx="16" cy="13" r="3.5"/><path d="M11 22 h10"/></svg><b data-t="t4">Credit passport</b><small data-t="s4">Your shareable record</small></a>
+    <a class="tile" href="/campaigns"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M16 26 C8 20 5 16 5 12 a5 5 0 0 1 11 -2 a5 5 0 0 1 11 2 c0 4 -3 8 -11 14 z"/></svg><b data-t="t5">Fundraising</b><small data-t="s5">Back a community campaign</small></a>
+    <a class="tile" href="/wallet"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="24" height="17" rx="3"/><path d="M4 12 h24"/><circle cx="22" cy="18.5" r="1.6" fill="currentColor"/></svg><b data-t="t6">Multi-currency wallet</b><small data-t="s6">EUR, RWF, XAF, GBP and more</small></a>
+  </div>
+
+  {% if user %}
+  <a class="btn ghost" href="/logout" data-t="notYou">Not you? Start a new demo account</a>
+  {% endif %}
+
+  <footer data-t="footer">Demo environment: simulated money, no real transactions. SOHANA is registered in Rwanda and is pursuing regulatory authorisation.</footer>
+</div>
+
+<script>
+(function(){
+  var T={
+    en:{liveDemo:"Live demo",signedInAs:"Signed in as",openApp:"Open my SOHANA",h1a:"Try the real SOHANA",h1b:"in 30 seconds.",
+      lead:"This is the actual app, running in a separate demo environment with simulated money. You get a real account, a @hanatag and starting balances in EUR and RWF.",
+      name:"Your name",nameHint:"Shown on your account, so other visitors can send you money or add you to a circle.",
+      email:"Email (optional)",emailHint:"Lets you come back to your demo account, and lets the team add you to a circle by email.",
+      consent:"Send me occasional SOHANA news and launch updates. I can unsubscribe at any time.",
+      start:"Create my demo account",privacy:"We use your email only to run this demo and, if you tick the box, to send news.",privacyLink:"Privacy notice",
+      explore:"What you can do",t1:"Send to a @hanatag",s1:"Pay another visitor instantly",t2:"Savings circles",s2:"Start one, add members, contribute",
+      t3:"Njangi Credit Score",s3:"Watch it move as you pay",t4:"Credit passport",s4:"Your shareable record",t5:"Fundraising",s5:"Back a community campaign",
+      t6:"Multi-currency wallet",s6:"EUR, RWF, XAF, GBP and more",notYou:"Not you? Start a new demo account",
+      footer:"Demo environment: simulated money, no real transactions. SOHANA is registered in Rwanda and is pursuing regulatory authorisation.",
+      errName:"Please enter your name.",errEmail:"That email doesn't look right. Fix it or leave it empty.",errGeneric:"Something went wrong. Please try again.",creating:"Creating your account…"},
+    fr:{liveDemo:"Démo en direct",signedInAs:"Connecté en tant que",openApp:"Ouvrir mon SOHANA",h1a:"Essayez le vrai SOHANA",h1b:"en 30 secondes.",
+      lead:"C'est la véritable application, dans un environnement de démo séparé avec de l'argent simulé. Vous obtenez un vrai compte, un @hanatag et des soldes de départ en EUR et en RWF.",
+      name:"Votre nom",nameHint:"Affiché sur votre compte, pour que d'autres visiteurs puissent vous envoyer de l'argent ou vous ajouter à une tontine.",
+      email:"E-mail (facultatif)",emailHint:"Pour retrouver votre compte de démo, et pour que l'équipe puisse vous ajouter à une tontine par e-mail.",
+      consent:"M'envoyer des nouvelles de SOHANA et du lancement. Je peux me désabonner à tout moment.",
+      start:"Créer mon compte de démo",privacy:"Nous utilisons votre e-mail uniquement pour cette démo et, si vous cochez la case, pour nos nouvelles.",privacyLink:"Politique de confidentialité",
+      explore:"Ce que vous pouvez faire",t1:"Envoyer à un @hanatag",s1:"Payez un autre visiteur instantanément",t2:"Tontines",s2:"Créez-en une, ajoutez des membres, cotisez",
+      t3:"Score Njangi",s3:"Regardez-le évoluer quand vous payez",t4:"Passeport de crédit",s4:"Votre historique partageable",t5:"Collectes de fonds",s5:"Soutenez une campagne",
+      t6:"Portefeuille multidevise",s6:"EUR, RWF, XAF, GBP et plus",notYou:"Ce n'est pas vous ? Créer un nouveau compte de démo",
+      footer:"Environnement de démo : argent simulé, aucune transaction réelle. SOHANA est enregistrée au Rwanda et poursuit son agrément réglementaire.",
+      errName:"Veuillez saisir votre nom.",errEmail:"Cet e-mail semble incorrect. Corrigez-le ou laissez le champ vide.",errGeneric:"Une erreur s'est produite. Veuillez réessayer.",creating:"Création de votre compte…"}
+  };
+  var q=new URLSearchParams(location.search), lang=q.get('lang');
+  try{ if(q.get('booth')==='1'){document.cookie='demo_booth=1; Max-Age=2592000; Path=/; SameSite=Lax; Secure';}
+       if(q.get('booth')==='0'){document.cookie='demo_booth=; Max-Age=0; Path=/';} }catch(e){}
+  if(lang!=='en'&&lang!=='fr'){try{lang=localStorage.getItem('demo_lang');}catch(e){}}
+  if(lang!=='en'&&lang!=='fr'){lang=(navigator.language||'').toLowerCase().indexOf('fr')===0?'fr':'en';}
+  function apply(l){
+    lang=l; document.documentElement.lang=l;
+    try{localStorage.setItem('demo_lang',l);}catch(e){}
+    document.querySelectorAll('[data-t]').forEach(function(el){var v=T[l][el.getAttribute('data-t')]; if(v) el.textContent=v;});
+    document.querySelectorAll('.lang button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-l')===l);});
+  }
+  document.querySelectorAll('.lang button').forEach(function(b){b.addEventListener('click',function(){apply(b.getAttribute('data-l'));});});
+  apply(lang);
+
+  var f=document.getElementById('f'); if(!f) return;
+  var err=document.getElementById('err'), go=document.getElementById('go');
+  f.addEventListener('input',function(){err.textContent='';});
+  f.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=document.getElementById('name').value.trim(), email=document.getElementById('email').value.trim();
+    if(name.length<2){err.textContent=T[lang].errName;return;}
+    if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){err.textContent=T[lang].errEmail;return;}
+    go.disabled=true; go.textContent=T[lang].creating;
+    fetch('/api/demo/start',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',
+      body:JSON.stringify({name:name,email:email,consent:document.getElementById('consent').checked,lang:lang})})
+    .then(function(r){return r.json().then(function(d){return {s:r.status,d:d};});})
+    .then(function(x){
+      if(x.d.ok){location.href=x.d.next||'/dashboard';return;}
+      err.textContent=x.d.error==='name'?T[lang].errName:x.d.error==='email'?T[lang].errEmail:(x.d.error||T[lang].errGeneric);
+      go.disabled=false; go.textContent=T[lang].start;
+    }).catch(function(){err.textContent=T[lang].errGeneric;go.disabled=false;go.textContent=T[lang].start;});
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Demo control room · SOHANA</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E120F;--bg2:#161B17;--bg3:#1C231D;--line:rgba(244,242,236,.1);--line2:rgba(244,242,236,.18);--ink:#F4F2EC;--ink2:#B7BAB4;--ink3:#8A8E87;--mint:#9EE493;--amber:#F4C06A;--red:#FF6A55}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:22px;font-weight:600;letter-spacing:-.01em}
+.live{display:inline-flex;align-items:center;gap:8px;font:600 11px 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mint)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--mint);animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.3}}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line2);background:none;color:var(--ink);border-radius:999px;padding:9px 14px;font:600 13px Geist,sans-serif;text-decoration:none;cursor:pointer}
+.btn.p{background:var(--mint);color:var(--bg);border-color:var(--mint)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:18px 0}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px}
+.stat .k{font:600 10.5px 'Geist Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+.stat .v{font-size:28px;font-weight:600;margin-top:4px}
+.how{background:var(--bg2);border:1px dashed var(--line2);border-radius:16px;padding:14px 16px;font-size:13.5px;line-height:1.6;color:var(--ink2);margin-bottom:16px}
+.how b{color:var(--ink)}
+.search{width:100%;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;color:var(--ink);font:inherit;font-size:15px;padding:11px 14px;margin-bottom:12px}
+.list{display:grid;gap:8px}
+.row{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(130px,1fr) 90px minmax(160px,1.3fr) 70px 110px;gap:12px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;transition:border-color .6s,background .6s}
+.row.new{border-color:var(--mint);background:rgba(158,228,147,.08)}
+.row.changed{border-color:var(--amber)}
+.name b{display:block;font-size:15px}
+.name span{font-size:12.5px;color:var(--ink3);word-break:break-all}
+.tag{font-family:'Geist Mono',monospace;color:var(--mint);font-size:13.5px}
+.ncs b{font-size:20px}
+.ncs span{display:block;font:500 10.5px 'Geist Mono',monospace;text-transform:uppercase;color:var(--ink3)}
+.bal{font-family:'Geist Mono',monospace;font-size:12.5px;line-height:1.6;color:var(--ink2)}
+.muted{font-size:12px;color:var(--ink3)}
+.pill{display:inline-block;font:600 10px 'Geist Mono',monospace;padding:2px 7px;border-radius:99px;border:1px solid var(--line2);color:var(--ink3)}
+.pill.on{background:var(--mint);color:var(--bg);border-color:var(--mint)}
+.head{background:none;border:0;padding:4px 14px}
+.head div{font:600 10.5px 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+dialog{background:var(--bg2);color:var(--ink);border:1px solid var(--line2);border-radius:18px;padding:20px;width:min(380px,92vw)}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog label{display:block;font-size:13px;color:var(--ink2);margin:10px 0 5px}
+dialog input,dialog select{width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:10px;color:var(--ink);font:inherit;font-size:16px;padding:10px}
+.err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px}
+@media(max-width:860px){.row{grid-template-columns:1fr 1fr}.head{display:none}.row>div:nth-child(4){grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Demo control room</h1>
+      <span class="live"><i></i>Live · updates every 3 s</span>
+    </div>
+    <div class="btns">
+      <a class="btn" href="/demo" target="_blank">Open /demo</a>
+      <a class="btn" href="/admin/demo/export.csv">Export leads (CSV)</a>
+      <a class="btn" href="/admin/users">All users</a>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="k">Demo accounts</div><div class="v" id="s-total">–</div></div>
+    <div class="stat"><div class="k">Today</div><div class="v" id="s-today">–</div></div>
+    <div class="stat"><div class="k">With email</div><div class="v" id="s-emails">–</div></div>
+    <div class="stat"><div class="k">News opt-in</div><div class="v" id="s-consent">–</div></div>
+    <div class="stat"><div class="k">Transfers today</div><div class="v" id="s-tx">–</div></div>
+  </div>
+
+  <div class="how">
+    <b>Send money to a visitor:</b> on your phone, open your own demo account → Wallet → Pay → type their @hanatag. Their balance updates here and on their screen within seconds.<br>
+    <b>Add a visitor to a circle:</b> Circles → your circle → Manage → Add member → their email or @hanatag.<br>
+    <b>Top up a visitor:</b> "Credit" on their row (shows as a deposit from the SOHANA team).
+  </div>
+
+  <input class="search" id="q" placeholder="Search name, email or @hanatag" autocomplete="off">
+  <div class="list">
+    <div class="row head"><div>Visitor</div><div>Hanatag</div><div>NCS</div><div>Balances</div><div>Circles</div><div></div></div>
+    <div id="rows"></div>
+  </div>
+  <p class="muted" id="foot" style="margin-top:12px"></p>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="cf">
+    <h3 style="font-size:17px">Credit demo funds</h3>
+    <p class="muted" id="c-who" style="margin-top:4px"></p>
+    <label for="c-cur">Currency</label>
+    <select id="c-cur"><option>EUR</option><option>RWF</option><option>XAF</option><option>GBP</option><option>USD</option></select>
+    <label for="c-amt">Amount</label>
+    <input id="c-amt" inputmode="decimal" value="50">
+    <div class="err" id="c-err"></div>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn p" id="c-go" value="go">Credit</button>
+      <button class="btn" value="cancel" formnovalidate>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function(){
+  var seen={}, sigs={}, first=true, current=null, data=[];
+  var fmt=function(c,cur){var dp=(cur==='RWF'||cur==='XAF'||cur==='NGN')?0:2;return cur+' '+(c/100).toLocaleString('en-GB',{minimumFractionDigits:dp,maximumFractionDigits:dp});};
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
+  var ago=function(t){if(!t)return'';var d=(Date.now()-new Date(t.replace(' ','T')+'Z'))/1000;if(d<60)return'just now';if(d<3600)return Math.floor(d/60)+' min ago';if(d<86400)return Math.floor(d/3600)+' h ago';return t.slice(0,16);};
+  function render(){
+    var q=document.getElementById('q').value.trim().toLowerCase();
+    var html=data.filter(function(u){return !q||[u.full_name,u.email,u.hanatag].join(' ').toLowerCase().indexOf(q)>=0;}).map(function(u){
+      var cls=u._new?'row new':(u._changed?'row changed':'row');
+      var bal=(u.balances||[]).filter(function(b){return b.cents!==0||b.currency==='EUR';}).map(function(b){return fmt(b.cents,b.currency);}).join('<br>');
+      return '<div class="'+cls+'"><div class="name"><b>'+esc(u.full_name)+'</b><span>'+esc(u.email||'no email')+(u.consent?' <span class="pill on">news</span>':'')+'</span><span> · '+ago(u.created_at)+'</span></div>'+
+        '<div class="tag">'+esc(u.hanatag||'—')+'</div>'+
+        '<div class="ncs"><b>'+esc(u.ncs_score)+'</b><span>'+esc(u.ncs_tier||'')+'</span></div>'+
+        '<div class="bal">'+bal+'</div>'+
+        '<div>'+esc(u.circles)+'</div>'+
+        '<div><button class="btn" data-id="'+esc(u.id)+'">Credit</button></div></div>';
+    }).join('');
+    document.getElementById('rows').innerHTML=html||'<p class="muted">No demo accounts yet.</p>';
+  }
+  function load(){
+    fetch('/admin/demo/feed',{credentials:'same-origin',cache:'no-store'}).then(function(r){
+      if(r.status!==200){document.getElementById('foot').textContent='Signed out of admin? Reload the page.';return null;}return r.json();
+    }).then(function(d){
+      if(!d)return;
+      data=d.users.map(function(u){
+        var sig=JSON.stringify([u.ncs_score,u.balances,u.circles]);
+        u._new=!first&&!seen[u.id]; u._changed=!first&&seen[u.id]&&sigs[u.id]!==sig;
+        seen[u.id]=1; sigs[u.id]=sig; return u;
+      });
+      first=false;
+      document.getElementById('s-total').textContent=d.stats.total;
+      document.getElementById('s-today').textContent=d.stats.today;
+      document.getElementById('s-emails').textContent=d.stats.emails;
+      document.getElementById('s-consent').textContent=d.stats.consented;
+      document.getElementById('s-tx').textContent=d.stats.transfers_today;
+      document.getElementById('foot').textContent='Last update '+new Date().toLocaleTimeString();
+      render();
+    }).catch(function(){document.getElementById('foot').textContent='Connection lost, retrying…';});
+  }
+  document.getElementById('q').addEventListener('input',render);
+  document.getElementById('rows').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-id]'); if(!b)return;
+    current=data.find(function(u){return u.id===b.getAttribute('data-id');});
+    document.getElementById('c-who').textContent=current.full_name+' '+(current.hanatag||'');
+    document.getElementById('c-err').textContent='';
+    document.getElementById('dlg').showModal();
+  });
+  document.getElementById('cf').addEventListener('submit',function(e){
+    if(e.submitter&&e.submitter.value==='cancel')return;
+    e.preventDefault();
+    fetch('/admin/demo/credit',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({user_id:current.id,currency:document.getElementById('c-cur').value,amount:document.getElementById('c-amt').value})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){document.getElementById('dlg').close();load();}else{document.getElementById('c-err').textContent=d.error||'Failed';}
+    });
+  });
+  load(); setInterval(load,3000);
+})();
+</script>
+</body>
+</html>
