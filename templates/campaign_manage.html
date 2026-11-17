@@ -25,14 +25,14 @@
 
 <!-- Stats -->
 <div class="stats-grid stats-grid-4" style="margin-bottom:1.25rem;">
-  <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Total raised (net)</div><div class="stat-value">€{{ '{:,.2f}'.format(campaign.raised_cents/100).replace(',', ' ') }}</div></div></div>
+  <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-body"><div class="stat-label">Total raised (net)</div><div class="stat-value">{{ (campaign.raised_cents)|money(campaign.currency, 2) }}</div></div></div>
   <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-body"><div class="stat-label">Donors</div><div class="stat-value">{{ campaign.donor_count }}</div></div></div>
   <div class="stat-card"><div class="stat-icon amber">🎯</div><div class="stat-body">
     <div class="stat-label">Progress</div>
     <div class="stat-value">{{ pct }}%</div>
     <div class="progress-track mt-2"><div class="progress-fill {% if pct >= 100 %}fill-green{% else %}fill-blue{% endif %}" style="width:{{ pct }}%"></div></div>
   </div></div>
-  <div class="stat-card"><div class="stat-icon orange">💳</div><div class="stat-body"><div class="stat-label">Available to withdraw</div><div class="stat-value" style="color:var(--green);">€{{ '{:,.2f}'.format(available/100).replace(',', ' ') }}</div><div class="stat-sub">€{{ '{:,.2f}'.format(campaign.withdrawn_cents/100).replace(',', ' ') }} already withdrawn</div></div></div>
+  <div class="stat-card"><div class="stat-icon orange">💳</div><div class="stat-body"><div class="stat-label">Available to withdraw</div><div class="stat-value" style="color:var(--green);">{{ (available)|money(campaign.currency, 2) }}</div><div class="stat-sub">{{ (campaign.withdrawn_cents)|money(campaign.currency, 2) }} already withdrawn</div></div></div>
 </div>
 
 <!-- Tabs -->
@@ -56,7 +56,7 @@
       <div style="text-align:center;">
         <div style="font-size:1.5rem;margin-bottom:.2rem;">{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}⭐{% endif %}</div>
         <div style="font-size:.85rem;font-weight:600;">{{ d.donor_name }}</div>
-        <div style="font-size:.8rem;color:var(--gold);">€{{ '{:,.2f}'.format(d.total/100).replace(',', ' ') }}</div>
+        <div style="font-size:.8rem;color:var(--gold);">{{ (d.total)|money(campaign.currency, 2) }}</div>
       </div>
       {% endfor %}
     </div>
@@ -73,8 +73,8 @@
           {% for d in donations %}
           <tr>
             <td style="font-weight:500;">{{ d.donor_name }}{% if d.is_anonymous %}<span class="pill pill-gray pill-no-dot" style="font-size:.6rem;margin-left:.3rem;">anon</span>{% endif %}</td>
-            <td style="font-weight:600;color:var(--green);">€{{ '{:,.2f}'.format(d.amount_cents/100).replace(',', ' ') }}</td>
-            <td class="text-muted text-xs">€{{ '{:,.2f}'.format(d.platform_fee/100).replace(',', ' ') }}</td>
+            <td style="font-weight:600;color:var(--green);">{{ (d.amount_cents)|money(campaign.currency, 2) }}</td>
+            <td class="text-muted text-xs">{{ (d.platform_fee)|money(campaign.currency, 2) }}</td>
             <td style="font-size:.8rem;color:var(--text-muted);max-width:200px;">{% if d.message %}<em>"{{ d.message[:60] }}{% if d.message|length > 60 %}…{% endif %}"</em>{% else %}—{% endif %}</td>
             <td class="text-muted text-xs">{{ d.created_at[:16].replace('T',' ') }}</td>
           </tr>
@@ -96,12 +96,12 @@
 
     <div style="background:var(--green-lt);border:1px solid #86efac;border-radius:var(--radius);padding:.875rem;margin-bottom:1.25rem;">
       <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:.2rem;">Available to withdraw</div>
-      <div style="font-size:1.6rem;font-weight:800;color:var(--green);">€{{ '{:,.2f}'.format(available/100).replace(',', ' ') }}</div>
+      <div style="font-size:1.6rem;font-weight:800;color:var(--green);">{{ (available)|money(campaign.currency, 2) }}</div>
     </div>
 
     {% if available > 0 %}
     <div class="form-group">
-      <label class="form-label">Amount to withdraw (€)</label>
+      <label class="form-label">Amount to withdraw ({{ campaign.currency or 'EUR' }})</label>
       <input class="form-input" type="number" id="wd-amount" min="1" max="{{ available/100 }}" step="0.01" placeholder="{{ '{:.2f}'.format(available/100) }}" oninput="updateWdPreview()">
     </div>
     <div class="modal-confirm-box" id="wd-preview" style="display:none;">
@@ -163,7 +163,7 @@ async function doWithdraw(){
   const d=await API.post('/api/campaigns/'+CAMPAIGN_ID+'/withdraw',{amount:a});
   setLoading(btn,false);
   if(d.error){toast(d.error,'error');return;}
-  toast('€'+a.toFixed(2)+' added to your wallet!','success');
+  toast(a.toFixed(2)+' {{ campaign.currency or 'EUR' }} added to your {{ campaign.currency or 'EUR' }} balance!','success');
   setTimeout(()=>location.reload(),1000);
 }
 async function saveSettings(){

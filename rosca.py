@@ -55,7 +55,9 @@ def get_rosca(rosca_id):
     return fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
 
 def get_marketplace(limit=20, search=None):
-    sql = """SELECT r.*, u.full_name as organiser_name, COUNT(rm.id) as member_count
+    # NB: roscas has its own (stale) member_count column; r.* would shadow an alias of the
+    # same name, so the live count is selected as active_count and copied over below.
+    sql = """SELECT r.*, u.full_name as organiser_name, COUNT(rm.id) as active_count
              FROM roscas r JOIN users u ON u.id=r.organiser_id
              LEFT JOIN rosca_members rm ON rm.rosca_id=r.id AND rm.status='active'
              WHERE r.is_public=1 AND r.status IN ('forming','active')"""
@@ -65,16 +67,22 @@ def get_marketplace(limit=20, search=None):
         params += [f"%{search}%", f"%{search}%"]
     sql += " GROUP BY r.id ORDER BY r.created_at DESC LIMIT ?"
     params.append(limit)
-    return fetchall(sql, params)
+    return [_with_count(row) for row in fetchall(sql, params)]
+
+
+def _with_count(row):
+    d = dict(row)
+    d["member_count"] = d.pop("active_count", 0) or 0
+    return d
 
 def get_user_roscas(user_id):
-    return fetchall("""SELECT r.*, rm.status as mem_status, rm.slot,
-                              COUNT(rm2.id) as member_count
+    return [_with_count(x) for x in fetchall("""SELECT r.*, rm.status as mem_status, rm.slot,
+                              COUNT(rm2.id) as active_count
                        FROM rosca_members rm
                        JOIN roscas r ON r.id=rm.rosca_id
                        LEFT JOIN rosca_members rm2 ON rm2.rosca_id=r.id AND rm2.status='active'
-                       WHERE rm.user_id=?
-                       GROUP BY r.id ORDER BY r.created_at DESC""", (user_id,))
+                       WHERE rm.user_id=? AND rm.status IN ('active','pending')
+                       GROUP BY r.id ORDER BY r.created_at DESC""", (user_id,))]
 
 def join_rosca(rosca_id, user_id):
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))

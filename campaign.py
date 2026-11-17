@@ -46,7 +46,13 @@ def create_campaign(creator_id, title, story, category, goal_cents,
                     allow_anonymous=True):
     if not title.strip(): raise ValueError("Title is required")
     if not story.strip(): raise ValueError("Story is required")
-    if goal_cents < 1000: raise ValueError("Goal must be at least €10")
+    currency = (currency or "EUR").upper()
+    if currency not in CURRENCIES: raise ValueError("Unsupported currency")
+    _min_goal = int(round(1000 * (EXCHANGE_RATES.get(currency) or 1.0)))   # EUR 10 equivalent
+    if goal_cents < _min_goal:
+        _sym = CURRENCIES[currency].get("symbol", "")
+        _sym = _sym + " " if len(_sym) > 1 else _sym
+        raise ValueError(f"Goal must be at least {_sym}{_min_goal/100:,.0f}".replace(",", " "))
     if category not in CAMPAIGN_CATEGORIES:
         category = "personal"
 
@@ -138,6 +144,7 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
     _min  = int(round(MIN_DONATION_CENTS * _rate))     # EUR 1.00 in the campaign currency
     if amount_cents < _min:
         _sym = CURRENCIES.get(c["currency"] or "EUR", {}).get("symbol", "")
+        _sym = _sym + " " if len(_sym) > 1 else _sym
         raise ValueError(f"Minimum donation is {_sym}{_min/100:,.2f}".replace(",", " "))
 
     # Platform fee
@@ -337,7 +344,11 @@ def admin_restore_campaign(campaign_id):
 def get_campaign_stats():
     total  = fetchone("SELECT COUNT(*) as c FROM campaigns")["c"]
     active = fetchone("SELECT COUNT(*) as c FROM campaigns WHERE status='active'")["c"]
-    raised = fetchone("SELECT COALESCE(SUM(raised_cents),0) as s FROM campaigns")["s"]
-    fees   = fetchone("SELECT COALESCE(SUM(platform_fee),0) as s FROM campaign_donations")["s"]
+    # EUR equivalent: campaigns can be in different currencies
+    raised = int(round(sum((r["s"] or 0) / (EXCHANGE_RATES.get(r["currency"] or "EUR") or 1.0) for r in
+                 fetchall("SELECT currency, COALESCE(SUM(raised_cents),0) as s FROM campaigns GROUP BY currency"))))
+    fees   = int(round(sum((r["s"] or 0) / (EXCHANGE_RATES.get(r["currency"] or "EUR") or 1.0) for r in
+                 fetchall("""SELECT ca.currency, COALESCE(SUM(d.platform_fee),0) as s FROM campaign_donations d
+                             JOIN campaigns ca ON ca.id=d.campaign_id GROUP BY ca.currency"""))))
     donors = fetchone("SELECT COUNT(*) as c FROM campaign_donations")["c"]
     return {"total": total, "active": active, "raised": raised, "fees": fees, "donors": donors}

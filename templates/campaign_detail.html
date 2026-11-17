@@ -130,7 +130,7 @@
     </div>
 
     <div class="cp-stats-row">
-      <div class="cp-stat"><div class="n {{ 'pos' if pct>=100 }}">€{{ '{:,.0f}'.format(campaign.raised_cents/100).replace(',', ' ') }}</div><div class="l">raised of €{{ '{:,.0f}'.format(campaign.goal_cents/100).replace(',', ' ') }} goal</div></div>
+      <div class="cp-stat"><div class="n {{ 'pos' if pct>=100 }}">{{ (campaign.raised_cents)|money(campaign.currency, 0) }}</div><div class="l">raised of {{ (campaign.goal_cents)|money(campaign.currency, 0) }} goal</div></div>
       <div class="cp-stat"><div class="n">{{ campaign.donor_count }}</div><div class="l">{{ 'donor' if campaign.donor_count==1 else 'donors' }}</div></div>
       <div class="cp-stat"><div class="n">{{ pct }}%</div><div class="l">funded</div></div>
       {% if campaign.deadline %}<div class="cp-stat"><div class="n" id="cp-daysleft" data-deadline="{{ campaign.deadline[:10] }}">—</div><div class="l">days left</div></div>{% endif %}
@@ -168,7 +168,7 @@
             <div class="cp-don-name">{{ dn }}</div>
             {% if d.message %}<div class="cp-don-msg">{{ d.message }}</div>{% endif %}
           </div>
-          <div class="cp-don-amt">€{{ '{:,.0f}'.format(d.amount_cents/100).replace(',', ' ') }}</div>
+          <div class="cp-don-amt">{{ (d.amount_cents)|money(campaign.currency, 0) }}</div>
         </div>
         {% endfor %}
         {% else %}
@@ -192,7 +192,7 @@
         <div class="cp-don">
           <div class="cp-don-av">{{ (t.donor_name or 'S')[0]|upper }}</div>
           <div class="cp-don-main"><div class="cp-don-name">{{ t.donor_name or 'Supporter' }}</div><div class="cp-don-msg">{{ t.count }} {{ 'donation' if t.count==1 else 'donations' }}</div></div>
-          <div class="cp-don-amt">€{{ '{:,.0f}'.format(t.total/100).replace(',', ' ') }}</div>
+          <div class="cp-don-amt">{{ (t.total)|money(campaign.currency, 0) }}</div>
         </div>
         {% endfor %}
       </div>
@@ -218,13 +218,14 @@
     <p class="modal-sub">Your donation goes directly to the campaign creator. A 2.5% platform fee is deducted.</p>
 
     <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.875rem;">
-      {% for amt in [5, 10, 25, 50, 100, 250] %}
-      <button class="btn btn-outline btn-sm" onclick="setAmt({{ amt }})" style="flex:1;min-width:60px;">€{{ amt }}</button>
+      {% set _quick = [1000, 2000, 5000, 10000, 20000, 50000] if campaign.currency in ['RWF','XAF','NGN'] else [5, 10, 25, 50, 100, 250] %}
+      {% for amt in _quick %}
+      <button class="btn btn-outline btn-sm" onclick="setAmt({{ amt }})" style="flex:1;min-width:60px;">{{ (amt*100)|money(campaign.currency, 0) }}</button>
       {% endfor %}
     </div>
 
     <div class="form-group">
-      <label class="form-label">Amount (€)</label>
+      <label class="form-label">Amount ({{ campaign.currency or 'EUR' }})</label>
       <input class="form-input" type="number" id="don-amount" min="1" step="1" placeholder="Enter amount" oninput="updateDonPreview()">
     </div>
     <div class="modal-confirm-box" id="don-preview" style="display:none;">
@@ -251,6 +252,8 @@
 {% block scripts %}
 <script>
 const CAMPAIGN_ID = '{{ campaign.id }}';
+const CUR_SYM = {{ (cur_symbol(campaign.currency) ~ (' ' if cur_symbol(campaign.currency)|length > 1 else ''))|tojson }};
+const _fmtMoney = fmtMoney; fmtMoney = function(v){ return _fmtMoney(v, CUR_SYM); };
 function setAmt(a){document.getElementById('don-amount').value=a;updateDonPreview();}
 function updateDonPreview(){
   const a=parseFloat(document.getElementById('don-amount').value)||0;

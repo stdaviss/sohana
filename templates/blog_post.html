@@ -27,7 +27,8 @@
 
 /* Article body */
 .bp-body{max-width:760px;margin:3rem auto;padding:0 5%}
-.bp-content{font-size:1.05rem;color:#C4C8C2;line-height:1.82;white-space:pre-wrap}
+.bp-content{font-size:1.05rem;color:#C4C8C2;line-height:1.75}
+.bp-content h2{font-size:1.3rem;color:#F4F2EC;margin:2rem 0 .8rem}.bp-content ul,.bp-content ol{margin:0 0 1.35rem 1.2rem}.bp-content li{margin-bottom:.4rem}.bp-content a{color:#9EE493}
 .bp-content p{margin-bottom:1.35rem}
 
 /* Divider + back nav */
@@ -64,7 +65,7 @@
 
 <!-- Article body -->
 <div class="bp-body">
-  <div class="bp-content">{{ post.body }}</div>
+  <div class="bp-content">{% if post.body_html %}{{ post.body_html|safe }}{% else %}{{ post.body }}{% endif %}</div>
 </div>
 
 <!-- Footer nav -->

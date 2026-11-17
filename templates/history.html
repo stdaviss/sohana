@@ -2,47 +2,95 @@
 {% block title %}History — SOHANA{% endblock %}
 {% block topbar_title %}History{% endblock %}
 {% block content %}
-<div class="page-header">
+<style>
+.hx-head{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.hx-sum{display:flex;gap:.6rem;flex-wrap:wrap}
+.hx-sum div{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;padding:.7rem 1rem;min-width:9rem}
+.hx-sum small{display:block;font:600 .64rem 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.hx-sum b{display:block;font-size:1.15rem;font-weight:600;letter-spacing:-.02em;color:var(--ink);margin-top:.2rem}
+.hx-tools{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.85rem}
+.hx-chip{min-height:36px;padding:0 .9rem;border-radius:999px;border:1.5px solid var(--line-2);background:var(--bg-2);color:var(--ink-2);font:600 .82rem 'Geist',system-ui,sans-serif;cursor:pointer}
+.hx-chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.hx-search{flex:1;min-width:12rem;min-height:40px;border-radius:999px;border:1.5px solid var(--line-2);background:var(--bg-2);color:var(--ink);padding:0 1rem;font:inherit;font-size:16px}
+.hx-list{display:flex;flex-direction:column;gap:.5rem}
+.hx-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.85rem;align-items:center;padding:.8rem 1rem;background:var(--bg-2);border:1px solid var(--line);border-radius:16px}
+.hx-ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--bg-3);color:var(--ink);font-weight:700}
+.hx-ico svg{width:20px;height:20px}
+.hx-ico.in{background:rgba(158,228,147,.13);color:var(--accent)}
+.hx-ico.fee{background:rgba(244,192,106,.13);color:#F4C06A}
+.hx-main{min-width:0}
+.hx-main .t{font-weight:600;color:var(--ink);font-size:.92rem}
+.hx-main .d{font-size:.8rem;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hx-main .f{display:inline-block;margin-top:.25rem;font:600 .7rem 'Geist Mono',monospace;color:#F4C06A;background:rgba(244,192,106,.1);border:1px solid rgba(244,192,106,.25);border-radius:999px;padding:.1rem .5rem}
+.hx-amt{text-align:right;white-space:nowrap}
+.hx-amt b{display:block;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+.hx-amt b.pos{color:var(--accent)}
+.hx-amt small{display:block;font:500 .7rem 'Geist Mono',monospace;color:var(--ink-3);margin-top:.15rem}
+.hx-share{margin-top:.3rem;min-height:30px;padding:0 .7rem;border-radius:999px;border:1.5px solid var(--line-2);background:transparent;color:var(--ink);font:600 .74rem 'Geist',sans-serif;cursor:pointer}
+.hx-empty{padding:3rem 1rem;text-align:center;color:var(--ink-3)}
+</style>
+
+<div class="hx-head">
   <div>
-    <h1 class="page-title">Contribution History</h1>
-    <p class="page-subtitle">All your past ROSCA contributions and payouts.</p>
+    <h1 class="page-title">History</h1>
+    <p class="page-subtitle">Every money movement on all your balances, including SOHANA's fees.</p>
+  </div>
+  <div class="hx-sum">
+    <div><small>Movements</small><b>{{ entries|length }}</b></div>
+    <div><small>SOHANA fees paid</small><b>{{ fees_eur_cents|money('EUR') }}</b></div>
   </div>
 </div>
-<div class="card">
-  <div class="table-filters">
-    <select class="filter-select"><option>All Status</option><option>Paid</option><option>Late</option><option>Missed</option><option>Pending</option></select>
-    <div class="table-search"><span>🔍</span><input type="text" placeholder="Search circle..."></div>
-  </div>
-  {% if contribs %}
-  <div class="table-wrap">
-    <table>
-      <thead><tr>
-        <th>Circle</th><th>Cycle</th><th>Amount</th><th>Due Date</th><th>Paid Date</th><th>Status</th>
-      </tr></thead>
-      <tbody>
-        {% for c in contribs %}
-        <tr>
-          <td><div class="td-bold">{{ c.rosca_name }}</div></td>
-          <td class="text-muted">{{ c.cycle_number }}</td>
-          <td style="font-weight:600;">&euro;{{ '%.2f' % (c.amount_cents / 100) }}</td>
-          <td class="text-muted text-xs">{{ c.due_at[:10] }}</td>
-          <td class="text-muted text-xs">{{ c.paid_at[:10] if c.paid_at else '—' }}</td>
-          <td>
-            <span class="pill {% if c.status == 'paid' %}pill-green{% elif c.status == 'late' %}pill-amber{% elif c.status == 'missed' %}pill-red{% else %}pill-gray{% endif %} pill-no-dot">
-              {{ c.status | capitalize }}
-            </span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <div class="empty-state" style="padding:3rem;">
-    <div style="font-size:2rem;margin-bottom:.5rem;">📋</div>
-    <p>No contribution history yet. Join a circle to start.</p>
-    <a href="/circles" class="btn btn-primary btn-sm mt-3">Find a circle</a>
-  </div>
-  {% endif %}
+
+{% if entries %}
+<div class="hx-tools">
+  <button class="hx-chip on" data-k="">All</button>
+  {% for k in kinds %}<button class="hx-chip" data-k="{{ k }}">{{ {'deposit':'Top-ups','withdrawal':'Cash-outs','pay_out':'Sent','pay_in':'Received','conversion':'Conversions','rosca_contribution':'Contributions','rosca_payout':'Payouts','campaign_payout':'Campaigns','donation':'Donations','fee':'Fees'}.get(k, k|replace('_',' ')|title) }}</button>{% endfor %}
+  <input class="hx-search" id="hx-q" type="search" placeholder="Search" autocomplete="off">
 </div>
+
+<div class="hx-list" id="hx-list">
+  {% for e in entries %}
+  {% set incoming = e.amount_cents > 0 %}
+  <div class="hx-row" data-k="{{ e.kind }}" data-s="{{ (e.label ~ ' ' ~ e.description ~ ' ' ~ e.currency)|lower }}">
+    <div class="hx-ico {{ 'fee' if e.kind == 'fee' else ('in' if incoming else '') }}">
+      {% if incoming %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m6 13 6 6 6-6"/></svg>
+      {% else %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></svg>{% endif %}
+    </div>
+    <div class="hx-main">
+      <div class="t">{{ e.label }}</div>
+      <div class="d">{{ e.description }}</div>
+      {% if e.fee_cents %}<span class="f">SOHANA fee {{ e.fee_cents|money(e.currency) }}{% if e.fee_note %} · {{ e.fee_note }}{% endif %}</span>{% endif %}
+    </div>
+    <div class="hx-amt">
+      <b class="{{ 'pos' if incoming }}">{{ '+' if incoming else '−' }}{{ (e.amount_cents|abs)|money(e.currency) }}</b>
+      <small>{{ e.created_at[:16].replace('T',' ') if e.created_at else '' }}</small>
+      {% if is_demo %}<button class="hx-share" onclick="window.dzShare && dzShare('receipt', '{{ e.id }}')">Share</button>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<p class="hx-empty" id="hx-none" style="display:none">Nothing matches.</p>
+{% else %}
+<div class="hx-empty">
+  <p>No money movements yet. Add money, send to a @hanatag or join a circle to get started.</p>
+  <a href="/wallet" class="btn btn-primary btn-sm mt-3">Go to wallet</a>
+</div>
+{% endif %}
+
+<script>
+(function(){
+  var k='', q=document.getElementById('hx-q');
+  function apply(){
+    var t=(q&&q.value||'').toLowerCase().trim(), n=0;
+    document.querySelectorAll('#hx-list .hx-row').forEach(function(r){
+      var ok=(!k||r.dataset.k===k)&&(!t||r.dataset.s.indexOf(t)>=0); r.style.display=ok?'':'none'; if(ok)n++;
+    });
+    var none=document.getElementById('hx-none'); if(none) none.style.display=n?'none':'';
+  }
+  document.querySelectorAll('.hx-chip').forEach(function(c){ c.addEventListener('click',function(){
+    document.querySelectorAll('.hx-chip').forEach(function(x){x.classList.remove('on');}); c.classList.add('on'); k=c.dataset.k; apply();
+  });});
+  if(q) q.addEventListener('input',apply);
+})();
+</script>
 {% endblock %}

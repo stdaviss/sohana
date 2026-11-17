@@ -568,13 +568,73 @@ def wallet_page():
 @app.route("/history")
 @auth.login_required
 def history_page():
+    """Every money movement on every balance, with SOHANA's fee shown wherever one applied."""
     user = auth.get_current_user()
-    contribs = fetchall("""SELECT c.*, cy.cycle_number, r.name as rosca_name
-                           FROM contributions c JOIN cycles cy ON cy.id=c.cycle_id
-                           JOIN roscas r ON r.id=c.rosca_id
-                           WHERE c.user_id=? ORDER BY c.created_at DESC LIMIT 100""", (user["id"],))
+    entries = _money_history(user["id"])
+    fees_eur = sum(e["fee_eur"] for e in entries)
     tier = ncs_engine.get_tier(user["ncs_score"])
-    return render_template("history.html", user=user, contribs=contribs, tier=tier)
+    return render_template("history.html", user=user, entries=entries, tier=tier,
+                           fees_eur_cents=int(round(fees_eur)),
+                           kinds=sorted({e["kind"] for e in entries}))
+
+
+_HISTORY_LABELS = {
+    "deposit": "Top-up", "withdrawal": "Cash-out", "pay_out": "Sent", "pay_in": "Received",
+    "conversion": "Conversion", "rosca_contribution": "Circle contribution", "rosca_payout": "Circle payout",
+    "campaign_payout": "Campaign withdrawal", "donation": "Donation", "fee": "SOHANA fee",
+}
+
+
+def _money_history(user_id, limit=300):
+    import re as _re
+    rows = fetchall("""SELECT wt.id, wt.amount_cents, wt.balance_after, wt.description, wt.ref_type, wt.ref_id,
+                              wt.tx_type, wt.created_at, w.currency
+                       FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id
+                       WHERE w.user_id=? ORDER BY wt.created_at DESC, wt.rowid DESC LIMIT ?""", (user_id, limit))
+    out = []
+    for r in rows:
+        kind = r["tx_type"] or "other"
+        if r["ref_type"] == "campaign_donation":
+            kind = "donation"
+        desc = r["description"] or ""
+        fee = 0
+        fee_note = ""
+        try:
+            if kind == "withdrawal":
+                m = _re.search(r"\(fee:? ([\d.]+)\)", desc)
+                fee = int(round(float(m.group(1)) * 100)) if m else 0
+            elif kind == "pay_out" and r["ref_id"]:
+                pi = fetchone("SELECT fee_cents FROM payment_intents WHERE result_ref=?", (r["ref_id"],))
+                fee = (pi["fee_cents"] or 0) if pi else 0
+            elif kind == "conversion" and r["amount_cents"] < 0:
+                cc = fetchone("SELECT fee_cents FROM currency_conversions WHERE id=?", (r["ref_id"],)) if r["ref_id"] else None
+                if cc:
+                    fee = cc["fee_cents"] or 0
+                else:
+                    m = _re.search(r"\(fee:? ([\d.]+)\)", desc)
+                    fee = int(round(float(m.group(1)) * 100)) if m else 0
+            elif kind == "rosca_payout" and r["ref_id"]:
+                cy = fetchone("SELECT pot_cents FROM cycles WHERE id=?", (r["ref_id"],))
+                fee = max(0, (cy["pot_cents"] or 0) - r["amount_cents"]) if cy else 0
+                fee_note = "deducted from the pot"
+            elif kind == "donation" and r["ref_id"]:
+                dn = fetchone("SELECT platform_fee FROM campaign_donations WHERE id=?", (r["ref_id"],))
+                fee = (dn["platform_fee"] or 0) if dn else 0
+                fee_note = "paid by the campaign"
+            elif kind == "fee":
+                fee = abs(r["amount_cents"])
+        except Exception:
+            fee = 0
+        label = _HISTORY_LABELS.get(kind, kind.replace("_", " ").title())
+        if kind == "conversion":
+            label = "Converted out" if r["amount_cents"] < 0 else "Converted in"
+        out.append({
+            "id": r["id"], "kind": kind, "label": label, "description": desc,
+            "amount_cents": r["amount_cents"], "currency": r["currency"], "balance_after": r["balance_after"],
+            "fee_cents": fee, "fee_note": fee_note, "created_at": r["created_at"],
+            "fee_eur": fee / (EXCHANGE_RATES.get(r["currency"]) or 1.0),
+        })
+    return out
 
 @app.route("/profile")
 @app.route("/profile/<user_id>")
@@ -1671,7 +1731,7 @@ def _render_blog_body(md: str) -> str:
         # links [text](url) — external links open in new tab
         s = re.sub(
             r"\[([^\]]+)\]\((https?://[^)]+)\)",
-            r"<a href=\"\2\" target=\"_blank\" rel=\"noopener noreferrer\">\1</a>",
+            r'<a href="\2" target="_blank" rel="noopener noreferrer">\1</a>',
             s
         )
         # bold **text**
@@ -1862,6 +1922,25 @@ def api_admin_blog_media_delete(media_id):
 PROMO_MAX_SLIDES = 6
 PROMO_TITLE_MAX  = 42
 PROMO_BODY_MAX   = 90
+
+ZERO_DECIMAL_CURRENCIES = ("RWF", "XAF", "NGN")
+
+@app.template_filter("money")
+def _money_filter(cents, currency="EUR", dp=None):
+    """{{ cents|money(currency) }} -> 'FRw 10 000' / '€25.00' — one formatter for every currency."""
+    cur = (currency or "EUR").upper()
+    sym = CURRENCIES.get(cur, {}).get("symbol", cur)
+    if len(sym) > 1 and not sym.endswith(" "):
+        sym += " "
+    if cur in ZERO_DECIMAL_CURRENCIES:
+        dp = 0
+    elif dp is None:
+        dp = 2
+    return f"{sym}{(cents or 0) / 100:,.{dp}f}".replace(",", " ")
+
+@app.template_global("cur_symbol")
+def _cur_symbol(currency="EUR"):
+    return CURRENCIES.get((currency or "EUR").upper(), {}).get("symbol", currency or "€")
 
 @app.context_processor
 def _inject_promo_slides():

@@ -132,9 +132,10 @@ def _latest_notification(uid):
 
 
 HEAD_HTML = """
-<link rel="stylesheet" href="/static/css/demo-theme.css?v=1">
+<link rel="stylesheet" href="/static/css/demo-theme.css?v=2">
 <script>try{document.documentElement.setAttribute('data-theme','dark');localStorage.setItem('sohana-theme','dark');}catch(e){}</script>
-<script src="/static/js/demo-ui.js?v=1" defer></script>
+<script src="/static/js/demo-ui.js?v=2" defer></script>
+<script src="/static/js/demo-share.js?v=1" defer></script>
 """
 
 
@@ -210,6 +211,37 @@ LIVE_JS = """
 # --------------------------------------------------------------------------- install
 
 def install(app, admin_required):
+    with get_db() as db:   # who arrived through a visitor's shared post
+        db.execute("""CREATE TABLE IF NOT EXISTS demo_referrals (
+                        user_id TEXT PRIMARY KEY, ref_tag TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT (datetime('now')))""")
+        db.execute("""CREATE TABLE IF NOT EXISTS demo_shares (
+                        id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL,
+                        channel TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')))""")
+
+    import demo_blog
+    _blog_done = {"v": False}
+
+    @app.before_request
+    def _demo_blog():
+        # once per worker, after the app's own seeding: current, sourced posts only
+        if not _blog_done["v"] and (request.path.startswith("/blog") or request.path == "/dashboard"):
+            demo_blog.install_posts(get_db, app.logger)
+            _blog_done["v"] = True
+        return None
+
+    @app.context_processor
+    def _demo_flag():
+        return {"is_demo": True}
+
+    @app.before_request
+    def _demo_ref():
+        # ?ref=amina.u on any page: remember who shared the link (cookie read at sign-up)
+        ref = (request.args.get("ref") or "").strip().lstrip("@")[:40]
+        if ref and request.method == "GET":
+            session["demo_ref"] = ref
+        return None
+
     @app.before_request
     def _demo_root():
         if request.path == "/" and "user_id" not in session:
@@ -319,9 +351,103 @@ def install(app, admin_required):
                     (uid,),
                 )
         provision(uid)
+        ref = session.pop("demo_ref", None)
+        if ref:
+            try:
+                with get_db() as db:
+                    db.execute("INSERT OR IGNORE INTO demo_referrals(user_id, ref_tag) VALUES(?,?)", (uid, ref))
+            except Exception:
+                app.logger.exception("demo referral")
         session["user_id"] = uid
         session.permanent = True
         return jsonify({"ok": True, "next": "/dashboard"})
+
+    # ---------------- share cards (visitors show off their demo) ----------------
+
+    def _first_initial(name):
+        return _short(name)
+
+    @app.route("/api/demo/share-data")
+    def api_demo_share_data():
+        uid = session.get("user_id")
+        if not uid:
+            return jsonify({"error": "auth"}), 401
+        u = fetchone("SELECT full_name, hanatag, ncs_score, ncs_tier FROM users WHERE id=?", (uid,))
+        if not u:
+            return jsonify({"error": "auth"}), 401
+        kind = request.args.get("type", "balance")
+        tag = (u["hanatag"] or "").lstrip("@")
+        base = request.host_url.rstrip("/")
+        out = {"name": _short(u["full_name"]), "hanatag": u["hanatag"], "kind": kind,
+               "link": f"{base}/?ref={tag}" if tag else base, "host": request.host}
+        if kind == "score":
+            delta = fetchone("""SELECT COALESCE(SUM(delta),0) AS d FROM ncs_events
+                                WHERE user_id=? AND recorded_at >= datetime('now','-1 day')""", (uid,))["d"]
+            out.update(score=u["ncs_score"] or 300, tier=(u["ncs_tier"] or "probation").title(), delta=delta)
+            out["text"] = (f"My Njangi Credit Score on SOHANA is {out['score']}"
+                           + (f" (+{delta} today)" if delta > 0 else "")
+                           + ". Built from how I save with my circle, not from a bank file. "
+                             "Tried it at #AFTS2026 in Kigali.")
+        elif kind == "receipt":
+            txid = request.args.get("tx")
+            row = None
+            q = """SELECT wt.*, w.currency FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id
+                   WHERE w.user_id=? {} ORDER BY wt.created_at DESC, wt.rowid DESC LIMIT 1"""
+            if txid:
+                row = fetchone(q.format("AND wt.id=?"), (uid, txid))
+            else:
+                row = fetchone(q.format("AND COALESCE(wt.description,'') != ?"), (uid, START_LABEL))
+            if not row:
+                return jsonify({"error": "none"}), 404
+            t = row["tx_type"]; amt = row["amount_cents"]; cur = row["currency"]
+            title, who = "Money moved", ""
+            if t == "pay_out" and row["ref_type"] != "campaign_donation":
+                hp = fetchone("SELECT u.full_name FROM hanatag_payments h JOIN users u ON u.id=h.recipient_id WHERE h.id=?", (row["ref_id"],))
+                title, who = "Sent", f"to {_short(hp['full_name'])}" if hp else ""
+            elif t == "pay_in":
+                hp = fetchone("SELECT u.full_name FROM hanatag_payments h JOIN users u ON u.id=h.sender_id WHERE h.id=?", (row["ref_id"],))
+                title, who = "Received", f"from {_short(hp['full_name'])}" if hp else ""
+            elif row["ref_type"] == "campaign_donation":
+                title, who = "Donated", "to a campaign"
+            elif t == "rosca_contribution":
+                title, who = "Paid into my circle", (row["description"] or "").replace("Contribution: ", "")
+            elif t == "rosca_payout":
+                title, who = "Circle payout", "my turn to receive the pot"
+            elif t == "conversion":
+                title, who = ("Converted", (row["description"] or "").split(" (fee")[0])
+            elif t == "deposit":
+                title, who = "Added money", ""
+            elif t == "withdrawal":
+                title, who = "Cashed out", "to mobile money or bank"
+            elif t == "campaign_payout":
+                title, who = "Campaign funds received", ""
+            out.update(title=title, who=who, amount=_money(abs(amt), cur), incoming=amt > 0,
+                       when=str(row["created_at"])[:16].replace("T", " "), ref=str(row["id"])[:8].upper())
+            verb = {"Sent": "just sent", "Received": "just received", "Circle payout": "just got my circle payout of",
+                    "Paid into my circle": "just paid into my savings circle:", "Converted": "just converted",
+                    "Donated": "just backed a campaign with"}.get(title, "just moved")
+            out["text"] = f"I {verb} {out['amount']} on SOHANA, in seconds. Live demo at #AFTS2026 in Kigali."
+        else:
+            out["kind"] = "balance"
+            bals = [b for b in _balances(uid) if b["cents"] > 0]
+            bals.sort(key=lambda b: -b["cents"] / (EXCHANGE_RATES.get(b["currency"]) or 1.0))
+            total = sum(b["cents"] / (EXCHANGE_RATES.get(b["currency"]) or 1.0) for b in bals)
+            out.update(balances=[{"currency": b["currency"], "amount": _money(b["cents"], b["currency"])} for b in bals[:4]],
+                       total=_money(int(round(total)), "EUR"), count=len(bals))
+            out["text"] = (f"One wallet, {len(bals)} currencies, instant @hanatag transfers. "
+                           "Trying SOHANA live at #AFTS2026 in Kigali.")
+        out["text"] += f" Try the demo: {out['link']} #SOHANA #fintech #Africa"
+        return jsonify(out)
+
+    @app.route("/api/demo/share-log", methods=["POST"])
+    def api_demo_share_log():
+        uid = session.get("user_id")
+        d = request.get_json(silent=True) or {}
+        if uid:
+            with get_db() as db:
+                db.execute("INSERT INTO demo_shares(id,user_id,kind,channel) VALUES(?,?,?,?)",
+                           (uuid.uuid4().hex, uid, str(d.get("kind", ""))[:20], str(d.get("channel", ""))[:20]))
+        return jsonify({"ok": True})
 
     @app.route("/api/demo/pulse")
     def api_demo_pulse():
@@ -573,6 +699,8 @@ def install(app, admin_required):
                     "emails": sum(1 for u in users if u.get("email")),
                     "consented": sum(1 for u in users if u.get("consent")),
                     "transfers_today": tx["c"] if tx else 0,
+                    "shares": fetchone("SELECT COUNT(*) AS c FROM demo_shares")["c"],
+                    "referred": fetchone("SELECT COUNT(*) AS c FROM demo_referrals")["c"],
                 },
             }
         )

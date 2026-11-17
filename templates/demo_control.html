@@ -69,6 +69,8 @@ dialog input,dialog select{width:100%;background:var(--bg);border:1px solid var(
     <div class="stat"><div class="k">With email</div><div class="v" id="s-emails">–</div></div>
     <div class="stat"><div class="k">News opt-in</div><div class="v" id="s-consent">–</div></div>
     <div class="stat"><div class="k">Transfers today</div><div class="v" id="s-tx">–</div></div>
+    <div class="stat"><div class="k">Posts shared</div><div class="v" id="s-sh">–</div></div>
+    <div class="stat"><div class="k">Joined via a share</div><div class="v" id="s-ref">–</div></div>
   </div>
 
   <div class="how">
@@ -137,6 +139,8 @@ dialog input,dialog select{width:100%;background:var(--bg);border:1px solid var(
       document.getElementById('s-emails').textContent=d.stats.emails;
       document.getElementById('s-consent').textContent=d.stats.consented;
       document.getElementById('s-tx').textContent=d.stats.transfers_today;
+      document.getElementById('s-sh').textContent=d.stats.shares;
+      document.getElementById('s-ref').textContent=d.stats.referred;
       document.getElementById('foot').textContent='Last update '+new Date().toLocaleTimeString();
       render();
     }).catch(function(){document.getElementById('foot').textContent='Connection lost, retrying…';});
