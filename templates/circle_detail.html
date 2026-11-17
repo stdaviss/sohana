@@ -367,8 +367,9 @@
       <div class="pb">
         <div>
           <div class="cd-eyebrow">
-            {% if rosca.status == 'active' %}Your contribution · Cycle {{ cycle_num }} of {{ total_cycles }}
+            {% if rosca.status == 'active' %}Your contribution · {% if round_no > 1 %}Round {{ round_no }} · {% endif %}Cycle {{ cycle_num }} of {{ total_cycles }}
             {% elif rosca.status == 'forming' %}Your contribution · Starts soon
+            {% elif rosca.status == 'completed' %}Round {{ round_no }} complete
             {% else %}Circle {{ rosca.status }}{% endif %}
           </div>
           <div class="cd-action-amt">{{ money(contrib_cents) }}</div>
@@ -378,7 +379,7 @@
             {% elif rosca.status == 'forming' %}
               {{ freq_label }} contributions start once the organiser starts the circle.
             {% elif rosca.status == 'completed' %}
-              Every member has received their payout.
+              Every member received their payout this round. The circle can run again with today's members.
             {% else %}
               {{ freq_label }} contribution
             {% endif %}
@@ -386,8 +387,8 @@
         </div>
         <div class="cd-action-cta">
           {% if not is_member %}
-            {% if rosca.status in ['forming','active'] %}
-            <button class="cd-btn" id="btn-join" onclick="joinCircle(this)">Join this circle</button>
+            {% if rosca.status in ['forming','active','completed'] %}
+            <button class="cd-btn" id="btn-join" onclick="joinCircle(this)">{{ 'Join for the next round' if rosca.status == 'completed' else 'Join this circle' }}</button>
             <div class="cd-note">The organiser may need to approve your request.</div>
             {% endif %}
           {% elif rosca.status == 'forming' %}
@@ -397,6 +398,14 @@
             {% else %}
             <button class="cd-btn" disabled>Pay {{ money(contrib_cents) }}</button>
             <div class="cd-note">Payments open when the organiser starts the circle.</div>
+            {% endif %}
+          {% elif rosca.status == 'completed' %}
+            {% if is_organiser %}
+            <button class="cd-btn" id="btn-round" onclick="newRound(this)">Start round {{ round_no + 1 }}</button>
+            <div class="cd-note">Same circle and history. Everyone who is a member now takes part, {{ total_members }} so far. New members can still join.</div>
+            {% else %}
+            <button class="cd-btn" disabled>Round {{ round_no + 1 }} not started</button>
+            <div class="cd-note">The organiser or a co-admin starts the next round.</div>
             {% endif %}
           {% elif i_paid %}
             <span class="cd-paid-chip"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Paid for cycle {{ cycle_num }}</span>
@@ -412,8 +421,6 @@
             {% else %}
             <div class="cd-note">From your {{ currency }} balance · {{ money(my_balance_cents) }} available</div>
             {% endif %}
-          {% elif rosca.status == 'completed' %}
-            <a class="cd-btn secondary" href="/wallet">View wallet</a>
           {% endif %}
         </div>
       </div>
@@ -517,6 +524,8 @@
                 {{ m.full_name.split()[0] }}
                 {% if m.user_id == rosca.organiser_id %}
                 <span class="org-badge">Organiser</span>
+                {% elif m.user_id in co_admin_ids %}
+                <span class="org-badge">Co-admin</span>
                 {% endif %}
               </div>
               <div class="sub">NCS {{ m.ncs_score }} · {{ m.hanatag or '—' }}</div>
@@ -822,12 +831,15 @@
           <div class="mem-info">
             <div class="name">
               {{ m.full_name }}
-              {% if m.user_id == rosca.organiser_id %}<span class="org-badge">Organiser</span>{% endif %}
+              {% if m.user_id == rosca.organiser_id %}<span class="org-badge">Organiser</span>{% elif m.user_id in co_admin_ids %}<span class="org-badge">Co-admin</span>{% endif %}
               {% if m.user_id == user.id %}<span class="org-badge">You</span>{% endif %}
             </div>
             <div class="sub">Payout {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or '' }}</div>
           </div>
           <span class="mem-ncs {{ ncs_cls }}">{{ m.ncs_score }}</span>
+          {% if is_owner and m.user_id != rosca.organiser_id %}
+          <button class="cd-btn secondary sm" onclick="setCoAdmin('{{ m.user_id }}', {{ 'false' if m.user_id in co_admin_ids else 'true' }}, this)">{{ 'Remove co-admin' if m.user_id in co_admin_ids else 'Make co-admin' }}</button>
+          {% endif %}
           {% if m.user_id != user.id and m.user_id not in my_endorsements %}
           <button class="cd-btn secondary sm" onclick="endorse('{{ m.user_id }}', this)">Endorse</button>
           {% endif %}
@@ -837,10 +849,11 @@
     </div>
     {% if is_organiser %}
     <div class="cd-panel">
-      <div class="ph"><h3>Organiser Tools</h3></div>
+      <div class="ph"><h3>{{ 'Organiser tools' if is_owner else 'Co-admin tools' }}</h3></div>
       <div class="pb">
         <div class="org-tools">
           <a class="cd-btn block" href="/organiser/{{ rosca.id }}">Manage circle</a>
+          {% if is_owner %}<div class="cd-note">Share admin rights with up to 2 members: "Make co-admin" next to their name.</div>{% endif %}
           <button class="org-btn" onclick="copyInviteLink()">Invite members</button>
           <button class="org-btn" onclick="openAnnModal()">Post announcement</button>
           <button class="org-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')">Create a vote</button>
@@ -1025,6 +1038,20 @@ function startCircle(btn){
   postJSON('/api/rosca/'+ROSCA_ID+'/activate', {}).then(function(d){
     if(d.ok){ cdToast('Circle started. Members can pay now.','success'); setTimeout(function(){ location.reload(); }, 900); }
     else { busy(btn, false); cdToast(d.error||'Could not start the circle','error'); }
+  }).catch(function(){ busy(btn, false); cdToast('Network error','error'); });
+}
+function newRound(btn){
+  busy(btn, true, 'Starting…');
+  postJSON('/api/rosca/'+ROSCA_ID+'/new-round', {}).then(function(d){
+    if(d.ok){ cdToast('Round '+d.round+' started. Members can pay now.','success'); setTimeout(function(){ location.reload(); }, 900); }
+    else { busy(btn, false); cdToast(d.error||'Could not start a new round','error'); }
+  }).catch(function(){ busy(btn, false); cdToast('Network error','error'); });
+}
+function setCoAdmin(uid, on, btn){
+  busy(btn, true, 'Saving…');
+  postJSON('/api/rosca/'+ROSCA_ID+'/co-admin', {user_id:uid, on:on}).then(function(d){
+    if(d.ok){ cdToast(on ? 'Co-admin added' : 'Co-admin removed','success'); setTimeout(function(){ location.reload(); }, 700); }
+    else { busy(btn, false); cdToast(d.error||'Could not update','error'); }
   }).catch(function(){ busy(btn, false); cdToast('Network error','error'); });
 }
 function joinCircle(btn){

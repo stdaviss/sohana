@@ -17,7 +17,8 @@
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
     <a href="/circles/{{ rosca.id }}" class="btn btn-outline btn-sm">View circle</a>
     {% if rosca.status=='forming' %}<button class="btn btn-green btn-sm" id="btn-activate" onclick="activateCircle()">▶ Activate</button>{% endif %}
-    {% if rosca.status=='active' %}<button class="btn btn-primary btn-sm" id="btn-cycle" onclick="startCycle()">{{ 'Next cycle' if cycle_info else 'Start first cycle' }}</button>{% endif %}
+    {% if rosca.status=='active' %}<span class="pill pill-green pill-no-dot" style="align-self:center;">Round {{ rosca.current_round or 1 }} running · cycles open automatically</span>{% endif %}
+    {% if rosca.status=='completed' %}<button class="btn btn-primary btn-sm" id="btn-round" onclick="newRound()">Start round {{ (rosca.current_round or 1) + 1 }}</button>{% endif %}
     {% if report and report.cycles_complete > 0 %}<a href="/api/rosca/{{ rosca.id }}/report/csv" class="btn btn-outline btn-sm">⬇ Download report</a>{% endif %}
   </div>
 </div>
@@ -87,10 +88,14 @@
         <div class="text-xs text-muted">{{ m.hanatag or '' }} · NCS {{ m.ncs_score }} · Slot #{{ m.slot or '—' }}</div>
       </div>
       <span class="pill {% if m.ncs_tier=='exemplary' %}pill-purple{% elif m.ncs_tier=='reliable' %}pill-green{% elif m.ncs_tier=='developing' %}pill-amber{% else %}pill-orange{% endif %} pill-no-dot" style="font-size:.7rem;">{{ m.ncs_tier.title() }}</span>
-      {% if m.user_id != rosca.organiser_id %}
-      <button class="btn btn-outline btn-sm" style="font-size:.72rem;color:var(--red);border-color:#fecaca;" onclick="openRemoveModal('{{ m.user_id }}','{{ m.full_name }}')">Remove</button>
-      {% else %}
+      {% if m.user_id == rosca.organiser_id %}
       <span class="pill pill-blue pill-no-dot" style="font-size:.65rem;">Organiser</span>
+      {% else %}
+      {% if m.user_id in co_admins %}<span class="pill pill-green pill-no-dot" style="font-size:.65rem;">Co-admin</span>{% endif %}
+      {% if is_owner %}<button class="btn btn-outline btn-sm" style="font-size:.72rem;" onclick="setCoAdmin('{{ m.user_id }}', {{ 'false' if m.user_id in co_admins else 'true' }})">{{ 'Remove co-admin' if m.user_id in co_admins else 'Make co-admin' }}</button>{% endif %}
+      {% if m.user_id != user.id and (is_owner or m.user_id not in co_admins) %}
+      <button class="btn btn-outline btn-sm" style="font-size:.72rem;color:var(--red);border-color:#fecaca;" onclick="openRemoveModal('{{ m.user_id }}','{{ m.full_name }}')">Remove</button>
+      {% endif %}
       {% endif %}
     </div>
     {% endif %}
@@ -456,6 +461,19 @@ async function activateCircle() {
   const d = await API.post(`/api/rosca/${ROSCA_ID}/activate`, {});
   setLoading(btn, false);
   if (d.ok) { toast('Circle activated!', 'success'); setTimeout(()=>location.reload(), 800); }
+  else toast(d.error, 'error');
+}
+async function newRound() {
+  const btn = document.getElementById('btn-round');
+  setLoading(btn, true);
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/new-round`, {});
+  setLoading(btn, false);
+  if (d.ok) { toast('Round ' + d.round + ' started!', 'success'); setTimeout(()=>location.reload(), 900); }
+  else toast(d.error, 'error');
+}
+async function setCoAdmin(uid, on) {
+  const d = await API.post(`/api/rosca/${ROSCA_ID}/co-admin`, { user_id: uid, on: on });
+  if (d.ok) { toast(on ? 'Co-admin added' : 'Co-admin removed', 'success'); setTimeout(()=>location.reload(), 700); }
   else toast(d.error, 'error');
 }
 async function startCycle() {

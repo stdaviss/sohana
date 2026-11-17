@@ -682,10 +682,14 @@ def _circle_detail_inner(rosca_id):
         except Exception:
             app.logger.exception("sync_open_cycle failed for %s", rosca_id)
     cycle_info = rosca.get_cycle_status(rosca_id)
+    round_start  = int(r.get("round_start_cycle") or 1)
+    round_no     = int(r.get("current_round") or 1)
     paid_out_ids = {c["recipient_id"] for c in fetchall(
-        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed'", (rosca_id,))}
+        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed' AND cycle_number>=?",
+        (rosca_id, round_start))}
     is_member    = any(m["user_id"] == user["id"] and m["status"] == "active" for m in members)
-    is_organiser = r["organiser_id"] == user["id"]
+    is_organiser = rosca.is_circle_admin(rosca_id, user["id"])   # organiser or co-admin
+    is_owner     = r["organiser_id"] == user["id"]
 
     # Safely unpack cycle_info — key names differ depending on circle state
     my_contrib     = None
@@ -715,6 +719,7 @@ def _circle_detail_inner(rosca_id):
                     my_contrib = c
             except Exception:
                 pass
+    cycle_num = max(1, cycle_num - round_start + 1)   # numbering restarts each round
     try:
         leaderboard = ncs_engine.get_leaderboard(rosca_id)
     except AttributeError:
@@ -744,6 +749,10 @@ def _circle_detail_inner(rosca_id):
     return render_template("circle_detail.html", user=user, rosca=r, members=members,
                            cycle_info=cycle_info, currencies=CURRENCIES,
                            paid_out_ids=paid_out_ids, my_received=user["id"] in paid_out_ids,
+                           round_no=round_no, is_owner=is_owner,
+                           co_admin_ids={m["user_id"] for m in fetchall(
+                               "SELECT user_id FROM rosca_members WHERE rosca_id=? AND role='co_admin' AND status='active'",
+                               (rosca_id,))},
                            my_balance_cents=_circle_balance(user["id"], r.get("currency") or "EUR"),
                            cycle_num=cycle_num, cycle_due=cycle_due,
                            cycle_recip=cycle_recip, cycle_contribs=cycle_contribs,
@@ -772,7 +781,7 @@ def ncs_page():
 def organiser_dashboard(rosca_id):
     user = auth.get_current_user()
     r    = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != user["id"]: return redirect(url_for("circles_page"))
+    if not r or not rosca.is_circle_admin(rosca_id, user["id"]): return redirect(url_for("circles_page"))
     members    = rosca.get_rosca_members(rosca_id)
     pending    = rosca.get_pending_members(rosca_id)
     cycle_info = rosca.get_cycle_status(rosca_id)
@@ -781,7 +790,10 @@ def organiser_dashboard(rosca_id):
                                JOIN users u ON u.id=c.user_id
                                WHERE c.rosca_id=? ORDER BY c.created_at DESC""", (rosca_id,))
     report     = rosca.get_circle_report(rosca_id)
+    co_admins  = {m["user_id"] for m in fetchall(
+        "SELECT user_id FROM rosca_members WHERE rosca_id=? AND role='co_admin' AND status='active'", (rosca_id,))}
     return render_template("organiser.html", user=user, rosca=dict(r),
+                           co_admins=co_admins, is_owner=(r["organiser_id"] == user["id"]),
                            members=members, pending=pending,
                            cycle_info=cycle_info, all_cycles=all_cycles,
                            all_contribs=all_contribs, report=report)
@@ -1158,6 +1170,11 @@ def _run_safe_migrations():
         "ALTER TABLE rosca_members ADD COLUMN payout_position INTEGER",
         "ALTER TABLE roscas ADD COLUMN member_count INTEGER NOT NULL DEFAULT 0",
 "ALTER TABLE pool_members ADD COLUMN payment_schedule TEXT NOT NULL DEFAULT 'monthly'",
+        # circles that run in repeated rounds + shared admin rights
+        "ALTER TABLE roscas ADD COLUMN current_round INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE roscas ADD COLUMN round_start_cycle INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE rosca_members ADD COLUMN role TEXT NOT NULL DEFAULT 'member'",
+        "ALTER TABLE cycles ADD COLUMN round_number INTEGER NOT NULL DEFAULT 1",
         # v9.4 waitlist v2: place in line, referrals, @hanatag reservation
         "ALTER TABLE waitlist ADD COLUMN referral_code    TEXT",
         "ALTER TABLE waitlist ADD COLUMN access_token     TEXT",
@@ -4528,7 +4545,7 @@ def api_circle_delete_post(rosca_id, post_id):
     if not post:
         return jsonify({"error": "Post not found"}), 404
     circle = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
-    if post["author_id"] != uid and (not circle or circle["organiser_id"] != uid):
+    if post["author_id"] != uid and (not circle or not rosca.is_circle_admin(rosca_id, uid)):
         return jsonify({"error": "Not authorized"}), 403
     with get_db(immediate=True) as db:
         db.execute("DELETE FROM circle_post_comments WHERE post_id=?", (post_id,))
@@ -4558,7 +4575,7 @@ def api_rosca_join(rosca_id):
             return jsonify({"error": "You can't rejoin this circle while a missed contribution is unresolved."}), 409
         # 'left' / 'rejected' / anything else → allowed to ask again (below)
 
-    if c.get("status") not in (None, "forming", "active"):
+    if c.get("status") not in (None, "forming", "active", "completed"):
         return jsonify({"error": "This circle is not accepting new members"}), 409
     me = fetchone("SELECT ncs_score FROM users WHERE id=?", (uid,))
     min_ncs = c.get("ncs_min_score") or 0
@@ -4818,7 +4835,7 @@ def api_create_rosca():
 def api_pending_members(rosca_id):
     """Get list of pending join requests (organiser only)."""
     r = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != session["user_id"]:
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]):
         return jsonify({"error": "Unauthorised"}), 403
     pending = rosca.get_pending_members(rosca_id)
     return jsonify({"pending": [dict(p) for p in pending]})
@@ -4852,8 +4869,8 @@ def api_reject_member_body(rosca_id):
     r = rosca.get_rosca(rosca_id)
     if not r:
         return jsonify({"error": "Circle not found"}), 404
-    if r["organiser_id"] != session["user_id"]:
-        return jsonify({"error": "Only the organiser can decline requests"}), 403
+    if not rosca.is_circle_admin(rosca_id, session["user_id"]):
+        return jsonify({"error": "Only the organiser or a co-admin can decline requests"}), 403
     if not fetchone("SELECT 1 FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='pending'", (rosca_id, target)):
         return jsonify({"error": "No pending request found"}), 404
     try:
@@ -4899,7 +4916,7 @@ def api_add_member_direct(rosca_id):
 def api_rosca_report(rosca_id):
     """Full circle performance report — organiser only."""
     r = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != session["user_id"]:
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]):
         return jsonify({"error": "Unauthorised"}), 403
     report = rosca.get_circle_report(rosca_id)
     return jsonify({"report": report})
@@ -4910,7 +4927,7 @@ def api_rosca_report_csv(rosca_id):
     """Download circle report as CSV."""
     import io, csv
     r = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != session["user_id"]:
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]):
         return jsonify({"error": "Unauthorised"}), 403
     report = rosca.get_circle_report(rosca_id)
     output = io.StringIO()
@@ -4970,7 +4987,7 @@ def api_contribute(rosca_id):
 @auth.login_required
 def api_activate_rosca(rosca_id):
     r = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != session["user_id"]: return jsonify({"error": "Unauthorized"}), 403
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]): return jsonify({"error": "Unauthorized"}), 403
     if r["status"] == "active":
         return jsonify({"ok": True})
     if r["status"] != "forming":
@@ -4987,12 +5004,41 @@ def api_activate_rosca(rosca_id):
 @auth.login_required
 def api_start_cycle(rosca_id):
     r = rosca.get_rosca(rosca_id)
-    if not r or r["organiser_id"] != session["user_id"]: return jsonify({"error": "Unauthorized"}), 403
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]): return jsonify({"error": "Unauthorized"}), 403
     try:
         cycle = rosca.get_or_create_active_cycle(rosca_id)
         return jsonify({"ok": True, "cycle_id": cycle["id"]})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route("/api/rosca/<rosca_id>/new-round", methods=["POST"])
+@auth.login_required
+def api_new_round(rosca_id):
+    """Restart a completed circle for another round with its current members."""
+    uid = session["user_id"]
+    try:
+        rnd, cycle = rosca.start_new_round(rosca_id, uid)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    try:
+        u = fetchone("SELECT full_name FROM users WHERE id=?", (uid,))
+        _log_circle_activity(rosca_id, uid, "cycle_started",
+                             f"{u['full_name'] if u else 'An admin'} started round {rnd}", {"round": rnd})
+    except Exception:
+        app.logger.exception("activity log failed")
+    return jsonify({"ok": True, "round": rnd, "cycle_id": cycle["id"]})
+
+
+@app.route("/api/rosca/<rosca_id>/co-admin", methods=["POST"])
+@auth.login_required
+def api_set_co_admin(rosca_id):
+    d = request.get_json(silent=True) or {}
+    try:
+        rosca.set_co_admin(rosca_id, session["user_id"], (d.get("user_id") or "").strip(), bool(d.get("on", True)))
+        return jsonify({"ok": True})
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
 
 @app.route("/api/rosca/marketplace")
 def api_marketplace():
@@ -6198,7 +6244,7 @@ def api_circle_announcements(rosca_id):
 def api_circle_post_announcement(rosca_id):
     _ensure_circle_tables()
     r = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
-    if not r or r["organiser_id"] != session["user_id"]:
+    if not r or not rosca.is_circle_admin(rosca_id, session["user_id"]):
         return jsonify({"error": "Only the organiser can post announcements."}), 403
     d        = request.get_json(silent=True) or {}
     title    = d.get("title", "").strip()

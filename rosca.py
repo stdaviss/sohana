@@ -79,7 +79,7 @@ def get_user_roscas(user_id):
 def join_rosca(rosca_id, user_id):
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
     if not r: raise ValueError("Circle not found")
-    if r["status"] not in ("forming","active"): raise ValueError("This circle is not accepting members")
+    if r["status"] not in ("forming","active","completed"): raise ValueError("This circle is not accepting members")
     user = fetchone("SELECT ncs_score FROM users WHERE id=?", (user_id,))
     if user["ncs_score"] < r["ncs_min_score"]:
         raise ValueError(f"Minimum NCS score of {r['ncs_min_score']} required")
@@ -95,6 +95,100 @@ def join_rosca(rosca_id, user_id):
     push_notification(organiser_id, "New member joined", f"Someone joined your circle '{r['name']}'.", "info", f"/organiser/{rosca_id}")
 
 ROSCA_PAYOUT_FEE = 0.0125   # 1.25% platform fee on each payout
+MAX_CO_ADMINS = 2
+
+
+def is_circle_admin(rosca_id, user_id):
+    """Organiser, or an active member the organiser made co-admin."""
+    if not user_id:
+        return False
+    r = fetchone("SELECT organiser_id FROM roscas WHERE id=?", (rosca_id,))
+    if not r:
+        return False
+    if r["organiser_id"] == user_id:
+        return True
+    try:
+        return fetchone("""SELECT 1 FROM rosca_members WHERE rosca_id=? AND user_id=?
+                           AND status='active' AND role='co_admin'""", (rosca_id, user_id)) is not None
+    except Exception:
+        return False
+
+
+def set_co_admin(rosca_id, organiser_id, user_id, on=True):
+    """Only the organiser shares (or withdraws) admin rights, up to MAX_CO_ADMINS."""
+    r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
+    if not r or r["organiser_id"] != organiser_id:
+        raise ValueError("Only the organiser can share admin rights")
+    if user_id == organiser_id:
+        raise ValueError("You are already the organiser")
+    m = fetchone("SELECT role FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'",
+                 (rosca_id, user_id))
+    if not m:
+        raise ValueError("Only active members can be co-admins")
+    if on:
+        n = fetchone("SELECT COUNT(*) AS c FROM rosca_members WHERE rosca_id=? AND role='co_admin' AND status='active'",
+                     (rosca_id,))["c"]
+        if m["role"] != "co_admin" and n >= MAX_CO_ADMINS:
+            raise ValueError(f"A circle can have at most {MAX_CO_ADMINS} co-admins")
+    with get_db() as db:
+        db.execute("UPDATE rosca_members SET role=? WHERE rosca_id=? AND user_id=?",
+                   ("co_admin" if on else "member", rosca_id, user_id))
+    if on:
+        push_notification(user_id, "You are now a co-admin",
+                          f"You can now manage '{r['name']}': add members, start rounds and post announcements.",
+                          "success", f"/circles/{rosca_id}")
+
+
+def _round_start(r):
+    try:
+        return int(r["round_start_cycle"] or 1)
+    except (IndexError, KeyError):
+        return 1
+
+
+def _round_no(r):
+    try:
+        return int(r["current_round"] or 1)
+    except (IndexError, KeyError):
+        return 1
+
+
+def cycle_label(r, cycle_number):
+    """'cycle 2' in the first round, 'round 2 · cycle 1' afterwards."""
+    n = int(cycle_number) - _round_start(r) + 1
+    return f"round {_round_no(r)} · cycle {n}" if _round_no(r) > 1 else f"cycle {n}"
+
+
+def start_new_round(rosca_id, user_id):
+    """After every member has been paid out, an admin starts the next round
+    with whoever is an active member now (new joiners included, leavers gone).
+    The circle keeps its history, its name and its NCS trail."""
+    if not is_circle_admin(rosca_id, user_id):
+        raise ValueError("Only the organiser or a co-admin can start a new round")
+    with get_db(immediate=True) as db:
+        r = db.execute("SELECT * FROM roscas WHERE id=?", (rosca_id,)).fetchone()
+        if not r:
+            raise ValueError("Circle not found")
+        if r["status"] == "active":
+            raise ValueError("This round is still running")
+        if r["status"] not in ("completed", "forming"):
+            raise ValueError("This circle can't be restarted")
+        n = db.execute("SELECT COUNT(*) AS c FROM rosca_members WHERE rosca_id=? AND status='active'",
+                       (rosca_id,)).fetchone()["c"]
+        if n < 1:
+            raise ValueError("Add members before starting a new round")
+        last = db.execute("SELECT MAX(cycle_number) AS n FROM cycles WHERE rosca_id=?", (rosca_id,)).fetchone()["n"] or 0
+        new_round = _round_no(r) + (1 if last else 0)
+        db.execute("""UPDATE roscas SET status='active', current_round=?, round_start_cycle=?,
+                      updated_at=datetime('now') WHERE id=?""", (new_round, last + 1, rosca_id))
+    cycle = get_or_create_active_cycle(rosca_id)
+    r = fetchone("SELECT name FROM roscas WHERE id=?", (rosca_id,))
+    for m in fetchall("SELECT user_id FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,)):
+        if m["user_id"] != user_id:
+            push_notification(m["user_id"], f"Round {new_round} has started",
+                              f"'{r['name']}' is running again. Your first contribution is due.",
+                              "info", f"/circles/{rosca_id}")
+    return new_round, cycle
 
 
 def _money(cents, currency):
@@ -141,7 +235,8 @@ def _open_next_cycle(db, r):
     if not members:
         raise ValueError("This circle has no active members yet.")
     paid_out = {row["recipient_id"] for row in db.execute(
-        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed'", (r["id"],))}
+        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed' AND cycle_number>=?",
+        (r["id"], _round_start(r)))}
     nxt = next((m["user_id"] for m in members if m["user_id"] not in paid_out), None)
     if nxt is None:
         return None
@@ -150,8 +245,8 @@ def _open_next_cycle(db, r):
     num = last + 1
     due = (datetime.utcnow() + timedelta(days=r["frequency_days"] or 30)).isoformat()
     cid = str(uuid.uuid4())
-    db.execute("""INSERT INTO cycles(id,rosca_id,cycle_number,recipient_id,pot_cents,status,due_at)
-                  VALUES(?,?,?,?,0,'collecting',?)""", (cid, r["id"], num, nxt, due))
+    db.execute("""INSERT INTO cycles(id,rosca_id,cycle_number,recipient_id,pot_cents,status,due_at,round_number)
+                  VALUES(?,?,?,?,0,'collecting',?,?)""", (cid, r["id"], num, nxt, due, _round_no(r)))
     db.execute("UPDATE roscas SET current_cycle=?, total_cycles=?, updated_at=datetime('now') WHERE id=?",
                (num, len(paid_out) + len([m for m in members if m["user_id"] not in paid_out]), r["id"]))
     cycle = db.execute("SELECT * FROM cycles WHERE id=?", (cid,)).fetchone()
@@ -165,7 +260,7 @@ def get_or_create_active_cycle(rosca_id):
     if not r:
         raise ValueError("Circle not found")
     if r["status"] == "completed":
-        raise ValueError("This circle has completed all its payouts.")
+        raise ValueError("This round is complete. The organiser can start a new round.")
     if r["status"] != "active":
         raise ValueError("Payments open once the organiser starts the circle.")
     with get_db(immediate=True) as db:
@@ -175,7 +270,7 @@ def get_or_create_active_cycle(rosca_id):
             cycle = _open_next_cycle(db, r)
             if cycle is None:
                 db.execute("UPDATE roscas SET status='completed', updated_at=datetime('now') WHERE id=?", (rosca_id,))
-                raise ValueError("This circle has completed all its payouts.")
+                raise ValueError("This round is complete. The organiser can start a new round.")
         else:
             _sync_contributions(db, cycle, r)
         cid = cycle["id"]
@@ -235,7 +330,7 @@ def pay_contribution(user_id, cycle_id):
         if bal < amt:
             raise ValueError(f"Not enough in your {cur} balance: you have {_money(bal, cur)}, "
                              f"the contribution is {_money(amt, cur)}. Add or convert funds first.")
-        post_transaction(w["id"], -amt, f"Contribution: {r['name']} (cycle {cycle['cycle_number']})",
+        post_transaction(w["id"], -amt, f"Contribution: {r['name']} ({cycle_label(r, cycle['cycle_number'])})",
                          "contribution", contrib["id"], tx_type="rosca_contribution", _db=db)
         now = datetime.utcnow()
         try:
@@ -284,7 +379,7 @@ def _check_cycle_complete(cycle_id):
             rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
                             (cycle["recipient_id"], cur)).fetchone()
         post_transaction(rw["id"], net,
-                         f"Payout: {r['name']} (cycle {cycle['cycle_number']}, fee {_money(fee, cur)})",
+                         f"Payout: {r['name']} ({cycle_label(r, cycle['cycle_number'])}, fee {_money(fee, cur)})",
                          "cycle", cycle_id, tx_type="rosca_payout", _db=db)
         db.execute("UPDATE cycles SET status='completed', pot_cents=?, completed_at=datetime('now') WHERE id=?",
                    (pot, cycle_id))
@@ -294,8 +389,10 @@ def _check_cycle_complete(cycle_id):
         if nxt is None:
             db.execute("UPDATE roscas SET status='completed', updated_at=datetime('now') WHERE id=?", (r["id"],))
         info = {"recipient_id": cycle["recipient_id"], "net_cents": net, "fee_cents": fee,
-                "currency": cur, "cycle_number": cycle["cycle_number"], "rosca_id": r["id"],
-                "rosca_name": r["name"], "next_cycle": nxt["cycle_number"] if nxt else None}
+                "currency": cur, "cycle_number": cycle["cycle_number"] - _round_start(r) + 1,
+                "round": _round_no(r), "rosca_id": r["id"],
+                "rosca_name": r["name"], "next_cycle": nxt["cycle_number"] if nxt else None,
+                "round_complete": nxt is None}
     push_notification(info["recipient_id"], "Your circle payout arrived",
                       f"{_money(net, cur)} from {info['rosca_name']} is in your {cur} balance.",
                       "success", "/wallet")
@@ -327,7 +424,7 @@ def request_to_join(rosca_id, user_id):
     """Request to join — creates a pending membership for organiser approval."""
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
     if not r: raise ValueError("Circle not found")
-    if r["status"] not in ("forming", "active"): raise ValueError("Circle not accepting members")
+    if r["status"] not in ("forming", "active", "completed"): raise ValueError("Circle not accepting members")
     user = fetchone("SELECT ncs_score FROM users WHERE id=?", (user_id,))
     if user["ncs_score"] < r["ncs_min_score"]:
         raise ValueError(f"Minimum NCS score of {r['ncs_min_score']} required")
@@ -357,7 +454,7 @@ def get_pending_members(rosca_id):
 def approve_member(rosca_id, user_id, organiser_id):
     """Approve a pending join request."""
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
-    if not r or r["organiser_id"] != organiser_id: raise ValueError("Unauthorised")
+    if not r or not is_circle_admin(rosca_id, organiser_id): raise ValueError("Unauthorised")
     membership = fetchone("SELECT * FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='pending'", (rosca_id, user_id))
     if not membership: raise ValueError("No pending request found")
     active_count = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
@@ -373,7 +470,7 @@ def approve_member(rosca_id, user_id, organiser_id):
 def reject_member(rosca_id, user_id, organiser_id):
     """Reject a pending join request."""
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
-    if not r or r["organiser_id"] != organiser_id: raise ValueError("Unauthorised")
+    if not r or not is_circle_admin(rosca_id, organiser_id): raise ValueError("Unauthorised")
     with get_db() as db:
         db.execute("DELETE FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='pending'",
                    (rosca_id, user_id))
@@ -384,8 +481,11 @@ def reject_member(rosca_id, user_id, organiser_id):
 def remove_member(rosca_id, user_id, organiser_id, reason=""):
     """Remove an active member. Applies NCS penalty and notifies them."""
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
-    if not r or r["organiser_id"] != organiser_id: raise ValueError("Unauthorised")
-    if user_id == organiser_id: raise ValueError("Cannot remove the organiser")
+    if not r or not is_circle_admin(rosca_id, organiser_id): raise ValueError("Unauthorised")
+    if user_id == r["organiser_id"]: raise ValueError("Cannot remove the organiser")
+    if user_id == organiser_id: raise ValueError("You can't remove yourself")
+    if organiser_id != r["organiser_id"] and is_circle_admin(rosca_id, user_id):
+        raise ValueError("Only the organiser can remove a co-admin")
     membership = fetchone("SELECT * FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'", (rosca_id, user_id))
     if not membership: raise ValueError("Member not found")
     with get_db() as db:
@@ -401,7 +501,7 @@ def remove_member(rosca_id, user_id, organiser_id, reason=""):
 def add_member_direct(rosca_id, user_id, organiser_id):
     """Organiser directly adds a member (bypasses approval, NCS reward for trust)."""
     r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
-    if not r or r["organiser_id"] != organiser_id: raise ValueError("Unauthorised")
+    if not r or not is_circle_admin(rosca_id, organiser_id): raise ValueError("Unauthorised")
     count = fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE rosca_id=? AND status='active'", (rosca_id,))
     if count["c"] >= r["max_members"]: raise ValueError("Circle is full")
     existing = fetchone("SELECT id FROM rosca_members WHERE rosca_id=? AND user_id=?", (rosca_id, user_id))
