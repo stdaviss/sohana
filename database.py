@@ -130,6 +130,7 @@ def refresh_exchange_rates():
     return True
 
 CONVERSION_FEE_RATE = 0.007  # 0.7%
+CONVERSION_FEE_MIN  = 50     # EUR 0.50 minimum (converted to the source currency)
 
 # Withdrawal fees by method
 WITHDRAWAL_FEES = {
@@ -814,35 +815,62 @@ def post_transaction(wallet_id, amount_cents, description, ref_type=None, ref_id
     with get_db() as db:
         return _do(db)
 
-def convert_currency(user_id, from_currency, to_currency, from_amount_cents):
-    """Convert between user wallets. Returns (to_amount, fee_cents)."""
+def eur_equivalent_cents(cents, currency):
+    """Value of `cents` of `currency` expressed in EUR cents (for limits and thresholds)."""
+    rate = EXCHANGE_RATES.get(currency)
+    if not rate:
+        raise ValueError(f"Unsupported currency {currency}")
+    return int(round(cents / rate))
+
+
+def conversion_quote(from_currency, to_currency, from_amount_cents):
+    """Single source of truth for conversion maths, used by the preview and the
+    real conversion so the two can never disagree.
+    Fee: 0.7% of the source amount, minimum the equivalent of EUR 0.50, charged
+    on top in the source currency. Returns (to_amount_cents, fee_cents, rate)."""
     if from_currency == to_currency:
-        raise ValueError("Same currency")
-    from_rate = EXCHANGE_RATES.get(from_currency, 1.0)
-    to_rate   = EXCHANGE_RATES.get(to_currency, 1.0)
-    eur_amount = from_amount_cents / from_rate
-    to_amount  = int(eur_amount * to_rate)
-    fee_cents  = max(50, int(from_amount_cents * CONVERSION_FEE_RATE))
-    to_amount_after_fee = to_amount  # fee deducted from source
-    from_wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (user_id, from_currency))
-    to_wallet   = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (user_id, to_currency))
-    if not from_wallet: raise ValueError(f"No {from_currency} wallet")
-    if not to_wallet:   raise ValueError(f"No {to_currency} wallet. Open it first.")
+        raise ValueError("Choose two different currencies")
+    if from_currency not in EXCHANGE_RATES or to_currency not in EXCHANGE_RATES:
+        raise ValueError("Unsupported currency")
+    if from_amount_cents <= 0:
+        raise ValueError("Enter an amount")
+    from_rate = EXCHANGE_RATES[from_currency]
+    to_rate   = EXCHANGE_RATES[to_currency]
+    rate      = to_rate / from_rate
+    to_amount = int(from_amount_cents * rate)          # round down: never credit more than the rate gives
+    min_fee   = int(round(CONVERSION_FEE_MIN * from_rate))   # EUR 0.50 in the source currency
+    fee_cents = max(min_fee, int(round(from_amount_cents * CONVERSION_FEE_RATE)))
+    if to_amount <= 0:
+        raise ValueError("Amount is too small to convert")
+    return to_amount, fee_cents, rate
+
+
+def convert_currency(user_id, from_currency, to_currency, from_amount_cents):
+    """Convert between a user's balances in one write-locked transaction.
+    Returns (to_amount_cents, fee_cents)."""
+    to_amount, fee_cents, rate = conversion_quote(from_currency, to_currency, from_amount_cents)
     total_deduct = from_amount_cents + fee_cents
-    with get_db() as db:
+    with get_db(immediate=True) as db:
+        from_wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                                 (user_id, from_currency)).fetchone()
+        to_wallet   = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                                 (user_id, to_currency)).fetchone()
+        if not from_wallet: raise ValueError(f"No {from_currency} balance")
+        if not to_wallet:   raise ValueError(f"No {to_currency} balance. Open it first.")
+        ref = str(uuid.uuid4())
+        sym = CURRENCIES.get(from_currency, {}).get("symbol", "")
         post_transaction(from_wallet["id"], -total_deduct,
-                         f"Convert {from_currency}→{to_currency} (fee: {fee_cents/100:.2f})",
-                         tx_type="conversion", _db=db)
-        post_transaction(to_wallet["id"], to_amount_after_fee,
+                         f"Convert {from_currency} to {to_currency} (fee {sym}{fee_cents/100:,.2f})".replace(",", " "),
+                         ref_type="conversion", ref_id=ref, tx_type="conversion", _db=db)
+        post_transaction(to_wallet["id"], to_amount,
                          f"Converted from {from_currency}",
-                         tx_type="conversion", _db=db)
+                         ref_type="conversion", ref_id=ref, tx_type="conversion", _db=db)
         db.execute(
             "INSERT INTO currency_conversions(id,user_id,from_wallet_id,to_wallet_id,from_currency,to_currency,from_amount,to_amount,rate,fee_cents) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (str(uuid.uuid4()), user_id, from_wallet["id"], to_wallet["id"],
-             from_currency, to_currency, from_amount_cents, to_amount_after_fee,
-             to_rate/from_rate, fee_cents)
+            (ref, user_id, from_wallet["id"], to_wallet["id"],
+             from_currency, to_currency, from_amount_cents, to_amount, rate, fee_cents)
         )
-    return to_amount_after_fee, fee_cents
+    return to_amount, fee_cents
 
 def push_notification(user_id, title, body, notif_type="info", link=None):
     with get_db() as db:

@@ -1,11 +1,18 @@
 import uuid
 from datetime import datetime, timedelta
-from database import get_db, fetchone, fetchall, post_transaction, ROSCA_CREATION_FEES, push_notification
+from database import get_db, fetchone, fetchall, post_transaction, ROSCA_CREATION_FEES, push_notification, CURRENCIES
+
+ZERO_DECIMAL = {"RWF", "XAF", "NGN"}
 import ncs_engine
 
 def create_rosca(organiser_id, name, description, contribution_cents,
                  max_members=12, frequency_days=30, ncs_min=300,
                  is_public=True, rosca_type="fixed_order", currency="EUR"):
+    currency = (currency or "EUR").upper()
+    if currency not in CURRENCIES:
+        raise ValueError("Unsupported currency")
+    if contribution_cents <= 0:
+        raise ValueError("Enter a contribution amount")
     user = fetchone("SELECT ncs_tier FROM users WHERE id=?", (organiser_id,))
     tier = user["ncs_tier"] if user else "probation"
     creation_fee = ROSCA_CREATION_FEES.get(tier, 500)
@@ -40,7 +47,8 @@ def create_rosca(organiser_id, name, description, contribution_cents,
                     ncs_min, 1 if is_public else 0, max_members, creation_fee))
         db.execute("INSERT INTO rosca_members(id,rosca_id,user_id,slot,status) VALUES(?,?,?,?,?)",
                    (str(uuid.uuid4()), rid, organiser_id, 1, "active"))
-    ncs_engine.apply_event(organiser_id, "contribution_on_time", ref_type="rosca_created", ref_id=rid)
+    # (Creating a circle no longer awards an "on-time contribution" NCS event:
+    # nothing was contributed, and it let the score be farmed.)
     return rid, creation_fee
 
 def get_rosca(rosca_id):
@@ -82,61 +90,218 @@ def join_rosca(rosca_id, user_id):
     with get_db() as db:
         db.execute("INSERT INTO rosca_members(id,rosca_id,user_id,slot,status) VALUES(?,?,?,?,?)",
                    (str(uuid.uuid4()), rosca_id, user_id, (count["c"] or 0)+1, "active"))
+    sync_open_cycle(rosca_id)
     organiser_id = r["organiser_id"]
     push_notification(organiser_id, "New member joined", f"Someone joined your circle '{r['name']}'.", "info", f"/organiser/{rosca_id}")
 
-def get_or_create_active_cycle(rosca_id):
-    r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
-    cycle = fetchone("SELECT * FROM cycles WHERE rosca_id=? AND status IN ('open','collecting') ORDER BY cycle_number DESC LIMIT 1", (rosca_id,))
-    if cycle: return dict(cycle)
-    cycle_num = (r["current_cycle"] or 0) + 1
-    due = (datetime.utcnow() + timedelta(days=r["frequency_days"])).isoformat()
-    members = fetchall("SELECT user_id, slot FROM rosca_members WHERE rosca_id=? AND status='active' ORDER BY slot", (rosca_id,))
-    if not members: raise ValueError("No active members")
-    recipient = members[(cycle_num - 1) % len(members)]["user_id"]
+ROSCA_PAYOUT_FEE = 0.0125   # 1.25% platform fee on each payout
+
+
+def _money(cents, currency):
+    sym = CURRENCIES.get(currency, {}).get("symbol", currency)
+    if len(sym) > 1 and not sym.endswith(" "):
+        sym += " "
+    if currency in ZERO_DECIMAL:
+        return f"{sym}{round(cents/100):,}".replace(",", " ")
+    return f"{sym}{cents/100:,.2f}".replace(",", " ")
+
+
+def _active_members(db, rosca_id):
+    return db.execute("""SELECT user_id FROM rosca_members
+                         WHERE rosca_id=? AND status='active'
+                         ORDER BY COALESCE(slot, payout_position, 9999), joined_at""",
+                      (rosca_id,)).fetchall()
+
+
+def _sync_contributions(db, cycle, r):
+    """Every active member owes the open cycle (late joiners included);
+    pending rows of people who are no longer members are dropped so they
+    can't block the payout. Must run inside a write transaction."""
+    if not cycle or cycle["status"] not in ("open", "collecting"):
+        return
+    active = {m["user_id"] for m in _active_members(db, r["id"])}
+    have = {row["user_id"]: row["status"] for row in db.execute(
+        "SELECT user_id, status FROM contributions WHERE cycle_id=?", (cycle["id"],))}
+    for uid in active - set(have):
+        db.execute("""INSERT OR IGNORE INTO contributions
+                      (id,cycle_id,rosca_id,user_id,amount_cents,status,due_at)
+                      VALUES(?,?,?,?,?,'pending',?)""",
+                   (str(uuid.uuid4()), cycle["id"], r["id"], uid,
+                    r["contribution_cents"], cycle["due_at"]))
+    for uid, st in have.items():
+        if uid not in active and st == "pending":
+            db.execute("DELETE FROM contributions WHERE cycle_id=? AND user_id=? AND status='pending'",
+                       (cycle["id"], uid))
+
+
+def _open_next_cycle(db, r):
+    """Open the next cycle for the first active member who hasn't been paid out
+    yet. Returns the new cycle row, or None when everyone has received."""
+    members = _active_members(db, r["id"])
+    if not members:
+        raise ValueError("This circle has no active members yet.")
+    paid_out = {row["recipient_id"] for row in db.execute(
+        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed'", (r["id"],))}
+    nxt = next((m["user_id"] for m in members if m["user_id"] not in paid_out), None)
+    if nxt is None:
+        return None
+    last = db.execute("SELECT MAX(cycle_number) AS n FROM cycles WHERE rosca_id=?",
+                      (r["id"],)).fetchone()["n"] or 0
+    num = last + 1
+    due = (datetime.utcnow() + timedelta(days=r["frequency_days"] or 30)).isoformat()
     cid = str(uuid.uuid4())
-    with get_db() as db:
-        db.execute("INSERT INTO cycles(id,rosca_id,cycle_number,recipient_id,pot_cents,status,due_at) VALUES(?,?,?,?,?,?,?)",
-                   (cid, rosca_id, cycle_num, recipient, 0, "collecting", due))
-        db.execute("UPDATE roscas SET current_cycle=?,updated_at=datetime('now') WHERE id=?", (cycle_num, rosca_id))
-        for m in members:
-            db.execute("INSERT OR IGNORE INTO contributions(id,cycle_id,rosca_id,user_id,amount_cents,status,due_at) VALUES(?,?,?,?,?,?,?)",
-                       (str(uuid.uuid4()), cid, rosca_id, m["user_id"], r["contribution_cents"], "pending", due))
-    return fetchone("SELECT * FROM cycles WHERE id=?", (cid,))
+    db.execute("""INSERT INTO cycles(id,rosca_id,cycle_number,recipient_id,pot_cents,status,due_at)
+                  VALUES(?,?,?,?,0,'collecting',?)""", (cid, r["id"], num, nxt, due))
+    db.execute("UPDATE roscas SET current_cycle=?, total_cycles=?, updated_at=datetime('now') WHERE id=?",
+               (num, len(paid_out) + len([m for m in members if m["user_id"] not in paid_out]), r["id"]))
+    cycle = db.execute("SELECT * FROM cycles WHERE id=?", (cid,)).fetchone()
+    _sync_contributions(db, cycle, r)
+    return cycle
+
+
+def get_or_create_active_cycle(rosca_id):
+    """Return the open cycle, opening one if needed. Only for active circles."""
+    r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
+    if not r:
+        raise ValueError("Circle not found")
+    if r["status"] == "completed":
+        raise ValueError("This circle has completed all its payouts.")
+    if r["status"] != "active":
+        raise ValueError("Payments open once the organiser starts the circle.")
+    with get_db(immediate=True) as db:
+        cycle = db.execute("""SELECT * FROM cycles WHERE rosca_id=? AND status IN ('open','collecting')
+                              ORDER BY cycle_number DESC LIMIT 1""", (rosca_id,)).fetchone()
+        if cycle is None:
+            cycle = _open_next_cycle(db, r)
+            if cycle is None:
+                db.execute("UPDATE roscas SET status='completed', updated_at=datetime('now') WHERE id=?", (rosca_id,))
+                raise ValueError("This circle has completed all its payouts.")
+        else:
+            _sync_contributions(db, cycle, r)
+        cid = cycle["id"]
+    return dict(fetchone("SELECT * FROM cycles WHERE id=?", (cid,)))
+
+
+def sync_open_cycle(rosca_id):
+    """Make sure every active member has a row in the open cycle (cheap no-op
+    when nothing is missing). Call after anyone joins or is added."""
+    cycle = fetchone("""SELECT * FROM cycles WHERE rosca_id=? AND status IN ('open','collecting')
+                        ORDER BY cycle_number DESC LIMIT 1""", (rosca_id,))
+    if not cycle:
+        return
+    missing = fetchone("""SELECT COUNT(*) AS c FROM rosca_members rm
+                          WHERE rm.rosca_id=? AND rm.status='active'
+                            AND NOT EXISTS (SELECT 1 FROM contributions c
+                                            WHERE c.cycle_id=? AND c.user_id=rm.user_id)""",
+                       (rosca_id, cycle["id"]))["c"]
+    stale = fetchone("""SELECT COUNT(*) AS c FROM contributions c
+                        WHERE c.cycle_id=? AND c.status='pending'
+                          AND NOT EXISTS (SELECT 1 FROM rosca_members rm WHERE rm.rosca_id=?
+                                          AND rm.user_id=c.user_id AND rm.status='active')""",
+                     (cycle["id"], rosca_id))["c"]
+    if not missing and not stale:
+        return
+    r = fetchone("SELECT * FROM roscas WHERE id=?", (rosca_id,))
+    with get_db(immediate=True) as db:
+        cyc = db.execute("SELECT * FROM cycles WHERE id=?", (cycle["id"],)).fetchone()
+        _sync_contributions(db, cyc, r)
+    _check_cycle_complete(cycle["id"])
+
 
 def pay_contribution(user_id, cycle_id):
-    contrib = fetchone("SELECT * FROM contributions WHERE cycle_id=? AND user_id=? AND status='pending'", (cycle_id, user_id))
-    if not contrib: raise ValueError("No pending contribution found")
-    wallet = fetchone("SELECT id FROM wallets WHERE user_id=?", (user_id,))
-    if not wallet: raise ValueError("Wallet not found")
-    post_transaction(wallet["id"], -contrib["amount_cents"], "ROSCA contribution", "contribution", contrib["id"], tx_type="rosca_contribution")
-    now = datetime.utcnow().isoformat()
-    late_days = max(0, (datetime.fromisoformat(now[:10]) - datetime.fromisoformat(contrib["due_at"][:10])).days)
-    status = "late" if late_days > 0 else "paid"
-    with get_db() as db:
-        db.execute("UPDATE contributions SET status=?,paid_at=?,late_days=? WHERE id=?", (status, now, late_days, contrib["id"]))
-        # Pot grows only from actual contributions — no initial amount
-        db.execute("UPDATE cycles SET pot_cents=pot_cents+? WHERE id=?", (contrib["amount_cents"], cycle_id))
-    event_type = "contribution_on_time" if status == "paid" else "contribution_late"
-    ncs_engine.apply_event(user_id, event_type, ref_type="contribution", ref_id=contrib["id"])
-    _check_cycle_complete(cycle_id)
+    """Debit the member's wallet in the circle's currency and record the
+    contribution, all in one write-locked transaction (no double payment,
+    no partial state). Returns a summary dict."""
+    with get_db(immediate=True) as db:
+        contrib = db.execute("SELECT * FROM contributions WHERE cycle_id=? AND user_id=?",
+                             (cycle_id, user_id)).fetchone()
+        if contrib and contrib["status"] in ("paid", "late"):
+            raise ValueError("You've already paid this cycle.")
+        if not contrib or contrib["status"] != "pending":
+            raise ValueError("No contribution is due from you in this cycle.")
+        r = db.execute("SELECT * FROM roscas WHERE id=?", (contrib["rosca_id"],)).fetchone()
+        cycle = db.execute("SELECT * FROM cycles WHERE id=?", (cycle_id,)).fetchone()
+        if not cycle or cycle["status"] not in ("open", "collecting"):
+            raise ValueError("This cycle is closed.")
+        cur = (r["currency"] or "EUR") if r else "EUR"
+        amt = contrib["amount_cents"]
+        w = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?", (user_id, cur)).fetchone()
+        if not w:
+            raise ValueError(f"This circle collects in {cur}. Open a {cur} balance in Wallet, "
+                             f"then add or convert {_money(amt, cur)}.")
+        balrow = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? "
+                            "ORDER BY created_at DESC, rowid DESC LIMIT 1", (w["id"],)).fetchone()
+        bal = balrow["balance_after"] if balrow else 0
+        if bal < amt:
+            raise ValueError(f"Not enough in your {cur} balance: you have {_money(bal, cur)}, "
+                             f"the contribution is {_money(amt, cur)}. Add or convert funds first.")
+        post_transaction(w["id"], -amt, f"Contribution: {r['name']} (cycle {cycle['cycle_number']})",
+                         "contribution", contrib["id"], tx_type="rosca_contribution", _db=db)
+        now = datetime.utcnow()
+        try:
+            late_days = max(0, (now.date() - datetime.fromisoformat(str(contrib["due_at"])[:10]).date()).days)
+        except Exception:
+            late_days = 0
+        status = "late" if late_days > 0 else "paid"
+        db.execute("UPDATE contributions SET status=?, paid_at=?, late_days=? WHERE id=? AND status='pending'",
+                   (status, now.isoformat(), late_days, contrib["id"]))
+        # pot grows only from money actually received
+        db.execute("UPDATE cycles SET pot_cents=pot_cents+? WHERE id=?", (amt, cycle_id))
+        rosca_id = r["id"]
+    ncs_engine.apply_event(user_id, "contribution_on_time" if status == "paid" else "contribution_late",
+                           ref_type="contribution", ref_id=contrib["id"])
+    payout = _check_cycle_complete(cycle_id)
+    return {"status": status, "amount_cents": amt, "currency": cur,
+            "rosca_id": rosca_id, "payout": payout}
+
 
 def _check_cycle_complete(cycle_id):
-    pending = fetchone("SELECT COUNT(*) as c FROM contributions WHERE cycle_id=? AND status='pending'", (cycle_id,))
-    if pending["c"] > 0: return
-    cycle = fetchone("SELECT * FROM cycles WHERE id=?", (cycle_id,))
-    if not cycle or cycle["status"] == "completed": return
-    recipient_wallet = fetchone("SELECT id FROM wallets WHERE user_id=?", (cycle["recipient_id"],))
-    if recipient_wallet:
-        fee = int(cycle["pot_cents"] * 0.0125)
-        net = cycle["pot_cents"] - fee
-        post_transaction(recipient_wallet["id"], net, "ROSCA payout", "cycle", cycle_id, tx_type="rosca_payout")
-        push_notification(cycle["recipient_id"], "You received your payout! 🎉", f"€{net/100:.2f} has been added to your wallet.", "success", "/wallet")
-    with get_db() as db:
-        db.execute("UPDATE cycles SET status='completed',completed_at=datetime('now') WHERE id=?", (cycle_id,))
-    members = fetchall("SELECT user_id FROM rosca_members WHERE rosca_id=? AND status='active'", (cycle["rosca_id"],))
-    for m in members:
-        ncs_engine.apply_event(m["user_id"], "cycle_completed", ref_type="cycle", ref_id=cycle_id)
+    """When nobody in the cycle still owes, pay the recipient (in the circle's
+    currency, minus the platform fee), close the cycle and open the next one.
+    Exactly once, inside one write-locked transaction. Returns payout info or None."""
+    with get_db(immediate=True) as db:
+        cycle = db.execute("SELECT * FROM cycles WHERE id=?", (cycle_id,)).fetchone()
+        if not cycle or cycle["status"] == "completed":
+            return None
+        r = db.execute("SELECT * FROM roscas WHERE id=?", (cycle["rosca_id"],)).fetchone()
+        _sync_contributions(db, cycle, r)
+        pending = db.execute("SELECT COUNT(*) AS c FROM contributions WHERE cycle_id=? AND status='pending'",
+                             (cycle_id,)).fetchone()["c"]
+        if pending:
+            return None
+        pot = db.execute("SELECT COALESCE(SUM(amount_cents),0) AS s FROM contributions "
+                         "WHERE cycle_id=? AND status IN ('paid','late')", (cycle_id,)).fetchone()["s"]
+        if pot <= 0:
+            return None
+        cur = r["currency"] or "EUR"
+        fee = int(round(pot * ROSCA_PAYOUT_FEE))
+        net = pot - fee
+        rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                        (cycle["recipient_id"], cur)).fetchone()
+        if not rw:
+            db.execute("INSERT INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,0)",
+                       (str(uuid.uuid4()), cycle["recipient_id"], cur))
+            rw = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                            (cycle["recipient_id"], cur)).fetchone()
+        post_transaction(rw["id"], net,
+                         f"Payout: {r['name']} (cycle {cycle['cycle_number']}, fee {_money(fee, cur)})",
+                         "cycle", cycle_id, tx_type="rosca_payout", _db=db)
+        db.execute("UPDATE cycles SET status='completed', pot_cents=?, completed_at=datetime('now') WHERE id=?",
+                   (pot, cycle_id))
+        contributors = [row["user_id"] for row in db.execute(
+            "SELECT user_id FROM contributions WHERE cycle_id=? AND status IN ('paid','late')", (cycle_id,))]
+        nxt = _open_next_cycle(db, r) if r["status"] == "active" else None
+        if nxt is None:
+            db.execute("UPDATE roscas SET status='completed', updated_at=datetime('now') WHERE id=?", (r["id"],))
+        info = {"recipient_id": cycle["recipient_id"], "net_cents": net, "fee_cents": fee,
+                "currency": cur, "cycle_number": cycle["cycle_number"], "rosca_id": r["id"],
+                "rosca_name": r["name"], "next_cycle": nxt["cycle_number"] if nxt else None}
+    push_notification(info["recipient_id"], "Your circle payout arrived",
+                      f"{_money(net, cur)} from {info['rosca_name']} is in your {cur} balance.",
+                      "success", "/wallet")
+    for uid in contributors:
+        ncs_engine.apply_event(uid, "cycle_completed", ref_type="cycle", ref_id=cycle_id)
+    return info
 
 def get_cycle_status(rosca_id):
     cycle = fetchone("SELECT * FROM cycles WHERE rosca_id=? ORDER BY cycle_number DESC LIMIT 1", (rosca_id,))
@@ -200,6 +365,7 @@ def approve_member(rosca_id, user_id, organiser_id):
     with get_db() as db:
         db.execute("UPDATE rosca_members SET status='active', slot=? WHERE rosca_id=? AND user_id=?",
                    (slot, rosca_id, user_id))
+    sync_open_cycle(rosca_id)
     push_notification(user_id, "Join request approved! ✓",
                       f"You have been approved to join '{r['name']}'.",
                       "success", f"/circles/{rosca_id}")
@@ -224,6 +390,7 @@ def remove_member(rosca_id, user_id, organiser_id, reason=""):
     if not membership: raise ValueError("Member not found")
     with get_db() as db:
         db.execute("UPDATE rosca_members SET status='left' WHERE rosca_id=? AND user_id=?", (rosca_id, user_id))
+    sync_open_cycle(rosca_id)   # drop their unpaid row so the payout isn't blocked
     # NCS penalty for being removed
     ncs_engine.apply_event(user_id, "dispute_raised", ref_type="rosca", ref_id=rosca_id,
                            metadata={"removed_by": organiser_id, "reason": reason})
@@ -243,6 +410,7 @@ def add_member_direct(rosca_id, user_id, organiser_id):
     with get_db() as db:
         db.execute("INSERT INTO rosca_members(id,rosca_id,user_id,slot,status) VALUES(?,?,?,?,?)",
                    (str(uuid.uuid4()), rosca_id, user_id, slot, "active"))
+    sync_open_cycle(rosca_id)
     push_notification(user_id, "Added to circle ✓",
                       f"You have been added to '{r['name']}' by the organiser.",
                       "success", f"/circles/{rosca_id}")

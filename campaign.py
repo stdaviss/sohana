@@ -14,7 +14,7 @@ NCS impact:
 import uuid, re
 from datetime import datetime
 from database import (get_db, fetchone, fetchall, post_transaction,
-                      push_notification, wallet_balance)
+                      push_notification, wallet_balance, CURRENCIES, EXCHANGE_RATES)
 import ncs_engine
 
 # ── CATEGORY DEFINITIONS ──────────────────────────────────────────────────────
@@ -134,8 +134,11 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
     c = fetchone("SELECT * FROM campaigns WHERE id=?", (campaign_id,))
     if not c: raise ValueError("Campaign not found")
     if c["status"] not in ("active",): raise ValueError("This campaign is not currently accepting donations")
-    if amount_cents < MIN_DONATION_CENTS:
-        raise ValueError(f"Minimum donation is €{MIN_DONATION_CENTS/100:.2f}")
+    _rate = EXCHANGE_RATES.get(c["currency"] or "EUR", 1.0)
+    _min  = int(round(MIN_DONATION_CENTS * _rate))     # EUR 1.00 in the campaign currency
+    if amount_cents < _min:
+        _sym = CURRENCIES.get(c["currency"] or "EUR", {}).get("symbol", "")
+        raise ValueError(f"Minimum donation is {_sym}{_min/100:,.2f}".replace(",", " "))
 
     # Platform fee
     fee = int(amount_cents * PLATFORM_FEE_RATE)
@@ -151,13 +154,17 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
         display_name = row["full_name"] if row else "Anonymous"
 
     # Resolve donor wallet BEFORE opening the main transaction
+    # The donation is debited in the campaign's own currency. (Previously a donor
+    # without that balance was silently charged the same NUMBER from their EUR
+    # balance, e.g. a 5,000 RWF gift took EUR 5,000.)
     donor_wallet_id = None
+    cur = c["currency"] or "EUR"
     if donor_id:
         wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?",
-                          (donor_id, c["currency"]))
+                          (donor_id, cur))
         if not wallet:
-            wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'", (donor_id,))
-        if not wallet: raise ValueError("No wallet found to donate from")
+            raise ValueError(f"This campaign collects in {cur}. Open a {cur} balance in Wallet "
+                             f"and add or convert funds first.")
         donor_wallet_id = wallet["id"]
 
     did = str(uuid.uuid4())
@@ -168,7 +175,11 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
     # Everything inside one connection: wallet debit, donation record,
     # campaign balance update, goal check. If anything fails, all rolls back.
     # This prevents the "database locked" + partial-credit bug.
-    with get_db() as db:
+    with get_db(immediate=True) as db:
+        # re-check status under the write lock (goal may have just been reached)
+        _st = db.execute("SELECT status FROM campaigns WHERE id=?", (campaign_id,)).fetchone()
+        if not _st or _st["status"] != "active":
+            raise ValueError("This campaign is not currently accepting donations")
         # 1. Debit donor wallet
         if donor_wallet_id:
             post_transaction(donor_wallet_id, -amount_cents,
@@ -258,31 +269,34 @@ def get_top_donors(campaign_id, limit=5):
 
 def withdraw_funds(campaign_id, creator_id, amount_cents):
     """
-    Creator withdraws raised funds to their SOHANA wallet.
-    Can withdraw at any time — partial or full withdrawal.
-    Platform fee has already been deducted from raised_cents at donation time.
+    Creator moves raised funds to their SOHANA balance in the campaign currency.
+    Partial or full. The availability check, the wallet credit and the
+    withdrawn_cents update happen in ONE write-locked transaction, so two quick
+    taps can't both pass the check and pay out twice.
     """
-    c = fetchone("SELECT * FROM campaigns WHERE id=? AND creator_id=?", (campaign_id, creator_id))
-    if not c: raise ValueError("Campaign not found or unauthorised")
-
-    available = c["raised_cents"] - c["withdrawn_cents"]
-    if amount_cents <= 0: raise ValueError("Amount must be positive")
-    if amount_cents > available:
-        raise ValueError(f"Only €{available/100:.2f} is available to withdraw")
-
-    wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?",
-                      (creator_id, c["currency"]))
-    if not wallet:
-        wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'", (creator_id,))
-    if not wallet: raise ValueError("No wallet found")
-
-    ref = str(uuid.uuid4())
-    post_transaction(wallet["id"], amount_cents,
-                     f"Campaign withdrawal: {c['title']}",
-                     ref_type="campaign_withdrawal", ref_id=ref,
-                     tx_type="rosca_payout")
-
-    with get_db() as db:
+    if amount_cents is None or amount_cents <= 0:
+        raise ValueError("Amount must be positive")
+    with get_db(immediate=True) as db:
+        c = db.execute("SELECT * FROM campaigns WHERE id=? AND creator_id=?",
+                       (campaign_id, creator_id)).fetchone()
+        if not c: raise ValueError("Campaign not found or unauthorised")
+        cur = c["currency"] or "EUR"
+        sym = CURRENCIES.get(cur, {}).get("symbol", "")
+        available = (c["raised_cents"] or 0) - (c["withdrawn_cents"] or 0)
+        if amount_cents > available:
+            raise ValueError(f"Only {sym}{available/100:,.2f} is available to withdraw".replace(",", " "))
+        wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                            (creator_id, cur)).fetchone()
+        if not wallet:   # credit in the right currency, never into a different one
+            db.execute("INSERT INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,0)",
+                       (str(uuid.uuid4()), creator_id, cur))
+            wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                                (creator_id, cur)).fetchone()
+        ref = str(uuid.uuid4())
+        post_transaction(wallet["id"], amount_cents,
+                         f"Campaign withdrawal: {c['title']}",
+                         ref_type="campaign_withdrawal", ref_id=ref,
+                         tx_type="campaign_payout", _db=db)
         db.execute("UPDATE campaigns SET withdrawn_cents=withdrawn_cents+?, updated_at=datetime('now') WHERE id=?",
                    (amount_cents, campaign_id))
     return ref

@@ -249,7 +249,7 @@ def pay_pool_contribution(pool_id, payer_id, beneficiary_id, months,
         period_label = f"{now.year}-{now.month:02d}"
 
     contrib_id = str(uuid.uuid4())
-    with get_db() as db:
+    with get_db(immediate=True) as db:
         post_transaction(wallet["id"], -amount_cents,
                          f"Pool contribution — {p['name']}" + (f" (for {_get_name(beneficiary_id)})" if paid_on_behalf else ""),
                          ref_type="pool_contribution", ref_id=contrib_id,
@@ -435,16 +435,32 @@ def _execute_disbursement(pool_id, disbursement_id):
     p = fetchone("SELECT * FROM pools WHERE id=?", (pool_id,))
 
     recipient_id = d["recipient_id"] or p["organiser_id"]
-    wallet = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (recipient_id, p["currency"]))
 
-    with get_db() as db:
-        if wallet:
-            post_transaction(wallet["id"], d["amount_cents"],
-                             f"Pool disbursement — {p['name']}: {d['purpose_note']}",
-                             ref_type="pool_disbursement", ref_id=disbursement_id,
-                             tx_type="rosca_payout", _db=db)
-        db.execute("""UPDATE pool_disbursements SET status='executed', approved_at=datetime('now'),
-                      executed_at=datetime('now') WHERE id=?""", (disbursement_id,))
+    # One write-locked transaction: the pool must hold the money, the recipient
+    # is always credited (a wallet in the pool currency is opened if missing),
+    # and the disbursement can only execute once. Previously a recipient with
+    # no wallet in that currency was never credited while the pool was still
+    # debited, and the pool balance could go negative.
+    with get_db(immediate=True) as db:
+        claimed = db.execute("""UPDATE pool_disbursements SET status='executed', approved_at=datetime('now'),
+                                executed_at=datetime('now') WHERE id=? AND status='pending'""",
+                             (disbursement_id,)).rowcount
+        if claimed != 1:
+            return
+        bal = db.execute("SELECT total_balance_cents FROM pools WHERE id=?", (pool_id,)).fetchone()
+        if not bal or (bal["total_balance_cents"] or 0) < d["amount_cents"]:
+            raise ValueError("The pool does not hold enough funds for this disbursement.")
+        wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                            (recipient_id, p["currency"])).fetchone()
+        if not wallet:
+            db.execute("INSERT INTO wallets(id,user_id,currency,is_default) VALUES(?,?,?,0)",
+                       (str(uuid.uuid4()), recipient_id, p["currency"]))
+            wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
+                                (recipient_id, p["currency"])).fetchone()
+        post_transaction(wallet["id"], d["amount_cents"],
+                         f"Pool disbursement — {p['name']}: {d['purpose_note']}",
+                         ref_type="pool_disbursement", ref_id=disbursement_id,
+                         tx_type="rosca_payout", _db=db)
         db.execute("UPDATE pools SET total_balance_cents=total_balance_cents-? WHERE id=?",
                    (d["amount_cents"], pool_id))
 

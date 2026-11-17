@@ -1,20 +1,28 @@
 {% extends "base.html" %}
 {% block title %}{{ rosca.name }} — Circle{% endblock %}
-{% block topbar_title %}← <a href="/circles" style="color:var(--ink-2);text-decoration:none">My ROSCAs</a>{% endblock %}
+{% block topbar_title %}<a href="/circles" style="color:var(--ink-2);text-decoration:none">Circles</a>{% endblock %}
 
 {% block content %}
-{% set sym = {'EUR':'€','GBP':'£','USD':'$','CAD':'C$','XAF':'Fr ','GHC':'₵','NGN':'₦','ZAR':'R'} %}
 {% set currency = rosca.currency or 'EUR' %}
-{% set s = sym.get(currency,'€') %}
-{% set total_members = members|length %}
-{% set paid_members = cycle_contribs|selectattr('status','equalto','paid')|list|length if cycle_contribs else 0 %}
-{% set my_member = members|selectattr('user_id','equalto',user.id)|first %}
+{% set s = ((currencies or {}).get(currency) or {}).get('symbol', currency ~ ' ') %}
+{% set s = s ~ ' ' if s|length > 1 and not s.endswith(' ') else s %}
+{% set zero_dp = currency in ['RWF','XAF','NGN'] %}
+{% macro money(c) -%}{{ s }}{% if zero_dp %}{{ '{:,.0f}'.format((c or 0)/100).replace(',', ' ') }}{% else %}{{ '{:,.2f}'.format((c or 0)/100).replace(',', ' ') }}{% endif %}{%- endmacro %}
+{% set active_members = members|selectattr('status','equalto','active')|list %}
+{% set total_members = active_members|length %}
+{% set paid_members = (cycle_contribs|selectattr('status','in',['paid','late'])|list|length) if cycle_contribs else 0 %}
+{% set owed_members = (cycle_contribs|selectattr('status','equalto','pending')|list|length) if cycle_contribs else 0 %}
+{% set recip_member = members|selectattr('user_id','equalto',cycle_recip)|first if cycle_recip else None %}
+{% set my_member = active_members|selectattr('user_id','equalto',user.id)|first %}
 {% set my_position = (my_member.payout_position or my_member.slot or '—') if my_member else '—' %}
 {% set contrib_cents = rosca.contribution_cents or 0 %}
 {# cycle_num is now passed directly from the route #}
-{% set total_cycles = rosca.max_members or total_members %}
-{% set pool_total = contrib_cents * total_members %}
+{% set total_cycles = rosca.total_cycles or total_members or rosca.max_members %}
+{% set pool_total = contrib_cents * ((cycle_contribs|length) if cycle_contribs else total_members) %}
 {% set pool_raised = contrib_cents * paid_members %}
+{% set i_paid = my_contrib and my_contrib.status in ['paid','late'] %}
+{% set i_owe = is_member and rosca.status == 'active' and not i_paid %}
+{% set short = (my_balance_cents is not none) and (my_balance_cents < contrib_cents) %}
 {% set pct = ((pool_raised / pool_total) * 100)|round(0)|int if pool_total > 0 else 0 %}
 {% set freq_label = 'Weekly' if rosca.frequency_days == 7 else 'Fortnightly' if rosca.frequency_days == 14 else 'Monthly' %}
 
@@ -52,8 +60,8 @@
 .cd-tab.warn .badge{background:rgba(255,106,85,.15);color:#FF6A55}
 
 /* ── MAIN GRID ── */
-.cd-body{display:grid;grid-template-columns:1fr 1fr 1fr 280px;gap:1.25rem;padding:1.25rem;align-items:start}
-@media(max-width:1200px){.cd-body{grid-template-columns:1fr 1fr;}}
+.cd-body{display:grid;grid-template-columns:1fr 1fr 300px;gap:1.25rem;padding:1.25rem;align-items:start}
+@media(max-width:1200px){.cd-body{grid-template-columns:1fr 1fr;}.cd-body>div[style*="grid-column:3"]{grid-column:auto!important;grid-row:auto!important}}
 @media(max-width:760px){.cd-body{grid-template-columns:1fr}.cd-body>*{grid-row:auto!important;grid-column:auto!important}}
 
 /* ── PANELS ── */
@@ -232,6 +240,78 @@
 .cd-tab-panel{display:none}
 .cd-tab-panel.on{display:block}
 
+/* ── page tokens (sohana.css has no --surface tokens; panels and modals were see-through) ── */
+:root{--surface:var(--bg-2);--surface-2:var(--bg-3)}
+
+/* ── ONE BUTTON SYSTEM ──
+   primary  = solid accent, dark ink text (the thing to do next)
+   secondary= solid raised surface, strong border, ink text
+   Same height, radius and type everywhere on this page. */
+.cd-btn,.nc-btn,.cd-modal-confirm,.chat-send-btn,
+.cd-share-btn,.mem-invite-btn,.org-btn,.cd-modal-cancel{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  min-height:46px;padding:0 1.3rem;border-radius:999px;
+  font:600 .92rem/1.1 'Geist',system-ui,sans-serif;letter-spacing:-.005em;
+  cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:none;
+  transition:filter .15s,transform .1s,border-color .15s,background .15s}
+.cd-btn,.nc-btn,.cd-modal-confirm,.chat-send-btn{
+  background:var(--accent);color:var(--accent-ink);border:1px solid var(--accent)}
+.cd-btn:hover,.nc-btn:hover,.cd-modal-confirm:hover,.chat-send-btn:hover{background:var(--accent);filter:brightness(1.07);transform:none}
+.cd-btn.secondary,.cd-share-btn,.mem-invite-btn,.org-btn,.cd-modal-cancel{
+  background:var(--surface-2);color:var(--ink);border:1.5px solid var(--line-2)}
+.cd-btn.secondary:hover,.cd-share-btn:hover,.mem-invite-btn:hover,.org-btn:hover,.cd-modal-cancel:hover{
+  background:var(--surface-2);border-color:var(--ink-3);color:var(--ink)}
+.cd-btn:active,.nc-btn:active,.cd-modal-confirm:active,.cd-share-btn:active,.org-btn:active{transform:scale(.98)}
+.cd-btn.sm{min-height:36px;padding:0 .95rem;font-size:.82rem}
+.cd-btn.block,.nc-btn,.mem-invite-btn{width:100%}
+.cd-btn[disabled],.nc-btn:disabled,.cd-modal-confirm:disabled{
+  background:var(--surface-2);color:var(--ink-3);border-color:var(--line);cursor:not-allowed;filter:none;transform:none;opacity:1}
+.org-btn{justify-content:flex-start}
+.org-btn .ico{display:none}
+.cd-btn svg{width:18px;height:18px;flex:none}
+.cd-panel .ph a,.cd-panel .ph button.view-all{font:600 .8rem 'Geist',system-ui,sans-serif;color:var(--ink-2);letter-spacing:0;text-decoration:underline;text-underline-offset:3px}
+.cd-panel .ph a:hover,.cd-panel .ph button.view-all:hover{color:var(--ink);opacity:1}
+
+/* ── calmer surfaces: no glow, no gradient ── */
+.cp-fill,.health-fill{background:var(--accent)!important;box-shadow:none!important}
+.cd-hero-img{background:var(--surface-2)!important;font:700 2.4rem/1 'Geist',sans-serif;color:var(--accent);letter-spacing:-.04em;width:96px;height:96px;border-radius:24px}
+@media(min-width:901px){.cd-hero{grid-template-columns:96px 1fr auto}}
+.mem-avatar{background:var(--surface-2)!important;border:1px solid var(--line-2)}
+.pt-slot.you .pt-dot{border-color:var(--ink);background:var(--surface-2);color:var(--ink);box-shadow:none}
+.cp-total,.cp-stat .v,.cd-position-card .amount,.health-score-num{font-family:'Geist',system-ui,sans-serif!important;letter-spacing:-.02em}
+
+/* ── YOUR CONTRIBUTION (primary action, always first) ── */
+.cd-action-wrap{padding:1.1rem 1.25rem 0}
+.cd-action{border-color:var(--line-2)!important}
+.cd-action .pb{display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;padding:1.25rem 1.35rem}
+.cd-eyebrow{font:600 .7rem 'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.cd-action-amt{font:600 clamp(1.9rem,6vw,2.4rem)/1.05 'Geist',system-ui,sans-serif;letter-spacing:-.035em;color:var(--ink);margin:.35rem 0 .3rem;font-variant-numeric:tabular-nums}
+.cd-action-sub{font-size:.88rem;color:var(--ink-2);line-height:1.45}
+.cd-action-cta{display:flex;flex-direction:column;gap:.55rem;min-width:min(100%,260px)}
+.cd-action-cta .cd-btn{min-height:52px;font-size:1rem}
+.cd-note{font-size:.8rem;color:var(--ink-3);line-height:1.45}
+.cd-note.warn{color:#F4C06A}
+.cd-paid-chip{display:inline-flex;align-items:center;gap:.5rem;min-height:46px;padding:0 1.1rem;border-radius:999px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.35);color:var(--accent);font-weight:600;font-size:.92rem}
+[data-theme="light"] .cd-paid-chip{background:rgba(58,140,48,.1);border-color:rgba(58,140,48,.35)}
+@media(max-width:760px){
+  .cd-action-wrap{padding:.9rem .9rem 0}
+  .cd-action .pb{flex-direction:column;align-items:stretch;padding:1.1rem}
+  .cd-action-cta{min-width:0}
+  .cd-hero{padding:1.1rem 1rem;gap:.8rem}
+  .cd-hero-img{display:none!important}
+  .cd-hero-info h1{font-size:1.35rem}
+  .cd-hero>div:last-child{flex-direction:row!important;align-items:stretch!important;flex-wrap:wrap}
+  .cd-position-card{flex:1;min-width:0;padding:.8rem 1rem}
+  .cd-position-card .slot{font-size:1rem}
+  .cd-share-btn{order:2;width:100%}
+  .cd-tabs{padding:0 .5rem}
+  .cd-body{padding:.9rem;gap:.9rem}
+}
+.cd-modal .bal-row{display:flex;justify-content:space-between;font-size:.86rem;color:var(--ink-2);padding:.7rem .85rem;border:1px solid var(--line);border-radius:12px;margin-bottom:.9rem}
+.cd-modal .bal-row b{color:var(--ink);font-weight:600}
+.cd-modal-actions{gap:.6rem}
+.cd-modal-actions>*{flex:1}
+
 /* ── TOAST ── */
 #cd-toast{position:fixed;bottom:2rem;right:2rem;padding:.75rem 1.25rem;border-radius:12px;font-family:'Geist Mono',monospace;font-size:.78rem;z-index:500;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;border:1px solid}
 </style>
@@ -239,44 +319,105 @@
 <!-- ══ HERO ══ -->
 <div class="cd-wrap">
 <div class="cd-hero">
-  <div class="cd-hero-img">🏘️</div>
+  <div class="cd-hero-img">{{ (rosca.name or 'C')[0]|upper }}</div>
 
   <div class="cd-hero-info">
     <h1>
       {{ rosca.name }}
-      {% if rosca.status == 'active' %}<span class="cd-verified" title="Active circle">✔</span>{% endif %}
     </h1>
     <p class="cd-tagline">{{ rosca.description or 'Building together, growing forward.' }}</p>
     <div class="cd-meta-row">
-      <span>📍 {{ user.country or 'International' }}</span>
-      <span>🔒 Private Circle</span>
+      <span>{{ 'Public' if rosca.is_public else 'Private' }} circle</span>
+      <span>· {{ money(contrib_cents) }} {{ freq_label|lower }}</span>
       <span>· Created {{ rosca.created_at[:10] if rosca.created_at else '—' }}</span>
     </div>
     <div class="cd-tags">
       {% if rosca.category %}<span class="cd-tag">{{ (rosca.category or 'General')|title }}</span>{% endif %}
       <span class="cd-tag">{{ freq_label }}</span>
-      <span class="cd-tag">Trust First</span>
       <span class="cd-tag">{{ rosca.status|title }}</span>
     </div>
   </div>
 
   <div style="display:flex;flex-direction:column;gap:.75rem;align-items:flex-end">
-    <button class="cd-share-btn" onclick="copyInviteLink()">↗ Share Invite Link</button>
+    <button class="cd-share-btn" onclick="copyInviteLink()">Share invite link</button>
     {% if my_member %}
     <div class="cd-position-card">
       <div class="lbl">My Position</div>
       <div class="slot">Slot {{ my_position }}</div>
       <div class="sub">
-        {% if cycle_recip == user.id %}
-          🎉 Your payout is this cycle!
+        {% if cycle_recip == user.id and rosca.status == 'active' %}
+          You receive this cycle's pot
+        {% elif my_received %}
+          You have received your payout
+        {% elif rosca.status == 'active' and my_position != '—' and my_position > cycle_num %}
+          Your payout in about {{ ((my_position - cycle_num) * (rosca.frequency_days or 30)) }} days
         {% else %}
-          Next payout in ~{% if my_position and my_position != '—' and cycle_num %}{{ ((my_position - cycle_num)|abs * (rosca.frequency_days or 30)) }}{% else %}—{% endif %} days
+          Payout order set when the circle starts
         {% endif %}
       </div>
-      <div class="amount">{{ s }}{{ "%.2f"|format(contrib_cents * total_members / 100) }}</div>
+      <div class="amount">{{ money(contrib_cents * total_members) }} pot</div>
     </div>
     {% endif %}
   </div>
+</div>
+
+<div class="cd-action-wrap">
+    <!-- Your contribution: the main action, directly under the header on every tab -->
+    <div class="cd-panel cd-action" id="cd-action">
+      <div class="pb">
+        <div>
+          <div class="cd-eyebrow">
+            {% if rosca.status == 'active' %}Your contribution · Cycle {{ cycle_num }} of {{ total_cycles }}
+            {% elif rosca.status == 'forming' %}Your contribution · Starts soon
+            {% else %}Circle {{ rosca.status }}{% endif %}
+          </div>
+          <div class="cd-action-amt">{{ money(contrib_cents) }}</div>
+          <div class="cd-action-sub">
+            {% if rosca.status == 'active' and cycle_due %}
+              Due {{ cycle_due[:10] }}{% if recip_member %} · this cycle pays {{ 'you' if recip_member.user_id == user.id else recip_member.full_name.split()[0] }}{% endif %}
+            {% elif rosca.status == 'forming' %}
+              {{ freq_label }} contributions start once the organiser starts the circle.
+            {% elif rosca.status == 'completed' %}
+              Every member has received their payout.
+            {% else %}
+              {{ freq_label }} contribution
+            {% endif %}
+          </div>
+        </div>
+        <div class="cd-action-cta">
+          {% if not is_member %}
+            {% if rosca.status in ['forming','active'] %}
+            <button class="cd-btn" id="btn-join" onclick="joinCircle(this)">Join this circle</button>
+            <div class="cd-note">The organiser may need to approve your request.</div>
+            {% endif %}
+          {% elif rosca.status == 'forming' %}
+            {% if is_organiser %}
+            <button class="cd-btn" id="btn-start" onclick="startCircle(this)">Start circle</button>
+            <div class="cd-note">Opens cycle 1 so every member can pay. {{ total_members }} member{{ '' if total_members == 1 else 's' }} so far.</div>
+            {% else %}
+            <button class="cd-btn" disabled>Pay {{ money(contrib_cents) }}</button>
+            <div class="cd-note">Payments open when the organiser starts the circle.</div>
+            {% endif %}
+          {% elif i_paid %}
+            <span class="cd-paid-chip"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Paid for cycle {{ cycle_num }}</span>
+            <div class="cd-note">{{ paid_members }} of {{ cycle_contribs|length }} members have paid.</div>
+          {% elif i_owe %}
+            <button class="cd-btn" id="btn-pay" onclick="openContribModal()">Pay {{ money(contrib_cents) }}</button>
+            {% if my_balance_cents is none %}
+            <a class="cd-btn secondary" href="/wallet">Open a {{ currency }} balance</a>
+            <div class="cd-note warn">This circle collects in {{ currency }}.</div>
+            {% elif short %}
+            <a class="cd-btn secondary" href="/wallet">Add or convert {{ currency }}</a>
+            <div class="cd-note warn">Your {{ currency }} balance is {{ money(my_balance_cents) }}.</div>
+            {% else %}
+            <div class="cd-note">From your {{ currency }} balance · {{ money(my_balance_cents) }} available</div>
+            {% endif %}
+          {% elif rosca.status == 'completed' %}
+            <a class="cd-btn secondary" href="/wallet">View wallet</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
 </div>
 
 <!-- ══ TABS ══ -->
@@ -308,53 +449,25 @@
       <div class="ph"><h3>Circle Progress</h3></div>
       <div class="pb">
         <div class="cp-amounts">
-          <span class="cp-total">{{ s }}{{ "%.2f"|format(pool_raised / 100) }}</span>
-          <span class="cp-goal">/ {{ s }}{{ "%.2f"|format(pool_total / 100) }}</span>
+          <span class="cp-total">{{ money(pool_raised) }}</span>
+          <span class="cp-goal">/ {{ money(pool_total) }}</span>
         </div>
-        <div class="cp-label">{{ pct }}% of cycle goal reached</div>
+        <div class="cp-label">{% if rosca.status == 'active' %}{{ pct }}% of cycle {{ cycle_num }} collected{% else %}Collection starts with cycle 1{% endif %}</div>
         <div class="cp-bar"><div class="cp-fill" style="width:{{ pct }}%"></div></div>
         <div class="cp-stats">
           <div class="cp-stat good">
             <div class="v">{{ paid_members }}</div>
-            <div class="l">Contributed</div>
+            <div class="l">Paid</div>
           </div>
           <div class="cp-stat">
-            <div class="v">{% set pending_count = total_members - paid_members %}{{ pending_count if pending_count > 0 else 0 }}</div>
-            <div class="l">Pending</div>
+            <div class="v">{{ owed_members }}</div>
+            <div class="l">To pay</div>
           </div>
           <div class="cp-stat late">
-            <div class="v">
-              {{ cycle_contribs|selectattr('status','equalto','missed')|list|length if cycle_contribs else 0 }}
-            </div>
-            <div class="l">Yet to pay</div>
+            <div class="v">{{ cycle_contribs|selectattr('status','equalto','late')|list|length if cycle_contribs else 0 }}</div>
+            <div class="l">Late</div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Next Contribution -->
-    <div class="cd-panel">
-      <div class="ph"><h3>Next Contribution</h3></div>
-      <div class="pb">
-        {% if my_contrib and my_contrib.status == 'paid' %}
-          <div class="nc-paid">✓ You've paid this cycle</div>
-        {% else %}
-          <div class="nc-due">Due in</div>
-          <div class="nc-days">
-            {% if cycle_due %}
-              {% set due = cycle_due[:10] if cycle_due else '' %}
-              {{ due }}
-            {% else %}
-              Next cycle
-            {% endif %}
-          </div>
-          <div class="nc-date">📅 {{ cycle_due[:10] if cycle_due else '—' }}</div>
-          {% if is_member %}
-          <button class="nc-btn" onclick="openContribModal()" {% if not cycle_due or rosca.status != 'active' %}disabled{% endif %}>
-            Pay Now {{ s }}{{ "%.2f"|format(contrib_cents / 100) }}
-          </button>
-          {% endif %}
-        {% endif %}
       </div>
     </div>
 
@@ -365,26 +478,26 @@
         <div class="ci-grid">
           <div class="ci-item">
             <div class="l">Cycle</div>
-            <div class="v"><span class="ico">🔄</span>{{ cycle_num }} / {{ total_cycles }}</div>
+            <div class="v">{{ cycle_num }} / {{ total_cycles }}</div>
           </div>
           <div class="ci-item">
             <div class="l">Frequency</div>
-            <div class="v"><span class="ico">📅</span>{{ freq_label }}</div>
+            <div class="v">{{ freq_label }}</div>
           </div>
           <div class="ci-item">
             <div class="l">Contribution</div>
-            <div class="v"><span class="ico">💰</span>{{ s }}{{ "%.2f"|format(contrib_cents / 100) }}</div>
+            <div class="v">{{ money(contrib_cents) }}</div>
           </div>
           <div class="ci-item">
             <div class="l">Total Members</div>
-            <div class="v"><span class="ico">👥</span>{{ total_members }}</div>
+            <div class="v">{{ total_members }}</div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Right column placeholder (merged across rows) -->
-    <div style="grid-row:1/4;display:flex;flex-direction:column;gap:1.25rem">
+    <div style="grid-row:1/4;grid-column:3;display:flex;flex-direction:column;gap:1.25rem">
 
       <!-- Members panel -->
       <div class="cd-panel">
@@ -393,12 +506,11 @@
           <button class="view-all" onclick="switchTab('members')">View all</button>
         </div>
         <div class="pb" style="padding:.75rem">
-          {% for m in members[:5] %}
+          {% for m in active_members[:5] %}
           {% set _ns = (m.ncs_score or 0) %}{% set ncs_cls = 'ex' if _ns >= 750 else 'rel' if _ns >= 650 else 'dev' if _ns >= 550 else 'prob' %}
           <div class="mem-item">
             <div class="mem-avatar">
               {{ (m.full_name or "M")[0]|upper }}
-              {% if loop.index <= 2 %}<span class="online-dot"></span>{% endif %}
             </div>
             <div class="mem-info">
               <div class="name">
@@ -413,9 +525,7 @@
           </div>
           {% endfor %}
           {% if is_organiser %}
-          <button class="mem-invite-btn" onclick="copyInviteLink()">
-            <span>+ Invite Members</span>
-          </button>
+          <button class="mem-invite-btn" onclick="copyInviteLink()">Invite members</button>
           {% endif %}
         </div>
       </div>
@@ -458,16 +568,16 @@
             </div>
           </div>
 
+          {% set on_time = (cycle_contribs|selectattr('status','equalto','paid')|list|length) if cycle_contribs else 0 %}
           {% set metrics = [
-            ('💰', 'Payment Reliability', paid_pct),
-            ('👥', 'Participation Rate', ((members|length / total_members * 100)|round(0)|int) if total_members > 0 else 0),
-            ('⏰', 'On-time Contributions', paid_pct),
-            ('🤝', 'Trust Index', 85),
+            ('', 'Paid this cycle', paid_pct),
+            ('', 'Paid on time', ((on_time / paid_members * 100)|round(0)|int) if paid_members > 0 else 0),
+            ('', 'Seats filled', ((total_members / rosca.max_members * 100)|round(0)|int) if rosca.max_members else 0),
           ] %}
           {% for ico, label, val in metrics %}
           <div class="health-metric">
             <div class="hm-row">
-              <span class="hm-label"><span class="hm-ico">{{ ico }}</span>{{ label }}</span>
+              <span class="hm-label">{{ label }}</span>
               <span class="hm-pct">{{ val }}%</span>
             </div>
             <div class="health-bar">
@@ -493,17 +603,17 @@
         {% if activity %}
           {% for a in activity[:6] %}
           {% set ico_map = {
-            'contribution_paid': ('💰','green'),
-            'member_joined': ('👥','blue'),
-            'payout_completed': ('🏆','purple'),
-            'announcement_posted': ('📢','amber'),
-            'cycle_started': ('🔄','blue'),
-            'ncs_increase': ('⭐','green'),
-            'ncs_decrease': ('↘','red'),
-            'contribution_late': ('⚠️','amber'),
-            'contribution_missed': ('❌','red'),
+            'contribution_paid': ('+','green'),
+            'member_joined': ('•','blue'),
+            'payout_completed': ('↗','green'),
+            'announcement_posted': ('•','amber'),
+            'cycle_started': ('•','blue'),
+            'ncs_increase': ('↑','green'),
+            'ncs_decrease': ('↓','red'),
+            'contribution_late': ('!','amber'),
+            'contribution_missed': ('!','red'),
           } %}
-          {% set ico, cls = ico_map.get(a.type, ('●','green')) %}
+          {% set ico, cls = ico_map.get(a.event_type or a.type, ('•','green')) %}
           <div class="act-item">
             <div class="act-ico {{ cls }}">{{ ico }}</div>
             <div class="act-body">
@@ -528,31 +638,31 @@
       </div>
       <div class="pb">
         <div class="pt-track">
-          {% for m in members %}
+          {% for m in active_members %}
           {% set slot_num = loop.index %}
-          {% set is_current = slot_num == cycle_num %}
-          {% set is_past = slot_num < cycle_num %}
+          {% set is_past = m.user_id in paid_out_ids %}
+          {% set is_current = (m.user_id == cycle_recip) and rosca.status == 'active' and not is_past %}
           {% set is_you = m.user_id == user.id %}
           <div class="pt-slot {% if is_past %}paid{% elif is_current %}active{% elif is_you %}you{% endif %}">
-            {% if slot_num <= 4 or slot_num == members|length %}
+            {% if slot_num <= 4 or slot_num == active_members|length %}
             <div class="pt-dot">{{ slot_num }}</div>
             <div class="pt-slot-name">{% if is_you %}You{% else %}{{ m.full_name.split()[0] }}{% endif %}</div>
             {% if is_current %}
             <div class="pt-slot-date">{{ cycle_due[:10] if cycle_due else '—' }}</div>
             {% endif %}
             {% if is_past %}<div class="pt-slot-status">Paid</div>{% endif %}
-            {% elif slot_num == 5 and members|length > 5 %}
+            {% elif slot_num == 5 and active_members|length > 5 %}
             <div class="pt-dot" style="font-size:.65rem">···</div>
-            <div class="pt-slot-name" style="opacity:.4">{{ members|length - 5 }} more</div>
+            <div class="pt-slot-name" style="opacity:.4">{{ active_members|length - 5 }} more</div>
             {% endif %}
           </div>
           {% endfor %}
         </div>
-        {% if cycle_recip and cycle_recip == user.id %}
-        <div class="pt-next-banner">🎉 Great! You are up next to receive the payout.</div>
-        {% elif cycle_due %}
+        {% if rosca.status == 'active' and cycle_recip and cycle_recip == user.id %}
+        <div class="pt-next-banner">You receive this cycle's payout once every member has paid.</div>
+        {% elif rosca.status == 'active' and cycle_due %}
         <div class="pt-next-banner" style="color:var(--ink-2)">
-          📅 Next payout: {{ cycle_due[:10] if cycle_due else 'Scheduled' }}
+          Next payout: {{ recip_member.full_name.split()[0] if recip_member else 'next member' }}, once every member has paid (due {{ cycle_due[:10] }})
         </div>
         {% endif %}
       </div>
@@ -568,7 +678,7 @@
       <div class="pb">
         {% for a in announcements[:2] %}
         <div class="ann-item {% if a.is_pinned %}pinned{% endif %}">
-          {% if a.is_pinned %}<div class="ann-pin">📌 PINNED</div>{% endif %}
+          {% if a.is_pinned %}<div class="ann-pin">PINNED</div>{% endif %}
           <div class="ann-title">{{ a.title }}</div>
           <div class="ann-body">{{ a.body[:120] }}{% if a.body|length > 120 %}…{% endif %}</div>
           <div class="ann-meta">{{ a.full_name }} · {{ a.created_at[:10] if a.created_at else '—' }}</div>
@@ -590,17 +700,17 @@
         {% if activity %}
           {% for a in activity %}
           {% set ico_map = {
-            'contribution_paid': ('💰','green'),
-            'member_joined': ('👥','blue'),
-            'payout_completed': ('🏆','purple'),
-            'announcement_posted': ('📢','amber'),
-            'cycle_started': ('🔄','blue'),
-            'ncs_increase': ('⭐','green'),
-            'ncs_decrease': ('↘','red'),
-            'contribution_late': ('⚠️','amber'),
-            'contribution_missed': ('❌','red'),
+            'contribution_paid': ('+','green'),
+            'member_joined': ('•','blue'),
+            'payout_completed': ('↗','green'),
+            'announcement_posted': ('•','amber'),
+            'cycle_started': ('•','blue'),
+            'ncs_increase': ('↑','green'),
+            'ncs_decrease': ('↓','red'),
+            'contribution_late': ('!','amber'),
+            'contribution_missed': ('!','red'),
           } %}
-          {% set ico, cls = ico_map.get(a.type, ('●','green')) %}
+          {% set ico, cls = ico_map.get(a.event_type or a.type, ('•','green')) %}
           <div class="act-item">
             <div class="act-ico {{ cls }}">{{ ico }}</div>
             <div class="act-body">
@@ -642,9 +752,7 @@
   <div style="padding:1.25rem;max-width:760px;margin:0 auto">
     {% if is_organiser %}
     <div style="margin-bottom:1.25rem">
-      <button class="cd-share-btn" onclick="document.getElementById('ann-modal-bg').classList.add('open')">
-        + Post Announcement
-      </button>
+      <button class="cd-btn" onclick="document.getElementById('ann-modal-bg').classList.add('open')">Post announcement</button>
     </div>
     {% endif %}
     <div class="cd-panel">
@@ -653,7 +761,7 @@
         {% if announcements %}
           {% for a in announcements %}
           <div class="ann-item {% if a.is_pinned %}pinned{% endif %}">
-            {% if a.is_pinned %}<div class="ann-pin">📌 PINNED</div>{% endif %}
+            {% if a.is_pinned %}<div class="ann-pin">PINNED</div>{% endif %}
             <div class="ann-title">{{ a.title }}</div>
             <div class="ann-body">{{ a.body }}</div>
             <div class="ann-meta">{{ a.full_name }} · {{ a.created_at[:10] if a.created_at else '—' }}</div>
@@ -672,9 +780,7 @@
   <div style="padding:1.25rem;max-width:760px;margin:0 auto">
     {% if is_organiser %}
     <div style="margin-bottom:1.25rem">
-      <button class="cd-share-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')">
-        + Create Vote
-      </button>
+      <button class="cd-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')">Create a vote</button>
     </div>
     {% endif %}
     <div class="cd-panel">
@@ -685,9 +791,9 @@
           <div class="vote-card">
             <div class="vote-question">{{ v.question }}</div>
             <div class="vote-options">
-              <button class="vote-opt yes {% if v.my_vote == 'yes' %}on{% endif %}" onclick="castVote('{{ v.id }}','yes',this)">✓ Yes</button>
-              <button class="vote-opt no {% if v.my_vote == 'no' %}on{% endif %}" onclick="castVote('{{ v.id }}','no',this)">✕ No</button>
-              <button class="vote-opt abstain {% if v.my_vote == 'abstain' %}on{% endif %}" onclick="castVote('{{ v.id }}','abstain',this)">— Abstain</button>
+              <button class="vote-opt yes {% if v.my_vote == 'yes' %}on{% endif %}" onclick="castVote('{{ v.id }}','yes',this)">Yes</button>
+              <button class="vote-opt no {% if v.my_vote == 'no' %}on{% endif %}" onclick="castVote('{{ v.id }}','no',this)">No</button>
+              <button class="vote-opt abstain {% if v.my_vote == 'abstain' %}on{% endif %}" onclick="castVote('{{ v.id }}','abstain',this)">Abstain</button>
             </div>
             <div class="vote-meta">
               {{ v.response_count }} votes cast
@@ -709,7 +815,7 @@
     <div class="cd-panel">
       <div class="ph"><h3>All Members ({{ total_members }})</h3></div>
       <div class="pb">
-        {% for m in members %}
+        {% for m in active_members %}
         {% set _ns = (m.ncs_score or 0) %}{% set ncs_cls = 'ex' if _ns >= 750 else 'rel' if _ns >= 650 else 'dev' if _ns >= 550 else 'prob' %}
         <div class="mem-item">
           <div class="mem-avatar">{{ (m.full_name or "M")[0]|upper }}</div>
@@ -717,13 +823,13 @@
             <div class="name">
               {{ m.full_name }}
               {% if m.user_id == rosca.organiser_id %}<span class="org-badge">Organiser</span>{% endif %}
-              {% if m.user_id == user.id %}<span class="org-badge" style="background:rgba(83,74,183,.15);border-color:rgba(83,74,183,.3);color:#7A6FE0">You</span>{% endif %}
+              {% if m.user_id == user.id %}<span class="org-badge">You</span>{% endif %}
             </div>
-            <div class="sub">Slot {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or m.full_name or '' }}</div>
+            <div class="sub">Payout {{ loop.index }} · NCS {{ m.ncs_score }} · {{ m.hanatag or '' }}</div>
           </div>
           <span class="mem-ncs {{ ncs_cls }}">{{ m.ncs_score }}</span>
           {% if m.user_id != user.id and m.user_id not in my_endorsements %}
-          <button onclick="endorse('{{ m.user_id }}')" style="padding:.25rem .65rem;border-radius:7px;font-family:'Geist Mono',monospace;font-size:.65rem;color:var(--accent);border:1px solid rgba(158,228,147,.3);background:rgba(158,228,147,.07);cursor:pointer;transition:all .15s">Endorse</button>
+          <button class="cd-btn secondary sm" onclick="endorse('{{ m.user_id }}', this)">Endorse</button>
           {% endif %}
         </div>
         {% endfor %}
@@ -734,9 +840,10 @@
       <div class="ph"><h3>Organiser Tools</h3></div>
       <div class="pb">
         <div class="org-tools">
-          <button class="org-btn" onclick="copyInviteLink()"><div class="ico">🔗</div>Invite members</button>
-          <button class="org-btn" onclick="openAnnModal()"><div class="ico">📢</div>Post announcement</button>
-          <button class="org-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')"><div class="ico">🗳️</div>Create a vote</button>
+          <a class="cd-btn block" href="/organiser/{{ rosca.id }}">Manage circle</a>
+          <button class="org-btn" onclick="copyInviteLink()">Invite members</button>
+          <button class="org-btn" onclick="openAnnModal()">Post announcement</button>
+          <button class="org-btn" onclick="document.getElementById('vote-modal-bg').classList.add('open')">Create a vote</button>
         </div>
       </div>
     </div>
@@ -753,7 +860,7 @@
         <div style="display:flex;flex-direction:column;gap:.7rem">
           {% if cycle_due %}
           <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px">
-            <div style="width:40px;height:40px;border-radius:10px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">📅</div>
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(158,228,147,.12);border:1px solid rgba(158,228,147,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0;color:var(--accent);font-weight:700">{{ cycle_due[8:10] if cycle_due else '' }}</div>
             <div>
               <div style="font-size:.88rem;font-weight:600;color:var(--ink)">Contribution Due</div>
               <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--accent)">{{ cycle_due[:10] }}</div>
@@ -762,10 +869,10 @@
           </div>
           {% endif %}
           <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem;background:var(--surface-2);border:1px solid var(--line);border-radius:11px">
-            <div style="width:40px;height:40px;border-radius:10px;background:rgba(83,74,183,.12);border:1px solid rgba(83,74,183,.2);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0">🏆</div>
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(83,74,183,.12);border:1px solid rgba(83,74,183,.2);display:grid;place-items:center;font-size:.8rem;flex-shrink:0;color:var(--ink);font-weight:700">{{ cycle_num }}</div>
             <div>
               <div style="font-size:.88rem;font-weight:600;color:var(--ink)">Payout: Cycle {{ cycle_num }}</div>
-              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--ink-3)">{{ s }}{{ "%.2f"|format(pool_total / 100) }} to next recipient</div>
+              <div style="font-family:'Geist Mono',monospace;font-size:.75rem;color:var(--ink-3)">{{ money(pool_total) }} to {{ recip_member.full_name if recip_member else 'the next recipient' }}</div>
             </div>
           </div>
         </div>
@@ -781,20 +888,15 @@
 <!-- ══ MODALS ══ -->
 
 <!-- Contribute modal -->
-<div class="cd-modal-bg" id="contrib-modal-bg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="cd-modal">
-    <h3>Make Contribution</h3>
-    <p>Contribute {{ s }}{{ "%.2f"|format(contrib_cents / 100) }} for cycle {{ cycle_num }} of {{ total_cycles }}.</p>
+<div class="cd-modal-bg" id="contrib-modal-bg" onclick="if(event.target===this)closeContribModal()">
+  <div class="cd-modal" role="dialog" aria-labelledby="contrib-title">
+    <h3 id="contrib-title">Pay your contribution</h3>
+    <p>{{ money(contrib_cents) }} to {{ rosca.name }}, cycle {{ cycle_num }} of {{ total_cycles }}.{% if recip_member %} This cycle pays {{ 'you' if recip_member.user_id == user.id else recip_member.full_name.split()[0] }}.{% endif %}</p>
+    <div class="bal-row"><span>From your {{ currency }} balance</span><b>{{ money(my_balance_cents) if my_balance_cents is not none else 'none yet' }}</b></div>
     <div class="cd-modal-err" id="contrib-err"></div>
-    <div class="field">
-      <label>From wallet ({{ currency }})</label>
-      <select id="contrib-wallet">
-        <option value="{{ currency }}">{{ currency }} Wallet</option>
-      </select>
-    </div>
     <div class="cd-modal-actions">
-      <button class="cd-modal-cancel" onclick="document.getElementById('contrib-modal-bg').classList.remove('open')">Cancel</button>
-      <button class="cd-modal-confirm" onclick="submitContrib()">Pay {{ s }}{{ "%.2f"|format(contrib_cents / 100) }}</button>
+      <button class="cd-modal-cancel" onclick="closeContribModal()">Cancel</button>
+      <button class="cd-modal-confirm" id="contrib-go" onclick="submitContrib()">Pay {{ money(contrib_cents) }}</button>
     </div>
   </div>
 </div>
@@ -886,20 +988,51 @@ function switchTab(name){
 }
 
 // ── CONTRIBUTE ──
-function openContribModal(){ document.getElementById('contrib-modal-bg').classList.add('open'); }
+function openContribModal(){
+  document.getElementById('contrib-err').classList.remove('show');
+  document.getElementById('contrib-modal-bg').classList.add('open');
+}
+function closeContribModal(){ document.getElementById('contrib-modal-bg').classList.remove('open'); }
+function postJSON(url, body){
+  return fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin',
+                     body: JSON.stringify(body||{})})
+    .then(function(r){ return r.json().catch(function(){ return {error:'Unexpected response ('+r.status+')'}; }); });
+}
+function busy(btn, on, label){
+  if(!btn) return;
+  if(on){ btn.dataset.label = btn.textContent; btn.textContent = label||'Working…'; btn.disabled = true; }
+  else { btn.textContent = btn.dataset.label || btn.textContent; btn.disabled = false; }
+}
 function submitContrib(){
-  var err = document.getElementById('contrib-err');
+  var err = document.getElementById('contrib-err'), btn = document.getElementById('contrib-go');
   err.classList.remove('show');
-  fetch('/api/rosca/'+ROSCA_ID+'/contribute', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({currency: document.getElementById('contrib-wallet').value})
-  })
-  .then(function(r){ return r.json(); })
+  if(btn.disabled) return;            // no double payment from a double tap
+  busy(btn, true, 'Paying…');
+  postJSON('/api/rosca/'+ROSCA_ID+'/contribute', {})
   .then(function(d){
-    if(d.ok){ document.getElementById('contrib-modal-bg').classList.remove('open'); cdToast('Contribution paid! +8 NCS 🎉','success'); setTimeout(function(){ location.reload(); }, 1500); }
-    else { err.textContent = d.error||'Failed'; err.classList.add('show'); }
+    if(d.ok){
+      closeContribModal();
+      var msg = d.status === 'late' ? 'Contribution paid (late)' : 'Contribution paid. +8 NCS';
+      if(d.payout) msg += ' · Cycle complete, payout sent';
+      cdToast(msg,'success');
+      setTimeout(function(){ location.reload(); }, 1300);
+    } else { busy(btn, false); err.textContent = d.error||'Payment failed'; err.classList.add('show'); }
   })
-  .catch(function(){ err.textContent='Network error'; err.classList.add('show'); });
+  .catch(function(){ busy(btn, false); err.textContent='Network error. Nothing was charged; try again.'; err.classList.add('show'); });
+}
+function startCircle(btn){
+  busy(btn, true, 'Starting…');
+  postJSON('/api/rosca/'+ROSCA_ID+'/activate', {}).then(function(d){
+    if(d.ok){ cdToast('Circle started. Members can pay now.','success'); setTimeout(function(){ location.reload(); }, 900); }
+    else { busy(btn, false); cdToast(d.error||'Could not start the circle','error'); }
+  }).catch(function(){ busy(btn, false); cdToast('Network error','error'); });
+}
+function joinCircle(btn){
+  busy(btn, true, 'Joining…');
+  postJSON('/api/rosca/'+ROSCA_ID+'/join', {}).then(function(d){
+    if(d.ok){ cdToast(d.status === 'member' ? 'You joined the circle' : 'Request sent to the organiser','success'); setTimeout(function(){ location.reload(); }, 900); }
+    else { busy(btn, false); cdToast(d.error||'Could not join','error'); }
+  }).catch(function(){ busy(btn, false); cdToast('Network error','error'); });
 }
 
 // ── CHAT ──
@@ -990,14 +1123,10 @@ function submitVote(){
 }
 
 // ── ENDORSE ──
-function endorse(userId){
-  fetch('/api/rosca/'+ROSCA_ID+'/endorse', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({to_id:userId})
-  })
-  .then(function(r){ return r.json(); })
+function endorse(userId, btn){
+  postJSON('/api/endorsement', {user_id:userId, rosca_id:ROSCA_ID, action:'endorse'})
   .then(function(d){
-    if(d.ok) cdToast('Endorsement sent! +3 NCS for them','success');
+    if(d.ok){ cdToast('Endorsement sent. +3 NCS for them','success'); if(btn){ btn.disabled = true; btn.textContent = 'Endorsed'; } }
     else cdToast(d.error||'Failed','error');
   });
 }
@@ -1005,9 +1134,16 @@ function endorse(userId){
 // ── SHARE ──
 function copyInviteLink(){
   var url = window.location.origin + '/circles/' + ROSCA_ID;
-  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ cdToast('Invite link copied!','success'); }); }
+  if(navigator.clipboard){ navigator.clipboard.writeText(url).then(function(){ cdToast('Invite link copied','success'); }); }
   else { cdToast('Link: ' + url,'success'); }
 }
+
+// ── MODALS live on <body>, so an animated/transformed page wrapper can never
+//    trap them (they used to open mid-page, off screen, on long pages) ──
+document.querySelectorAll('.cd-modal-bg').forEach(function(m){ document.body.appendChild(m); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') document.querySelectorAll('.cd-modal-bg.open').forEach(function(m){ m.classList.remove('open'); });
+});
 
 // ── ANIMATE BARS ON LOAD ──
 window.addEventListener('load', function(){

@@ -9,7 +9,8 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       ROSCA_CREATION_FEES, WITHDRAWAL_FEES, CURRENCIES,
                       EXCHANGE_RATES, EXCHANGE_RATES_META, refresh_exchange_rates,
                       CONVERSION_FEE_RATE, ADMIN_ROLES,
-                      LIMITS, get_period_total, generate_hanatag)
+                      LIMITS, get_period_total, generate_hanatag,
+                      conversion_quote, eur_equivalent_cents, WITHDRAWAL_FEE_MIN)
 import auth, rosca, pool, campaign, ncs_engine
 import status as status_module
 
@@ -637,6 +638,11 @@ def circle_detail(rosca_id):
                                back_url="/circles"), 500
 
 
+def _circle_balance(user_id, currency):
+    w = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (user_id, currency))
+    return wallet_balance(w["id"]) if w else None
+
+
 def _circle_detail_inner(rosca_id):
     user = auth.get_current_user()
     r    = rosca.get_rosca(rosca_id)
@@ -670,8 +676,15 @@ def _circle_detail_inner(rosca_id):
             "ncs_score":       _ud.get("ncs_score", 300) or 300,
             "ncs_tier":        _ud.get("ncs_tier", "Probation"),
         })
+    if r.get("status") == "active":
+        try:
+            rosca.sync_open_cycle(rosca_id)   # late joiners get their row before the page renders
+        except Exception:
+            app.logger.exception("sync_open_cycle failed for %s", rosca_id)
     cycle_info = rosca.get_cycle_status(rosca_id)
-    is_member    = any(m["user_id"] == user["id"] for m in members)
+    paid_out_ids = {c["recipient_id"] for c in fetchall(
+        "SELECT recipient_id FROM cycles WHERE rosca_id=? AND status='completed'", (rosca_id,))}
+    is_member    = any(m["user_id"] == user["id"] and m["status"] == "active" for m in members)
     is_organiser = r["organiser_id"] == user["id"]
 
     # Safely unpack cycle_info — key names differ depending on circle state
@@ -686,11 +699,16 @@ def _circle_detail_inner(rosca_id):
             ci = dict(cycle_info) if not isinstance(cycle_info, dict) else cycle_info
         except Exception:
             ci = {}
-        cycle_num      = int(ci.get("cycle_number") or ci.get("number") or
-                             ci.get("current_cycle") or cycle_num or 1)
-        cycle_due      = ci.get("due_date")
-        cycle_recip    = ci.get("recipient_id")
+        # get_cycle_status() returns {"cycle": {...}, "contributions": [...]}.
+        # This used to read ci["due_date"] (a key that never existed), so the
+        # due date was always empty and the Pay button was always disabled.
+        cyc            = ci.get("cycle") or {}
+        cycle_num      = int(cyc.get("cycle_number") or cycle_num or 1)
+        cycle_due      = cyc.get("due_at")
+        cycle_recip    = cyc.get("recipient_id")
         cycle_contribs = ci.get("contributions") or []
+        if cyc.get("status") == "completed":
+            cycle_due = None
         for c in cycle_contribs:
             try:
                 if c["user_id"] == user["id"]:
@@ -724,7 +742,9 @@ def _circle_detail_inner(rosca_id):
     # Chat unread count (messages since user's last visit — simplified: total count)
     chat_count = fetchone("SELECT COUNT(*) as c FROM circle_messages WHERE rosca_id=?", (rosca_id,))
     return render_template("circle_detail.html", user=user, rosca=r, members=members,
-                           cycle_info=cycle_info,
+                           cycle_info=cycle_info, currencies=CURRENCIES,
+                           paid_out_ids=paid_out_ids, my_received=user["id"] in paid_out_ids,
+                           my_balance_cents=_circle_balance(user["id"], r.get("currency") or "EUR"),
                            cycle_num=cycle_num, cycle_due=cycle_due,
                            cycle_recip=cycle_recip, cycle_contribs=cycle_contribs,
                            is_member=is_member, is_organiser=is_organiser,
@@ -3768,9 +3788,9 @@ def api_open_currency():
 def api_convert():
     _platform_check("transfers_enabled", "Transfers are temporarily paused.")
     d = request.get_json(silent=True) or {}
-    from_cur = d.get("from_currency","EUR")
-    to_cur   = d.get("to_currency","GBP")
-    amount   = int(float(d.get("amount", 0)) * 100)
+    from_cur = (d.get("from_currency") or "EUR").upper()
+    to_cur   = (d.get("to_currency") or "GBP").upper()
+    amount   = _parse_amount_to_cents(d.get("amount")) or 0
     otp      = str(d.get("otp",""))
     # TOTP 2FA verification (replaces old random OTP system)
     _2fa_err = _require_totp(session.get("user_id",""), otp)
@@ -3790,8 +3810,8 @@ def api_convert():
 def api_deposit():
     _platform_check("deposits_enabled", "Deposits are temporarily paused. Please check back shortly.")
     d = request.get_json(silent=True) or {}
-    cents    = int(float(d.get("amount", 0)) * 100)
-    currency = d.get("currency", "EUR")
+    cents    = _parse_amount_to_cents(d.get("amount")) or 0
+    currency = (d.get("currency") or "EUR").upper()
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
     # ── Freeze check ──────────────────────────────────────────────────
     fd, fw, freason = _get_freeze_status(session["user_id"])
@@ -3801,11 +3821,13 @@ def api_deposit():
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
     # ── Daily deposit limit ───────────────────────────────────────────
     lim = LIMITS["standard"]
-    deposited_today = get_period_total(wallet["id"], "deposit", "in", "day")
+    # limits are set in EUR: compare EUR equivalents (an RWF deposit used to be
+    # compared number-for-number with the EUR limit, capping it at ~EUR 6)
+    deposited_today = eur_equivalent_cents(get_period_total(wallet["id"], "deposit", "in", "day"), currency)
     remaining = lim["deposit_daily_cents"] - deposited_today
-    if cents > remaining:
-        return jsonify({"error": f"Daily deposit limit reached. You can still deposit "
-                                  f"€{remaining/100:,.2f} today (limit €10,000/day).".replace(',', ' ')}), 400
+    if eur_equivalent_cents(cents, currency) > remaining:
+        return jsonify({"error": f"Daily deposit limit reached. You can still deposit the equivalent of "
+                                  f"€{max(remaining,0)/100:,.2f} today (limit €10,000/day).".replace(',', ' ')}), 400
     # ─────────────────────────────────────────────────────────────────
     new_bal = post_transaction(wallet["id"], cents, f"Deposit ({currency})", tx_type="deposit")
     ncs_engine.apply_event(session["user_id"], "wallet_deposit")
@@ -3816,9 +3838,9 @@ def api_deposit():
 def api_withdraw():
     _platform_check("withdrawals_enabled", "Withdrawals are temporarily paused. Please contact support@sohana.app.")
     d = request.get_json(silent=True) or {}
-    cents    = int(float(d.get("amount", 0)) * 100)
+    cents    = _parse_amount_to_cents(d.get("amount")) or 0
     method   = d.get("method", "bank_eu")
-    currency = d.get("currency", "EUR")
+    currency = (d.get("currency") or "EUR").upper()
     otp      = str(d.get("otp",""))
     if len(otp) != 6 or not otp.isdigit():
         return jsonify({"error": "Invalid verification code"}), 400
@@ -3831,23 +3853,29 @@ def api_withdraw():
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
     # ── Withdrawal limits ─────────────────────────────────────────────
     lim = LIMITS["standard"]
-    withdrawn_today   = get_period_total(wallet["id"], "withdrawal", "out", "day")
-    withdrawn_month   = get_period_total(wallet["id"], "withdrawal", "out", "month")
+    withdrawn_today   = eur_equivalent_cents(get_period_total(wallet["id"], "withdrawal", "out", "day"), currency)
+    withdrawn_month   = eur_equivalent_cents(get_period_total(wallet["id"], "withdrawal", "out", "month"), currency)
     daily_remaining   = lim["withdraw_daily_cents"]   - withdrawn_today
     monthly_remaining = lim["withdraw_monthly_cents"] - withdrawn_month
-    if cents > daily_remaining:
+    cents_eur         = eur_equivalent_cents(cents, currency)
+    if cents_eur > daily_remaining:
         return jsonify({"error": f"Daily withdrawal limit reached. Remaining today: "
                                   f"€{daily_remaining/100:,.2f} (limit €3 000/day).".replace(',', ' ')}), 400
-    if cents > monthly_remaining:
+    if cents_eur > monthly_remaining:
         return jsonify({"error": f"Monthly withdrawal limit reached. Remaining this month: "
                                   f"€{monthly_remaining/100:,.2f} (limit €10 000/month).".replace(',', ' ')}), 400
     # ─────────────────────────────────────────────────────────────────
-    bal  = wallet_balance(wallet["id"])
-    fee  = calc_withdrawal_fee(cents, method)
+    # minimum fee is EUR 0.50 in the withdrawal currency
+    fee  = max(int(round(WITHDRAWAL_FEE_MIN * EXCHANGE_RATES.get(currency, 1.0))),
+               int(round(cents * WITHDRAWAL_FEES.get(method, 0.02))))
     total = cents + fee
-    if total > bal: return jsonify({"error": f"Insufficient balance"}), 400
-    dest = d.get("destination_name", "account")
-    post_transaction(wallet["id"], -total, f"Withdrawal → {dest} (fee: {fee/100:.2f})", tx_type="withdrawal")
+    dest = _clean_note(d.get("destination_name", "account")) or "account"
+    try:   # balance check + debit under one write lock
+        with get_db(immediate=True) as db:
+            post_transaction(wallet["id"], -total, f"Withdrawal to {dest} (fee {fee/100:.2f})",
+                             tx_type="withdrawal", _db=db)
+    except ValueError:
+        return jsonify({"error": "Insufficient balance (amount plus fee)"}), 400
     push_notification(session["user_id"], "Withdrawal submitted ✓", f"{CURRENCIES.get(currency,{}).get('symbol','')}{cents/100:.2f} is on its way to {dest}.", "info")
     return jsonify({"ok": True, "withdrawn_cents": cents, "fee_cents": fee})
 
@@ -3932,7 +3960,7 @@ def api_pay_initiate():
     if not sw:                           return jsonify({"error": f"No {currency} wallet"}), 400
 
     lim = LIMITS["standard"]
-    fee = int(cents * lim["pay_fee_rate"]) if cents > lim["pay_fee_threshold_cents"] else 0
+    fee = int(cents * lim["pay_fee_rate"]) if eur_equivalent_cents(cents, currency) > lim["pay_fee_threshold_cents"] else 0
     if cents + fee > wallet_balance(sw["id"]):
         return jsonify({"error": "Insufficient balance"}), 400
 
@@ -4054,7 +4082,7 @@ def api_pay_confirm():
             stag    = (sender["hanatag"] if sender else None) or session.get("user_name", "user")
             sender_name = sender["full_name"] if sender else "a SOHANA user"
             note     = intent["note"] or ""
-            fee_note = f" (incl. €{fee/100:.2f} fee)" if fee else ""
+            fee_note = (f" (incl. {CURRENCIES.get(currency, {}).get('symbol', '')}{fee/100:,.2f} fee)".replace(",", " ")) if fee else ""
 
             # both legs + audit row share this transaction via _db=db → atomic
             post_transaction(sw["id"], -total_debit,
@@ -4311,17 +4339,16 @@ def api_rates():
 @app.route("/api/currency/preview-conversion")
 @auth.login_required
 def api_preview_conversion():
-    from_cur = request.args.get("from","EUR")
-    to_cur   = request.args.get("to","GBP")
-    amount   = float(request.args.get("amount",0))
-    cents    = int(amount * 100)
-    from_rate = EXCHANGE_RATES.get(from_cur,1.0)
-    to_rate   = EXCHANGE_RATES.get(to_cur,1.0)
-    eur_amount = cents / from_rate
-    to_amount  = int(eur_amount * to_rate)
-    fee        = max(50, int(cents * CONVERSION_FEE_RATE))
+    from_cur = (request.args.get("from") or "EUR").upper()
+    to_cur   = (request.args.get("to") or "GBP").upper()
+    cents    = _parse_amount_to_cents(request.args.get("amount")) or 0
+    try:
+        to_amount, fee, rate = conversion_quote(from_cur, to_cur, cents)
+    except ValueError as e:
+        return jsonify({"error": str(e), "from_amount": cents, "to_amount": 0, "fee_cents": 0,
+                        "rate": 0, "fee_pct": CONVERSION_FEE_RATE*100}), 400
     return jsonify({"from_amount": cents, "to_amount": to_amount,
-                    "fee_cents": fee, "rate": to_rate/from_rate,
+                    "fee_cents": fee, "rate": rate,
                     "fee_pct": CONVERSION_FEE_RATE*100})
 
 # ── PROFILE API ───────────────────────────────────────────────────────────────
@@ -4567,6 +4594,11 @@ def api_rosca_join(rosca_id):
                               "info", f"/circles/{rosca_id}")
         except Exception:
             app.logger.exception("join notification failed for rosca %s", rosca_id)
+    if status == "active":
+        try:
+            rosca.sync_open_cycle(rosca_id)
+        except Exception:
+            app.logger.exception("sync after join failed for %s", rosca_id)
     return jsonify({"ok": True, "status": "member" if status == "active" else "pending"})
 
 
@@ -4757,7 +4789,8 @@ def api_create_rosca():
         rid, fee = rosca.create_rosca(
             organiser_id=uid, name=d.get("name","").strip(),
             description=d.get("description",""),
-            contribution_cents=int(float(d.get("contribution",50))*100),
+            contribution_cents=_parse_amount_to_cents(d.get("contribution", 50)) or 0,
+            currency=(d.get("currency") or "EUR").upper(),
             max_members=int(d.get("max_members",8)),
             frequency_days=int(d.get("frequency_days",30)),
             ncs_min=int(d.get("ncs_min",300)), is_public=bool(d.get("is_public",True)))
@@ -4904,30 +4937,51 @@ def api_contribute(rosca_id):
     totp_c    = d_contrib.get("totp_code", "")
     _2fa_c    = _require_totp(session.get("user_id",""), totp_c)
     if _2fa_c: return _2fa_c
+    uid = session["user_id"]
+    if not fetchone("SELECT 1 FROM rosca_members WHERE rosca_id=? AND user_id=? AND status='active'", (rosca_id, uid)):
+        return jsonify({"error": "Only members of this circle can contribute."}), 403
     try:
         cycle = rosca.get_or_create_active_cycle(rosca_id)
-        rosca.pay_contribution(session["user_id"], cycle["id"])
-        u = fetchone("SELECT full_name FROM users WHERE id=?", (session["user_id"],))
-        r_info = fetchone("SELECT contribution_cents, currency FROM roscas WHERE id=?", (rosca_id,))
-        amt = ""
-        if r_info:
-            sym = {"EUR":"€","GBP":"£","USD":"$","CAD":"C$","XAF":"Fr ","GHC":"₵","NGN":"₦","ZAR":"R"}
-            amt = sym.get(r_info["currency"],"") + str(r_info["contribution_cents"]//100)
-        _log_circle_activity(rosca_id, session["user_id"], "contribution_paid",
-                             f"{u['full_name'] if u else 'A member'} contributed {amt}",
-                             {"amount_cents": r_info["contribution_cents"] if r_info else 0})
-        return jsonify({"ok": True})
-    except Exception as e:
+        res = rosca.pay_contribution(uid, cycle["id"])
+    except ValueError as e:
         return jsonify({"error": str(e)}), 400
+    except Exception:
+        app.logger.exception("contribution failed for %s", rosca_id)
+        return jsonify({"error": "The contribution could not be completed. No money was taken."}), 500
+    try:   # activity log is a side effect: never fail a completed payment over it
+        u = fetchone("SELECT full_name FROM users WHERE id=?", (uid,))
+        cur = res["currency"]; sym = CURRENCIES.get(cur, {}).get("symbol", "")
+        amt = f"{sym}{res['amount_cents']/100:,.2f}".replace(",", " ")
+        _log_circle_activity(rosca_id, uid, "contribution_paid" if res["status"] == "paid" else "contribution_late",
+                             f"{u['full_name'] if u else 'A member'} contributed {amt}",
+                             {"amount_cents": res["amount_cents"]})
+        p = res.get("payout")
+        if p:
+            rn = fetchone("SELECT full_name FROM users WHERE id=?", (p["recipient_id"],))
+            net = f"{sym}{p['net_cents']/100:,.2f}".replace(",", " ")
+            _log_circle_activity(rosca_id, p["recipient_id"], "payout_completed",
+                                 f"{rn['full_name'] if rn else 'A member'} received the cycle {p['cycle_number']} payout of {net}",
+                                 {"amount_cents": p["net_cents"]})
+    except Exception:
+        app.logger.exception("activity log failed for %s", rosca_id)
+    return jsonify({"ok": True, "status": res["status"], "payout": res.get("payout")})
 
 @app.route("/api/rosca/<rosca_id>/activate", methods=["POST"])
 @auth.login_required
 def api_activate_rosca(rosca_id):
     r = rosca.get_rosca(rosca_id)
     if not r or r["organiser_id"] != session["user_id"]: return jsonify({"error": "Unauthorized"}), 403
+    if r["status"] == "active":
+        return jsonify({"ok": True})
+    if r["status"] != "forming":
+        return jsonify({"error": "This circle can no longer be started."}), 400
     with get_db() as db:
-        db.execute("UPDATE roscas SET status='active' WHERE id=?", (rosca_id,))
-    return jsonify({"ok": True})
+        db.execute("UPDATE roscas SET status='active', updated_at=datetime('now') WHERE id=? AND status='forming'", (rosca_id,))
+    try:   # open cycle 1 straight away so members can pay immediately
+        cycle = rosca.get_or_create_active_cycle(rosca_id)
+        return jsonify({"ok": True, "cycle_id": cycle["id"]})
+    except ValueError as e:
+        return jsonify({"ok": True, "warning": str(e)})
 
 @app.route("/api/rosca/<rosca_id>/start-cycle", methods=["POST"])
 @auth.login_required
@@ -5544,7 +5598,7 @@ def my_campaigns():
 def api_create_campaign():
     d = request.get_json(silent=True) or {}
     try:
-        goal = int(float(d.get("goal", 0)) * 100)
+        goal = _parse_amount_to_cents(d.get("goal")) or 0
         cid, slug = campaign.create_campaign(
             creator_id=session["user_id"],
             title=d.get("title","").strip(),
@@ -5565,7 +5619,7 @@ def api_create_campaign():
 @auth.login_required
 def api_donate(campaign_id):
     d = request.get_json(silent=True) or {}
-    cents = int(float(d.get("amount", 0)) * 100)
+    cents = _parse_amount_to_cents(d.get("amount")) or 0
     try:
         did, net, fee = campaign.donate(
             campaign_id=campaign_id,
@@ -5583,7 +5637,7 @@ def api_donate(campaign_id):
 @auth.login_required
 def api_campaign_withdraw(campaign_id):
     d = request.get_json(silent=True) or {}
-    cents = int(float(d.get("amount", 0)) * 100)
+    cents = _parse_amount_to_cents(d.get("amount")) or 0
     try:
         ref = campaign.withdraw_funds(campaign_id, session["user_id"], cents)
         return jsonify({"ok": True, "ref": ref})

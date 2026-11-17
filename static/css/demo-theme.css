@@ -39,7 +39,9 @@ body {
 
 /* ── page entrance ── */
 .main-area > *:not(.topbar), .page, main { animation: dz-in .38s var(--dz-ease) both; }
-@keyframes dz-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* opacity only: an animated transform makes the wrapper the containing block for
+   position:fixed children, which pushed modals off screen on long pages */
+@keyframes dz-in { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .main-area > *, .page, main { animation: none !important; } }
 
 /* ── headings: tight, confident ── */

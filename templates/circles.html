@@ -2,6 +2,7 @@
 {% block title %}Circles — SOHANA{% endblock %}
 {% block topbar_title %}My ROSCAs{% endblock %}
 {% block content %}
+{% set _sym = {'EUR':'€','GBP':'£','USD':'$','CAD':'C$','XAF':'FCFA ','GHC':'₵','NGN':'₦','ZAR':'R','RWF':'FRw '} %}
 <div class="page-header">
   <div><h1 class="page-title">Savings Circles</h1><p class="page-subtitle">Join or create a rotating savings circle.</p></div>
   <div style="display:flex;gap:.5rem;">
@@ -27,7 +28,7 @@
         <span class="pill {% if r.status=='active' %}pill-green{% else %}pill-blue{% endif %} pill-no-dot" style="font-size:.65rem;">{{ r.status }}</span>
       </div>
       {% if r.description %}<p style="font-size:.78rem;color:var(--text-muted);margin-bottom:.5rem;line-height:1.4;">{{ r.description[:80] }}{% if r.description|length>80 %}…{% endif %}</p>{% endif %}
-      <div class="market-card-amount">€{{ '%.0f'%(r.contribution_cents/100) }}<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);">/{{ 'Monthly' if r.frequency_days==30 else 'Weekly' }}</span></div>
+      <div class="market-card-amount">{{ _sym.get(r.currency or 'EUR','€') }}{{ '{:,.0f}'.format(r.contribution_cents/100).replace(',',' ') }}<span style="font-size:.75rem;font-weight:400;color:var(--text-muted);">/{{ 'Monthly' if r.frequency_days==30 else 'Weekly' }}</span></div>
       <div class="market-card-meta">{{ r.member_count }}/{{ r.max_members }} members &nbsp;·&nbsp; Min NCS {{ r.ncs_min_score }}</div>
       <div class="progress-track" style="margin-bottom:.75rem;"><div class="progress-fill fill-blue" style="width:{{ (r.member_count/r.max_members*100)|round|int }}%"></div></div>
       {% set spots=r.max_members-r.member_count %}
@@ -54,7 +55,7 @@
         <div class="rosca-card-name">{{ r.name }}</div>
         <span style="font-size:.65rem;background:rgba(255,255,255,.15);padding:.15rem .5rem;border-radius:20px;color:rgba(255,255,255,.85);">{{ r.status }}</span>
       </div>
-      <div class="rosca-card-meta"><span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span><span>€{{ '%.0f'%(r.contribution_cents/100) }}/cycle</span></div>
+      <div class="rosca-card-meta"><span>Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</span><span>{{ _sym.get(r.currency or 'EUR','€') }}{{ '{:,.0f}'.format(r.contribution_cents/100).replace(',',' ') }}/cycle</span></div>
       <div class="rosca-progress"><div class="progress-track"><div class="progress-fill fill-teal" style="width:{{ [(r.current_cycle/[r.total_cycles,1]|max*100)|round|int,100]|min }}%"></div></div></div>
       <div class="member-avatars">{% for i in range([r.member_count,5]|min) %}<div class="member-avatar-sm">{{ loop.index }}</div>{% endfor %}</div>
       <div class="rosca-card-footer">
@@ -85,7 +86,8 @@
     <div class="form-group"><label class="form-label">Circle name</label><input class="form-input" id="c-name" placeholder="e.g. Marseille Njangi 2026"></div>
     <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="c-desc" placeholder="Who is this circle for?"></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Contribution (€)</label><input class="form-input" id="c-amt" type="number" min="5" value="50"></div>
+      <div class="form-group"><label class="form-label">Contribution</label><input class="form-input" id="c-amt" type="number" min="1" value="50"></div>
+      <div class="form-group"><label class="form-label">Currency</label><select class="form-input form-select" id="c-cur"><option value="EUR" selected>EUR</option><option value="RWF">RWF</option><option value="XAF">XAF</option><option value="GBP">GBP</option><option value="USD">USD</option></select></div>
       <div class="form-group"><label class="form-label">Max members</label><input class="form-input" id="c-mem" type="number" min="2" max="50" value="8"></div>
     </div>
     <div class="form-row">
@@ -107,6 +109,6 @@
 <script>
 function sTab(t){const d=t==='discover';document.getElementById('pane-discover').classList.toggle('hidden',!d);document.getElementById('pane-mine').classList.toggle('hidden',d);['d','m'].forEach((id,i)=>{const el=document.getElementById('tab-'+id);const active=(i===0&&d)||(i===1&&!d);el.style.fontWeight=active?'600':'500';el.style.borderBottomColor=active?'var(--blue)':'transparent';el.style.color=active?'var(--blue)':'var(--text-muted)';});}
 async function joinC(id,btn){setLoading(btn,true);const d=await API.post(`/api/rosca/${id}/join`,{});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}toast('Joined!','success');setTimeout(()=>location.href=`/circles/${id}`,800);}
-async function createC(){const btn=document.getElementById('btn-create');const name=document.getElementById('c-name').value.trim();if(!name){toast('Name required','error');return;}setLoading(btn,true);const d=await API.post('/api/rosca/create',{name,description:document.getElementById('c-desc').value,contribution:parseFloat(document.getElementById('c-amt').value),max_members:parseInt(document.getElementById('c-mem').value),frequency_days:parseInt(document.getElementById('c-freq').value),ncs_min:parseInt(document.getElementById('c-ncs').value),is_public:document.getElementById('c-pub').checked});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}if(d.creation_fee_cents>0)toast(`Circle created! Fee of €${(d.creation_fee_cents/100).toFixed(2)} charged.`,'success');else toast('Circle created!','success');setTimeout(()=>location.href=`/circles/${d.rosca_id}`,900);}
+async function createC(){const btn=document.getElementById('btn-create');const name=document.getElementById('c-name').value.trim();if(!name){toast('Name required','error');return;}setLoading(btn,true);const d=await API.post('/api/rosca/create',{name,description:document.getElementById('c-desc').value,contribution:parseFloat(document.getElementById('c-amt').value),currency:(document.getElementById('c-cur')||{}).value||'EUR',max_members:parseInt(document.getElementById('c-mem').value),frequency_days:parseInt(document.getElementById('c-freq').value),ncs_min:parseInt(document.getElementById('c-ncs').value),is_public:document.getElementById('c-pub').checked});setLoading(btn,false);if(d.error){toast(d.error,'error');return;}if(d.creation_fee_cents>0)toast(`Circle created! Fee of €${(d.creation_fee_cents/100).toFixed(2)} charged.`,'success');else toast('Circle created!','success');setTimeout(()=>location.href=`/circles/${d.rosca_id}`,900);}
 </script>
 {% endblock %}
