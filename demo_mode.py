@@ -27,7 +27,7 @@ import uuid
 from flask import Response, jsonify, redirect, render_template, request, session
 
 import auth
-from database import fetchall, fetchone, get_db, post_transaction, push_notification
+from database import fetchall, fetchone, get_db, post_transaction, push_notification, EXCHANGE_RATES
 
 DEMO_MODE = os.environ.get("DEMO_MODE") == "1"
 
@@ -342,6 +342,51 @@ def install(app, admin_required):
         dp = 0 if cur in ("RWF", "XAF", "NGN") else 2
         return f"{cur} {cents / 100:,.{dp}f}".replace(",", " ")
 
+    def _eur(cents, cur):
+        rate = EXCHANGE_RATES.get(cur or "EUR") or 1.0
+        return (cents or 0) / rate
+
+    import re as _re_fee
+
+    def _wd_fee(desc):
+        m = _re_fee.search(r"\(fee:? ([\d.]+)\)", desc or "")
+        return int(round(float(m.group(1)) * 100)) if m else 0
+
+    def _revenue(visitors, V):
+        """What SOHANA's published fee schedule would have earned on the booth's
+        (simulated) activity, from the actual ledger rows. EUR equivalent."""
+        streams = {k: 0.0 for k in ("payouts", "conversions", "donations", "withdrawals", "circles", "transfers")}
+        volume = 0.0
+        for r in fetchall(f"""SELECT currency, SUM(fee_cents) AS f, SUM(amount_cents) AS a FROM payment_intents
+                              WHERE status='completed' AND sender_id IN ({visitors}) GROUP BY currency""", V):
+            streams["transfers"] += _eur(r["f"], r["currency"]); volume += _eur(r["a"], r["currency"])
+        for r in fetchall(f"""SELECT ro.currency, SUM(c.amount_cents) AS a FROM contributions c JOIN roscas ro ON ro.id=c.rosca_id
+                              WHERE c.status IN ('paid','late') AND c.user_id IN ({visitors}) GROUP BY ro.currency""", V):
+            volume += _eur(r["a"], r["currency"])
+        for r in fetchall(f"""SELECT ro.currency, SUM(cy.pot_cents - wt.amount_cents) AS f
+                              FROM cycles cy JOIN roscas ro ON ro.id=cy.rosca_id
+                              JOIN wallet_transactions wt ON wt.ref_id=cy.id AND wt.tx_type='rosca_payout'
+                              WHERE cy.status='completed' AND cy.recipient_id IN ({visitors}) GROUP BY ro.currency""", V):
+            streams["payouts"] += _eur(r["f"], r["currency"])
+        for r in fetchall(f"""SELECT ca.currency, SUM(d.platform_fee) AS f, SUM(d.amount_cents) AS a
+                              FROM campaign_donations d JOIN campaigns ca ON ca.id=d.campaign_id
+                              WHERE d.donor_id IN ({visitors}) GROUP BY ca.currency""", V):
+            streams["donations"] += _eur(r["f"], r["currency"]); volume += _eur(r["a"], r["currency"])
+        for r in fetchall(f"""SELECT from_currency AS c, SUM(fee_cents) AS f, SUM(from_amount) AS a FROM currency_conversions
+                              WHERE user_id IN ({visitors}) GROUP BY from_currency""", V):
+            streams["conversions"] += _eur(r["f"], r["c"]); volume += _eur(r["a"], r["c"])
+        for r in fetchall(f"""SELECT w.currency, wt.amount_cents, wt.description FROM wallet_transactions wt
+                              JOIN wallets w ON w.id=wt.wallet_id
+                              WHERE wt.tx_type='withdrawal' AND w.user_id IN ({visitors})""", V):
+            fee = _wd_fee(r["description"])
+            streams["withdrawals"] += _eur(fee, r["currency"]); volume += _eur(abs(r["amount_cents"]) - fee, r["currency"])
+        r = fetchone(f"SELECT COALESCE(SUM(creation_fee_cents),0) AS f FROM roscas WHERE organiser_id IN ({visitors})", V)
+        streams["circles"] += (r["f"] or 0)
+        total = sum(streams.values())
+        return {"total_eur_cents": int(round(total)), "volume_eur_cents": int(round(volume)),
+                "take_rate": round(total / volume * 100, 2) if volume else 0,
+                "streams": {k: int(round(v)) for k, v in streams.items()}}
+
     @app.route("/demo/live")
     def demo_live():
         return render_template("demo_live.html")
@@ -374,10 +419,10 @@ def install(app, admin_required):
 
         events = []
 
-        def ev(kind, t, text, eid, who=None, other=None, amount=None, extra=None):
+        def ev(kind, t, text, eid, who=None, other=None, amount=None, extra=None, fee=0):
             events.append({"id": f"{kind}:{eid}", "t": (str(t).replace("T", " ")[:19] if t else None),
                            "kind": kind, "text": text, "who": who, "other": other,
-                           "amount": amount, "extra": extra})
+                           "amount": amount, "extra": extra, "fee_eur_cents": int(round(fee or 0))})
 
         def safe(label, fn):
             try:
@@ -391,18 +436,19 @@ def install(app, admin_required):
 
         def sends():
             for r in fetchall(
-                f"""SELECT p.id, s.full_name AS a, r.full_name AS b, p.amount_cents, p.currency, COALESCE(p.consumed_at, p.created_at) AS t
+                f"""SELECT p.id, s.full_name AS a, r.full_name AS b, p.amount_cents, p.fee_cents, p.currency, COALESCE(p.consumed_at, p.created_at) AS t
                     FROM payment_intents p JOIN users s ON s.id=p.sender_id JOIN users r ON r.id=p.recipient_id
                     WHERE p.status='completed' AND p.sender_id IN ({visitors}) ORDER BY t DESC LIMIT 15""", V):
                 ev("send", r["t"], f"{_short(r['a'])} sent money to {_short(r['b'])}", r["id"],
-                   who=_short(r["a"]), other=_short(r["b"]), amount=_money(r["amount_cents"], r["currency"]))
+                   who=_short(r["a"]), other=_short(r["b"]), amount=_money(r["amount_cents"], r["currency"]),
+                   fee=_eur(r["fee_cents"], r["currency"]))
 
         def circles():
             for r in fetchall(
-                f"""SELECT ro.id, u.full_name, ro.name, ro.created_at AS t FROM roscas ro JOIN users u ON u.id=ro.organiser_id
+                f"""SELECT ro.id, u.full_name, ro.name, ro.creation_fee_cents, ro.created_at AS t FROM roscas ro JOIN users u ON u.id=ro.organiser_id
                     WHERE ro.organiser_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
                 ev("circle", r["t"], f"{_short(r['full_name'])} started the circle “{r['name']}”", r["id"],
-                   who=_short(r["full_name"]), extra=r["name"])
+                   who=_short(r["full_name"]), extra=r["name"], fee=r["creation_fee_cents"] or 0)
 
         def contributions():
             for r in fetchall(
@@ -415,21 +461,23 @@ def install(app, admin_required):
 
         def payouts():
             for r in fetchall(
-                f"""SELECT cy.id, u.full_name, ro.name, ro.currency, cy.completed_at AS t,
+                f"""SELECT cy.id, u.full_name, ro.name, ro.currency, cy.pot_cents, cy.completed_at AS t,
                            (SELECT amount_cents FROM wallet_transactions wt WHERE wt.ref_id=cy.id AND wt.tx_type='rosca_payout' LIMIT 1) AS net
                     FROM cycles cy JOIN users u ON u.id=cy.recipient_id JOIN roscas ro ON ro.id=cy.rosca_id
                     WHERE cy.status='completed' AND cy.recipient_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
                 ev("payout", r["t"], f"{_short(r['full_name'])} received the pot from “{r['name']}”", r["id"],
-                   who=_short(r["full_name"]), amount=_money(r["net"] or 0, r["currency"] or "EUR"), extra=r["name"])
+                   who=_short(r["full_name"]), amount=_money(r["net"] or 0, r["currency"] or "EUR"), extra=r["name"],
+                   fee=_eur((r["pot_cents"] or 0) - (r["net"] or 0), r["currency"]) if r["net"] else 0)
 
         def donations():
             for r in fetchall(
-                f"""SELECT d.id, d.donor_name, d.is_anonymous, d.amount_cents, ca.currency, ca.title, d.created_at AS t
+                f"""SELECT d.id, d.donor_name, d.is_anonymous, d.amount_cents, d.platform_fee, ca.currency, ca.title, d.created_at AS t
                     FROM campaign_donations d JOIN campaigns ca ON ca.id=d.campaign_id
                     WHERE d.donor_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
                 who = "Someone" if r["is_anonymous"] else _short(r["donor_name"])
                 ev("donation", r["t"], f"{who} backed “{r['title']}”", r["id"], who=who,
-                   amount=_money(r["amount_cents"], r["currency"] or "EUR"), extra=r["title"])
+                   amount=_money(r["amount_cents"], r["currency"] or "EUR"), extra=r["title"],
+                   fee=_eur(r["platform_fee"], r["currency"]))
 
         def campaigns():
             for r in fetchall(
@@ -441,13 +489,14 @@ def install(app, admin_required):
 
         def conversions():
             for r in fetchall(
-                f"""SELECT cc.id, u.full_name, cc.from_currency, cc.to_currency, cc.from_amount, cc.to_amount, cc.created_at AS t
+                f"""SELECT cc.id, u.full_name, cc.from_currency, cc.to_currency, cc.from_amount, cc.to_amount, cc.fee_cents, cc.created_at AS t
                     FROM currency_conversions cc JOIN users u ON u.id=cc.user_id
                     WHERE cc.user_id IN ({visitors}) ORDER BY t DESC LIMIT 10""", V):
                 ev("convert", r["t"], f"{_short(r['full_name'])} converted {r['from_currency']} to {r['to_currency']}", r["id"],
                    who=_short(r["full_name"]), amount=_money(r["to_amount"], r["to_currency"]),
                    extra={"from": _money(r["from_amount"], r["from_currency"]), "to": _money(r["to_amount"], r["to_currency"]),
-                          "fc": r["from_currency"], "tc": r["to_currency"]})
+                          "fc": r["from_currency"], "tc": r["to_currency"]},
+                   fee=_eur(r["fee_cents"], r["from_currency"]))
 
         def wallet_moves():
             # withdrawals, and top-ups (deposits / credits from the booth) — not the automatic starting balance
@@ -463,7 +512,8 @@ def install(app, admin_required):
                     m = _re.search(r"\(fee:? ([\d.]+)\)", r["description"] or "")
                     fee = int(round(float(m.group(1)) * 100)) if m else 0
                     ev("withdraw", r["t"], f"{_short(r['full_name'])} cashed out to mobile money or bank", r["id"],
-                       who=_short(r["full_name"]), amount=_money(abs(r["amount_cents"]) - fee, r["currency"]))
+                       who=_short(r["full_name"]), amount=_money(abs(r["amount_cents"]) - fee, r["currency"]),
+                       fee=_eur(fee, r["currency"]))
                 else:
                     ev("deposit", r["t"], f"{_short(r['full_name'])} topped up their wallet", r["id"],
                        who=_short(r["full_name"]), amount=_money(r["amount_cents"], r["currency"]))
@@ -474,7 +524,12 @@ def install(app, admin_required):
             safe(label, fn)
         events = [e for e in events if e["t"]]
         events.sort(key=lambda e: e["t"], reverse=True)
-        return jsonify({"stats": stats, "events": events[:30],
+        try:
+            revenue = _revenue(visitors, V)
+        except Exception:
+            app.logger.exception("wall revenue")
+            revenue = None
+        return jsonify({"stats": stats, "events": events[:30], "revenue": revenue,
                         "now": fetchone("SELECT datetime('now') AS n")["n"]})
 
     # ---------------- control room ----------------
