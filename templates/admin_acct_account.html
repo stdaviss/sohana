@@ -1,0 +1,40 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}{{ label }}{% endblock %}
+{% block crumb %} / <a href="/admin/accounting/trial-balance">Trial balance</a> / {{ label }}{% endblock %}
+{% block acct %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">{{ label }} · {{ cur }}</h1>
+    <p class="acct-sub mono">{{ code }}{% if sub %} · sub-account {{ sub }}{% endif %} · balance <b class="{{ 'neg' if balance<0 }}">{{ acct_money(balance, cur) }}</b></p>
+  </div>
+  <div class="acct-actions">
+    {% if sub %}<a class="btn btn-outline btn-sm" href="?currency={{ cur }}">All sub-accounts</a>{% endif %}
+    <a class="btn btn-outline btn-sm" href="?currency={{ cur }}{% if sub %}&sub={{ sub }}{% endif %}&format=csv">Download CSV</a>
+  </div>
+</div>
+{% if subs and not sub %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">By sub-account</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Reference</th><th class="num">Entries</th><th class="num">Balance</th></tr></thead>
+    <tbody>{% for s in subs %}
+      <tr><td>{{ s.sub_ref_type or '' }}</td>
+        <td class="mono"><a href="?currency={{ cur }}&sub={{ s.sub_ref_id }}">{{ s.sub_ref_id }}</a>
+          {% if s.sub_ref_type=='cycle' %} · <a href="/admin/accounting/cycle/{{ s.sub_ref_id }}">circle audit</a>{% elif s.sub_ref_type=='campaign' %} · <a href="/admin/accounting/campaign/{{ s.sub_ref_id }}">audit</a>{% endif %}</td>
+        <td class="num">{{ s.n }}</td><td class="num {{ 'neg' if s.s<0 }}">{{ acct_money(s.s, cur) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-header"><span class="card-title">Entries (latest 500)</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>When (UTC)</th><th>Type</th><th class="acct-hide-sm">Memo</th><th class="acct-hide-sm">Sub-account</th><th class="num">Amount</th><th class="num">Balance after</th></tr></thead>
+    <tbody>{% for e in entries %}
+      <tr><td class="mono"><a href="/admin/accounting/txn/{{ e.txn_id }}">{{ e.seq }}</a></td><td class="mono">{{ e.created_at }}</td><td>{{ acct_kind(e.kind) }}</td>
+        <td class="acct-hide-sm">{{ e.memo or '' }}</td><td class="acct-hide-sm mono">{{ (e.sub_ref_id or '')[:12] }}</td>
+        <td class="num {{ 'neg' if e.amount_cents<0 else 'pos' }}">{{ acct_money(e.amount_cents, cur) }}</td>
+        <td class="num">{{ acct_money(e.balance_after, cur) }}</td></tr>
+    {% else %}<tr><td colspan="7" class="muted">No entries.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Daily checks{% endblock %}
+{% block acct %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">Daily checks</h1>
+    <p class="acct-sub">Fifteen invariants the books must always satisfy, from running balances to the tamper-evident hash chain. They run every night at 02:17 UTC and whenever an admin asks.</p>
+  </div>
+  <button class="btn btn-outline btn-sm" id="run-checks" onclick="runChecks()">Run now</button>
+</div>
+{% for run in runs %}
+<div class="card" style="margin-bottom:.8rem">
+  <div class="card-header"><span class="card-title mono">{{ run.run_at }} UTC</span>
+    <span class="ok-badge"><span class="dot {{ 'g' if run.passed else 'r' }}"></span>{{ 'All passed' if run.passed else (run.results|rejectattr('ok')|list|length ~ ' failed') }} · {{ 'scheduled' if run.run_by=='scheduler' else 'manual' }}</span></div>
+  {% if not run.passed or loop.first %}
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.35rem 1rem">
+    {% for r in run.results %}<div style="font-size:.8rem"><span class="dot {{ 'g' if r.ok else 'r' }}"></span> {{ r.name }}{% if r.detail %} <span class="muted">— {{ r.detail }}</span>{% endif %}</div>{% endfor %}
+  </div>{% endif %}
+</div>
+{% else %}<div class="card card-pad muted">No runs yet.</div>{% endfor %}
+<script>
+async function runChecks(){const b=document.getElementById('run-checks');b.disabled=true;b.textContent='Running…';const d=await acctPost('/admin/accounting/checks/run');if(d){location.reload();}else{b.disabled=false;b.textContent='Run now';}}
+</script>
+{% endblock %}

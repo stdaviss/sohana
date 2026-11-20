@@ -1,0 +1,38 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Circles & campaigns{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Circles, pools and campaigns</h1>
+<p class="acct-sub">What each one holds according to the ledger, next to what its own records say. A red dot means the two disagree.</p>
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Circles</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Circle</th><th>Status</th><th class="num">Members</th><th class="num">Contribution</th><th class="num">Cycles paid out</th><th class="num">Pot held now</th><th></th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr><td class="td-bold">{{ r.name }}</td><td>{{ r.status }}</td><td class="num">{{ r.members }}</td>
+        <td class="num">{{ acct_money(r.contribution_cents, r.currency or 'EUR') }}</td><td class="num">{{ r.done }}</td>
+        <td class="num">{{ acct_money(r.held, r.currency or 'EUR') }}</td>
+        <td><a class="btn btn-outline btn-sm" href="/admin/accounting/circle/{{ r.id }}">Audit</a></td></tr>
+    {% else %}<tr><td colspan="7" class="muted">No circles.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Campaigns</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Campaign</th><th>Status</th><th class="num">Raised (net)</th><th class="num">Released</th><th class="num">Held in ledger</th><th></th><th></th></tr></thead>
+    <tbody>{% for c in camps %}{% set rec = (c.raised_cents or 0) - (c.withdrawn_cents or 0) %}
+      <tr><td class="td-bold">{{ c.title }}</td><td>{{ c.status }}</td>
+        <td class="num">{{ acct_money(c.raised_cents or 0, c.currency or 'EUR') }}</td><td class="num">{{ acct_money(c.withdrawn_cents or 0, c.currency or 'EUR') }}</td>
+        <td class="num">{{ acct_money(c.held, c.currency or 'EUR') }}</td><td><span class="dot {{ 'g' if rec==c.held else 'r' }}"></span></td>
+        <td><a class="btn btn-outline btn-sm" href="/admin/accounting/campaign/{{ c.id }}">Audit</a></td></tr>
+    {% else %}<tr><td colspan="7" class="muted">No campaigns.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="card">
+  <div class="card-header"><span class="card-title">Pools</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Pool</th><th>Status</th><th class="num">Pool record</th><th class="num">Held in ledger</th><th></th></tr></thead>
+    <tbody>{% for p in pools %}
+      <tr><td class="td-bold">{{ p.name }}</td><td>{{ p.status }}</td><td class="num">{{ acct_money(p.total_balance_cents or 0, p.currency or 'EUR') }}</td>
+        <td class="num"><a href="/admin/accounting/account/pool_funds?currency={{ p.currency or 'EUR' }}&sub={{ p.id }}">{{ acct_money(p.held, p.currency or 'EUR') }}</a></td>
+        <td><span class="dot {{ 'g' if (p.total_balance_cents or 0)==p.held else 'r' }}"></span></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No pools.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% endblock %}

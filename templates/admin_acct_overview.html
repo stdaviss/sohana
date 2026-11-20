@@ -1,0 +1,90 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Books overview{% endblock %}
+{% block acct %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">Books overview</h1>
+    <p class="acct-sub">Every figure here is read from the double-entry ledger ({{ txns }} transactions). For each currency, the cash SOHANA holds at MoMo, the bank and the card processor must equal everything it owes: member balances, circle pots, campaign and pool funds, withdrawals in progress, unmatched deposits and its own fee revenue.</p>
+  </div>
+  <div style="text-align:right">
+    <span class="pill {{ 'pill-amber' if mode=='simulated' else 'pill-green' }}">{{ 'Simulated money' if mode=='simulated' else 'Live money' }}</span>
+    <div style="margin-top:.5rem"><button class="btn btn-outline btn-sm" id="run-checks" onclick="runChecks()">Run daily checks now</button></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.1rem">
+  <div class="card-header">
+    <span class="card-title">Daily checks</span>
+    {% if last %}
+      <span class="ok-badge"><span class="dot {{ 'g' if last.passed else 'r' }}"></span>{{ 'All passed' if last.passed else 'Problems found' }} · {{ last.run_at }} UTC</span>
+    {% else %}<span class="muted">Not run yet</span>{% endif %}
+  </div>
+  {% if last_results %}
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.35rem 1rem">
+    {% for r in last_results %}
+    <div style="font-size:.8rem"><span class="dot {{ 'g' if r.ok else 'r' }}"></span> {{ r.name }}{% if r.detail %} <span class="muted">— {{ r.detail }}</span>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="stats-grid stats-grid-3">
+  <a class="stat-card" href="/admin/accounting/withdrawals" style="text-decoration:none"><div class="stat-body"><div class="stat-label">Withdrawals waiting</div><div class="stat-value">{{ queue.withdrawals }}</div><div class="stat-sub">approve, pay or return</div></div></a>
+  <a class="stat-card" href="/admin/accounting/payments" style="text-decoration:none"><div class="stat-body"><div class="stat-label">Unmatched deposits</div><div class="stat-value">{{ queue.suspense }}</div><div class="stat-sub">in suspense</div></div></a>
+  <a class="stat-card" href="/admin/accounting/adjustments" style="text-decoration:none"><div class="stat-body"><div class="stat-label">Adjustments to confirm</div><div class="stat-value">{{ queue.adjust }}</div><div class="stat-sub">need a second admin</div></div></a>
+</div>
+
+<div class="acct-grid">
+{% for e in eqs %}
+  <div class="card">
+    <div class="card-header"><span class="card-title">{{ e.currency }}</span>
+      <span class="ok-badge"><span class="dot {{ 'g' if e.trial_balance_sum==0 else 'r' }}"></span>{{ 'Balanced' if e.trial_balance_sum==0 else 'Out of balance' }}</span></div>
+    <div class="card-body">
+      <div class="muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem">Cash held</div>
+      <div class="eq-row"><span>MoMo / Airtel Money</span><span class="num">{{ acct_money(e.cash.cash_momo, e.currency) }}</span></div>
+      <div class="eq-row"><span>Bank</span><span class="num">{{ acct_money(e.cash.cash_bank, e.currency) }}</span></div>
+      <div class="eq-row"><span>Card processor</span><span class="num">{{ acct_money(e.cash.cash_card, e.currency) }}</span></div>
+      <div class="eq-row eq-total"><span>Total cash</span><span class="num">{{ acct_money(e.cash_total, e.currency) }}</span></div>
+      <div class="muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin:.7rem 0 .2rem">Owed / held</div>
+      {% for k,label in [('member_wallets','Member balances'),('circle_pots','Circle pots'),('campaign_funds','Campaign funds'),('pool_funds','Pool funds'),('withdrawals_held','Withdrawals in progress'),('suspense','Unmatched deposits'),('fee_revenue','SOHANA fee revenue')] %}
+      <div class="eq-row"><a href="/admin/accounting/account/{{ k }}?currency={{ e.currency }}" style="color:inherit">{{ label }}</a><span class="num">{{ acct_money(e.owed[k], e.currency) }}</span></div>
+      {% endfor %}
+      <div class="eq-row eq-total"><span>Total owed</span><span class="num">{{ acct_money(e.owed_total, e.currency) }}</span></div>
+      {% set gap = e.owed_total - e.cash_total %}
+      {% if gap %}
+      <div class="muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin:.7rem 0 .2rem">Difference of {{ acct_money(gap, e.currency) }} explained by</div>
+      {% for k,label in [('simulated_funding','Simulated money issued'),('opening','Balances from before the ledger'),('fx_position','Currency conversion position'),('adjustments','Manual adjustments'),('chargeback_loss','Chargeback losses')] %}{% if e.other[k] %}
+      <div class="eq-row"><span>{{ label }}</span><span class="num">{{ acct_money(-e.other[k], e.currency) }}</span></div>
+      {% endif %}{% endfor %}
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<div class="card" style="margin-bottom:1.1rem">
+  <div class="card-header"><span class="card-title">Money movement, {{ f }} to {{ t }}</span>
+    <form method="get" class="acct-actions"><input type="date" name="from" value="{{ f }}" class="filter-select"><input type="date" name="to" value="{{ t }}" class="filter-select"><button class="btn btn-outline btn-sm">Apply</button></form></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Currency</th><th class="num">Real money in</th><th class="num">Simulated money in</th><th class="num">Paid out</th><th class="num">Member-to-member</th><th class="num">Fee revenue</th></tr></thead>
+    <tbody>
+    {% for c, fl in flows.items() %}
+      <tr><td class="td-bold">{{ c }}</td><td class="num">{{ acct_money(fl.cash_in, c) }}</td><td class="num">{{ acct_money(fl.sim_in, c) }}</td><td class="num">{{ acct_money(fl.cash_out, c) }}</td><td class="num">{{ acct_money(fl.internal, c) }}</td><td class="num">{{ acct_money(fl.fees, c) }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="acct-note">Real money in = confirmed MoMo, bank and card deposits. Simulated money is labelled separately and never counted as revenue or deposits.</div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span class="card-title">Latest transactions</span><a class="btn btn-outline btn-sm" href="/admin/accounting/transactions">Explore all</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>When (UTC)</th><th>Type</th><th>Memo</th></tr></thead>
+    <tbody>{% for r in recent %}
+      <tr><td class="mono"><a href="/admin/accounting/txn/{{ r.id }}">{{ r.seq }}</a></td><td class="mono">{{ r.created_at }}</td><td>{{ acct_kind(r.kind) }}</td><td>{{ r.memo or '' }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No transactions yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+<script>
+async function runChecks(){const b=document.getElementById('run-checks');b.disabled=true;b.textContent='Running…';const d=await acctPost('/admin/accounting/checks/run');if(d){location.reload();}else{b.disabled=false;b.textContent='Run daily checks now';}}
+</script>
+{% endblock %}

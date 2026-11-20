@@ -273,6 +273,18 @@
       <li><a href="/admin/status"     class="{{ 'active' if '/admin/status'     in p }}"><span class="nav-icon">🟢</span>Status</a></li>
     </ul>
   </div>
+  {% if session.get('admin_role') in ['ceo','cfo','operations','compliance','cco'] %}
+  <hr class="sidebar-divider">
+  <div class="sidebar-section">
+    <span class="sidebar-label">Accounting</span>
+    <ul class="sidebar-nav">
+      <li><a href="/admin/accounting" class="{{ 'active' if p=='/admin/accounting' }}"><span class="nav-icon">⚖</span>Books overview</a></li>
+      <li><a href="/admin/accounting/transactions" class="{{ 'active' if '/admin/accounting/t' in p }}"><span class="nav-icon">≡</span>Transactions</a></li>
+      <li><a href="/admin/accounting/withdrawals" class="{{ 'active' if '/admin/accounting/withdrawals' in p }}"><span class="nav-icon">↗</span>Withdrawals</a></li>
+      <li><a href="/admin/accounting/reports" class="{{ 'active' if '/admin/accounting/reports' in p }}"><span class="nav-icon">▤</span>Reports</a></li>
+    </ul>
+  </div>
+  {% endif %}
   {% if session.get('admin_role') in ['ceo','cfo','cto','compliance'] %}
   <hr class="sidebar-divider">
   <div class="sidebar-section">

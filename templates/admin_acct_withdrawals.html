@@ -1,0 +1,30 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Withdrawals{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Withdrawal queue</h1>
+<p class="acct-sub">A request already holds the member's money and fee (so it cannot be spent twice). 1. Approve (a second, different admin for {{ acct_money(second, 'EUR') }} equivalent or more). 2. Send the money from SOHANA's MoMo or bank account. 3. Mark it paid with the provider's reference. If it can't be sent, mark it failed or reject it: the full amount and fee go back.</p>
+<div class="acct-tabs" style="border:none;margin-bottom:.6rem">
+  {% for s,l in [('open','Waiting'),('paid','Paid'),('rejected','Rejected'),('failed','Failed')] %}<a href="?status={{ s }}" class="{{ 'on' if status==s }}">{{ l }}</a>{% endfor %}
+</div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Requested (UTC)</th><th>Member</th><th>To</th><th class="num">Amount</th><th class="num">Fee</th><th>Status</th><th>Action</th></tr></thead>
+  <tbody>{% for w in rows %}
+    <tr id="w-{{ w.id }}"><td class="mono">{{ w.created_at }}</td>
+      <td class="td-bold"><a href="/admin/accounting/member/{{ w.user_id }}" style="color:var(--ink)">{{ w.full_name }}</a><div class="td-sub">{{ w.hanatag }}</div></td>
+      <td>{{ 'MoMo' if w.channel=='momo' else 'Bank' }} · {{ w.destination }}<div class="td-sub">{{ w.method }}</div></td>
+      <td class="num">{{ acct_money(w.amount_cents, w.currency) }}</td><td class="num">{{ acct_money(w.fee_cents, w.currency) }}</td>
+      <td><span class="pill pill-no-dot {{ {'paid':'pill-green','requested':'pill-amber','approved':'pill-blue','rejected':'pill-red','failed':'pill-red'}.get(w.status,'pill-gray') }}">{{ w.status }}</span>
+        <div class="td-sub">{% if w.approvals_needed==2 %}needs 2 approvals{% endif %}{% if w.ap1 %} · ✓ {{ w.ap1 }}{% endif %}{% if w.ap2 %} · ✓ {{ w.ap2 }}{% endif %}{% if w.paid_ref %} · ref {{ w.paid_ref }}{% endif %}{% if w.failure_reason %} · {{ w.failure_reason }}{% endif %}</div></td>
+      <td>{% if acct_can_write() %}<div class="acct-actions">
+        {% if w.status=='requested' and w.user_id != me and w.approved_by != me %}<button class="btn btn-green btn-sm" onclick="wdAct('{{ w.id }}','approve')">Approve</button>{% endif %}
+        {% if w.status=='approved' %}<button class="btn btn-primary btn-sm" onclick="wdPaid('{{ w.id }}')">Mark paid</button><button class="btn btn-outline btn-sm" onclick="wdBack('{{ w.id }}','failed')">Failed</button>{% endif %}
+        {% if w.status in ('requested','approved') %}<button class="btn btn-outline btn-sm" onclick="wdBack('{{ w.id }}','reject')">Reject</button>{% endif %}
+      </div>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="7" class="muted">Nothing here.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<script>
+async function wdAct(id,a){const d=await acctPost('/admin/accounting/withdrawals/'+id+'/'+a);if(d){toast(d.status==='needs_second_approval'?'Approved. A second admin must also approve.':'Approved','success');setTimeout(()=>location.reload(),700);}}
+async function wdPaid(id){const ref=prompt('Provider reference of the payout (MoMo transaction id or bank reference):');if(!ref)return;const d=await acctPost('/admin/accounting/withdrawals/'+id+'/paid',{paid_ref:ref});if(d){toast('Marked paid','success');setTimeout(()=>location.reload(),700);}}
+async function wdBack(id,a){const r=prompt(a==='reject'?'Reason for rejecting (the member will see it):':'What went wrong with the payout?');if(!r)return;const d=await acctPost('/admin/accounting/withdrawals/'+id+'/'+a,{reason:r});if(d){toast('Returned to the member','success');setTimeout(()=>location.reload(),700);}}
+</script>
+{% endblock %}

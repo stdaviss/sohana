@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{% block acct_title %}Accounting{% endblock %} — SOHANA{% endblock %}
+{% block topbar_title %}Accounting{% endblock %}
+{% block content %}
+<style>
+.acct-tabs{display:flex;gap:.25rem;flex-wrap:wrap;margin:0 0 1.1rem;border-bottom:1px solid var(--line);padding-bottom:.5rem}
+.acct-tabs a{padding:.4rem .8rem;border-radius:999px;font-size:.8rem;color:var(--ink-2);text-decoration:none;border:1px solid transparent}
+.acct-tabs a:hover{background:var(--line);color:var(--ink)}
+.acct-tabs a.on{background:var(--bg-3);border-color:var(--line-2);color:var(--ink);font-weight:600}
+.acct-tabs .cnt{display:inline-block;min-width:1.2rem;padding:0 .35rem;margin-left:.3rem;border-radius:999px;background:var(--amber);color:#111;font-size:.68rem;font-weight:700;text-align:center}
+.num{text-align:right;font-family:'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+th.num{text-align:right}
+.neg{color:var(--red)}.pos{color:var(--accent-2)}
+.mono{font-family:'Geist Mono',ui-monospace,monospace;font-size:.78rem}
+.muted{color:var(--ink-3)}
+.acct-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:1.1rem}
+.acct-h{font-size:1.25rem;font-weight:650;margin:.2rem 0 .2rem;color:var(--ink)}
+.acct-sub{font-size:.82rem;color:var(--ink-3);margin-bottom:1rem;max-width:70ch}
+.acct-filter{display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;padding:.8rem 1.1rem;border-bottom:1px solid var(--line)}
+.acct-filter label{font-size:.7rem;color:var(--ink-3);display:block;margin-bottom:.2rem}
+.acct-filter input,.acct-filter select{padding:.4rem .6rem;border:1px solid var(--line-2);border-radius:8px;background:var(--bg-3);color:var(--ink);font-size:.8rem}
+.eq-row{display:flex;justify-content:space-between;padding:.32rem 0;font-size:.84rem;border-bottom:1px dashed var(--line)}
+.eq-row:last-child{border-bottom:none}
+.eq-total{font-weight:700;color:var(--ink)}
+.ok-badge{display:inline-flex;align-items:center;gap:.35rem;font-weight:600;font-size:.8rem}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.g{background:var(--accent-2)}.dot.r{background:var(--red)}.dot.a{background:var(--amber)}
+.acct-note{font-size:.76rem;color:var(--ink-3);padding:.6rem 1.1rem;border-top:1px solid var(--line)}
+.acct-actions{display:flex;gap:.35rem;flex-wrap:wrap}
+@media(max-width:700px){.acct-hide-sm{display:none}}
+</style>
+<div class="breadcrumb">Home / <a href="/admin">Admin</a> / <a href="/admin/accounting">Accounting</a>{% block crumb %}{% endblock %}</div>
+<nav class="acct-tabs" aria-label="Accounting sections">
+  <a href="/admin/accounting" class="{{ 'on' if tab=='overview' }}">Overview</a>
+  <a href="/admin/accounting/trial-balance" class="{{ 'on' if tab=='tb' }}">Trial balance</a>
+  <a href="/admin/accounting/transactions" class="{{ 'on' if tab=='txns' }}">Transactions</a>
+  <a href="/admin/accounting/member" class="{{ 'on' if tab=='member' }}">Member statement</a>
+  <a href="/admin/accounting/circles" class="{{ 'on' if tab=='circles' }}">Circles &amp; campaigns</a>
+  <a href="/admin/accounting/reports" class="{{ 'on' if tab=='reports' }}">Reports</a>
+  <a href="/admin/accounting/withdrawals" class="{{ 'on' if tab=='withdrawals' }}">Withdrawals</a>
+  <a href="/admin/accounting/payments" class="{{ 'on' if tab=='payments' }}">Deposits &amp; suspense</a>
+  <a href="/admin/accounting/reconciliation" class="{{ 'on' if tab=='recon' }}">Reconciliation</a>
+  <a href="/admin/accounting/checks" class="{{ 'on' if tab=='checks' }}">Daily checks</a>
+  <a href="/admin/accounting/adjustments" class="{{ 'on' if tab=='adjust' }}">Adjustments</a>
+  <a href="/admin/accounting/simulator" class="{{ 'on' if tab=='sim' }}">Simulator</a>
+</nav>
+{% block acct %}{% endblock %}
+<script>
+async function acctPost(url, body){
+  const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+  let d={}; try{d=await r.json();}catch(e){d={error:'Server error'};}
+  if(d.error){ (window.toast?toast(d.error,'error'):alert(d.error)); return null; }
+  return d;
+}
+</script>
+{% endblock %}

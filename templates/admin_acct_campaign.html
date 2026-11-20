@@ -1,0 +1,24 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}{{ c.title }} audit{% endblock %}
+{% block crumb %} / <a href="/admin/accounting/circles">Campaigns</a> / {{ c.title }}{% endblock %}
+{% block acct %}
+<h1 class="acct-h">{{ c.title }}</h1>
+<p class="acct-sub">{{ cur }} campaign by {{ c.creator }} · status {{ c.status }}</p>
+<div class="stats-grid stats-grid-4">
+  <div class="stat-card"><div class="stat-body"><div class="stat-label">Raised (after fee)</div><div class="stat-value">{{ acct_money(c.raised_cents or 0, cur) }}</div></div></div>
+  <div class="stat-card"><div class="stat-body"><div class="stat-label">SOHANA fee (2.5%)</div><div class="stat-value">{{ acct_money(fees, cur) }}</div></div></div>
+  <div class="stat-card"><div class="stat-body"><div class="stat-label">Released to creator</div><div class="stat-value">{{ acct_money(c.withdrawn_cents or 0, cur) }}</div></div></div>
+  <div class="stat-card"><div class="stat-body"><div class="stat-label">Held now (ledger)</div><div class="stat-value">{{ acct_money(held, cur) }}</div>
+    <div class="stat-sub"><span class="dot {{ 'g' if held == (c.raised_cents or 0) - (c.withdrawn_cents or 0) else 'r' }}"></span> {{ 'matches the campaign record' if held == (c.raised_cents or 0) - (c.withdrawn_cents or 0) else 'does not match the campaign record' }}</div></div></div>
+</div>
+<div class="card" style="margin-bottom:1rem"><div class="card-header"><span class="card-title">Ledger entries</span></div><div class="table-wrap"><table>
+  <thead><tr><th>#</th><th>When (UTC)</th><th>Type</th><th class="num">Amount</th><th class="num">Held after</th></tr></thead>
+  <tbody>{% set ns = namespace(b=0) %}{% for e in entries %}{% set ns.b = ns.b + e.amount_cents %}
+    <tr><td class="mono"><a href="/admin/accounting/txn/{{ e.tid }}">{{ e.seq }}</a></td><td class="mono">{{ e.created_at }}</td><td>{{ acct_kind(e.kind) }}</td>
+      <td class="num {{ 'neg' if e.amount_cents<0 else 'pos' }}">{{ acct_money(e.amount_cents, cur) }}</td><td class="num">{{ acct_money(ns.b, cur) }}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">No entries.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card"><div class="card-header"><span class="card-title">Donations</span></div><div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>Donor</th><th class="num">Given</th><th class="num">Fee</th></tr></thead>
+  <tbody>{% for d in donations %}<tr><td class="mono">{{ d.created_at }}</td><td>{{ d.donor_name }}</td><td class="num">{{ acct_money(d.amount_cents, cur) }}</td><td class="num">{{ acct_money(d.platform_fee or 0, cur) }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted">No donations.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

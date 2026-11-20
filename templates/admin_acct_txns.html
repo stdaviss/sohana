@@ -1,0 +1,31 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Transactions{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Transaction explorer</h1>
+<p class="acct-sub">Every money movement is one numbered transaction whose legs add up to zero. Open one to see each leg, the member balances after it, and where the money originally came from. The CSV export lists every leg.</p>
+<div class="card">
+  <form class="acct-filter" method="get">
+    <div><label>From</label><input type="date" name="from" value="{{ f }}"></div>
+    <div><label>To</label><input type="date" name="to" value="{{ t }}"></div>
+    <div><label>Type</label><select name="kind"><option value="">All types</option>{% for k in kinds %}<option value="{{ k }}" {{ 'selected' if k==kind }}>{{ acct_kind(k) }}</option>{% endfor %}</select></div>
+    <div><label>Currency</label><select name="currency"><option value="">All</option>{% for c in currencies %}<option {{ 'selected' if c==cur }}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label>Member</label><input name="member" value="{{ member }}" placeholder="name, @tag, phone"></div>
+    <div><label>Txn # / id / memo</label><input name="q" value="{{ q }}" placeholder="e.g. 42"></div>
+    <div><button class="btn btn-primary btn-sm">Filter</button></div>
+    <div style="margin-left:auto"><a class="btn btn-outline btn-sm" href="?{{ request.query_string.decode() }}&format=csv">Download CSV ({{ total }})</a></div>
+  </form>
+  <div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>When (UTC)</th><th>Type</th><th class="acct-hide-sm">Members</th><th class="acct-hide-sm">Memo</th><th class="num">Amount moved</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr><td class="mono"><a href="/admin/accounting/txn/{{ r.id }}">{{ r.seq }}</a></td>
+        <td class="mono">{{ r.created_at }}</td><td>{{ acct_kind(r.kind) }}</td>
+        <td class="acct-hide-sm">{{ r.members }}</td><td class="acct-hide-sm">{{ r.memo or '' }}</td>
+        <td class="num">{% for c, a in r.amounts %}{{ acct_money(a, c) }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>
+    {% else %}<tr><td colspan="6" class="muted">Nothing matches these filters.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="acct-note">{{ total }} transaction(s). Page {{ page }}.
+    {% if page>1 %}<a href="?{{ request.query_string.decode()|replace('page='~page,'') }}&page={{ page-1 }}">Newer</a>{% endif %}
+    {% if total > page*100 %}<a href="?{{ request.query_string.decode()|replace('page='~page,'') }}&page={{ page+1 }}">Older</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -11,7 +11,7 @@ from database import (init_db, fetchone, fetchall, get_db, wallet_balance,
                       CONVERSION_FEE_RATE, ADMIN_ROLES,
                       LIMITS, get_period_total, generate_hanatag,
                       conversion_quote, eur_equivalent_cents, WITHDRAWAL_FEE_MIN)
-import auth, rosca, pool, campaign, ncs_engine
+import auth, rosca, pool, campaign, ncs_engine, ledger
 import status as status_module
 
 app = Flask(__name__)
@@ -114,6 +114,11 @@ def ensure_db():
         except Exception:
             app.logger.exception("post-init migrations failed")
         _seed_all()
+        # anything that exists outside the double-entry ledger is brought in once, against 'opening'
+        try:
+            ledger.open_books()
+        except Exception:
+            app.logger.exception("ledger open_books failed")
         _ensure_survey_article()   # runs independently of _seed_all guard
         _sync_admin_passwords()    # re-hashes admin passwords from env var every deploy
         app._db_ready = True
@@ -1330,6 +1335,12 @@ def _run_safe_migrations():
         except Exception:
             pass  # Column already exists — safe to ignore
 
+    # Double-entry ledger tables (ledger.py) and their column migrations
+    try:
+        ledger.ensure_schema()
+    except Exception:
+        pass
+
     # Seed default service components (idempotent)
     try:
         with get_db() as db:
@@ -1364,25 +1375,37 @@ def _admin_stats():
         "active_roscas":    fetchone("SELECT COUNT(*) as c FROM roscas WHERE status='active'")["c"],
         "active_members":   fetchone("SELECT COUNT(*) as c FROM rosca_members WHERE status='active'")["c"],
         "total_tx":         fetchone("SELECT COUNT(*) as c FROM wallet_transactions")["c"],
-        "total_volume":     fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE amount_cents>0")["c"],
-        "pending_deposits": fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='deposit' AND created_at>=datetime('now','-1 day')")["c"],
-        "pending_withdrawals": fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='withdrawal' AND created_at>=datetime('now','-1 day')")["c"],
+        # money figures: EUR equivalents of ledger amounts (never raw sums across currencies)
+        "total_volume":     _eur_sum("""SELECT w.currency, SUM(w.amount_cents) s FROM wallet_transactions w JOIN ledger_txns t ON t.id=w.txn_id
+                                         WHERE w.amount_cents>0 AND t.kind!='opening' GROUP BY w.currency"""),
+        "pending_deposits": _safe_count("SELECT COUNT(*) as c FROM external_payments WHERE status='suspense'"),
+        "pending_withdrawals": _safe_count("SELECT COUNT(*) as c FROM withdrawals WHERE status IN ('requested','approved')"),
         "late_contributions": fetchone("SELECT COUNT(*) as c FROM contributions WHERE status='late'")["c"],
         "missed_contributions": fetchone("SELECT COUNT(*) as c FROM contributions WHERE status='missed'")["c"],
         "avg_ncs":          fetchone("SELECT COALESCE(AVG(ncs_score),300) as c FROM users WHERE is_admin=0")["c"],
-        "loans_disbursed":  fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='rosca_payout'")["c"],
+        "loans_disbursed":  _safe_count("SELECT COUNT(*) as c FROM ledger_txns WHERE kind='circle_payout'"),
         "fraud_alerts":     fetchone("SELECT COUNT(*) as c FROM fraud_alerts WHERE status='open'")["c"] if _table_exists("fraud_alerts") else 0,
-        "total_revenue":    fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM wallet_transactions WHERE tx_type='fee'")["c"],
-        "escrow":           fetchone("SELECT COALESCE(SUM(pot_cents),0) as c FROM cycles WHERE status='collecting'")["c"],
-        "contributed_week": fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM contributions WHERE status IN ('paid','late') AND created_at>=datetime('now','-7 days')")["c"],
+        "total_revenue":    _eur_sum("SELECT currency, SUM(amount_cents) s FROM ledger_entries WHERE account_code='fee_revenue' GROUP BY currency"),
+        "escrow":           _eur_sum("SELECT currency, SUM(amount_cents) s FROM ledger_entries WHERE account_code='circle_pots' GROUP BY currency"),
+        "contributed_week": _eur_sum("""SELECT currency, SUM(amount_cents) s FROM ledger_entries WHERE account_code='circle_pots'
+                                         AND amount_cents>0 AND created_at>=datetime('now','-7 days') GROUP BY currency"""),
         "new_users_week":   fetchone("SELECT COUNT(*) as c FROM users WHERE created_at>=datetime('now','-7 days')")["c"],
-        "fraud_prevented":  _safe_count("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE tx_type='reversal'"),
-        "total_earnings":   fetchone("SELECT COALESCE(SUM(ABS(amount_cents)),0) as c FROM wallet_transactions WHERE amount_cents>0 AND tx_type='rosca_payout'")["c"],
-        "platform_earnings":fetchone("SELECT COUNT(*) as c FROM wallet_transactions WHERE tx_type='fee'")["c"],
+        "fraud_prevented":  _eur_sum("""SELECT currency, SUM(amount_cents) s FROM withdrawals WHERE status='rejected' GROUP BY currency"""),
+        "total_earnings":   _eur_sum("""SELECT w.currency, SUM(w.amount_cents) s FROM wallet_transactions w JOIN ledger_txns t ON t.id=w.txn_id
+                                         WHERE t.kind='circle_payout' AND w.amount_cents>0 GROUP BY w.currency"""),
+        "platform_earnings":_eur_sum("SELECT currency, SUM(amount_cents) s FROM ledger_entries WHERE account_code='fee_revenue' GROUP BY currency"),
         "late_members":     fetchone("SELECT COUNT(DISTINCT user_id) as c FROM contributions WHERE status='late'")["c"],
         "suspended_users":  _safe_count("SELECT COUNT(*) as c FROM users WHERE is_suspended=1 AND is_admin=0"),
         "platform_ctrl":    _get_platform_controls(),
     }
+
+def _eur_sum(sql):
+    """Sum (currency, s) rows as EUR-equivalent cents at today's rates."""
+    try:
+        return sum(ledger.to_eur(r["s"] or 0, r["currency"]) for r in fetchall(sql))
+    except Exception:
+        return 0
+
 
 def _table_exists(name):
     r = fetchone("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,))
@@ -1525,9 +1548,11 @@ def admin_dashboard():
                                    JOIN users u ON u.id=r.organiser_id
                                    WHERE c.status IN ('missed','late') GROUP BY r.organiser_id
                                    ORDER BY issue_count DESC LIMIT 3""")
+    import admin_metrics as _m
     return render_template("admin_dashboard.html", user=user, stats=stats,
                            all_roscas=all_roscas, at_risk=at_risk,
-                           organiser_alerts=organiser_alerts, admin_roles=ADMIN_ROLES)
+                           organiser_alerts=organiser_alerts, admin_roles=ADMIN_ROLES,
+                           ms=_m.money_summary(), mem=_m.members(), ci=_m.circles(), vol=_m.volume_series(30))
 
 @app.route("/admin/executive")
 @admin_required
@@ -1535,24 +1560,32 @@ def admin_executive():
     user  = auth.get_current_user()
     stats = _admin_stats()
     recent_users = fetchall("SELECT * FROM users WHERE is_admin=0 ORDER BY created_at DESC LIMIT 10")
-    recent_tx    = fetchall("SELECT wt.*, u.full_name FROM wallet_transactions wt JOIN wallets w ON w.id=wt.wallet_id JOIN users u ON u.id=w.user_id ORDER BY wt.created_at DESC LIMIT 10")
+    recent_tx    = fetchall("""SELECT wt.*, u.full_name, w.currency AS wcur, t.kind, t.seq FROM wallet_transactions wt
+                               JOIN wallets w ON w.id=wt.wallet_id JOIN users u ON u.id=w.user_id
+                               LEFT JOIN ledger_txns t ON t.id=wt.txn_id
+                               WHERE wt.amount_cents != 0 ORDER BY wt.created_at DESC, wt.rowid DESC LIMIT 10""")
+    import admin_metrics as _m
     return render_template("admin_executive.html", user=user, stats=stats,
-                           recent_users=recent_users, recent_tx=recent_tx, admin_roles=ADMIN_ROLES)
+                           recent_users=recent_users, recent_tx=recent_tx, admin_roles=ADMIN_ROLES,
+                           ms=_m.money_summary(), fees=_m.fee_series(30))
 
 @app.route("/admin/operations")
 @admin_required
 def admin_operations():
     user  = auth.get_current_user()
     stats = _admin_stats()
-    payments = fetchall("""SELECT c.*, u.full_name as member_name, r.name as rosca_name
+    payments = fetchall("""SELECT c.*, u.full_name as member_name, r.name as rosca_name, r.currency as currency
                            FROM contributions c JOIN users u ON u.id=c.user_id JOIN roscas r ON r.id=c.rosca_id
-                           ORDER BY c.created_at DESC LIMIT 30""")
+                           ORDER BY COALESCE(c.paid_at, c.created_at) DESC LIMIT 30""")
     all_roscas = fetchall("""SELECT r.*, u.full_name as organiser_name, COUNT(rm.id) as member_count
                              FROM roscas r JOIN users u ON u.id=r.organiser_id
                              LEFT JOIN rosca_members rm ON rm.rosca_id=r.id AND rm.status='active'
                              GROUP BY r.id ORDER BY r.created_at DESC LIMIT 20""")
+    import admin_metrics as _m
+    kinds = [(accounting_admin.KIND_LABELS.get(k["kind"], k["kind"]), k["n"], k["n"]) for k in _m.payments()["kinds"]]
     return render_template("admin_operations.html", user=user, stats=stats,
-                           payments=payments, all_roscas=all_roscas, admin_roles=ADMIN_ROLES)
+                           payments=payments, all_roscas=all_roscas, admin_roles=ADMIN_ROLES,
+                           ms=_m.money_summary(), mem=_m.members(), ci=_m.circles(), kinds=kinds)
 
 @app.route("/admin/compliance")
 @admin_required
@@ -1562,8 +1595,10 @@ def admin_compliance():
     flagged = fetchall("""SELECT * FROM wallet_transactions WHERE ABS(amount_cents) > 500000
                           ORDER BY created_at DESC LIMIT 20""")
     users = fetchall("SELECT * FROM users WHERE is_admin=0 ORDER BY ncs_score ASC LIMIT 20")
+    import admin_metrics as _m
     return render_template("admin_compliance.html", user=user, stats=stats,
-                           flagged=flagged, users=users, admin_roles=ADMIN_ROLES)
+                           flagged=flagged, users=users, admin_roles=ADMIN_ROLES,
+                           ms=_m.money_summary(), co=_m.compliance())
 
 @app.route("/admin/fraud")
 @admin_required
@@ -1575,8 +1610,10 @@ def admin_fraud():
                             JOIN wallets w ON w.id=wt.wallet_id JOIN users u ON u.id=w.user_id
                             WHERE ABS(wt.amount_cents) > 200000 ORDER BY wt.created_at DESC LIMIT 20""")
     alerts = fetchall("SELECT * FROM fraud_alerts ORDER BY created_at DESC LIMIT 20") if _table_exists("fraud_alerts") else []
+    import admin_metrics as _m
     return render_template("admin_fraud.html", user=user, stats=stats,
-                           high_risk=high_risk, large_tx=large_tx, alerts=alerts, admin_roles=ADMIN_ROLES)
+                           high_risk=high_risk, large_tx=large_tx, alerts=alerts, admin_roles=ADMIN_ROLES,
+                           fr=_m.fraud())
 
 @app.route("/admin/credit")
 @admin_required
@@ -1593,8 +1630,10 @@ def admin_credit():
     recent_events = fetchall("""SELECT ne.*, u.full_name FROM ncs_events ne
                                 JOIN users u ON u.id=ne.user_id
                                 ORDER BY ne.recorded_at DESC LIMIT 20""")
+    import admin_metrics as _m
     return render_template("admin_credit.html", user=user, stats=stats,
-                           score_dist=score_dist, recent_events=recent_events, admin_roles=ADMIN_ROLES)
+                           score_dist=score_dist, recent_events=recent_events, admin_roles=ADMIN_ROLES,
+                           cr=_m.credit(), ci=_m.circles())
 
 @app.route("/admin/engineering")
 @admin_required
@@ -1606,16 +1645,17 @@ def admin_engineering():
         "total_users":   stats["total_users"],
         "total_wallets": fetchone("SELECT COUNT(*) as c FROM wallets")["c"],
     }
+    import admin_metrics as _m
     return render_template("admin_engineering.html", user=user, stats=stats,
-                           db_stats=db_stats, admin_roles=ADMIN_ROLES)
+                           db_stats=db_stats, admin_roles=ADMIN_ROLES, en=_m.engineering())
 
 @app.route("/admin/payments")
 @any_admin_required
 def admin_payments():
     user = auth.get_current_user()
-    payments = fetchall("""SELECT c.*, u.full_name as member_name, r.name as rosca_name
+    payments = fetchall("""SELECT c.*, u.full_name as member_name, r.name as rosca_name, r.currency as currency
                            FROM contributions c JOIN users u ON u.id=c.user_id JOIN roscas r ON r.id=c.rosca_id
-                           ORDER BY c.created_at DESC LIMIT 50""")
+                           ORDER BY COALESCE(c.paid_at, c.created_at) DESC LIMIT 50""")
     stats = {
         "total":       fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM contributions WHERE status IN ('paid','late')")["c"],
         "pending_cnt": fetchone("SELECT COUNT(*) as c FROM contributions WHERE status='pending'")["c"],
@@ -1624,7 +1664,9 @@ def admin_payments():
         "overdue_amt": fetchone("SELECT COALESCE(SUM(amount_cents),0) as c FROM contributions WHERE status='missed'")["c"],
         "escrow":      fetchone("SELECT COALESCE(SUM(pot_cents),0) as c FROM cycles WHERE status='collecting'")["c"],
     }
-    return render_template("admin_payments.html", user=user, payments=payments, stats=stats)
+    import admin_metrics as _m
+    return render_template("admin_payments.html", user=user, payments=payments, stats=stats,
+                           ms=_m.money_summary(), pm=_m.payments(), vol=_m.volume_series(30))
 
 @app.route("/admin/admins")
 @admin_required
@@ -3925,29 +3967,75 @@ def api_deposit():
         return jsonify({"error": f"Daily deposit limit reached. You can still deposit the equivalent of "
                                   f"€{max(remaining,0)/100:,.2f} today (limit €10,000/day).".replace(',', ' ')}), 400
     # ─────────────────────────────────────────────────────────────────
-    new_bal = post_transaction(wallet["id"], cents, f"Deposit ({currency})", tx_type="deposit")
+    # Money can only enter SOHANA from a real MoMo, bank or card confirmation. On the
+    # simulated service a self-deposit is labelled simulated money, so the books always
+    # show where it came from; on a live service this button is switched off.
+    if not ledger.is_simulated():
+        return jsonify({"error": "Add money by Mobile Money, bank transfer or card. Your deposit reference is "
+                                 + (ledger.deposit_ref_for(session["user_id"]) or "shown in Wallet") + "."}), 400
+    if not ledger.is_whole(cents, currency):
+        return jsonify({"error": f"{currency} amounts must be whole numbers"}), 400
+    try:
+        ledger.credit_simulated(session["user_id"], currency, cents, f"Deposit ({currency}, simulated money)",
+                                created_by=session["user_id"])
+    except ledger.LedgerError as e:
+        return jsonify({"error": str(e)}), 400
+    new_bal = wallet_balance(wallet["id"])
     ncs_engine.apply_event(session["user_id"], "wallet_deposit")
-    return jsonify({"ok": True, "new_balance_cents": new_bal})
+    return jsonify({"ok": True, "new_balance_cents": new_bal, "simulated": True})
+
+@app.route("/api/wallet/withdraw/code", methods=["POST"])
+@limiter.limit("5 per minute")
+@auth.login_required
+def api_withdraw_code():
+    """Send the one-time code that confirms a withdrawal (members without an authenticator app)."""
+    uid = session["user_id"]
+    if _user_has_totp(uid):
+        return jsonify({"ok": True, "challenge": "totp"})
+    import comms
+    urow = fetchone("SELECT email, full_name FROM users WHERE id=?", (uid,))
+    comms.send_otp(uid, "email", "withdraw", to_address=(urow["email"] or ""), to_name=(urow["full_name"] or ""))
+    return jsonify({"ok": True, "challenge": "email_otp", "masked_target": _mask_email(urow["email"])})
+
+
+def _withdraw_fee(cents, currency, method):
+    return ledger.whole(max(int(round(WITHDRAWAL_FEE_MIN * EXCHANGE_RATES.get(currency, 1.0))),
+                            int(round(cents * WITHDRAWAL_FEES.get(method, 0.02)))), currency)
+
 
 @app.route("/api/wallet/withdraw", methods=["POST"])
+@limiter.limit("6 per minute")
 @auth.login_required
 def api_withdraw():
+    """A withdrawal is a request: the amount and fee move from the wallet into
+    'withdrawals in progress' straight away (so they can't be spent twice), then an admin
+    approves it (two admins for large amounts), pays it out from our MoMo/bank account and
+    records the provider's reference. A rejected or failed payout returns everything."""
     _platform_check("withdrawals_enabled", "Withdrawals are temporarily paused. Please contact support@sohana.app.")
     d = request.get_json(silent=True) or {}
+    uid      = session["user_id"]
     cents    = _parse_amount_to_cents(d.get("amount")) or 0
     method   = d.get("method", "bank_eu")
     currency = (d.get("currency") or "EUR").upper()
-    otp      = str(d.get("otp",""))
-    if len(otp) != 6 or not otp.isdigit():
-        return jsonify({"error": "Invalid verification code"}), 400
+    code     = str(d.get("otp", "")).strip()
     if cents <= 0: return jsonify({"error": "Invalid amount"}), 400
-    # ── Freeze check ──────────────────────────────────────────────────
-    fd, fw, freason = _get_freeze_status(session["user_id"])
+    if not ledger.is_whole(cents, currency):
+        return jsonify({"error": f"{currency} amounts must be whole numbers"}), 400
+    if method not in WITHDRAWAL_FEES or method == "sohana_user":
+        return jsonify({"error": "Choose where the money should go"}), 400
+    if len(code) != 6 or not code.isdigit():
+        return jsonify({"error": "Enter the 6-digit code"}), 400
+    if _user_has_totp(uid):
+        ok = _verify_totp_code(uid, code)
+    else:
+        import comms
+        ok = comms.verify_otp(uid, code, "withdraw")
+    if not ok:
+        return jsonify({"error": "Invalid or expired code. Request a new one."}), 403
+    fd, fw, freason = _get_freeze_status(uid)
     if fw: return jsonify({"error": FROZEN_WITHDRAW_MSG, "frozen": True}), 403
-    # ─────────────────────────────────────────────────────────────────
-    wallet = _get_wallet(session["user_id"], currency)
+    wallet = _get_wallet(uid, currency)
     if not wallet: return jsonify({"error": f"No {currency} wallet"}), 400
-    # ── Withdrawal limits ─────────────────────────────────────────────
     lim = LIMITS["standard"]
     withdrawn_today   = eur_equivalent_cents(get_period_total(wallet["id"], "withdrawal", "out", "day"), currency)
     withdrawn_month   = eur_equivalent_cents(get_period_total(wallet["id"], "withdrawal", "out", "month"), currency)
@@ -3956,24 +4044,30 @@ def api_withdraw():
     cents_eur         = eur_equivalent_cents(cents, currency)
     if cents_eur > daily_remaining:
         return jsonify({"error": f"Daily withdrawal limit reached. Remaining today: "
-                                  f"€{daily_remaining/100:,.2f} (limit €3 000/day).".replace(',', ' ')}), 400
+                                  f"€{max(daily_remaining,0)/100:,.2f} (limit €3 000/day).".replace(',', ' ')}), 400
     if cents_eur > monthly_remaining:
         return jsonify({"error": f"Monthly withdrawal limit reached. Remaining this month: "
-                                  f"€{monthly_remaining/100:,.2f} (limit €10 000/month).".replace(',', ' ')}), 400
-    # ─────────────────────────────────────────────────────────────────
-    # minimum fee is EUR 0.50 in the withdrawal currency
-    fee  = max(int(round(WITHDRAWAL_FEE_MIN * EXCHANGE_RATES.get(currency, 1.0))),
-               int(round(cents * WITHDRAWAL_FEES.get(method, 0.02))))
-    total = cents + fee
+                                  f"€{max(monthly_remaining,0)/100:,.2f} (limit €10 000/month).".replace(',', ' ')}), 400
+    fee  = _withdraw_fee(cents, currency, method)
     dest = _clean_note(d.get("destination_name", "account")) or "account"
-    try:   # balance check + debit under one write lock
-        with get_db(immediate=True) as db:
-            post_transaction(wallet["id"], -total, f"Withdrawal to {dest} (fee {fee/100:.2f})",
-                             tx_type="withdrawal", _db=db)
-    except ValueError:
-        return jsonify({"error": "Insufficient balance (amount plus fee)"}), 400
-    push_notification(session["user_id"], "Withdrawal submitted ✓", f"{CURRENCIES.get(currency,{}).get('symbol','')}{cents/100:.2f} is on its way to {dest}.", "info")
-    return jsonify({"ok": True, "withdrawn_cents": cents, "fee_cents": fee})
+    try:
+        wd_id, need = ledger.request_withdrawal(uid, currency, cents, fee, method, dest)
+    except ledger.LedgerError as e:
+        return jsonify({"error": str(e)}), 400
+    push_notification(uid, "Withdrawal requested",
+                      f"{ledger.fmt_money(cents, currency)} to {dest} is being checked. You'll be told when it is paid.",
+                      "info", "/wallet")
+    return jsonify({"ok": True, "withdrawal_id": wd_id, "status": "requested", "withdrawn_cents": cents,
+                    "fee_cents": fee, "approvals_needed": need})
+
+
+@app.route("/api/wallet/withdrawals")
+@auth.login_required
+def api_my_withdrawals():
+    rows = fetchall("SELECT id,currency,amount_cents,fee_cents,method,destination,status,paid_ref,failure_reason,created_at "
+                    "FROM withdrawals WHERE user_id=? ORDER BY created_at DESC LIMIT 50", (session["user_id"],))
+    return jsonify({"withdrawals": [dict(r) for r in rows]})
+
 
 # ── HANATAG PAY (two-phase: initiate → confirm) ───────────────────────────────
 # Replaces the old single /api/wallet/pay. That endpoint verified only the
@@ -4029,8 +4123,13 @@ def api_pay_initiate():
 
     cents = _parse_amount_to_cents(d.get("amount"))
     if cents is None:                    return jsonify({"error": "Enter a valid amount"}), 400
-    if cents > PAYMENT_MAX_AMOUNT_CENTS: return jsonify({"error": "Amount exceeds the per-transfer limit"}), 400
     currency = (d.get("currency") or "EUR").upper()
+    if currency not in EXCHANGE_RATES:   return jsonify({"error": "Unsupported currency"}), 400
+    # the cap is EUR 50,000 *equivalent* (it used to compare raw numbers: 50,000 RWF was the cap)
+    if eur_equivalent_cents(cents, currency) > PAYMENT_MAX_AMOUNT_CENTS:
+        return jsonify({"error": "Amount exceeds the per-transfer limit"}), 400
+    if not ledger.is_whole(cents, currency):
+        return jsonify({"error": f"{currency} amounts must be whole numbers"}), 400
     note     = _clean_note(d.get("note", ""))
     idem     = (d.get("idempotency_key") or "").strip() or None
 
@@ -4056,7 +4155,8 @@ def api_pay_initiate():
     if not sw:                           return jsonify({"error": f"No {currency} wallet"}), 400
 
     lim = LIMITS["standard"]
-    fee = int(cents * lim["pay_fee_rate"]) if eur_equivalent_cents(cents, currency) > lim["pay_fee_threshold_cents"] else 0
+    fee = ledger.floor_whole(int(cents * lim["pay_fee_rate"]), currency) \
+        if eur_equivalent_cents(cents, currency) > lim["pay_fee_threshold_cents"] else 0
     if cents + fee > wallet_balance(sw["id"]):
         return jsonify({"error": "Insufficient balance"}), 400
 
@@ -4180,13 +4280,14 @@ def api_pay_confirm():
             note     = intent["note"] or ""
             fee_note = (f" (incl. {CURRENCIES.get(currency, {}).get('symbol', '')}{fee/100:,.2f} fee)".replace(",", " ")) if fee else ""
 
-            # both legs + audit row share this transaction via _db=db → atomic
-            post_transaction(sw["id"], -total_debit,
-                             f"Pay to {intent['recipient_hanatag']}" + (f" — {note}" if note else "") + fee_note,
-                             tx_type="pay_out", ref_id=ref, _db=db)
-            post_transaction(rw["id"], +cents,
-                             f"Pay from {stag}" + (f" — {note}" if note else ""),
-                             tx_type="pay_in", ref_id=ref, _db=db)
+            # one balanced transaction: sender -> recipient (+ fee to revenue), with the audit row
+            legs = [ledger.W(sw["id"], -total_debit,
+                             f"Pay to {intent['recipient_hanatag']}" + (f" — {note}" if note else "") + fee_note, "pay_out"),
+                    ledger.W(rw["id"], +cents, f"Pay from {stag}" + (f" — {note}" if note else ""), "pay_in")]
+            if fee:
+                legs.append(ledger.S("fee_revenue", currency, fee, "fee", "transfer"))
+            ledger.post(db, "transfer", legs, memo=f"HanaPay {stag} -> {intent['recipient_hanatag']}",
+                        ref_type="hanatag_payment", ref_id=ref, idempotency_key=f"pay:{iid}", created_by=uid)
             db.execute("INSERT INTO hanatag_payments(id,sender_id,recipient_id,amount_cents,currency,note,status) "
                        "VALUES(?,?,?,?,?,?, 'completed')",
                        (ref, uid, intent["recipient_id"], cents, currency, note))
@@ -4194,7 +4295,7 @@ def api_pay_confirm():
                        (ref, iid))
         # commit happens here on clean exit
     except ValueError as e:
-        # e.g. post_transaction's insufficient-balance guard fired → whole tx rolled back
+        # e.g. the ledger's insufficient-balance guard fired → whole tx rolled back
         with get_db() as db:
             db.execute("UPDATE payment_intents SET status='failed' WHERE id=? AND status='consuming'", (iid,))
         return jsonify({"error": str(e)}), 400
@@ -6140,25 +6241,9 @@ def api_admin_reverse_transaction(tx_id):
     if not reason:
         return jsonify({"error": "Reason required to reverse a transaction."}), 400
 
-    tx = fetchone("SELECT * FROM wallet_transactions WHERE id=?", (tx_id,))
-    if not tx:
-        return jsonify({"error": "Transaction not found"}), 404
-
-    # Only reverse pending or failed — never settled external transfers
-    if tx["status"] not in ("pending", "failed"):
-        return jsonify({"error": f"Cannot reverse a transaction with status '{tx['status']}'. Only pending or failed transactions are reversible."}), 400
-
-    try:
-        with get_db() as db:
-            db.execute("UPDATE wallet_transactions SET status='reversed', reversed_by=?, reversed_at=datetime('now') WHERE id=?",
-                       (session["user_id"], tx_id))
-        log_admin_action("transaction_reversed", "transaction", tx_id,
-                         previous_data={"status": tx["status"]},
-                         new_data={"status": "reversed"}, reason=reason)
-        return jsonify({"ok": True})
-    except Exception as e:
-        app.logger.exception("Handled 500 on %s %s", request.method, request.path)
-        return jsonify({"error": str(e)}), 500
+    # A label on a wallet row moved no money. Corrections are now balanced ledger
+    # transactions confirmed by two admins: /admin/accounting/adjust.
+    return jsonify({"error": "Corrections are made in Accounting → Adjustments (two-admin confirmation)."}), 410
 
 
 
@@ -7102,7 +7187,10 @@ def _seed_all():
             real_wid = rw["id"] if rw else wid
             bal = db.execute("SELECT balance_after FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",(real_wid,)).fetchone()
             if not bal:
-                post_transaction(real_wid, 50000, "Welcome deposit", tx_type="deposit", _db=db)
+                ledger.post(db, "deposit_simulated",
+                            [ledger.S("simulated_funding", "EUR", -50000),
+                             ledger.W(real_wid, 50000, "Welcome deposit (simulated money)", "deposit")],
+                            memo="Seed data: welcome deposit", origin_ref="seed")
         if not is_admin:
             uids.append((real_uid, real_wid))
 
@@ -7145,7 +7233,7 @@ def _seed_all():
          "news","admin_id"),
         ("blog-006","Beta launch: what to expect from SOHANA in Q3 2026","beta-launch-q3-2026",
          "SOHANA's beta launch is scheduled for Q3 2026. Here is what early users will have access to, what the waitlist gets, and what comes next.",
-         "We are targeting Q3 2026 for our beta launch. Waitlist members will receive early access to the full platform: multicurrency wallet (EUR, GBP, USD, CAD, XAF, GHC, NGN, ZAR), savings circle creation and management, NCS score building, and HanaPay instant transfers.\n\nWaitlist members who join before launch also receive: priority Hanatag handles (shorter, cleaner usernames), founder-circle status, and free outbound transfers for the first 12 months.\n\nThe regulatory path is clear. We are in active dialogue with ACPR in France and FCA in the UK. Until authorisations are in place, the platform operates in a controlled testing environment with no real funds.\n\nIf you are not on the waitlist yet, join at sohana.app. If you are already on it — thank you. You are part of something historic.",
+         "We are targeting Q3 2026 for our beta launch. Waitlist members will receive early access to the full platform: multicurrency wallet (EUR, GBP, USD, CAD, XAF, GHS, NGN, ZAR), savings circle creation and management, NCS score building, and HanaPay instant transfers.\n\nWaitlist members who join before launch also receive: priority Hanatag handles (shorter, cleaner usernames), founder-circle status, and free outbound transfers for the first 12 months.\n\nThe regulatory path is clear. We are in active dialogue with ACPR in France and FCA in the UK. Until authorisations are in place, the platform operates in a controlled testing environment with no real funds.\n\nIf you are not on the waitlist yet, join at sohana.app. If you are already on it — thank you. You are part of something historic.",
          "news","admin_id"),
     ]
     admin_uid = fetchone("SELECT id FROM users WHERE admin_role='ceo'")
@@ -8784,19 +8872,10 @@ def api_cover_member(rosca_id):
 
     try:
         cycle = rosca.get_or_create_active_cycle(rosca_id)
-        # Deduct from payer's wallet, credit the target member's obligation
-        post_transaction(payer_id, -amount_cents, currency, "rosca_cover",
-                         f"Covered a member's contribution")
-        rosca.pay_contribution(target_user_id, cycle["id"])
-
-        loan_id = str(uuid.uuid4())
-        with get_db(immediate=True) as db:
-            db.execute("""INSERT INTO circle_loans
-                (id,circle_id,lender_id,borrower_id,original_amount_cents,currency,cycle_number,status)
-                VALUES (?,?,?,?,?,?,?,?)""",
-                (loan_id, rosca_id, payer_id, target_user_id, amount_cents, currency,
-                 r.get("current_cycle", 0), "outstanding"))
-
+        # The payer's money pays the member's contribution row into the pot, and a circle
+        # loan records the debt, all in one write-locked transaction (rosca.pay_contribution).
+        res = rosca.pay_contribution(target_user_id, cycle["id"], payer_id=payer_id)
+        loan_id = res["loan_id"]
         try: ncs_engine.record_event(payer_id, "contribution_covered", {"amount_cents": amount_cents})
         except Exception: pass
 
@@ -8891,33 +8970,45 @@ def api_loans_by_circle(circle_id):
 def api_loan_repay(loan_id):
     uid = session["user_id"]
     d = request.get_json(silent=True) or {}
-    amount_cents = int(d.get("amount_cents", 0))
+    try:
+        amount_cents = int(d.get("amount_cents") or 0) if d.get("amount") is None else (_parse_amount_to_cents(d.get("amount")) or 0)
+    except (TypeError, ValueError):
+        return jsonify({"error": "Enter a valid amount"}), 400
 
-    loan = fetchone("SELECT * FROM circle_loans WHERE id=?", (loan_id,))
-    if not loan: return jsonify({"error": "Loan not found"}), 404
-    if loan["borrower_id"] != uid: return jsonify({"error": "Only the borrower can repay"}), 403
+    # Debt and money move together: the borrower pays the lender and the loan is reduced
+    # in one balanced, write-locked transaction. (Before, the debt was cleared and the
+    # money transfer then failed, so loans were "repaid" without paying.)
+    try:
+        with get_db(immediate=True) as db:
+            loan = db.execute("SELECT * FROM circle_loans WHERE id=?", (loan_id,)).fetchone()
+            if not loan: return jsonify({"error": "Loan not found"}), 404
+            if loan["borrower_id"] != uid: return jsonify({"error": "Only the borrower can repay"}), 403
+            cur = loan["currency"]
+            remaining = loan["original_amount_cents"] - loan["repaid_cents"]
+            if amount_cents <= 0 or amount_cents > remaining:
+                return jsonify({"error": f"Enter an amount up to {ledger.fmt_money(remaining, cur)}"}), 400
+            if not ledger.is_whole(amount_cents, cur):
+                return jsonify({"error": f"{cur} amounts must be whole numbers"}), 400
+            bw = ledger.wallet_of(db, uid, cur)
+            if not bw:
+                return jsonify({"error": f"You need a {cur} balance to repay this loan"}), 400
+            lw = ledger.wallet_of(db, loan["lender_id"], cur, create=True)
+            rep_id = str(uuid.uuid4())
+            ledger.post(db, "loan_repayment",
+                        [ledger.W(bw, -amount_cents, "Circle loan repayment", "loan_repayment"),
+                         ledger.W(lw, amount_cents, "Circle loan repayment received", "loan_repayment_received")],
+                        memo="Circle loan repayment", ref_type="circle_loan", ref_id=loan_id, created_by=uid)
+            new_repaid = loan["repaid_cents"] + amount_cents
+            new_status = "fully_repaid" if new_repaid >= loan["original_amount_cents"] else "partially_repaid"
+            db.execute("INSERT INTO circle_loan_repayments (id,loan_id,amount_cents) VALUES (?,?,?)",
+                       (rep_id, loan_id, amount_cents))
+            db.execute("UPDATE circle_loans SET repaid_cents=?,status=?,updated_at=datetime('now') WHERE id=?",
+                       (new_repaid, new_status, loan_id))
+    except ledger.LedgerError as e:
+        return jsonify({"error": str(e)}), 400
 
-    remaining = loan["original_amount_cents"] - loan["repaid_cents"]
-    if amount_cents <= 0 or amount_cents > remaining:
-        return jsonify({"error": f"Amount must be between 1 and {remaining} cents"}), 400
-
-    new_repaid = loan["repaid_cents"] + amount_cents
-    new_status = "fully_repaid" if new_repaid >= loan["original_amount_cents"] else "partially_repaid"
-
-    with get_db(immediate=True) as db:
-        db.execute("INSERT INTO circle_loan_repayments (id,loan_id,amount_cents) VALUES (?,?,?)",
-                   (str(uuid.uuid4()), loan_id, amount_cents))
-        db.execute("UPDATE circle_loans SET repaid_cents=?,status=?,updated_at=datetime('now') WHERE id=?",
-                   (new_repaid, new_status, loan_id))
-
-    # Transfer funds: borrower → lender
-    post_transaction(uid, -amount_cents, loan["currency"], "loan_repayment",
-                     f"Loan repayment")
-    post_transaction(loan["lender_id"], amount_cents, loan["currency"], "loan_repayment_received",
-                     f"Loan repayment received")
-
-    push_notification(loan["lender_id"], "Loan Repayment",
-        f"Received repayment of {loan['currency']} {amount_cents/100:.2f}")
+    push_notification(loan["lender_id"], "Loan repayment",
+        f"Received a repayment of {ledger.fmt_money(amount_cents, cur)}")
 
     return jsonify({"ok":True, "repaid_cents":new_repaid,
                     "remaining_cents":loan["original_amount_cents"]-new_repaid, "status":new_status})
@@ -9329,6 +9420,21 @@ try:
     _status_scheduler.add_job(refresh_exchange_rates, 'interval',
                                minutes=60, id='exchange_rate_refresh',
                                replace_existing=True, next_run_time=None)
+    # every worker re-reads the shared rates so two processes never quote different prices
+    from database import load_rates_from_db as _load_rates
+    _status_scheduler.add_job(_load_rates, 'interval', minutes=2, id='fx_rates_sync', replace_existing=True)
+    # money jobs: missed contributions after the grace period, then the ledger's daily checks
+    def _daily_money_jobs():
+        try:
+            rosca.process_overdue()
+        except Exception as _e:
+            app.logger.exception("process_overdue failed")
+        try:
+            ledger.run_checks(run_by="scheduler")
+        except Exception:
+            app.logger.exception("ledger checks failed")
+    _status_scheduler.add_job(_daily_money_jobs, 'cron', hour=2, minute=17, id='daily_money_jobs',
+                              replace_existing=True)
     _status_scheduler.start()
 
     # Kick off an immediate first refresh in a background thread so app startup
@@ -9339,6 +9445,11 @@ except Exception as _e:
     import sys
     print(f"[status scheduler] failed to start: {_e}", file=sys.stderr, flush=True)
 
+
+
+# ── FINANCE & ACCOUNTING CONSOLE (/admin/accounting) ─────────────────────────
+import accounting_admin
+accounting_admin.install(app, log_admin_action)
 
 
 # ── DEMO ENVIRONMENT (AFTS booth) ─────────────────────────────────────────────

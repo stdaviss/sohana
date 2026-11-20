@@ -1,0 +1,16 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Member balances{% endblock %}
+{% block crumb %} / <a href="/admin/accounting/trial-balance">Trial balance</a> / Member balances{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Member balances · {{ cur }}</h1>
+{% set ns = namespace(t=0) %}{% for r in rows %}{% set ns.t = ns.t + (r.bal or 0) %}{% endfor %}
+<p class="acct-sub">Every member wallet in {{ cur }}, largest first. Total {{ acct_money(ns.t, cur) }}.</p>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Member</th><th class="num">Balance</th><th></th></tr></thead>
+  <tbody>{% for r in rows %}{% if r.bal %}
+    <tr><td class="td-bold">{{ r.full_name or '?' }} <span class="muted">{{ r.hanatag or '' }}</span></td>
+      <td class="num">{{ acct_money(r.bal or 0, cur) }}</td>
+      <td><a class="btn btn-outline btn-sm" href="/admin/accounting/member/{{ r.user_id }}">Statement</a></td></tr>
+  {% endif %}{% else %}<tr><td colspan="3" class="muted">No wallets.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

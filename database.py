@@ -10,7 +10,7 @@ CURRENCIES = {
     "USD": {"symbol": "$",  "name": "US Dollar",         "flag": "🇺🇸"},
     "CAD": {"symbol": "C$", "name": "Canadian Dollar",   "flag": "🇨🇦"},
     "XAF": {"symbol": "Fr", "name": "CFA Franc",         "flag": "🌍"},
-    "GHC": {"symbol": "₵",  "name": "Ghanaian Cedi",    "flag": "🇬🇭"},
+    "GHS": {"symbol": "₵",  "name": "Ghanaian Cedi",    "flag": "🇬🇭"},
     "NGN": {"symbol": "₦",  "name": "Nigerian Naira",   "flag": "🇳🇬"},
     "ZAR": {"symbol": "R",  "name": "South African Rand","flag": "🇿🇦"},
     "RWF": {"symbol": "FRw", "name": "Rwandan Franc",    "flag": "🇷🇼"},
@@ -23,7 +23,7 @@ CURRENCIES = {
 # Base currency is EUR. All rates are "how many <CUR> = 1 EUR".
 EXCHANGE_RATES = {
     "EUR": 1.0000, "GBP": 0.8560, "USD": 1.0820, "CAD": 1.4710,
-    "XAF": 655.96, "GHC": 16.42,  "NGN": 1780.50, "ZAR": 20.15,
+    "XAF": 655.96, "GHS": 16.42,  "NGN": 1780.50, "ZAR": 20.15,
     "RWF": 1600.00,
 }
 
@@ -123,6 +123,16 @@ def refresh_exchange_rates():
     EXCHANGE_RATES_META["source"]     = source_used
     EXCHANGE_RATES_META["updated_at"] = datetime.utcnow().isoformat() + "Z"
     EXCHANGE_RATES_META["error"]      = None
+    # share with the other server processes, so every worker quotes the same rate
+    try:
+        with get_db() as db:
+            db.execute("CREATE TABLE IF NOT EXISTS fx_rates (currency TEXT PRIMARY KEY, rate REAL NOT NULL, "
+                       "source TEXT, updated_at TEXT NOT NULL)")
+            for cur, rt in EXCHANGE_RATES.items():
+                db.execute("INSERT OR REPLACE INTO fx_rates(currency,rate,source,updated_at) VALUES(?,?,?,?)",
+                           (cur, rt, source_used, EXCHANGE_RATES_META["updated_at"]))
+    except Exception:
+        pass
 
     print(f"[refresh_exchange_rates] ✓ updated from {source_used}: "
           f"{ {k: round(v,4) for k,v in EXCHANGE_RATES.items()} }",
@@ -161,6 +171,21 @@ def fmt(cents, currency="EUR"):
     value = abs(cents) / 100
     formatted = f"{value:,.2f}".replace(",", " ")  # non-breaking space
     return f"{sym}{formatted}"
+
+def load_rates_from_db():
+    """Pick up the rates another worker fetched (all processes then quote identically)."""
+    try:
+        rows = fetchall("SELECT currency, rate, source, updated_at FROM fx_rates")
+    except Exception:
+        return False
+    for r in rows:
+        if r["currency"] in EXCHANGE_RATES and r["rate"] > 0:
+            EXCHANGE_RATES[r["currency"]] = r["rate"]
+    if rows:
+        EXCHANGE_RATES_META["source"] = rows[0]["source"]
+        EXCHANGE_RATES_META["updated_at"] = max(r["updated_at"] for r in rows)
+    return bool(rows)
+
 
 def get_period_total(wallet_id, tx_type, direction, period="day"):
     """Sum transactions of a given type/direction within today or this month."""
@@ -793,26 +818,25 @@ def get_default_wallet(user_id):
         w = fetchone("SELECT * FROM wallets WHERE user_id=? ORDER BY created_at LIMIT 1", (user_id,))
     return w
 
-def post_transaction(wallet_id, amount_cents, description, ref_type=None, ref_id=None, tx_type="other", _db=None):
+def post_transaction(wallet_id, amount_cents, description, ref_type=None, ref_id=None, tx_type="other", _db=None,
+                     counter="adjustments", counter_ref=None):
+    """Legacy single-wallet entry point, kept so nothing can bypass the ledger.
+
+    Every money path now posts a full double-entry transaction through ledger.post().
+    Anything still calling this gets a balanced transaction against `counter`
+    (default: the manual-adjustments account, which the accounting console flags)."""
+    import ledger
     def _do(db):
-        row = db.execute(
-            "SELECT balance_after, currency FROM wallet_transactions WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-            (wallet_id,)
-        ).fetchone()
-        cur_info = db.execute("SELECT currency FROM wallets WHERE id=?", (wallet_id,)).fetchone()
-        currency = cur_info["currency"] if cur_info else "EUR"
-        current = row["balance_after"] if row else 0
-        new_bal = current + amount_cents
-        if new_bal < 0:
-            raise ValueError(f"Insufficient balance: {CURRENCIES.get(currency,{}).get('symbol','')}{current/100:.2f} available")
-        db.execute(
-            "INSERT INTO wallet_transactions(id,wallet_id,amount_cents,balance_after,description,ref_type,ref_id,tx_type,currency) VALUES(?,?,?,?,?,?,?,?,?)",
-            (str(uuid.uuid4()), wallet_id, amount_cents, new_bal, description, ref_type, ref_id, tx_type, currency)
-        )
-        return new_bal
+        cur = db.execute("SELECT currency FROM wallets WHERE id=?", (wallet_id,)).fetchone()
+        currency = cur["currency"] if cur else "EUR"
+        ledger.post(db, tx_type or "other",
+                    [ledger.W(wallet_id, amount_cents, description, tx_type),
+                     ledger.S(counter, currency, -amount_cents, ref_type, counter_ref)],
+                    memo=description, ref_type=ref_type, ref_id=ref_id)
+        return ledger.balance(db, wallet_id)
     if _db is not None:
         return _do(_db)
-    with get_db() as db:
+    with get_db(immediate=True) as db:
         return _do(db)
 
 def eur_equivalent_cents(cents, currency):
@@ -837,17 +861,23 @@ def conversion_quote(from_currency, to_currency, from_amount_cents):
     from_rate = EXCHANGE_RATES[from_currency]
     to_rate   = EXCHANGE_RATES[to_currency]
     rate      = to_rate / from_rate
-    to_amount = int(from_amount_cents * rate)          # round down: never credit more than the rate gives
+    import ledger
+    if not ledger.is_whole(from_amount_cents, from_currency):
+        raise ValueError(f"{from_currency} amounts must be whole units")
+    # round down to a payable unit: never credit more than the rate gives
+    to_amount = ledger.floor_whole(int(from_amount_cents * rate), to_currency)
     min_fee   = int(round(CONVERSION_FEE_MIN * from_rate))   # EUR 0.50 in the source currency
-    fee_cents = max(min_fee, int(round(from_amount_cents * CONVERSION_FEE_RATE)))
+    fee_cents = ledger.whole(max(min_fee, int(round(from_amount_cents * CONVERSION_FEE_RATE))), from_currency)
     if to_amount <= 0:
         raise ValueError("Amount is too small to convert")
     return to_amount, fee_cents, rate
 
 
 def convert_currency(user_id, from_currency, to_currency, from_amount_cents):
-    """Convert between a user's balances in one write-locked transaction.
-    Returns (to_amount_cents, fee_cents)."""
+    """Convert between a user's balances in one write-locked, balanced transaction:
+    the source amount goes into SOHANA's currency position, the target amount comes out
+    of it, and the fee is booked as revenue. Returns (to_amount_cents, fee_cents)."""
+    import ledger
     to_amount, fee_cents, rate = conversion_quote(from_currency, to_currency, from_amount_cents)
     total_deduct = from_amount_cents + fee_cents
     with get_db(immediate=True) as db:
@@ -858,13 +888,16 @@ def convert_currency(user_id, from_currency, to_currency, from_amount_cents):
         if not from_wallet: raise ValueError(f"No {from_currency} balance")
         if not to_wallet:   raise ValueError(f"No {to_currency} balance. Open it first.")
         ref = str(uuid.uuid4())
-        sym = CURRENCIES.get(from_currency, {}).get("symbol", "")
-        post_transaction(from_wallet["id"], -total_deduct,
-                         f"Convert {from_currency} to {to_currency} (fee {sym}{fee_cents/100:,.2f})".replace(",", " "),
-                         ref_type="conversion", ref_id=ref, tx_type="conversion", _db=db)
-        post_transaction(to_wallet["id"], to_amount,
-                         f"Converted from {from_currency}",
-                         ref_type="conversion", ref_id=ref, tx_type="conversion", _db=db)
+        ledger.post(db, "conversion", [
+            ledger.W(from_wallet["id"], -total_deduct,
+                     f"Convert {from_currency} to {to_currency} (fee {ledger.fmt_money(fee_cents, from_currency)})",
+                     "conversion"),
+            ledger.S("fx_position", from_currency, from_amount_cents, "conversion", ref),
+            ledger.S("fee_revenue", from_currency, fee_cents, "fee", "conversion"),
+            ledger.S("fx_position", to_currency, -to_amount, "conversion", ref),
+            ledger.W(to_wallet["id"], to_amount, f"Converted from {from_currency}", "conversion"),
+        ], memo=f"Conversion {from_currency}->{to_currency} at {rate:.6f}", ref_type="conversion", ref_id=ref,
+            created_by=user_id)
         db.execute(
             "INSERT INTO currency_conversions(id,user_id,from_wallet_id,to_wallet_id,from_currency,to_currency,from_amount,to_amount,rate,fee_cents) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (ref, user_id, from_wallet["id"], to_wallet["id"],

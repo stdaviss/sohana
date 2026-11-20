@@ -1313,3 +1313,24 @@ All user data stays in the Railway persistent volume. Only the code changes.
 *Document generated: April 2026*  
 *Platform version: SOHANA v3*  
 *Built with: Python 3.12, Flask 3.1, SQLite3, Vanilla JS/CSS*
+
+---
+
+## 18. Double-entry ledger (Nov 2026) — rules for every money change
+
+- **Every** money movement goes through `ledger.post(db, kind, legs, ...)` inside `get_db(immediate=True)`.
+  Legs are `ledger.W(wallet_id, amount, description, tx_type)` (member wallet) and
+  `ledger.S(account_code, currency, amount, sub_ref_type, sub_ref_id)` (SOHANA account). Legs must sum to zero per currency.
+- Never write `wallet_transactions` or a balance column directly. `database.post_transaction` is a legacy wrapper that
+  posts against `adjustments` and shows up in the console; do not use it in new code.
+- System accounts: cash_momo / cash_bank / cash_card (negative = cash held), suspense, circle_pots (sub: cycle),
+  campaign_funds (sub: campaign), pool_funds (sub: pool), withdrawals_held (sub: withdrawal), fee_revenue (sub: fee type),
+  fx_position, chargeback_loss, adjustments, simulated_funding, opening.
+- `MONEY_MODE` env: `simulated` (default; self-deposits and the settlement simulator post simulated money) or `live`
+  (money only enters through `ledger.receive_external`, keyed by the provider reference).
+- Whole units only for RWF, XAF, XOF, UGX, BIF. Fees are booked to `fee_revenue`, never dropped.
+- Withdrawals: request (money moves to withdrawals_held) → approve (2 admins ≥ EUR 1,000 eq.) → paid with provider ref,
+  or rejected/failed (returned in full). Card-funded money is held 14 days (funding lots).
+- `ledger.run_checks()` = the 15 daily invariants (02:17 UTC job + Accounting → Daily checks).
+- Console: `accounting_admin.py` (/admin/accounting/...). Role dashboards read `admin_metrics.py`: no invented figures;
+  None renders "not tracked yet".

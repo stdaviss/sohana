@@ -27,7 +27,7 @@ import uuid
 from flask import Response, jsonify, redirect, render_template, request, session
 
 import auth
-from database import fetchall, fetchone, get_db, post_transaction, push_notification, EXCHANGE_RATES
+from database import fetchall, fetchone, get_db, push_notification, EXCHANGE_RATES
 
 DEMO_MODE = os.environ.get("DEMO_MODE") == "1"
 
@@ -100,7 +100,12 @@ def provision(uid):
                     (str(uuid.uuid4()), uid, cur),
                 )
             w = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (uid, cur))
-        post_transaction(w["id"], cents, START_LABEL, tx_type="deposit")
+        import ledger
+        with get_db(immediate=True) as db:
+            ledger.post(db, "deposit_simulated",
+                        [ledger.S("simulated_funding", cur, -cents), ledger.W(w["id"], cents, START_LABEL, "deposit")],
+                        memo="Demo starting funds (simulated money)", origin_ref="demo-start",
+                        idempotency_key=f"demo-start:{w['id']}")
     push_notification(
         uid,
         "Welcome to the SOHANA demo",
@@ -271,6 +276,20 @@ def install(app, admin_required):
                         """SELECT code FROM otp_requests WHERE user_id=? AND purpose=? AND used=0
                            ORDER BY created_at DESC LIMIT 1""",
                         (session["user_id"], f"pay:{iid}"),
+                    )
+                    if row:
+                        data["demo_code"] = row["code"]
+                        data["masked_target"] = "this screen (demo code: " + row["code"] + ")"
+                        resp.set_data(__import__("json").dumps(data))
+
+            # 2b. the same for the withdrawal confirmation code
+            if path == "/api/wallet/withdraw/code" and resp.status_code == 200 and resp.is_json:
+                data = resp.get_json(silent=True) or {}
+                if data.get("challenge") == "email_otp" and session.get("user_id"):
+                    row = fetchone(
+                        """SELECT code FROM otp_requests WHERE user_id=? AND purpose='withdraw' AND used=0
+                           ORDER BY created_at DESC LIMIT 1""",
+                        (session["user_id"],),
                     )
                     if row:
                         data["demo_code"] = row["code"]
@@ -725,7 +744,16 @@ def install(app, admin_required):
                     (str(uuid.uuid4()), uid, cur),
                 )
             w = fetchone("SELECT id FROM wallets WHERE user_id=? AND currency=?", (uid, cur))
-        post_transaction(w["id"], cents, "Demo credit from SOHANA", tx_type="deposit")
+        import ledger
+        try:
+            with get_db(immediate=True) as db:
+                ledger.post(db, "deposit_simulated",
+                            [ledger.S("simulated_funding", cur, -cents),
+                             ledger.W(w["id"], cents, "Demo credit from SOHANA (simulated money)", "deposit")],
+                            memo="Admin demo credit (simulated money)", origin_ref="demo-admin-credit",
+                            created_by=session.get("user_id"))
+        except ledger.LedgerError as e:
+            return jsonify({"error": str(e)}), 400
         push_notification(uid, "You received demo funds", f"{cur} {cents/100:,.2f} added by the SOHANA team.", "success", "/wallet")
         return jsonify({"ok": True})
 

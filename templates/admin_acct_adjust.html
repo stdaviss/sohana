@@ -1,0 +1,33 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Adjustments{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Adjustments</h1>
+<p class="acct-sub">The only way to correct a balance by hand. One admin proposes it with a reason; a second, different admin confirms it. It is posted as a balanced transaction against the adjustments account, so it stays visible in the trial balance, the member's statement and the audit log. Nothing is ever edited or deleted.</p>
+{% if acct_can_write() %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Propose an adjustment</span></div>
+  <div class="acct-filter" style="border:none">
+    <div><label>Member</label><input id="a-mem" placeholder="@hanatag, phone or email"></div>
+    <div><label>Currency</label><select id="a-cur">{% for c in currencies %}<option {{ 'selected' if c=='RWF' }}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label>Amount (negative takes money back)</label><input id="a-amt" type="number" step="0.01"></div>
+    <div style="flex:1"><label>Reason</label><input id="a-why" style="width:100%" placeholder="what happened and the evidence"></div>
+    <div><button class="btn btn-primary btn-sm" onclick="adjPropose()">Propose</button></div>
+  </div>
+</div>
+{% endif %}
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Proposed (UTC)</th><th>Member</th><th class="num">Amount</th><th>Reason</th><th>Proposed by</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for a in rows %}
+    <tr><td class="mono">{{ a.created_at }}</td><td>{{ a.member }} <span class="muted">{{ a.hanatag }}</span></td>
+      <td class="num {{ 'neg' if a.amount_cents<0 else 'pos' }}">{{ acct_money(a.amount_cents, a.currency) }}</td><td>{{ a.reason }}</td><td>{{ a.proposer }}</td>
+      <td>{{ a.status }}{% if a.confirmer %} · {{ a.confirmer }}{% endif %}{% if a.txn_id %} · <a href="/admin/accounting/txn/{{ a.txn_id }}">txn</a>{% endif %}</td>
+      <td>{% if a.status=='proposed' and acct_can_write() %}<div class="acct-actions">
+        {% if a.proposed_by != me %}<button class="btn btn-green btn-sm" onclick="adjDo('{{ a.id }}','confirm')">Confirm</button>{% else %}<span class="muted" style="font-size:.75rem">waiting for another admin</span>{% endif %}
+        <button class="btn btn-outline btn-sm" onclick="adjDo('{{ a.id }}','cancel')">Cancel</button></div>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="7" class="muted">No adjustments.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<script>
+async function adjPropose(){const d=await acctPost('/admin/accounting/adjustments',{member:document.getElementById('a-mem').value,currency:document.getElementById('a-cur').value,amount:document.getElementById('a-amt').value,reason:document.getElementById('a-why').value});if(d){toast('Proposed. Another admin must confirm it.','success');setTimeout(()=>location.reload(),700);}}
+async function adjDo(id,a){if(!confirm(a==='confirm'?'Post this adjustment to the member\'s balance?':'Cancel this proposal?'))return;const d=await acctPost('/admin/accounting/adjustments/'+id+'/'+a);if(d){location.reload();}}
+</script>
+{% endblock %}

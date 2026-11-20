@@ -1,0 +1,27 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Trial balance{% endblock %}
+{% block acct %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">Trial balance</h1>
+    <p class="acct-sub">Every account's balance, per currency. In a correct double-entry ledger each currency sums to exactly zero. Cash accounts show as negative: money held at a provider is the mirror image of what is owed to members. Click an account to see each entry.</p>
+  </div>
+  <a class="btn btn-outline btn-sm" href="?format=csv">Download CSV</a>
+</div>
+{% for cur, rows in by_cur.items()|sort %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">{{ cur }}</span>
+    <span class="ok-badge"><span class="dot {{ 'g' if sums[cur]==0 else 'r' }}"></span>Sum {{ acct_money(sums[cur], cur) }}</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Account</th><th class="acct-hide-sm">Group</th><th class="num">Balance</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr><td><a href="/admin/accounting/account/{{ r.code }}?currency={{ cur }}" class="td-bold" style="color:var(--ink)">{{ r.label }}</a>{% if r.count %} <span class="muted">({{ r.count }} wallets)</span>{% endif %}<div class="td-sub mono">{{ r.code }}</div></td>
+        <td class="acct-hide-sm muted">{{ r.group }}</td>
+        <td class="num {{ 'neg' if r.balance<0 }}">{{ acct_money(r.balance, cur) }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="card card-pad muted">No balances yet.</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Transaction #{{ t.seq }}{% endblock %}
+{% block crumb %} / <a href="/admin/accounting/transactions">Transactions</a> / #{{ t.seq }}{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Transaction #{{ t.seq }} · {{ acct_kind(t.kind) }}</h1>
+<p class="acct-sub">{{ t.memo or '' }}</p>
+<div class="acct-grid">
+  <div class="card card-pad">
+    <div class="eq-row"><span>When (UTC)</span><span class="mono">{{ t.created_at }}</span></div>
+    <div class="eq-row"><span>Started by</span><span>{{ creator }}</span></div>
+    <div class="eq-row"><span>Reference</span><span class="mono">{{ t.ref_type or '' }} {{ (t.ref_id or '')[:13] }}</span></div>
+    <div class="eq-row"><span>Idempotency key</span><span class="mono">{{ t.idempotency_key or '—' }}</span></div>
+    <div class="eq-row"><span>Transaction id</span><span class="mono">{{ t.id }}</span></div>
+  </div>
+  <div class="card card-pad">
+    <div class="eq-row"><span>Balanced</span><span>{% for c, s in totals.items() %}<span class="ok-badge"><span class="dot {{ 'g' if s==0 else 'r' }}"></span>{{ c }} {{ acct_money(s, c) }}</span> {% endfor %}</span></div>
+    <div class="eq-row"><span>Hash</span><span class="mono" title="{{ t.hash }}">{{ t.hash[:20] }}…</span></div>
+    <div class="eq-row"><span>Previous hash</span><span class="mono" title="{{ t.prev_hash }}">{{ t.prev_hash[:20] }}…</span></div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Legs</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Side</th><th>Account</th><th class="acct-hide-sm">Detail</th><th class="num">Amount</th><th class="num">Balance after</th></tr></thead>
+    <tbody>{% for l in legs %}
+      <tr><td><span class="pill {{ 'pill-blue' if l.side=='member' else 'pill-gray' }} pill-no-dot">{{ 'Member' if l.side=='member' else 'SOHANA' }}</span></td>
+        <td class="td-bold">{% if l.side=='member' %}<a href="/admin/accounting/member/{{ l.user_id }}" style="color:var(--ink)">{{ l.account }}</a>{% else %}<a href="/admin/accounting/account/{{ l.code }}?currency={{ l.currency }}" style="color:var(--ink)">{{ l.account }}</a>{% endif %}</td>
+        <td class="acct-hide-sm">{{ l.detail or '' }}</td>
+        <td class="num {{ 'neg' if l.amount<0 else 'pos' }}">{{ acct_money(l.amount, l.currency) }}</td>
+        <td class="num">{{ acct_money(l.balance_after, l.currency) }}</td></tr>
+    {% endfor %}</tbody>
+  </table></div>
+</div>
+<div class="card">
+  <div class="card-header"><span class="card-title">Where this money came from</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Now held by</th><th>Moved from</th><th>Original source</th><th class="acct-hide-sm">Source date</th><th class="num">Amount</th><th></th></tr></thead>
+    <tbody>{% for s in sources %}
+      <tr><td>{{ s.holder_label }}</td><td class="muted">{{ s.from_kind or '—' }}</td>
+        <td><span class="pill pill-no-dot {{ 'pill-amber' if s.root_kind in ('simulated_funding','opening') else 'pill-green' }}">{{ {'cash_momo':'MoMo deposit','cash_bank':'Bank deposit','cash_card':'Card deposit','simulated_funding':'Simulated money','opening':'Pre-ledger balance','adjustments':'Adjustment','chargeback_loss':'Chargeback'}.get(s.root_kind, s.root_kind) }}</span> <span class="mono">{{ s.root_ref or '' }}</span></td>
+        <td class="acct-hide-sm mono">{{ s.root_created_at }}</td>
+        <td class="num">{{ acct_money(s.amount_cents, s.currency) }}</td>
+        <td><a class="btn btn-outline btn-sm" href="/admin/accounting/trace/{{ s.id }}">Trace</a></td></tr>
+    {% else %}<tr><td colspan="6" class="muted">This transaction created no new holdings (e.g. money leaving SOHANA).</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

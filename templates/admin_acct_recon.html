@@ -1,0 +1,35 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Reconciliation{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Reconciliation</h1>
+<p class="acct-sub">Each day, type in the closing balance from the bank and MoMo statements. The ledger's figure for the same account must match it exactly; any difference is listed in the daily checks until it is explained.</p>
+<div class="card" style="margin-bottom:1rem"><div class="table-wrap"><table>
+  <thead><tr><th>Account</th><th>Currency</th><th class="num">Ledger says we hold</th><th class="num">Latest statement</th><th class="acct-hide-sm">Statement date</th><th class="num">Difference</th></tr></thead>
+  <tbody>{% for r in rows %}
+    <tr><td class="td-bold">{{ r.label }}</td><td>{{ r.cur }}</td><td class="num">{{ acct_money(r.held, r.cur) }}</td>
+      <td class="num">{{ acct_money(r.st.balance_cents, r.cur) if r.st else '—' }}</td><td class="acct-hide-sm mono">{{ r.st.as_of if r.st else '' }}</td>
+      <td class="num">{% if r.diff is not none %}<span class="ok-badge"><span class="dot {{ 'g' if r.diff==0 else 'r' }}"></span>{{ acct_money(r.diff, r.cur) }}</span>{% else %}<span class="muted">not entered</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">No cash has moved through MoMo, bank or card yet.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% if acct_can_write() %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Enter a statement balance</span></div>
+  <div class="acct-filter" style="border:none">
+    <div><label>Account</label><select id="r-acc">{% for c in cash %}<option value="{{ c }}">{{ labels[c][0] }}</option>{% endfor %}</select></div>
+    <div><label>Currency</label><select id="r-cur">{% for c in currencies %}<option {{ 'selected' if c=='RWF' }}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label>Closing balance</label><input id="r-bal" type="number" step="0.01" placeholder="e.g. 1250000"></div>
+    <div><label>Statement date</label><input id="r-date" type="date"></div>
+    <div style="flex:1"><label>Note</label><input id="r-note" style="width:100%" placeholder="statement number, who checked it"></div>
+    <div><button class="btn btn-primary btn-sm" onclick="recAdd()">Save</button></div>
+  </div>
+</div>
+{% endif %}
+<div class="card"><div class="card-header"><span class="card-title">Statement history</span></div><div class="table-wrap"><table>
+  <thead><tr><th>Entered (UTC)</th><th>Account</th><th class="num">Balance</th><th>Statement date</th><th>By</th><th class="acct-hide-sm">Note</th></tr></thead>
+  <tbody>{% for h in history %}<tr><td class="mono">{{ h.created_at }}</td><td>{{ labels[h.account_code][0] }} {{ h.currency }}</td><td class="num">{{ acct_money(h.balance_cents, h.currency) }}</td><td class="mono">{{ h.as_of }}</td><td>{{ h.full_name or '' }}</td><td class="acct-hide-sm">{{ h.note or '' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="muted">None yet.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<script>
+async function recAdd(){const d=await acctPost('/admin/accounting/reconciliation',{account:document.getElementById('r-acc').value,currency:document.getElementById('r-cur').value,balance:document.getElementById('r-bal').value,as_of:document.getElementById('r-date').value,note:document.getElementById('r-note').value});if(d){toast('Saved','success');setTimeout(()=>location.reload(),600);}}
+</script>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Deposits & suspense{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Deposits from outside &amp; suspense</h1>
+<p class="acct-sub">Every confirmed MoMo, bank and card payment, recorded once against the provider's reference. A bank transfer whose reference matches no member waits in suspense: match it to the right member, or return it to the sender. A repeat of a provider confirmation is recorded as a duplicate and moves no money.</p>
+<div class="acct-tabs" style="border:none;margin-bottom:.6rem">
+  {% for s,l in [('suspense','Suspense'),('credited','Credited'),('matched','Matched'),('refunded','Returned'),('reversed','Charged back'),('duplicate','Duplicates'),('all','All')] %}<a href="?status={{ s }}" class="{{ 'on' if status==s }}">{{ l }}{% if counts.get(s) and s=='suspense' %}<span class="cnt">{{ counts[s] }}</span>{% endif %}</a>{% endfor %}
+</div>
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Received (UTC)</th><th>Channel</th><th>Provider ref</th><th class="acct-hide-sm">Payer / reference typed</th><th class="num">Amount</th><th>Member</th><th>Status</th><th>Action</th></tr></thead>
+  <tbody>{% for e in rows %}
+    <tr><td class="mono">{{ e.created_at }}</td><td>{{ {'momo':'MoMo','bank':'Bank','card':'Card'}.get(e.channel, e.channel) }} {{ '↓' if e.direction=='in' else '↑' }}</td>
+      <td class="mono">{% if e.txn_id %}<a href="/admin/accounting/txn/{{ e.txn_id }}">{{ e.external_ref }}</a>{% else %}{{ e.external_ref }}{% endif %}</td>
+      <td class="acct-hide-sm">{{ e.payer or '' }}{% if e.reference %} · <span class="mono">{{ e.reference }}</span>{% endif %}</td>
+      <td class="num">{{ acct_money(e.amount_cents, e.currency) }}</td>
+      <td>{% if e.user_id %}<a href="/admin/accounting/member/{{ e.user_id }}">{{ e.full_name }}</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td><span class="pill pill-no-dot {{ {'credited':'pill-green','matched':'pill-green','suspense':'pill-amber','refunded':'pill-gray','reversed':'pill-red','duplicate':'pill-gray','paid':'pill-blue'}.get(e.status,'pill-gray') }}">{{ e.status }}</span></td>
+      <td>{% if acct_can_write() %}<div class="acct-actions">
+        {% if e.status=='suspense' %}<button class="btn btn-green btn-sm" onclick="pMatch('{{ e.id }}')">Match</button><button class="btn btn-outline btn-sm" onclick="pAct('{{ e.id }}','refund','Return this money to the sender?')">Return</button>{% endif %}
+        {% if e.channel=='card' and e.status in ('credited','matched') %}<button class="btn btn-outline btn-sm" onclick="pAct('{{ e.id }}','chargeback','Record a chargeback for this card payment?')">Chargeback</button>{% endif %}
+      </div>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="8" class="muted">Nothing here.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+<script>
+async function pMatch(id){const m=prompt("Member's Hanatag, deposit reference, phone or email:");if(!m)return;const d=await acctPost('/admin/accounting/payments/'+id+'/match',{member:m});if(d){toast('Matched and credited','success');setTimeout(()=>location.reload(),700);}}
+async function pAct(id,a,q){if(!confirm(q))return;const d=await acctPost('/admin/accounting/payments/'+id+'/'+a);if(d){toast(a==='chargeback'?('Recovered '+(d.recovered/100)+', loss '+(d.loss/100)):'Done','success');setTimeout(()=>location.reload(),900);}}
+</script>
+{% endblock %}

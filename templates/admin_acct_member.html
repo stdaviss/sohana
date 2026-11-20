@@ -1,0 +1,50 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Member statement{% endblock %}
+{% block acct %}
+{% if not u %}
+<h1 class="acct-h">Member statement</h1>
+<p class="acct-sub">Find a member by name, Hanatag, email, phone or bank deposit reference.</p>
+<form method="get" class="card acct-filter"><div style="flex:1"><label>Member</label><input name="q" value="{{ q }}" style="width:100%" placeholder="e.g. @aline1234 or SOH7K2QX9"></div><div><button class="btn btn-primary btn-sm">Find</button></div></form>
+{% if found %}<div class="card" style="margin-top:1rem"><div class="table-wrap"><table><tbody>
+  {% for x in found %}<tr><td class="td-bold"><a href="/admin/accounting/member/{{ x.id }}" style="color:var(--ink)">{{ x.full_name }}</a></td><td class="mono">{{ x.hanatag }}</td><td class="acct-hide-sm">{{ x.email or '' }}</td><td class="acct-hide-sm mono">{{ x.phone or '' }}</td></tr>{% endfor %}
+</tbody></table></div></div>{% elif q %}<p class="muted" style="margin-top:1rem">No member found.</p>{% endif %}
+{% else %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">{{ u.full_name }} <span class="muted mono" style="font-size:.85rem">{{ u.hanatag }}</span></h1>
+    <p class="acct-sub">Bank deposit reference <b class="mono">{{ deposit_ref or '—' }}</b> · statement {{ f }} to {{ t }}</p>
+  </div>
+  <form method="get" class="acct-actions"><input type="date" name="from" value="{{ f }}" class="filter-select"><input type="date" name="to" value="{{ t }}" class="filter-select"><button class="btn btn-outline btn-sm">Apply</button>
+    <a class="btn btn-outline btn-sm" href="?from={{ f }}&to={{ t }}&format=csv">Download CSV</a></form>
+</div>
+{% for wb in wallets %}{% set cur = wb.w.currency %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">{{ cur }} balance</span>
+    <span class="muted" style="font-size:.8rem">Opening {{ acct_money(wb.opening, cur) }} · in {{ acct_money(wb.ins, cur) }} · out {{ acct_money(wb.outs, cur) }} · closing <b>{{ acct_money(wb.closing, cur) }}</b>{% if wb.held %} · <span style="color:var(--amber)">{{ acct_money(wb.held, cur) }} card money on hold</span>{% endif %}</span></div>
+  {% if wb.origins %}<div class="acct-note" style="border-top:none;border-bottom:1px solid var(--line)">Today's balance came from:
+    {% for o in wb.origins %}<b>{{ {'cash_momo':'MoMo','cash_bank':'bank','cash_card':'card','simulated_funding':'simulated money','opening':'pre-ledger balance','adjustments':'adjustments'}.get(o.root_kind, o.root_kind) }}</b> {{ acct_money(o.s, cur) }}{% if not loop.last %} · {% endif %}{% endfor %}</div>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>When (UTC)</th><th>#</th><th>Description</th><th class="num">Amount</th><th class="num">Balance</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">{{ f }}</td><td></td><td class="muted">Opening balance</td><td></td><td class="num">{{ acct_money(wb.opening, cur) }}</td></tr>
+      {% for r in wb.rows %}
+      <tr><td class="mono">{{ r.created_at }}</td><td class="mono">{% if r.txn_id %}<a href="/admin/accounting/txn/{{ r.txn_id }}">{{ r.seq }}</a>{% endif %}</td>
+        <td>{{ r.description }}</td><td class="num {{ 'neg' if r.amount_cents<0 else 'pos' }}">{{ acct_money(r.amount_cents, cur) }}</td><td class="num">{{ acct_money(r.balance_after, cur) }}</td></tr>
+      {% endfor %}
+      <tr><td class="mono">{{ t }}</td><td></td><td class="muted">Closing balance</td><td></td><td class="num td-bold">{{ acct_money(wb.closing, cur) }}</td></tr>
+    </tbody></table></div>
+</div>
+{% endfor %}
+<div class="acct-grid">
+  <div class="card"><div class="card-header"><span class="card-title">Withdrawals</span></div><div class="table-wrap"><table><tbody>
+    {% for w in withdrawals %}<tr><td class="mono">{{ w.created_at[:16] }}</td><td class="num">{{ acct_money(w.amount_cents, w.currency) }}</td><td><span class="pill pill-no-dot {{ {'paid':'pill-green','requested':'pill-amber','approved':'pill-blue','rejected':'pill-red','failed':'pill-red'}.get(w.status,'pill-gray') }}">{{ w.status }}</span></td></tr>
+    {% else %}<tr><td class="muted">None.</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card"><div class="card-header"><span class="card-title">Deposits from outside</span></div><div class="table-wrap"><table><tbody>
+    {% for e in externals %}<tr><td class="mono">{{ e.created_at[:16] }}</td><td>{{ e.channel }} <span class="mono muted">{{ e.external_ref }}</span></td><td class="num">{{ acct_money(e.amount_cents, e.currency) }}</td><td>{{ e.status }}</td></tr>
+    {% else %}<tr><td class="muted">None.</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card"><div class="card-header"><span class="card-title">Circle loans</span></div><div class="table-wrap"><table><tbody>
+    {% for l in loans %}<tr><td>{{ 'Lent' if l.lender_id==u.id else 'Owes' }} · {{ l.circle or '' }}</td><td class="num">{{ acct_money(l.original_amount_cents - l.repaid_cents, l.currency) }} left</td><td>{{ l.status }}</td></tr>
+    {% else %}<tr><td class="muted">None.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endif %}
+{% endblock %}

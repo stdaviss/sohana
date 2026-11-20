@@ -1,319 +1,54 @@
 {% extends "base.html" %}
-{% block title %}Admin Dashboard — SOHANA{% endblock %}
-{% block topbar_title %}Super Admin Dashboard{% endblock %}
-
+{% import "admin_m_macros.html" as M with context %}
+{% block title %}Admin — SOHANA{% endblock %}
+{% block topbar_title %}Admin overview{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1 class="page-title" style="font-size:1.1rem;font-weight:700;text-align:center;color:var(--gray-600);letter-spacing:.05em;text-transform:uppercase;">Super Admin Dashboard</h1>
-  </div>
-  <div style="display:flex;gap:.75rem;">
-    <button class="btn btn-outline" onclick="location.href='/admin/roscas'">View as User</button>
-    <button class="btn btn-orange" onclick="openModal('create-rosca-modal')">+ Create ROSCA</button>
-    <button class="btn btn-ghost btn-icon">⚙</button>
-  </div>
+{{ M.style() }}
+<h1 class="m-h">Admin overview</h1>
+<p class="m-sub">Members, circles and money as they stand now. Money figures come from the ledger; totals across currencies are EUR equivalents at today's rates.</p>
+{{ M.books_banner(ms) }}
+
+<div class="stats-grid stats-grid-4">
+  {{ M.stat('Members', mem.total, '+' ~ mem.new_7 ~ ' this week · ' ~ mem.active_30 ~ ' active in 30 days', '/admin/users') }}
+  {{ M.stat('Circles', ci.total, ci.by_status.get('active', 0) ~ ' active · ' ~ ci.members ~ ' memberships') }}
+  {{ M.stat('Member balances', acct_money(ms.wallets_eur, 'EUR'), 'EUR equivalent, all currencies', '/admin/accounting/trial-balance') }}
+  {{ M.stat('Held in pots & campaigns', acct_money(ms.held_eur, 'EUR'), 'circle pots, campaign and pool funds') }}
+</div>
+<div class="stats-grid stats-grid-4">
+  {{ M.stat('On-time contributions', M.pctv(ci.on_time_pct), ci.settled ~ ' contributions settled', tone=('good' if (ci.on_time_pct or 0) >= 90 else 'warn')) }}
+  {{ M.stat('Missed contributions', ci.contrib.get('missed', 0), M.pctv(ci.missed_pct) ~ ' of settled', tone=('bad' if ci.contrib.get('missed', 0) else None)) }}
+  {{ M.stat('Withdrawals waiting', ms.withdrawals_open, acct_money(ms.withdrawals_open_eur, 'EUR') ~ ' EUR equivalent', '/admin/accounting/withdrawals', 'warn' if ms.withdrawals_open else None) }}
+  {{ M.stat('Fee revenue, 30 days', acct_money(ms.fees_30_eur, 'EUR'), 'all time ' ~ acct_money(ms.fees_all_eur, 'EUR'), '/admin/accounting/reports') }}
 </div>
 
-<!-- Top 5 stat cards — matches Image 1 -->
-<div class="stats-grid stats-grid-5">
-  <div class="stat-card">
-    <div class="stat-icon blue">◎</div>
-    <div class="stat-body">
-      <div class="stat-label">Total ROSCAs</div>
-      <div class="stat-value">{{ stats.total_roscas }}</div>
-      <div class="stat-sub">Total</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon teal">👥</div>
-    <div class="stat-body">
-      <div class="stat-label">Active Members</div>
-      <div class="stat-value">{{ stats.active_members }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon green">💵</div>
-    <div class="stat-body">
-      <div class="stat-label">Escrow</div>
-      <div class="stat-value">&euro;{{ '%.0f' % (stats.escrow / 100) }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon amber">💰</div>
-    <div class="stat-body">
-      <div class="stat-label">Total Earnings</div>
-      <div class="stat-value">&euro;{{ '%.0f' % (stats.total_earnings / 100) }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon purple">🚀</div>
-    <div class="stat-body">
-      <div class="stat-label">Platform Earnings</div>
-      <div class="stat-value">{{ stats.platform_earnings }}</div>
-    </div>
-  </div>
+<div class="m-grid">
+  <div class="card"><div class="card-header"><span class="card-title">Value moved between members, last 30 days (EUR eq.)</span></div>
+    {{ M.bars(vol, 'per day', True) }}
+    <div class="m-note">Transfers, contributions, payouts, donations and loan repayments. Deposits from outside are not counted here.</div></div>
+  <div class="card"><div class="card-header"><span class="card-title">New members, last 30 days</span></div>
+    {{ M.bars(mem.signups, 'sign-ups per day') }}</div>
 </div>
 
-<!-- Second row stats -->
-<div class="stats-grid stats-grid-4" style="margin-top:0;">
-  <div class="stat-card">
-    <div class="stat-icon green">💵</div>
-    <div class="stat-body">
-      <div class="stat-label">Contributed this Week</div>
-      <div class="stat-value">&euro;{{ '%.0f' % (stats.contributed_week / 100) }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon blue">👤</div>
-    <div class="stat-body">
-      <div class="stat-label">New Users</div>
-      <div class="stat-value">{{ stats.new_users_week }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon red">💬</div>
-    <div class="stat-body">
-      <div class="stat-label">Members with Late Payments</div>
-      <div class="stat-value">{{ stats.late_members }}</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-icon amber">⚠</div>
-    <div class="stat-body">
-      <div class="stat-label">Organisers with Audits</div>
-      <div class="stat-value">{{ organiser_alerts | length }}</div>
-    </div>
-  </div>
+<div class="m-grid">
+  <div class="card"><div class="card-header"><span class="card-title">Overdue circle cycles</span></div>
+    <div class="table-wrap"><table><thead><tr><th>Circle</th><th>Cycle</th><th>Due</th><th class="m-num">Unpaid</th></tr></thead><tbody>
+    {% for o in ci.overdue %}<tr><td class="td-bold"><a href="/admin/accounting/circle/{{ o.id }}" style="color:var(--ink)">{{ o.name }}</a></td><td>{{ o.cycle_number }}</td><td class="mono">{{ (o.due_at or '')[:10] }}</td><td class="m-num">{{ o.pending }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No overdue cycles.</td></tr>{% endfor %}</tbody></table></div>
+    <div class="m-note">Unpaid contributions are marked missed 3 days after the due date and the cycle then pays out what was collected.</div></div>
+  <div class="card"><div class="card-header"><span class="card-title">Members with missed contributions</span></div>
+    <div class="table-wrap"><table><tbody>
+    {% for r in at_risk %}<tr><td class="td-bold">{{ r.full_name }}</td><td>{{ r.rosca_name }}</td><td class="m-num">{{ r.missed }} missed</td></tr>
+    {% else %}<tr><td class="muted">Nobody has missed a contribution.</td></tr>{% endfor %}</tbody></table></div></div>
 </div>
 
-<!-- Main content grid -->
-<div class="content-grid content-grid-sidebar">
-
-  <!-- Left: ROSCA Table + Charts -->
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-
-    <!-- All ROSCAs table — matches Image 1 -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">All ROSCAs</span>
-        <div style="display:flex;gap:.5rem;align-items:center;">
-          <select class="filter-select"><option>Sort by ▾</option><option>Age</option><option>Members</option><option>Amount</option></select>
-          <select class="filter-select"><option>F1 Age</option><option>F2 Type</option></select>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>ROSCA Name</th>
-            <th>Organiser</th>
-            <th>Type</th>
-            <th>Members</th>
-            <th>Contributions</th>
-            <th>Cycle Progress</th>
-          </tr></thead>
-          <tbody>
-            {% for r in all_roscas %}
-            <tr>
-              <td>
-                <div style="display:flex;align-items:center;gap:.6rem;">
-                  <div class="admin-avatar" style="width:30px;height:30px;font-size:.7rem;">{{ r.name[0] }}</div>
-                  <div>
-                    <div class="td-bold">{{ r.name }}</div>
-                    <div class="td-sub">{{ r.rosca_type.replace('_',' ').title() }}</div>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div style="font-size:.83rem;font-weight:500;">{{ r.organiser_name }}</div>
-              </td>
-              <td>
-                <span class="pill {% if r.is_public %}pill-blue{% else %}pill-gray{% endif %} pill-no-dot">
-                  {{ 'Public' if r.is_public else 'Private' }}
-                </span>
-              </td>
-              <td>
-                <span style="font-weight:600;">{{ r.member_count }}</span>
-                <span class="text-muted text-xs">/{{ r.max_members }}</span>
-              </td>
-              <td>
-                <div style="font-size:.83rem;font-weight:600;">&euro;{{ '%.0f' % (r.contribution_cents / 100) }}/cycle</div>
-              </td>
-              <td>
-                <div style="min-width:120px;">
-                  <div class="progress-track" style="height:6px;margin-bottom:.3rem;">
-                    <div class="progress-fill fill-green" style="width:{{ [((r.current_cycle / [r.total_cycles,1]|max) * 100)|round|int, 100]|min }}%"></div>
-                  </div>
-                  <div class="text-xs text-muted">Cycle {{ r.current_cycle }}/{{ r.total_cycles }}</div>
-                </div>
-              </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" class="empty-state" style="padding:2rem;">No ROSCAs created yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Charts row -->
-    <div class="content-grid-2">
-      <div class="card card-pad">
-        <div class="flex items-center justify-between mb-3">
-          <span class="card-title">Platform Earnings</span>
-        </div>
-        <canvas id="earnings-chart" height="160" style="width:100%;"></canvas>
-        <div class="text-xs text-muted mt-2" style="text-align:center;">Jan — Apr 2026</div>
-      </div>
-      <div class="card card-pad">
-        <div class="flex items-center justify-between mb-3">
-          <span class="card-title">Platform Activity</span>
-          <a class="view-all">View All ›</a>
-        </div>
-        <canvas id="activity-chart" height="160" style="width:100%;"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Right: Risk + Alerts panels — matches Image 1 right column -->
-  <div style="display:flex;flex-direction:column;gap:1.25rem;">
-
-    <!-- Members at Risk -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Members at Risk</span>
-        <span style="font-size:.8rem;cursor:pointer;color:var(--text-muted);">⌃</span>
-      </div>
-      {% if at_risk %}
-        {% for r in at_risk %}
-        <div class="risk-item">
-          <div class="risk-avatar red">{{ r.full_name[0] }}</div>
-          <div class="risk-body">
-            <div class="risk-name">{{ r.full_name }}</div>
-            <div class="risk-desc">{{ r.missed }} Missed Payment{{ 's' if r.missed != 1 }}</div>
-            <div class="risk-sub">{{ r.rosca_name }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="empty-state" style="padding:1.5rem;"><p>No at-risk members.</p></div>
-      {% endif %}
-      <div class="card-footer"><a class="view-all">View All ›</a></div>
-    </div>
-
-    <!-- Organiser Alerts -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Organiser Alerts</span>
-        <span style="font-size:.8rem;cursor:pointer;color:var(--text-muted);">⌃</span>
-      </div>
-      {% if organiser_alerts %}
-        {% for a in organiser_alerts %}
-        <div class="risk-item">
-          <div class="risk-avatar amber">⚠</div>
-          <div class="risk-body">
-            <div class="risk-name">{{ a.full_name }}</div>
-            <div class="risk-desc">{{ a.issue_count }} issue{{ 's' if a.issue_count != 1 }} flagged</div>
-            <div class="risk-sub">{{ a.rosca_name }}</div>
-          </div>
-        </div>
-        {% endfor %}
-      {% else %}
-        <div class="risk-item">
-          <div class="risk-avatar amber">⚠</div>
-          <div class="risk-body">
-            <div class="risk-name">No alerts</div>
-            <div class="risk-desc">All organisers in good standing</div>
-          </div>
-        </div>
-      {% endif %}
-      <div class="card-footer"><a class="view-all" onclick="location.href='/admin/payments'">View All ›</a></div>
-    </div>
-
-    <!-- Quick links -->
-    <div class="card card-pad">
-      <div class="card-title mb-3">Quick Actions</div>
-      <div style="display:flex;flex-direction:column;gap:.5rem;">
-        <a href="/admin/payments" class="btn btn-outline btn-sm" style="justify-content:flex-start;">💳 View All Payments</a>
-        <a href="/admin/users"    class="btn btn-outline btn-sm" style="justify-content:flex-start;">👥 Manage Users</a>
-        <a href="/admin/admins"   class="btn btn-outline btn-sm" style="justify-content:flex-start;">🔑 Manage Admins</a>
-      </div>
-    </div>
-  </div>
+<div class="card">
+  <div class="card-header"><span class="card-title">Latest circles</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Circle</th><th>Organiser</th><th>Status</th><th class="m-num">Members</th><th class="m-num">Contribution</th><th></th></tr></thead>
+    <tbody>{% for r in all_roscas %}
+      <tr><td class="td-bold">{{ r.name }}</td><td>{{ r.organiser_name }}</td><td>{{ r.status }}</td><td class="m-num">{{ r.member_count }}/{{ r.max_members }}</td>
+        <td class="m-num">{{ acct_money(r.contribution_cents, r.currency or 'EUR') }}</td><td><a class="btn btn-outline btn-sm" href="/admin/accounting/circle/{{ r.id }}">Audit</a></td></tr>
+    {% else %}<tr><td colspan="6" class="muted">No circles yet.</td></tr>{% endfor %}</tbody>
+  </table></div>
 </div>
-{% endblock %}
-
-{% block modals %}
-<div class="modal-backdrop" id="create-rosca-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('create-rosca-modal')">✕</button>
-    <h3 class="modal-title">Create ROSCA</h3>
-    <p class="modal-sub">Set up a new savings circle on the platform.</p>
-    <div class="form-group"><label class="form-label">Circle name</label><input class="form-input" id="cr-name" placeholder="e.g. Community Fund 2026"></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Contribution (€)</label><input class="form-input" id="cr-amt" type="number" value="50"></div>
-      <div class="form-group"><label class="form-label">Max members</label><input class="form-input" id="cr-members" type="number" value="8"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-full" onclick="closeModal('create-rosca-modal')">Cancel</button>
-      <button class="btn btn-orange btn-full" onclick="adminCreateRosca()">Create ROSCA</button>
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// Simple sparkline charts for admin dashboard
-function drawLineChart(id, points, color) {
-  const c = document.getElementById(id);
-  if (!c) return;
-  const ctx = c.getContext('2d');
-  const W = c.width = c.offsetWidth * 2; const H = c.height = 320;
-  const min = Math.min(...points), max = Math.max(...points) + 1;
-  const tx = (i) => (i / (points.length-1)) * (W - 40) + 20;
-  const ty = (v) => H - 30 - ((v - min) / (max - min)) * (H - 50);
-  ctx.clearRect(0,0,W,H);
-  ctx.beginPath(); ctx.moveTo(tx(0), H-30);
-  points.forEach((p,i) => ctx.lineTo(tx(i), ty(p)));
-  ctx.lineTo(tx(points.length-1), H-30); ctx.closePath();
-  ctx.fillStyle = color + '22'; ctx.fill();
-  ctx.beginPath();
-  points.forEach((p,i) => i===0 ? ctx.moveTo(tx(i),ty(p)) : ctx.lineTo(tx(i),ty(p)));
-  ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineJoin='round'; ctx.stroke();
-}
-function drawBarChart(id, points, color1, color2) {
-  const c = document.getElementById(id);
-  if (!c) return;
-  const ctx = c.getContext('2d');
-  const W = c.width = c.offsetWidth * 2; const H = c.height = 320;
-  const max = Math.max(...points.flat()) + 1;
-  const pairs = Math.floor(points.length/2);
-  const bw = (W - 40) / (pairs * 3); const gap = bw * 0.5;
-  for (let i=0; i<pairs; i++) {
-    const x = 20 + i * (bw*2 + gap*2);
-    const h1 = (points[i*2] / max) * (H-30);
-    ctx.fillStyle = color1; ctx.fillRect(x, H-30-h1, bw, h1);
-    if (points[i*2+1] !== undefined) {
-      const h2 = (points[i*2+1] / max) * (H-30);
-      ctx.fillStyle = color2; ctx.fillRect(x+bw+2, H-30-h2, bw, h2);
-    }
-  }
-}
-drawLineChart('earnings-chart', [2,5,4,8,12,9,15,18,22,28,25,32], '#2563eb');
-drawBarChart('activity-chart',  [16,24,50,80,100,90,35,21,28,35,20], '#2563eb', '#34d399');
-
-async function adminCreateRosca() {
-  const name = document.getElementById('cr-name').value.trim();
-  if (!name) { toast('Name required','error'); return; }
-  const d = await API.post('/api/rosca/create', {
-    name, contribution: parseFloat(document.getElementById('cr-amt').value),
-    max_members: parseInt(document.getElementById('cr-members').value),
-    frequency_days: 30, ncs_min: 300, is_public: true
-  });
-  if (d.error) { toast(d.error,'error'); return; }
-  closeModal('create-rosca-modal');
-  toast('ROSCA created!','success');
-  setTimeout(()=>location.reload(),1000);
-}
-</script>
 {% endblock %}

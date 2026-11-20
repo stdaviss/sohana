@@ -185,15 +185,49 @@ input:checked+.switch-slider:before{transform:translateX(20px);background:#0E120
     <span class="sub">Platform average</span>
   </div>
   <div class="ex-stat good">
-    <span class="label">Weekly Volume</span>
-    <span class="value">€{{ (stats.contributed_week / 100) | round(0) | int }}</span>
-    <span class="sub">Contributions this week</span>
+    <span class="label">Moved, 7 days</span>
+    <span class="value">{{ acct_money(ms.moved_7_eur, 'EUR') }}</span>
+    <span class="sub">EUR eq., between members</span>
   </div>
   <div class="ex-stat">
-    <span class="label">Total Volume</span>
-    <span class="value">€{{ (stats.total_volume / 100) | round(0) | int }}</span>
-    <span class="sub">All-time</span>
+    <span class="label">Member balances</span>
+    <span class="value">{{ acct_money(ms.wallets_eur, 'EUR') }}</span>
+    <span class="sub">EUR eq., all currencies</span>
   </div>
+</div>
+
+<!-- ── BOOKS (from the double-entry ledger) ── -->
+<div class="ex-grid" style="margin-top:-.5rem">
+  <a class="ex-stat {{ 'good' if ms.balanced and ms.checks_passed else 'danger' }}" href="/admin/accounting" style="text-decoration:none">
+    <span class="label">Books</span>
+    <span class="value">{{ 'Balanced' if ms.balanced else 'Out of balance' }}</span>
+    <span class="sub">checks {{ 'passed' if ms.checks_passed else ('not run yet' if ms.checks_passed is none else 'FAILED') }}</span>
+  </a>
+  <a class="ex-stat" href="/admin/accounting/reports" style="text-decoration:none">
+    <span class="label">Fee revenue, 30 days</span>
+    <span class="value">{{ acct_money(ms.fees_30_eur, 'EUR') }}</span>
+    <span class="sub">all time {{ acct_money(ms.fees_all_eur, 'EUR') }}</span>
+  </a>
+  <div class="ex-stat">
+    <span class="label">Real money in, 30 days</span>
+    <span class="value">{{ acct_money(ms.real_in_30_eur, 'EUR') }}</span>
+    <span class="sub">simulated: {{ acct_money(ms.sim_in_30_eur, 'EUR') }}</span>
+  </div>
+  <div class="ex-stat">
+    <span class="label">Held in pots</span>
+    <span class="value">{{ acct_money(ms.held_eur, 'EUR') }}</span>
+    <span class="sub">circles, campaigns, pools</span>
+  </div>
+  <a class="ex-stat {{ 'warn' if ms.withdrawals_open else '' }}" href="/admin/accounting/withdrawals" style="text-decoration:none">
+    <span class="label">Withdrawals waiting</span>
+    <span class="value">{{ ms.withdrawals_open }}</span>
+    <span class="sub">{{ acct_money(ms.withdrawals_open_eur, 'EUR') }}</span>
+  </a>
+  <a class="ex-stat {{ 'warn' if ms.suspense else '' }}" href="/admin/accounting/payments" style="text-decoration:none">
+    <span class="label">Unmatched deposits</span>
+    <span class="value">{{ ms.suspense }}</span>
+    <span class="sub">in suspense</span>
+  </a>
 </div>
 
 <!-- ── PLATFORM EMERGENCY CONTROLS ── -->
@@ -251,7 +285,7 @@ input:checked+.switch-slider:before{transform:translateX(20px);background:#0E120
           <tr style="border-bottom:1px solid var(--line)">
             <th style="padding:.6rem 1rem;text-align:left;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;font-weight:600">USER</th>
             <th style="padding:.6rem 1rem;text-align:center;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;font-weight:600">NCS</th>
-            <th style="padding:.6rem 1rem;text-align:center;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;font-weight:600">STATUS</th>
+            <th style="padding:.6rem 1rem;text-align:center;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;font-weight:600">LEDGER</th>
             <th style="padding:.6rem .75rem;text-align:center;font-family:'Geist Mono',monospace;font-size:.62rem;color:var(--ink-3);letter-spacing:.06em;font-weight:600">ACTIONS</th>
           </tr>
         </thead>
@@ -341,15 +375,13 @@ input:checked+.switch-slider:before{transform:translateX(20px);background:#0E120
         <tr style="border-bottom:1px solid var(--line);transition:background .1s" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
           <td style="padding:.65rem 1.1rem;font-weight:600;color:var(--ink)">{{ tx.full_name or '—' }}</td>
           <td style="padding:.65rem 1rem;text-align:center">
-            <span style="font-family:'Geist Mono',monospace;font-size:.72rem;padding:.18rem .55rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2)">{{ tx.tx_type or '—' }}</span>
+            <span style="font-family:'Geist Mono',monospace;font-size:.72rem;padding:.18rem .55rem;background:var(--surface-2);border:1px solid var(--line-2);border-radius:99px;color:var(--ink-2)">{{ acct_kind(tx.kind) if tx.kind else (tx.tx_type or '—') }}</span>
           </td>
           <td style="padding:.65rem 1rem;text-align:right;font-family:'Geist Mono',monospace;font-size:.85rem;color:{% if tx.amount_cents < 0 %}#FF6A55{% else %}var(--accent){% endif %};font-weight:600">
-            {{ '+' if tx.amount_cents > 0 else '' }}€{{ (tx.amount_cents|abs / 100) | round(2) }}
+            {{ '+' if tx.amount_cents > 0 else '' }}{{ acct_money(tx.amount_cents, tx.wcur or tx.currency or 'EUR') }}
           </td>
           <td style="padding:.65rem 1rem;text-align:center">
-            <span class="chip {{ 'active' if tx.status == 'completed' else 'warn' if tx.status == 'pending' else 'danger' if tx.status in ('failed','reversed') else 'muted' }}">
-              {{ tx.status or 'unknown' }}
-            </span>
+            {% if tx.txn_id %}<a href="/admin/accounting/txn/{{ tx.txn_id }}" class="chip active">#{{ tx.seq }}</a>{% else %}<span class="chip muted">—</span>{% endif %}
           </td>
           <td style="padding:.65rem 1rem;font-family:'Geist Mono',monospace;font-size:.7rem;color:var(--ink-3);white-space:nowrap">
             {{ tx.created_at[:16].replace('T',' ') if tx.created_at else '—' }}
@@ -357,9 +389,7 @@ input:checked+.switch-slider:before{transform:translateX(20px);background:#0E120
           <td style="padding:.65rem .75rem;text-align:center">
             <div class="row-actions" style="justify-content:center">
               <button class="tx-flag-btn" onclick="flagTx('{{ tx.id }}')">Flag</button>
-              {% if tx.status in ('pending','failed') %}
-              <button class="tx-reverse-btn" onclick="reverseTx('{{ tx.id }}','€{{ (tx.amount_cents|abs / 100)|round(2) }}')">Reverse</button>
-              {% endif %}
+
             </div>
           </td>
         </tr>

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Accounting — SOHANA{% endblock %}
+{% block topbar_title %}Accounting{% endblock %}
+{% block content %}
+<div class="card card-pad" style="max-width:560px">
+  <h1 style="font-size:1.1rem;margin-bottom:.4rem">The accounting console isn't available to your role</h1>
+  <p class="text-muted" style="font-size:.88rem">It is open to the CEO, CFO, Operations, Compliance and CCO roles{% if role %}; you are signed in as {{ role }}{% endif %}. Ask the CEO to change your role if you need it.</p>
+  <a class="btn btn-outline btn-sm" href="/admin" style="margin-top:.8rem">Back to admin</a>
+</div>
+{% endblock %}

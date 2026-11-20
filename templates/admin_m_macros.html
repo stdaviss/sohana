@@ -1,0 +1,69 @@
+{# Shared pieces for the role dashboards. Every figure passed in is real; None renders as "not tracked yet". #}
+{% macro stat(label, value, sub=None, href=None, tone=None) -%}
+<{{ 'a href="' ~ href ~ '"' if href else 'div' }} class="stat-card m-stat {{ tone or '' }}" {% if href %}style="text-decoration:none"{% endif %}>
+  <div class="stat-body">
+    <div class="stat-label">{{ label }}</div>
+    <div class="stat-value">{% if value is none %}<span class="m-nt">not tracked yet</span>{% else %}{{ value }}{% endif %}</div>
+    {% if sub %}<div class="stat-sub">{{ sub }}</div>{% endif %}
+  </div>
+</{{ 'a' if href else 'div' }}>
+{%- endmacro %}
+
+{% macro pctv(v) -%}{% if v is none %}—{% else %}{{ '%.1f' % v }}%{% endif %}{%- endmacro %}
+
+{% macro bars(series, label='', money=False, height=90) -%}
+{% set mx = (series|map(attribute=1)|max) if series else 0 %}
+{% set n = series|length %}
+<figure class="m-bars" aria-label="{{ label }}">
+  <svg viewBox="0 0 {{ n*10 }} {{ height }}" preserveAspectRatio="none" role="img">
+    {% for d, v in series %}
+      {% set h = ((v / mx) * (height-4)) if mx else 0 %}
+      <rect x="{{ loop.index0*10 + 1 }}" y="{{ height - h }}" width="8" height="{{ h if h > 0 else 0 }}" rx="1.5"><title>{{ d }}: {{ acct_money(v, 'EUR') if money else v }}</title></rect>
+      {% if v == 0 %}<rect x="{{ loop.index0*10 + 1 }}" y="{{ height-1 }}" width="8" height="1" class="zero"></rect>{% endif %}
+    {% endfor %}
+  </svg>
+  <figcaption><span>{{ series[0][0][5:] if series else '' }}</span><span>{{ label }}</span><span>{{ series[-1][0][5:] if series else '' }}</span></figcaption>
+</figure>
+{%- endmacro %}
+
+{% macro hbar(rows) -%}
+{# rows: list of (label, value, display) #}
+{% set mx = (rows|map(attribute=1)|max) if rows else 0 %}
+<div class="m-hbars">
+{% for l, v, disp in rows %}
+  <div class="m-hrow"><span class="m-hl">{{ l }}</span><span class="m-ht"><span style="width:{{ (100*v/mx) if mx else 0 }}%"></span></span><span class="m-hv">{{ disp }}</span></div>
+{% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro style() -%}
+<style>
+.m-nt{font-size:.78rem;font-weight:500;color:var(--ink-3)}
+.m-stat.warn .stat-value{color:var(--amber)} .m-stat.bad .stat-value{color:var(--red)} .m-stat.good .stat-value{color:var(--accent-2)}
+.m-h{font-size:1.25rem;font-weight:650;margin:.2rem 0;color:var(--ink)}
+.m-sub{font-size:.82rem;color:var(--ink-3);margin-bottom:1rem;max-width:75ch}
+.m-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:1rem}
+.m-bars{margin:0;padding:.6rem 1.1rem .8rem}
+.m-bars svg{width:100%;height:90px;display:block}
+.m-bars rect{fill:var(--accent);opacity:.85}.m-bars rect.zero{fill:var(--line-2);opacity:1}
+.m-bars figcaption{display:flex;justify-content:space-between;font-size:.68rem;color:var(--ink-3);margin-top:.3rem;font-family:'Geist Mono',monospace}
+.m-hbars{padding:.7rem 1.1rem}
+.m-hrow{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:.6rem;align-items:center;font-size:.8rem;padding:.22rem 0}
+.m-hl{color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-ht{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.m-ht span{display:block;height:100%;background:var(--accent-2);border-radius:4px}
+.m-hv{font-family:'Geist Mono',monospace;font-size:.76rem;color:var(--ink);text-align:right;white-space:nowrap}
+.m-note{font-size:.75rem;color:var(--ink-3);padding:.6rem 1.1rem;border-top:1px solid var(--line)}
+.m-num{text-align:right;font-family:'Geist Mono',monospace;white-space:nowrap}
+.m-empty{padding:1rem 1.1rem;color:var(--ink-3);font-size:.84rem}
+.m-banner{display:flex;gap:.6rem;align-items:center;padding:.6rem 1rem;border-radius:10px;border:1px solid var(--line-2);background:var(--bg-3);font-size:.82rem;margin-bottom:1rem}
+.m-dot{width:8px;height:8px;border-radius:50%;display:inline-block}.m-dot.g{background:var(--accent-2)}.m-dot.r{background:var(--red)}.m-dot.a{background:var(--amber)}
+</style>
+{%- endmacro %}
+
+{% macro books_banner(ms) -%}
+<div class="m-banner">
+  <span class="m-dot {{ 'g' if ms.balanced and ms.checks_passed else ('a' if ms.checks_passed is none else 'r') }}"></span>
+  <span>Books {{ 'balanced' if ms.balanced else 'OUT OF BALANCE' }} · daily checks {{ 'passed' if ms.checks_passed else ('not run yet' if ms.checks_passed is none else 'FAILED') }}{% if ms.checks_at %} ({{ ms.checks_at }} UTC){% endif %} · {{ ms.txns }} ledger transactions · {{ 'simulated money' if ms.mode=='simulated' else 'live money' }}</span>
+  <a href="/admin/accounting" style="margin-left:auto" class="btn btn-outline btn-sm">Open the books</a>
+</div>
+{%- endmacro %}

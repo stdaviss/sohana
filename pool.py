@@ -7,8 +7,10 @@ on all disbursements.
 import uuid
 from datetime import datetime, date
 from calendar import monthrange
-from database import (get_db, fetchone, fetchall, post_transaction,
+from database import (get_db, fetchone, fetchall,
                       push_notification, ROSCA_CREATION_FEES)
+import ledger
+from ledger import W, S
 import ncs_engine
 
 # ── PURPOSE CATEGORIES ────────────────────────────────────────────────────────
@@ -44,29 +46,24 @@ def create_pool(organiser_id, name, description, purpose,
     user     = fetchone("SELECT ncs_tier FROM users WHERE id=?", (organiser_id,))
     tier     = user["ncs_tier"] if user else "probation"
     fee      = ROSCA_CREATION_FEES.get(tier, 500)
-    monthly  = annual_amount_cents // 12
+    currency = (currency or "EUR").upper()
+    monthly  = ledger.floor_whole(annual_amount_cents // 12, currency)
+    fee      = ledger.from_eur(fee, currency) if fee > 0 else 0
     pid      = str(uuid.uuid4())
 
     # Charge the creation fee AND create the pool in one write-locked
     # transaction. If the organiser can't cover the fee, nothing is created.
     with get_db(immediate=True) as db:
         if fee > 0:
-            w = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency='EUR'",
-                           (organiser_id,)).fetchone()
-            if not w:
-                w = db.execute("SELECT id FROM wallets WHERE user_id=? AND is_default=1",
-                               (organiser_id,)).fetchone()
-            if not w:
-                raise ValueError("No EUR wallet available to charge the creation fee.")
-            balrow = db.execute("SELECT balance_after FROM wallet_transactions "
-                                "WHERE wallet_id=? ORDER BY created_at DESC, rowid DESC LIMIT 1",
-                                (w["id"],)).fetchone()
-            bal = balrow["balance_after"] if balrow else 0
+            wid = ledger.wallet_of(db, organiser_id, currency)
+            bal = ledger.balance(db, wid) if wid else 0
             if bal < fee:
-                raise ValueError(f"You need €{fee/100:.2f} to create a pool. "
-                                 f"Please top up your EUR wallet first.")
-            post_transaction(w["id"], -fee, f"Pool creation fee: {name}",
-                             tx_type="fee", _db=db)
+                raise ValueError(f"You need {ledger.fmt_money(fee, currency)} in your {currency} balance to create "
+                                 f"this pool (creation fee). Add or convert funds first.")
+            ledger.post(db, "fee_pool_creation",
+                        [W(wid, -fee, f"Pool creation fee: {name}", "fee"),
+                         S("fee_revenue", currency, fee, "fee", "pool_creation")],
+                        memo=f"Pool creation fee: {name}", ref_type="pool", ref_id=pid, created_by=organiser_id)
         db.execute("""INSERT INTO pools(id,name,description,purpose,organiser_id,
                       currency,annual_amount_cents,monthly_amount_cents,
                       payout_type,duration_months,ncs_min_score,is_public,creation_fee_cents)
@@ -250,10 +247,13 @@ def pay_pool_contribution(pool_id, payer_id, beneficiary_id, months,
 
     contrib_id = str(uuid.uuid4())
     with get_db(immediate=True) as db:
-        post_transaction(wallet["id"], -amount_cents,
-                         f"Pool contribution — {p['name']}" + (f" (for {_get_name(beneficiary_id)})" if paid_on_behalf else ""),
-                         ref_type="pool_contribution", ref_id=contrib_id,
-                         tx_type="rosca_contribution", _db=db)
+        ledger.post(db, "pool_contribution",
+                    [W(wallet["id"], -amount_cents,
+                       f"Pool contribution — {p['name']}" + (f" (for {_get_name(beneficiary_id)})" if paid_on_behalf else ""),
+                       "rosca_contribution"),
+                     S("pool_funds", p["currency"], amount_cents, "pool", pool_id)],
+                    memo=f"Pool contribution: {p['name']}", ref_type="pool_contribution", ref_id=contrib_id,
+                    created_by=payer_id)
         db.execute("""INSERT INTO pool_contributions(id,pool_id,payer_id,beneficiary_id,
                       amount_cents,period_covered,months_covered,paid_on_behalf,note)
                       VALUES(?,?,?,?,?,?,?,?,?)""",
@@ -457,16 +457,18 @@ def _execute_disbursement(pool_id, disbursement_id):
                        (str(uuid.uuid4()), recipient_id, p["currency"]))
             wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
                                 (recipient_id, p["currency"])).fetchone()
-        post_transaction(wallet["id"], d["amount_cents"],
-                         f"Pool disbursement — {p['name']}: {d['purpose_note']}",
-                         ref_type="pool_disbursement", ref_id=disbursement_id,
-                         tx_type="rosca_payout", _db=db)
+        ledger.post(db, "pool_disbursement",
+                    [S("pool_funds", p["currency"], -d["amount_cents"], "pool", pool_id),
+                     W(wallet["id"], d["amount_cents"], f"Pool disbursement — {p['name']}: {d['purpose_note']}",
+                       "rosca_payout")],
+                    memo=f"Pool disbursement: {p['name']}", ref_type="pool_disbursement", ref_id=disbursement_id,
+                    idempotency_key=f"pooldisb:{disbursement_id}")
         db.execute("UPDATE pools SET total_balance_cents=total_balance_cents-? WHERE id=?",
                    (d["amount_cents"], pool_id))
 
     push_notification(recipient_id,
                       "Pool funds disbursed ✓",
-                      f"€{d['amount_cents']/100:.2f} has been sent to your wallet from '{p['name']}'.",
+                      f"{ledger.fmt_money(d['amount_cents'], p['currency'])} has been sent to your wallet from '{p['name']}'.",
                       "success", "/wallet")
 
 

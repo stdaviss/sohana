@@ -99,12 +99,28 @@ def recalculate(user_id):
     _check_badges(user_id, new_score, old_score)
     return new_score, components
 
+# Anti-farming: positive points a member can earn in one day, and events that count once a day.
+DAILY_GAIN_CAP = 30
+ONCE_PER_DAY = {"wallet_deposit"}
+
+
 def apply_event(user_id, event_type, ref_type=None, ref_id=None, metadata=None):
     if event_type not in EVENT_DELTAS: raise ValueError(f"Unknown event: {event_type}")
-    with get_db() as db:
+    with get_db(immediate=True) as db:   # read-then-write under the lock: no lost updates
         row = db.execute("SELECT ncs_score FROM users WHERE id=?",(user_id,)).fetchone()
         score_before = row["ncs_score"] if row else NCS_MIN
         delta = EVENT_DELTAS[event_type]
+        if delta > 0:
+            if ref_id and db.execute("SELECT 1 FROM ncs_events WHERE user_id=? AND event_type=? AND ref_id=?",
+                                     (user_id, event_type, ref_id)).fetchone():
+                delta = 0   # the same contribution / cycle never scores twice
+            if event_type in ONCE_PER_DAY and db.execute(
+                    "SELECT 1 FROM ncs_events WHERE user_id=? AND event_type=? AND delta>0 AND recorded_at > datetime('now','-1 day')",
+                    (user_id, event_type)).fetchone():
+                delta = 0
+            gained = db.execute("SELECT COALESCE(SUM(delta),0) AS s FROM ncs_events WHERE user_id=? AND delta>0 "
+                                "AND recorded_at > datetime('now','-1 day')", (user_id,)).fetchone()["s"]
+            delta = max(0, min(delta, DAILY_GAIN_CAP - gained))
         if event_type == "contribution_missed":
             count = db.execute("SELECT COUNT(*) as c FROM ncs_events WHERE user_id=? AND event_type='contribution_missed'",(user_id,)).fetchone()
             if count and count["c"] == 0: delta = delta // 2

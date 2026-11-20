@@ -141,14 +141,19 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
     if not c: raise ValueError("Campaign not found")
     if c["status"] not in ("active",): raise ValueError("This campaign is not currently accepting donations")
     _rate = EXCHANGE_RATES.get(c["currency"] or "EUR", 1.0)
-    _min  = int(round(MIN_DONATION_CENTS * _rate))     # EUR 1.00 in the campaign currency
+    import ledger as _l
+    _min  = _l.whole(int(round(MIN_DONATION_CENTS * _rate)), c["currency"] or "EUR")   # EUR 1.00 in the campaign currency
     if amount_cents < _min:
-        _sym = CURRENCIES.get(c["currency"] or "EUR", {}).get("symbol", "")
-        _sym = _sym + " " if len(_sym) > 1 else _sym
-        raise ValueError(f"Minimum donation is {_sym}{_min/100:,.2f}".replace(",", " "))
+        raise ValueError(f"Minimum donation is {_l.fmt_money(_min, c['currency'] or 'EUR')}")
 
-    # Platform fee
-    fee = int(amount_cents * PLATFORM_FEE_RATE)
+    import ledger
+    cur0 = c["currency"] or "EUR"
+    if not donor_id:
+        raise ValueError("Sign in to donate")
+    if not ledger.is_whole(amount_cents, cur0):
+        raise ValueError(f"{cur0} donations must be whole amounts")
+    # Platform fee (booked as SOHANA revenue, in whole units)
+    fee = ledger.floor_whole(int(amount_cents * PLATFORM_FEE_RATE), cur0)
     net = amount_cents - fee
 
     # Resolve donor display name BEFORE opening any DB connection
@@ -188,11 +193,12 @@ def donate(campaign_id, amount_cents, donor_id=None, message="", is_anonymous=Fa
         if not _st or _st["status"] != "active":
             raise ValueError("This campaign is not currently accepting donations")
         # 1. Debit donor wallet
-        if donor_wallet_id:
-            post_transaction(donor_wallet_id, -amount_cents,
-                             f"Donation to '{c['title']}'",
-                             ref_type="campaign_donation", ref_id=did,
-                             tx_type="pay_out", _db=db)
+        legs = [ledger.W(donor_wallet_id, -amount_cents, f"Donation to '{c['title']}'", "pay_out"),
+                ledger.S("campaign_funds", cur, net, "campaign", campaign_id)]
+        if fee:
+            legs.append(ledger.S("fee_revenue", cur, fee, "fee", "campaign"))
+        ledger.post(db, "campaign_donation", legs, memo=f"Donation to {c['title']}",
+                    ref_type="campaign_donation", ref_id=did, created_by=donor_id)
 
         # 2. Record the donation
         db.execute("""INSERT INTO campaign_donations(id,campaign_id,donor_id,donor_name,
@@ -300,10 +306,12 @@ def withdraw_funds(campaign_id, creator_id, amount_cents):
             wallet = db.execute("SELECT id FROM wallets WHERE user_id=? AND currency=?",
                                 (creator_id, cur)).fetchone()
         ref = str(uuid.uuid4())
-        post_transaction(wallet["id"], amount_cents,
-                         f"Campaign withdrawal: {c['title']}",
-                         ref_type="campaign_withdrawal", ref_id=ref,
-                         tx_type="campaign_payout", _db=db)
+        import ledger
+        ledger.post(db, "campaign_release",
+                    [ledger.S("campaign_funds", cur, -amount_cents, "campaign", campaign_id),
+                     ledger.W(wallet["id"], amount_cents, f"Campaign withdrawal: {c['title']}", "campaign_payout")],
+                    memo=f"Campaign funds released: {c['title']}", ref_type="campaign_withdrawal", ref_id=ref,
+                    created_by=creator_id)
         db.execute("UPDATE campaigns SET withdrawn_cents=withdrawn_cents+?, updated_at=datetime('now') WHERE id=?",
                    (amount_cents, campaign_id))
     return ref

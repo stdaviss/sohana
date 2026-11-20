@@ -1,0 +1,33 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}{{ r.name }} audit{% endblock %}
+{% block crumb %} / <a href="/admin/accounting/circles">Circles</a> / {{ r.name }}{% endblock %}
+{% block acct %}
+<h1 class="acct-h">{{ r.name }}</h1>
+<p class="acct-sub">{{ cur }} circle · contribution {{ acct_money(r.contribution_cents, cur) }} · status {{ r.status }} · round {{ r.round_number or 1 }}
+  {% if creation %} · creation fee <a href="/admin/accounting/txn/{{ creation.id }}">#{{ creation.seq }}</a>{% endif %}</p>
+{% for cy in cycles %}{% set c = cy.c %}
+<div class="card" style="margin-bottom:1rem" id="cy-{{ c.id }}">
+  <div class="card-header"><span class="card-title">Cycle {{ c.cycle_number }} · to {{ c.recipient or '?' }}</span>
+    <span class="ok-badge"><span class="dot {{ 'g' if cy.ok else 'r' }}"></span>{{ c.status }}{% if c.due_at %} · due {{ c.due_at[:10] }}{% endif %}</span></div>
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.5rem 1.2rem;font-size:.82rem">
+    <div>Paid contributions <b class="num">{{ acct_money(cy.paid, cur) }}</b></div>
+    <div>Into the pot (ledger) <b class="num">{{ acct_money(cy.pot_in, cur) }}</b></div>
+    <div>Out of the pot <b class="num">{{ acct_money(cy.pot_out, cur) }}</b></div>
+    {% if cy.payout_txn %}<div>Recipient got <b class="num">{{ acct_money(cy.net, cur) }}</b> · fee <b class="num">{{ acct_money(cy.fee, cur) }}</b> · <a href="/admin/accounting/txn/{{ cy.payout_txn.id }}">#{{ cy.payout_txn.seq }}</a></div>{% endif %}
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Member</th><th>Status</th><th class="acct-hide-sm">Paid by</th><th class="acct-hide-sm">Paid at</th><th class="num">Amount</th></tr></thead>
+    <tbody>{% for x in cy.contribs %}
+      <tr><td>{{ x.full_name }}</td><td><span class="pill pill-no-dot {{ {'paid':'pill-green','late':'pill-amber','pending':'pill-gray','missed':'pill-red'}.get(x.status,'pill-gray') }}">{{ x.status }}</span></td>
+        <td class="acct-hide-sm">{% if x.paid_by and x.paid_by != x.user_id %}{{ x.payer }} (covered){% endif %}</td>
+        <td class="acct-hide-sm mono">{{ (x.paid_at or '')[:16] }}</td><td class="num">{{ acct_money(x.amount_cents, cur) }}</td></tr>
+    {% endfor %}</tbody></table></div>
+</div>
+{% else %}<div class="card card-pad muted">No cycles yet.</div>{% endfor %}
+{% if loans %}
+<div class="card"><div class="card-header"><span class="card-title">Circle loans (covered contributions)</span></div><div class="table-wrap"><table>
+  <thead><tr><th>Lender</th><th>Borrower</th><th class="num">Lent</th><th class="num">Repaid</th><th>Status</th></tr></thead>
+  <tbody>{% for l in loans %}<tr><td>{{ l.lender }}</td><td>{{ l.borrower }}</td><td class="num">{{ acct_money(l.original_amount_cents, l.currency) }}</td><td class="num">{{ acct_money(l.repaid_cents, l.currency) }}</td><td>{{ l.status }}</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Settlement simulator{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Settlement simulator</h1>
+{% if not simulated %}
+<div class="card card-pad">This service runs on live money, so the simulator is switched off. Deposits can only arrive from real MoMo, bank or card confirmations.</div>
+{% else %}
+<p class="acct-sub">Pretend to be MoMo, the bank or the card processor so you can rehearse every money path with test users before real money is involved. Everything posted here is recorded exactly like a real confirmation (with a <span class="mono">SIM-</span> reference), so the books, the checks and the reports behave as they will in production.</p>
+<div class="acct-grid">
+  <div class="card">
+    <div class="card-header"><span class="card-title">A deposit arrives</span></div>
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Channel</label><select id="s-ch" class="form-select"><option value="momo">MoMo / Airtel Money</option><option value="bank">Bank transfer</option><option value="card">Card</option></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Currency</label><select id="s-cur" class="form-select">{% for c in currencies %}<option {{ 'selected' if c=='RWF' }}>{{ c }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label class="form-label">Amount</label><input id="s-amt" class="form-input" type="number" value="20000"></div>
+      </div>
+      <div class="form-group"><label class="form-label" id="s-mem-l">Member (Hanatag, phone or deposit reference)</label><input id="s-mem" class="form-input" placeholder="@aline1234"><div class="form-hint" id="s-hint">MoMo and card payments arrive tied to the member's account.</div></div>
+      <div class="form-group"><label class="form-label">Provider reference (leave empty for a new one; reuse one to test a duplicate)</label><input id="s-ref" class="form-input" placeholder="SIM-MOMO-…"></div>
+      <button class="btn btn-primary" onclick="simDeposit()">Post this payment</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">Scenarios to try</span></div>
+    <div class="card-body" style="font-size:.84rem;line-height:1.55">
+      <ol style="padding-left:1.1rem;margin:0">
+        <li>MoMo deposit to a member: credited at once.</li>
+        <li>Same provider reference again: recorded as a duplicate, no money moves.</li>
+        <li>Bank transfer with the member's deposit reference: credited.</li>
+        <li>Bank transfer with a wrong reference: lands in suspense; match it in <a href="/admin/accounting/payments">Deposits &amp; suspense</a>.</li>
+        <li>Card deposit, then the member tries to withdraw it: refused for 14 days.</li>
+        <li>Card deposit, the member spends part, then a chargeback: the rest is taken back, the spent part is a recorded loss.</li>
+        <li>A withdrawal: approve, mark paid with a reference; or reject it and watch the money return.</li>
+        <li>Fast-forward a circle past its due date: unpaid members are marked missed and the pot pays out what was collected.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Fast-forward a circle</span><button class="btn btn-outline btn-sm" onclick="simRun()">Run the missed-payment job now</button></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Circle</th><th>Open cycle</th><th>Due</th><th class="num">Still unpaid</th><th></th></tr></thead>
+    <tbody>{% for c in circles %}<tr><td class="td-bold"><a href="/admin/accounting/circle/{{ c.id }}" style="color:var(--ink)">{{ c.name }}</a> <span class="muted">{{ c.currency }}</span></td><td class="num">{{ c.cycle_number }}</td><td class="mono">{{ (c.due_at or '')[:10] }}</td><td class="num">{{ c.pending }}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="simFF('{{ c.cycle_id }}')">Make it 4 days overdue</button></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No open circle cycles.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+<div class="card"><div class="card-header"><span class="card-title">Latest payments</span></div><div class="table-wrap"><table><tbody>
+  {% for e in recent %}<tr><td class="mono">{{ e.created_at }}</td><td>{{ e.channel }}</td><td class="mono">{{ e.external_ref }}</td><td class="num">{{ acct_money(e.amount_cents, e.currency) }}</td><td>{{ e.full_name or '—' }}</td><td>{{ e.status }}</td></tr>
+  {% else %}<tr><td class="muted">None yet.</td></tr>{% endfor %}</tbody></table></div></div>
+<script>
+document.getElementById('s-ch').addEventListener('change',e=>{const b=e.target.value==='bank';document.getElementById('s-mem-l').textContent=b?'Reference the payer typed on the transfer':'Member (Hanatag, phone or deposit reference)';document.getElementById('s-hint').textContent=b?'Use the member\'s deposit reference (SOH…) or Hanatag. Anything else goes to suspense.':'MoMo and card payments arrive tied to the member\'s account.';});
+async function simDeposit(){const d=await acctPost('/admin/accounting/simulator',{action:'deposit',channel:document.getElementById('s-ch').value,currency:document.getElementById('s-cur').value,amount:document.getElementById('s-amt').value,member:document.getElementById('s-mem').value,external_ref:document.getElementById('s-ref').value});if(d){toast('Payment '+d.external_ref+': '+d.status,'success');setTimeout(()=>location.reload(),1100);}}
+async function simFF(id){const d=await acctPost('/admin/accounting/simulator',{action:'fast_forward',cycle_id:id,days:4});if(d){toast(d.missed+' contribution(s) marked missed','success');setTimeout(()=>location.reload(),1000);}}
+async function simRun(){const d=await acctPost('/admin/accounting/simulator',{action:'run_overdue'});if(d){toast(d.missed+' contribution(s) marked missed','success');setTimeout(()=>location.reload(),1000);}}
+</script>
+{% endif %}
+{% endblock %}

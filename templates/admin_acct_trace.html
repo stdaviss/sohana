@@ -1,0 +1,23 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Trace{% endblock %}
+{% block crumb %} / Trace{% endblock %}
+{% block acct %}
+<h1 class="acct-h">Money trace</h1>
+<p class="acct-sub">The path this amount took, newest first, back to the deposit it came from.</p>
+{% if root %}
+<div class="card card-pad" style="margin-bottom:1rem">
+  <div class="eq-row"><span>Original source</span><span class="td-bold">{{ {'cash_momo':'MoMo deposit','cash_bank':'Bank deposit','cash_card':'Card deposit','simulated_funding':'Simulated money','opening':'Pre-ledger balance','adjustments':'Adjustment'}.get(root.root_kind, root.root_kind) }}</span></div>
+  <div class="eq-row"><span>Provider reference</span><span class="mono">{{ root.root_ref or '—' }}</span></div>
+  <div class="eq-row"><span>Deposited on (UTC)</span><span class="mono">{{ root.root_created_at }}</span></div>
+  {% if ext %}<div class="eq-row"><span>Payer / reference typed</span><span>{{ ext.payer or '—' }} · {{ ext.reference or '—' }} · {{ ext.status }}</span></div>{% endif %}
+</div>
+{% endif %}
+<div class="card"><div class="table-wrap"><table>
+  <thead><tr><th>Step</th><th>Held by</th><th>Transaction</th><th class="num">Amount</th><th class="num">Still there</th></tr></thead>
+  <tbody>{% for c in chain %}
+    <tr><td class="mono">{{ loop.index }}</td><td>{{ c.holder_label }}</td>
+      <td>{% if c.txn %}<a href="/admin/accounting/txn/{{ c.txn_id }}">#{{ c.txn.seq }}</a> {{ acct_kind(c.txn.kind) }} <span class="muted mono">{{ c.txn.created_at }}</span>{% endif %}</td>
+      <td class="num">{{ acct_money(c.amount_cents, c.currency) }}</td><td class="num">{{ acct_money(c.remaining_cents, c.currency) }}</td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

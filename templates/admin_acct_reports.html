@@ -1,0 +1,49 @@
+{% extends "admin_acct_base.html" %}
+{% block acct_title %}Reports{% endblock %}
+{% block acct %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+  <div>
+    <h1 class="acct-h">Period report · {{ f }} to {{ t }}</h1>
+    <p class="acct-sub">Money in by channel, money paid out, SOHANA's fee revenue by product, and activity volume, per currency. EUR equivalents use today's rates and are indicative only.</p>
+  </div>
+  <form method="get" class="acct-actions"><input type="date" name="from" value="{{ f }}" class="filter-select"><input type="date" name="to" value="{{ t }}" class="filter-select"><button class="btn btn-outline btn-sm">Apply</button>
+    <a class="btn btn-outline btn-sm" href="?from={{ f }}&to={{ t }}&format=csv">Download CSV</a></form>
+</div>
+
+{% if months %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">Month by month (EUR equivalent, all currencies)</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Month</th><th class="num">Transactions</th><th class="num">Money in</th><th class="num">Value moved to members</th><th class="num">Fee revenue</th></tr></thead>
+    <tbody>{% for m in months %}<tr><td class="td-bold">{{ m.m }}</td><td class="num">{{ m.n }}</td><td class="num">{{ acct_money(m['in'], 'EUR') }}</td><td class="num">{{ acct_money(m.vol, 'EUR') }}</td><td class="num">{{ acct_money(m.fees, 'EUR') }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="acct-note">"Money in" includes simulated money while the service runs on simulated funds. It is not revenue.</div>
+</div>
+{% endif %}
+
+{% for c, r in rep.items() %}
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header"><span class="card-title">{{ c }}</span><span class="muted" style="font-size:.8rem">{{ r.members }} active member(s)</span></div>
+  <div class="card-body" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.2rem">
+    <div>
+      <div class="muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Money in</div>
+      <div class="eq-row"><span>MoMo / Airtel Money</span><span class="num">{{ acct_money(r['in'].momo, c) }}</span></div>
+      <div class="eq-row"><span>Bank transfers</span><span class="num">{{ acct_money(r['in'].bank, c) }}</span></div>
+      <div class="eq-row"><span>Cards</span><span class="num">{{ acct_money(r['in'].card, c) }}</span></div>
+      <div class="eq-row"><span>Simulated money</span><span class="num muted">{{ acct_money(r['in'].simulated, c) }}</span></div>
+      <div class="eq-row eq-total"><span>Total</span><span class="num">{{ acct_money(r.in_total, c) }}</span></div>
+      <div class="eq-row" style="margin-top:.6rem"><span>Paid out (MoMo + bank)</span><span class="num">{{ acct_money(r.paid_out, c) }}</span></div>
+    </div>
+    <div>
+      <div class="muted" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">SOHANA fee revenue</div>
+      {% for k, v in r.fees.items() %}<div class="eq-row"><span>{{ fee_labels.get(k, k) }}</span><span class="num">{{ acct_money(v, c) }}</span></div>{% else %}<div class="muted" style="font-size:.82rem">No fees in this period.</div>{% endfor %}
+      <div class="eq-row eq-total"><span>Total</span><span class="num">{{ acct_money(r.fees_total, c) }}{% if c!='EUR' %} <span class="muted">≈ {{ acct_money(eur(r.fees_total, c), 'EUR') }}</span>{% endif %}</span></div>
+    </div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Activity</th><th class="num">Count</th><th class="num">Value</th></tr></thead>
+    <tbody>{% for k, nv in r.kinds.items() %}<tr><td>{{ acct_kind(k) }}</td><td class="num">{{ nv[0] }}</td><td class="num">{{ acct_money(nv[1], c) }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No activity.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+{% else %}<div class="card card-pad muted">No ledger activity yet.</div>{% endfor %}
+{% endblock %}
